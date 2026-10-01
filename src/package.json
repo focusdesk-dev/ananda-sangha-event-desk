@@ -1,0 +1,8 @@
+{
+  "name": "ananda-sangha-event-desk",
+  "version": "1.0.118",
+  "description": "ANANDA SANGHA GURGAON Event Desk",
+  "author": "ANANDA SANGHA GURGAON",
+  "main": "main.js",
+  "private": true
+}
