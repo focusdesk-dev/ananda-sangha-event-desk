@@ -57,7 +57,6 @@ jobs:
           decoded = html_bytes.decode('utf-8', errors='replace')
           print(f'UTF-8 replacement count: {decoded.count(chr(0xfffd))}')
 
-          # Find exact undecodable byte ranges without printing Unicode to the Windows console.
           errors = []
           scan = 0
           while scan < len(html_bytes):
@@ -70,33 +69,32 @@ jobs:
                   errors.append((start, end, e.reason))
                   scan = max(end, start + 1)
           print(f'Unicode error ranges: {errors}')
-          for n, (start, end, reason) in enumerate(errors[:20], 1):
-              a = max(0, start - 180)
-              b = min(len(html_bytes), end + 180)
-              print(f'CORRUPTION_{n}: bytes {start}:{end} reason={reason}')
-              print(repr(html_bytes[a:b]))
 
           required = ['<html', '</html>', 'ANANDA', 'addVolunteer', 'addAttendeeMaster', 'addKriyaban', 'addVip', 'v36NewRegistration', 'eventForm']
           missing = [m for m in required if m.lower() not in decoded.lower()]
           print(f'Missing required markers: {missing}')
 
-          pathlib.Path('src/index.raw-corrupt.bin').write_bytes(html_bytes)
-          pathlib.Path('src/index.salvage.html').write_text(decoded, encoding='utf-8')
-
           if actual_crc == expected_crc and len(html_bytes) == expected_size and not errors and not missing:
               pathlib.Path('src/index.html').write_bytes(html_bytes)
               print('Original HTML payload is fully valid.')
           else:
-              raise SystemExit('HTML payload is corrupt; exact byte contexts printed above.')
+              raise SystemExit('HTML payload validation failed.')
           '@ | Set-Content -Path diagnose_html.py -Encoding utf8
           python diagnose_html.py
+          Remove-Item diagnose_html.py -Force
 
-      - name: Restore Ananda logo
+      - name: Restore and verify Ananda logo
         shell: powershell
         run: |
-          $b64 = (Get-Content 'assets/logo-128.png.b64' -Raw).Trim()
-          [IO.File]::WriteAllBytes((Join-Path $PWD 'src/logo-128.png'), [Convert]::FromBase64String($b64))
-          if ((Get-Item 'src/logo-128.png').Length -lt 10000) { throw 'Logo restore failed.' }
+          $parts = Get-ChildItem 'assets/logo-128.png.b64.part*' | Sort-Object Name
+          if (!$parts -or $parts.Count -ne 4) { throw "Expected 4 logo source parts; found $($parts.Count)." }
+          $b64 = ($parts | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
+          $logoPath = Join-Path $PWD 'src/logo-128.png'
+          [IO.File]::WriteAllBytes($logoPath, [Convert]::FromBase64String($b64))
+          $bytes = [IO.File]::ReadAllBytes($logoPath)
+          if ($bytes.Length -ne 22678) { throw "Logo restore failed: expected 22678 bytes, got $($bytes.Length)." }
+          if ($bytes[0] -ne 0x89 -or $bytes[1] -ne 0x50 -or $bytes[2] -ne 0x4E -or $bytes[3] -ne 0x47) { throw 'Logo restore failed: PNG signature is invalid.' }
+          Write-Host "VERIFIED LOGO: $($bytes.Length) bytes"
 
       - name: Validate Electron source
         working-directory: src
@@ -106,6 +104,7 @@ jobs:
           node --check preload.js
           if (!(Test-Path 'installer.nsh')) { throw 'installer.nsh is missing.' }
           if (!(Test-Path 'index.html')) { throw 'index.html is missing after recovery.' }
+          if (!(Test-Path 'logo-128.png')) { throw 'logo-128.png is missing after recovery.' }
           Write-Host 'Electron source validation passed.'
 
       - name: Install build dependencies
