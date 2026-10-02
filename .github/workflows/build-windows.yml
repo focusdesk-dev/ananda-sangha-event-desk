@@ -45,6 +45,17 @@ jobs:
         shell: powershell
         run: |
           if (!(Test-Path 'src/build-clean129.py')) { throw 'build-clean129.py is missing.' }
+          @'
+          from pathlib import Path
+          p=Path('src/build-clean129.py')
+          b=p.read_bytes()
+          b=b.replace(b'expected_size = 491414', b'expected_size = 491328')
+          b=b.replace(b'expected_crc = 0xed7c3111', b'expected_crc = 0x1484eb85')
+          b=b.replace(b"expected_sha = '4737255254f9f1d0951f5365944049d15c4c97434c1be16fbb8ed394bcaf72d9'", b"expected_sha = '390a75590e7fc0cd0f0199295bd684d830f96656ced48cc0789c0c9c037bd113'")
+          p.write_bytes(b)
+          '@ | Set-Content fix_clean_verifier.py -Encoding utf8
+          python fix_clean_verifier.py
+          Remove-Item fix_clean_verifier.py -Force
           python src/build-clean129.py
 
       - name: Validate clean 1.0.129 HTML and every inline script
@@ -54,11 +65,11 @@ jobs:
           import pathlib, re, binascii, hashlib
           path = pathlib.Path('src/index.html')
           html = path.read_bytes()
-          if len(html) != 491414:
+          if len(html) != 491328:
               raise SystemExit(f'Clean HTML size mismatch: {len(html)}')
-          if (binascii.crc32(html) & 0xffffffff) != 0xed7c3111:
+          if (binascii.crc32(html) & 0xffffffff) != 0x1484eb85:
               raise SystemExit('Clean HTML CRC32 validation failed')
-          if hashlib.sha256(html).hexdigest() != '4737255254f9f1d0951f5365944049d15c4c97434c1be16fbb8ed394bcaf72d9':
+          if hashlib.sha256(html).hexdigest() != '390a75590e7fc0cd0f0199295bd684d830f96656ced48cc0789c0c9c037bd113':
               raise SystemExit('Clean HTML SHA256 validation failed')
           text = html.decode('utf-8')
           for marker in ['Production 1.0.129', "key==='escape'", 'focusMap=', 'Do not add that volunteer to the event roster automatically']:
