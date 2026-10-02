@@ -1,12 +1,12 @@
 {
   "name": "ananda-sangha-event-desk",
-  "version": "1.0.119",
-  "description": "ANANDA SANGHA GURGAON Event Desk",
+  "version": "1.0.127",
+  "description": "ANANDA SANGHA GURGAON Event Desk - NGO Production",
   "author": "ANANDA SANGHA GURGAON",
   "main": "main.js",
   "private": true,
   "scripts": {
-    "dist": "electron-builder --win nsis --x64"
+    "build:dir": "electron-builder --win dir --x64"
   },
   "devDependencies": {
     "electron": "39.1.0",
@@ -15,31 +15,22 @@
   "build": {
     "appId": "org.anandasangha.gurgaon.eventdesk",
     "productName": "Ananda Sangha Event Desk",
-    "asar": true,
+    "asar": false,
     "files": [
       "main.js",
+      "preload.js",
       "index.html",
       "logo-128.png"
     ],
     "win": {
       "target": [
         {
-          "target": "nsis",
-          "arch": ["x64"]
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
         }
-      ],
-      "icon": "logo-128.png",
-      "artifactName": "Ananda_Sangha_Event_Desk_Setup_v${version}.${ext}"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "perMachine": false,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Ananda Sangha Event Desk",
-      "runAfterFinish": true,
-      "deleteAppDataOnUninstall": false
+      ]
     }
   }
 }
