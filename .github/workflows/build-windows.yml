@@ -3,7 +3,7 @@ name: Build Windows Production Installer
 on:
   workflow_dispatch:
   push:
-    branches: [production-v129-full-rebuild]
+    branches: [production-v129-update]
 
 jobs:
   build-windows:
@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Restore and verify application HTML
+      - name: Restore verified application HTML and apply production patch
         shell: powershell
         run: |
           @'
@@ -30,13 +30,23 @@ jobs:
           raw = base64.b64decode(b''.join(b''.join(p.read_bytes().split()) for p in parts), validate=True)
           html = gzip.decompress(raw)
           if len(html) != 488870 or (binascii.crc32(html) & 0xffffffff) != 0x41243984:
-              raise SystemExit('HTML checksum/size validation failed')
+              raise SystemExit('Base HTML checksum/size validation failed')
           text = html.decode('utf-8')
           for marker in ['<html', '</html>', 'ANANDA', 'addVolunteer', 'addAttendeeMaster', 'addKriyaban', 'addVip', 'v36NewRegistration', 'eventForm']:
               if marker.lower() not in text.lower():
                   raise SystemExit(f'Missing application marker: {marker}')
-          pathlib.Path('src/index.html').write_bytes(html)
-          print('VERIFIED HTML: 488870 bytes, CRC32 41243984')
+          patch_path = pathlib.Path('src/production-patch.js')
+          if not patch_path.exists():
+              raise SystemExit('production-patch.js is missing')
+          patch = patch_path.read_text(encoding='utf-8')
+          if 'Production patch 1.0.129' not in patch:
+              raise SystemExit('Unexpected production patch version')
+          if '</body>' not in text:
+              raise SystemExit('Could not find closing body tag for patch injection')
+          text = text.replace('</body>', '<script>\n' + patch + '\n</script>\n</body>', 1)
+          pathlib.Path('src/index.html').write_text(text, encoding='utf-8')
+          print(f'VERIFIED BASE HTML: {len(html)} bytes, CRC32 41243984')
+          print(f'PATCHED HTML: {len(text.encode("utf-8"))} bytes')
           '@ | Set-Content restore_html.py -Encoding utf8
           python restore_html.py
           Remove-Item restore_html.py -Force
@@ -75,16 +85,28 @@ jobs:
             Write-Host "VERIFIED WINDOWS ICON: $($check.Width)x$($check.Height)"
           } finally { $check.Dispose() }
 
-      - name: Validate Electron source
+      - name: Set production version in Electron shell
+        shell: powershell
+        run: |
+          $path = 'src/main.js'
+          $content = Get-Content $path -Raw
+          $updated = [regex]::Replace($content, "const APP_VERSION = '[^']+';", "const APP_VERSION = '1.0.129';", 1)
+          if ($updated -eq $content) { throw 'APP_VERSION marker was not updated in main.js' }
+          Set-Content $path $updated -Encoding utf8
+          Write-Host 'Electron shell version set to 1.0.129'
+
+      - name: Validate Electron source and production patch
         working-directory: src
         shell: powershell
         run: |
           node --check main.js
           node --check preload.js
+          node --check production-patch.js
           if (!(Test-Path 'installer.nsh')) { throw 'installer.nsh is missing.' }
           if (!(Test-Path 'index.html')) { throw 'index.html is missing.' }
           if (!(Test-Path 'logo-128.png')) { throw 'logo is missing.' }
-          Write-Host 'Electron source validation passed.'
+          if ((Get-Content package.json -Raw) -notmatch '"version"\s*:\s*"1\.0\.129"') { throw 'package.json is not version 1.0.129' }
+          Write-Host 'Electron source and patch validation passed.'
 
       - name: Install build dependencies
         working-directory: src
@@ -97,7 +119,7 @@ jobs:
       - name: Verify installer exists
         shell: powershell
         run: |
-          $setup = 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe'
+          $setup = 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe'
           $app = 'src/dist/win-unpacked/Ananda Sangha Event Desk.exe'
           if (!(Test-Path $setup)) { throw "Installer not created: $setup" }
           if (!(Test-Path $app)) { throw "Application executable not created: $app" }
@@ -113,24 +135,24 @@ jobs:
         run: |
           $root = Join-Path $PWD 'handover/ANANDA SANGHA EVENT DESK'
           New-Item -ItemType Directory -Force -Path (Join-Path $root 'Installer'),(Join-Path $root 'Data'),(Join-Path $root 'Backup/Automatic'),(Join-Path $root 'Backup/Manual') | Out-Null
-          Copy-Item 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe' (Join-Path $root 'Installer/Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe') -Force
-          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nNGO PRODUCTION`r`nVersion 1.0.128`r`nWindows NSIS installer + uninstaller`r`nDesktop + Start Menu shortcut`r`nData preserved on uninstall`r`nAutomatic backup: every 5 days`r`nKeyboard: + Add/New | Alt+S Save" -Encoding utf8
-          Set-Content (Join-Path $root 'README_START_HERE.txt') "1. Open Installer.`r`n2. Run Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe.`r`n3. Complete the Windows setup wizard.`r`n4. Desktop and Start Menu shortcuts are created.`r`n5. Uninstall from Windows Installed Apps.`r`n6. NGO data/backups are retained." -Encoding utf8
+          Copy-Item 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe' (Join-Path $root 'Installer/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe') -Force
+          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nNGO PRODUCTION`r`nVersion 1.0.129`r`nWindows NSIS installer + uninstaller`r`nDesktop + Start Menu shortcut`r`nData preserved on uninstall`r`nAutomatic backup: every 5 days`r`nKeyboard: + Add/New | Alt+S Save | Esc Back" -Encoding utf8
+          Set-Content (Join-Path $root 'README_START_HERE.txt') "1. Open Installer.`r`n2. Run Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe.`r`n3. Complete the Windows setup wizard.`r`n4. Desktop and Start Menu shortcuts are created.`r`n5. Uninstall from Windows Installed Apps.`r`n6. NGO data/backups are retained.`r`n7. For an update, install this version over the existing installation; do not delete the NGO Data folder." -Encoding utf8
 
       - name: Compress NGO handover
         shell: powershell
-        run: Compress-Archive -Path 'handover/ANANDA SANGHA EVENT DESK' -DestinationPath 'ANANDA_SANGHA_EVENT_DESK_NGO_PRODUCTION_v1.0.128.zip' -CompressionLevel Optimal
+        run: Compress-Archive -Path 'handover/ANANDA SANGHA EVENT DESK' -DestinationPath 'ANANDA_SANGHA_EVENT_DESK_NGO_PRODUCTION_v1.0.129.zip' -CompressionLevel Optimal
 
       - name: Upload Setup.exe
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Setup-v1.0.128
-          path: src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe
+          name: Ananda-Sangha-Event-Desk-Setup-v1.0.129
+          path: src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe
           if-no-files-found: error
 
       - name: Upload complete NGO handover
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-NGO-Handover-v1.0.128
-          path: ANANDA_SANGHA_EVENT_DESK_NGO_PRODUCTION_v1.0.128.zip
+          name: Ananda-Sangha-Event-Desk-NGO-Handover-v1.0.129
+          path: ANANDA_SANGHA_EVENT_DESK_NGO_PRODUCTION_v1.0.129.zip
           if-no-files-found: error
