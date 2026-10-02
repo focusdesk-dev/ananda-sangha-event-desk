@@ -83,6 +83,26 @@ function writeBackup(payload, mode) {
   return { ok: true, created: true, path: filePath };
 }
 
+function ensureWindowsDesktopShortcut() {
+  if (process.platform !== 'win32' || !app.isPackaged) return false;
+  try {
+    const shortcutPath = path.join(app.getPath('desktop'), 'Ananda Sangha Event Desk.lnk');
+    const target = process.execPath;
+    const ok = shell.writeShortcutLink(shortcutPath, 'replace', {
+      target,
+      cwd: path.dirname(target),
+      description: 'ANANDA SANGHA GURGAON Event Desk',
+      icon: target,
+      iconIndex: 0
+    });
+    if (!ok) console.error('Desktop shortcut could not be written:', shortcutPath);
+    return ok;
+  } catch (error) {
+    console.error('Desktop shortcut repair failed:', error);
+    return false;
+  }
+}
+
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
@@ -99,6 +119,50 @@ if (!gotLock) {
 function sendShortcut(action) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   mainWindow.webContents.send('ananda-shortcut', action);
+}
+
+function runBackShortcut() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  const script = `(() => {
+    const visible = el => {
+      if (!el || el.disabled) return false;
+      const s = getComputedStyle(el);
+      if (s.display === 'none' || s.visibility === 'hidden' || Number(s.opacity) === 0) return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0;
+    };
+    const chooser = document.getElementById('anandaShortcutChooser');
+    if (visible(chooser)) { chooser.remove(); return 'chooser'; }
+
+    const modals = [...document.querySelectorAll('.modal-backdrop.open, [role="dialog"]')].filter(visible);
+    if (modals.length) {
+      const modal = modals[modals.length - 1];
+      const controls = [...modal.querySelectorAll('button, [role="button"]')].filter(visible);
+      const close = controls.find(el => {
+        const id = String(el.id || '').toLowerCase();
+        const label = String(el.getAttribute('aria-label') || '').toLowerCase();
+        const text = String(el.textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase();
+        return /cancel|close/.test(id) || /cancel|close/.test(label) || /^(cancel|close|×|x)$/.test(text);
+      });
+      if (close) { close.click(); return 'modal'; }
+    }
+
+    const workspaceBack = document.getElementById('v54WorkspaceBack');
+    if (visible(workspaceBack)) { workspaceBack.click(); return 'workspace-back'; }
+
+    const back = document.getElementById('backButton');
+    if (visible(back)) { back.click(); return 'back-button'; }
+
+    const page = document.querySelector('.page.active') || [...document.querySelectorAll('.page')].find(visible);
+    const scope = page || document;
+    const textBack = [...scope.querySelectorAll('button, a, [role="button"]')].filter(visible).find(el => {
+      const text = String(el.textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase();
+      return /^(←\\s*)?back$/.test(text);
+    });
+    if (textBack) { textBack.click(); return 'text-back'; }
+    return 'none';
+  })()`;
+  mainWindow.webContents.executeJavaScript(script, true).catch(() => {});
 }
 
 function createWindow() {
@@ -129,12 +193,16 @@ function createWindow() {
     const plus = !input.alt && !input.control && !input.meta && (
       input.key === '+' || code === 'NumpadAdd' || (code === 'Equal' && !!input.shift) || (input.key === '=' && !!input.shift)
     );
+    const escapeBack = !input.alt && !input.control && !input.meta && (key === 'escape' || code === 'Escape');
     if (altSave) {
       event.preventDefault();
       sendShortcut('save');
     } else if (plus) {
       event.preventDefault();
       sendShortcut('add');
+    } else if (escapeBack) {
+      event.preventDefault();
+      runBackShortcut();
     }
   });
 
@@ -144,6 +212,7 @@ function createWindow() {
   });
   mainWindow.once('ready-to-show', () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
+    ensureWindowsDesktopShortcut();
     mainWindow.setSkipTaskbar(false);
     mainWindow.show();
     mainWindow.focus();
@@ -220,6 +289,7 @@ ipcMain.handle('ananda-manual-backup-state', async (_event, payload) => {
 
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
+  ensureWindowsDesktopShortcut();
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
