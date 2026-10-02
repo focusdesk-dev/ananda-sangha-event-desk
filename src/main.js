@@ -88,7 +88,8 @@ function ensureWindowsDesktopShortcut() {
   try {
     const shortcutPath = path.join(app.getPath('desktop'), 'Ananda Sangha Event Desk.lnk');
     const target = process.execPath;
-    const ok = shell.writeShortcutLink(shortcutPath, 'replace', {
+    const operation = fs.existsSync(shortcutPath) ? 'replace' : 'create';
+    const ok = shell.writeShortcutLink(shortcutPath, operation, {
       target,
       cwd: path.dirname(target),
       description: 'ANANDA SANGHA GURGAON Event Desk',
