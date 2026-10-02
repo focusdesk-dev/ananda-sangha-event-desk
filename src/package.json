@@ -1,7 +1,7 @@
 {
   "name": "ananda-sangha-event-desk",
-  "version": "1.0.129",
-  "description": "ANANDA SANGHA GURGAON Event Desk - NGO Production",
+  "version": "2.0.0-beta.1",
+  "description": "ANANDA SANGHA GURGAON Event Desk - Phase 2 NGO Database Beta",
   "author": "ANANDA SANGHA GURGAON",
   "main": "main.js",
   "private": true,
@@ -31,7 +31,7 @@
         }
       ],
       "icon": "ananda-icon.ico",
-      "artifactName": "Ananda_Sangha_Event_Desk_Setup_v${version}.${ext}"
+      "artifactName": "Ananda_Sangha_Event_Desk_Phase2_Setup_v${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
