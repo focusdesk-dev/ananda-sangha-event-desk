@@ -6,7 +6,7 @@
   "main": "main.js",
   "private": true,
   "scripts": {
-    "build:dir": "electron-builder --win dir --x64"
+    "build:dir": "electron-builder --win --x64 --dir"
   },
   "devDependencies": {
     "electron": "39.1.0",
@@ -21,16 +21,6 @@
       "preload.js",
       "index.html",
       "logo-128.png"
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "dir",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    }
+    ]
   }
 }
