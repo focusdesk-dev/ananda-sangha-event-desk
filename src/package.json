@@ -20,7 +20,8 @@
       "main.js",
       "preload.js",
       "index.html",
-      "logo-128.png"
+      "logo-128.png",
+      "ananda-icon.ico"
     ],
     "win": {
       "target": [
@@ -29,7 +30,7 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "logo-128.png",
+      "icon": "ananda-icon.ico",
       "artifactName": "Ananda_Sangha_Event_Desk_Setup_v${version}.${ext}"
     },
     "nsis": {
@@ -39,6 +40,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Ananda Sangha Event Desk",
+      "installerIcon": "ananda-icon.ico",
+      "uninstallerIcon": "ananda-icon.ico",
+      "installerHeaderIcon": "ananda-icon.ico",
       "runAfterFinish": true,
       "deleteAppDataOnUninstall": false,
       "uninstallDisplayName": "Ananda Sangha Event Desk",
