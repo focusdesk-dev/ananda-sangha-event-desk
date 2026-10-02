@@ -1,0 +1,78 @@
+name: Build NGO Production Handover
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - production-v127-clean
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Restore large HTML source
+        shell: powershell
+        run: |
+          $b64 = (Get-Content 'assets/index.html.gz.b64' -Raw).Trim()
+          $gzPath = Join-Path $PWD 'src/index.html.gz'
+          [IO.File]::WriteAllBytes($gzPath, [Convert]::FromBase64String($b64))
+          $input = [IO.File]::OpenRead($gzPath)
+          try {
+            $gzip = New-Object IO.Compression.GZipStream($input, [IO.Compression.CompressionMode]::Decompress)
+            try {
+              $output = [IO.File]::Create((Join-Path $PWD 'src/index.html'))
+              try { $gzip.CopyTo($output) } finally { $output.Dispose() }
+            } finally { $gzip.Dispose() }
+          } finally { $input.Dispose() }
+          Remove-Item $gzPath -Force
+
+      - name: Restore Ananda logo
+        shell: powershell
+        run: |
+          $b64 = (Get-Content 'assets/logo-128.png.b64' -Raw).Trim()
+          [IO.File]::WriteAllBytes((Join-Path $PWD 'src/logo-128.png'), [Convert]::FromBase64String($b64))
+
+      - name: Install build dependencies
+        working-directory: src
+        run: npm install
+
+      - name: Build Windows x64 application folder
+        working-directory: src
+        run: npm run build:dir
+
+      - name: Create complete NGO handover folder
+        shell: powershell
+        run: |
+          $root = Join-Path $PWD 'handover/ANANDA SANGHA EVENT DESK'
+          $app = Join-Path $root 'Application'
+          New-Item -ItemType Directory -Force -Path $app,(Join-Path $root 'Data'),(Join-Path $root 'Backup/Automatic'),(Join-Path $root 'Backup/Manual'),(Join-Path $root 'System'),(Join-Path $root 'Installer') | Out-Null
+          Copy-Item 'src/dist/win-unpacked/*' $app -Recurse -Force
+          Set-Content (Join-Path $app 'ANANDA_APP_VERSION.txt') '1.0.127' -Encoding ascii
+          Copy-Item 'installer/00_INSTALL_ANANDA.bat' (Join-Path $root 'Installer/00_INSTALL_ANANDA.bat') -Force
+          Copy-Item 'installer/INSTALL_ANANDA.ps1' (Join-Path $root 'Installer/INSTALL_ANANDA.ps1') -Force
+          Copy-Item 'START_ANANDA_EVENT_DESK.bat' (Join-Path $root 'START_ANANDA_EVENT_DESK.bat') -Force
+          Copy-Item 'README.md' (Join-Path $root 'README_START_HERE.md') -Force
+          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nNGO PRODUCTION`r`nVersion 1.0.127`r`nAuto backup: every 5 days on app launch`r`nKeyboard: + Add/New | Alt+S Save" -Encoding utf8
+          Set-Content (Join-Path $root 'Data/README_DATA_FOLDER.txt') 'Permanent app data is stored here. Do not delete this folder after production use begins.' -Encoding utf8
+          Set-Content (Join-Path $root 'Backup/README_BACKUP_FOLDER.txt') 'Automatic and manual backups are stored under this folder.' -Encoding utf8
+
+      - name: Compress handover ZIP
+        shell: powershell
+        run: Compress-Archive -Path 'handover/ANANDA SANGHA EVENT DESK' -DestinationPath 'ANANDA_SANGHA_EVENT_DESK_NGO_PRODUCTION_v1.0.127.zip' -CompressionLevel Optimal
+
+      - name: Upload production handover
+        uses: actions/upload-artifact@v4
+        with:
+          name: ANANDA-SANGHA-EVENT-DESK-NGO-PRODUCTION-v1.0.127
+          path: ANANDA_SANGHA_EVENT_DESK_NGO_PRODUCTION_v1.0.127.zip
+          if-no-files-found: error
