@@ -3,7 +3,7 @@ name: Build Windows Production Installer
 on:
   workflow_dispatch:
   push:
-    branches: [production-v128-installer]
+    branches: [production-v129-full-rebuild]
 
 jobs:
   build-windows:
