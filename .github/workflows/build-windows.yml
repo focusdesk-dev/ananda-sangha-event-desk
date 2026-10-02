@@ -85,9 +85,14 @@ jobs:
           Remove-Item restore_beta2.py -Force
           python src/build-beta2-patch.py
 
-          (Get-Content src/main.js -Raw).Replace("2.0.0-beta.1","2.0.0-beta.2") | Set-Content src/main.js -Encoding utf8
-          (Get-Content src/package.json -Raw).Replace('"2.0.0-beta.1"','"2.0.0-beta.2"') | Set-Content src/package.json -Encoding utf8
-          (Get-Content src/installer.nsh -Raw).Replace('Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe','Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.2.exe') | Set-Content src/installer.nsh -Encoding utf8
+          @'
+          from pathlib import Path
+          p=Path('src/main.js'); p.write_text(p.read_text(encoding='utf-8-sig').replace('2.0.0-beta.1','2.0.0-beta.2'),encoding='utf-8',newline='\n')
+          p=Path('src/package.json'); p.write_text(p.read_text(encoding='utf-8-sig').replace('"2.0.0-beta.1"','"2.0.0-beta.2"'),encoding='utf-8',newline='\n')
+          p=Path('src/installer.nsh'); p.write_text(p.read_text(encoding='utf-8-sig').replace('Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe','Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.2.exe'),encoding='utf-8',newline='\n')
+          '@ | Set-Content patch_shell_files.py -Encoding utf8
+          python patch_shell_files.py
+          Remove-Item patch_shell_files.py -Force
 
       - name: Validate Phase 2 beta.2 HTML and scripts
         shell: powershell
