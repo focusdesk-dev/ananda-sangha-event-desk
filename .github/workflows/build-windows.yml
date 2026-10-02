@@ -51,7 +51,7 @@ jobs:
           python restore_html.py
           Remove-Item restore_html.py -Force
 
-      - name: Restore and prepare Ananda Windows icon
+      - name: Restore Ananda logo and build multi-resolution Windows icon
         shell: powershell
         run: |
           $parts = Get-ChildItem 'assets/logo-128.png.b64.part*' | Sort-Object Name
@@ -65,35 +65,63 @@ jobs:
           $src = [System.Drawing.Image]::FromFile($logo)
           try {
             if ($src.Width -ne 128 -or $src.Height -ne 128) { throw "Unexpected source logo dimensions: $($src.Width)x$($src.Height)" }
-            $bmp = New-Object System.Drawing.Bitmap 256,256
-            try {
-              $g = [System.Drawing.Graphics]::FromImage($bmp)
+            $sizes = @(16,20,24,32,40,48,64,128,256)
+            $frames = @()
+            foreach ($size in $sizes) {
+              $bmp = [System.Drawing.Bitmap]::new($size,$size,[System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
               try {
-                $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-                $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-                $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-                $g.DrawImage($src, 0, 0, 256, 256)
-              } finally { $g.Dispose() }
-              $tmp = Join-Path $PWD 'src/logo-256.tmp.png'
-              $bmp.Save($tmp, [System.Drawing.Imaging.ImageFormat]::Png)
-            } finally { $bmp.Dispose() }
+                $g = [System.Drawing.Graphics]::FromImage($bmp)
+                try {
+                  $g.Clear([System.Drawing.Color]::Transparent)
+                  $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                  $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+                  $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+                  $g.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+                  $g.DrawImage($src,0,0,$size,$size)
+                } finally { $g.Dispose() }
+                $ms = [System.IO.MemoryStream]::new()
+                try {
+                  $bmp.Save($ms,[System.Drawing.Imaging.ImageFormat]::Png)
+                  $frames += [PSCustomObject]@{ Size=$size; Bytes=$ms.ToArray() }
+                } finally { $ms.Dispose() }
+              } finally { $bmp.Dispose() }
+            }
           } finally { $src.Dispose() }
-          Move-Item $tmp $logo -Force
-          $check = [System.Drawing.Image]::FromFile($logo)
-          try {
-            if ($check.Width -ne 256 -or $check.Height -ne 256) { throw 'Windows icon resize failed.' }
-            Write-Host "VERIFIED WINDOWS ICON: $($check.Width)x$($check.Height)"
-          } finally { $check.Dispose() }
 
-      - name: Set production version in Electron shell
+          $icon = Join-Path $PWD 'src/ananda-icon.ico'
+          $stream = [System.IO.File]::Open($icon,[System.IO.FileMode]::Create)
+          $writer = [System.IO.BinaryWriter]::new($stream)
+          try {
+            $writer.Write([UInt16]0)
+            $writer.Write([UInt16]1)
+            $writer.Write([UInt16]$frames.Count)
+            $offset = 6 + (16 * $frames.Count)
+            foreach ($frame in $frames) {
+              $dimension = if ($frame.Size -ge 256) { 0 } else { $frame.Size }
+              $writer.Write([byte]$dimension)
+              $writer.Write([byte]$dimension)
+              $writer.Write([byte]0)
+              $writer.Write([byte]0)
+              $writer.Write([UInt16]1)
+              $writer.Write([UInt16]32)
+              $writer.Write([UInt32]$frame.Bytes.Length)
+              $writer.Write([UInt32]$offset)
+              $offset += $frame.Bytes.Length
+            }
+            foreach ($frame in $frames) { $writer.Write([byte[]]$frame.Bytes) }
+          } finally {
+            $writer.Dispose()
+            $stream.Dispose()
+          }
+          if (!(Test-Path $icon) -or (Get-Item $icon).Length -lt 10000) { throw 'Windows ICO generation failed.' }
+          Write-Host "VERIFIED ANANDA WINDOWS ICO: $((Get-Item $icon).Length) bytes, $($frames.Count) resolutions"
+
+      - name: Verify production version in Electron shell
         shell: powershell
         run: |
-          $path = 'src/main.js'
-          $content = Get-Content $path -Raw
-          $updated = [regex]::Replace($content, "const APP_VERSION = '[^']+';", "const APP_VERSION = '1.0.129';", 1)
-          if ($updated -eq $content) { throw 'APP_VERSION marker was not updated in main.js' }
-          Set-Content $path $updated -Encoding utf8
-          Write-Host 'Electron shell version set to 1.0.129'
+          $content = Get-Content 'src/main.js' -Raw
+          if ($content -notmatch "const APP_VERSION = '1\.0\.129';") { throw 'main.js is not version 1.0.129' }
+          Write-Host 'Electron shell version verified as 1.0.129'
 
       - name: Validate Electron source and production patch
         working-directory: src
@@ -105,8 +133,10 @@ jobs:
           if (!(Test-Path 'installer.nsh')) { throw 'installer.nsh is missing.' }
           if (!(Test-Path 'index.html')) { throw 'index.html is missing.' }
           if (!(Test-Path 'logo-128.png')) { throw 'logo is missing.' }
+          if (!(Test-Path 'ananda-icon.ico')) { throw 'Windows icon is missing.' }
           if ((Get-Content package.json -Raw) -notmatch '"version"\s*:\s*"1\.0\.129"') { throw 'package.json is not version 1.0.129' }
-          Write-Host 'Electron source and patch validation passed.'
+          if ((Get-Content package.json -Raw) -notmatch '"icon"\s*:\s*"ananda-icon\.ico"') { throw 'package.json does not use the Ananda Windows icon' }
+          Write-Host 'Electron source, icon and patch validation passed.'
 
       - name: Install build dependencies
         working-directory: src
@@ -130,13 +160,35 @@ jobs:
           Write-Host "VERIFIED INSTALLER: $size bytes"
           Write-Host "VERIFIED APP EXE: $appSize bytes"
 
+      - name: Smoke test installer and Desktop shortcut
+        shell: powershell
+        run: |
+          $setup = (Resolve-Path 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe').Path
+          $desktop = [Environment]::GetFolderPath('Desktop')
+          $shortcut = Join-Path $desktop 'Ananda Sangha Event Desk.lnk'
+          if (Test-Path $shortcut) { Remove-Item $shortcut -Force }
+          $process = Start-Process -FilePath $setup -ArgumentList '/S' -PassThru -Wait
+          if ($process.ExitCode -ne 0) { throw "Silent installer returned exit code $($process.ExitCode)" }
+          Start-Sleep -Seconds 3
+          if (!(Test-Path $shortcut)) { throw "Desktop shortcut was not created: $shortcut" }
+          $shell = New-Object -ComObject WScript.Shell
+          $link = $shell.CreateShortcut($shortcut)
+          if (!$link.TargetPath -or !(Test-Path $link.TargetPath)) { throw "Desktop shortcut target is invalid: $($link.TargetPath)" }
+          Add-Type -AssemblyName System.Drawing
+          $exeIcon = [System.Drawing.Icon]::ExtractAssociatedIcon($link.TargetPath)
+          if ($null -eq $exeIcon) { throw 'Installed EXE has no extractable Windows icon.' }
+          $exeIcon.Dispose()
+          Write-Host "VERIFIED DESKTOP SHORTCUT: $shortcut"
+          Write-Host "VERIFIED SHORTCUT TARGET: $($link.TargetPath)"
+          Get-Process -Name 'Ananda Sangha Event Desk' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
       - name: Create NGO handover folder
         shell: powershell
         run: |
           $root = Join-Path $PWD 'handover/ANANDA SANGHA EVENT DESK'
           New-Item -ItemType Directory -Force -Path (Join-Path $root 'Installer'),(Join-Path $root 'Data'),(Join-Path $root 'Backup/Automatic'),(Join-Path $root 'Backup/Manual') | Out-Null
           Copy-Item 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe' (Join-Path $root 'Installer/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe') -Force
-          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nNGO PRODUCTION`r`nVersion 1.0.129`r`nWindows NSIS installer + uninstaller`r`nDesktop + Start Menu shortcut`r`nData preserved on uninstall`r`nAutomatic backup: every 5 days`r`nKeyboard: + Add/New | Alt+S Save | Esc Back" -Encoding utf8
+          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nNGO PRODUCTION`r`nVersion 1.0.129`r`nWindows NSIS installer + uninstaller`r`nDesktop + Start Menu shortcut`r`nAnanda Windows icon embedded in EXE/installer/shortcut`r`nData preserved on uninstall`r`nAutomatic backup: every 5 days`r`nKeyboard: + Add/New | Alt+S Save | Esc Back" -Encoding utf8
           Set-Content (Join-Path $root 'README_START_HERE.txt') "1. Open Installer.`r`n2. Run Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe.`r`n3. Complete the Windows setup wizard.`r`n4. Desktop and Start Menu shortcuts are created.`r`n5. Uninstall from Windows Installed Apps.`r`n6. NGO data/backups are retained.`r`n7. For an update, install this version over the existing installation; do not delete the NGO Data folder." -Encoding utf8
 
       - name: Compress NGO handover
