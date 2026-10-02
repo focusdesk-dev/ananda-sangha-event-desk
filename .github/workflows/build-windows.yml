@@ -22,106 +22,73 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Recover exact application HTML from chunk history
+      - name: Diagnose and restore application HTML
         shell: powershell
         run: |
           @'
-          import base64
-          import gzip
-          import hashlib
-          import itertools
-          import pathlib
-          import subprocess
-          import sys
+          import base64, binascii, pathlib, struct, zlib
 
-          asset_dir = pathlib.Path('assets')
-          paths = sorted(asset_dir.glob('index.html.gz.b64.part*'))
-          if len(paths) < 2:
-              raise SystemExit('Compressed HTML source parts are missing.')
+          parts = sorted(pathlib.Path('assets').glob('index.html.gz.b64.part*'))
+          if len(parts) != 8:
+              raise SystemExit(f'Expected 8 HTML source parts, found {len(parts)}')
+          b64 = b''.join(b''.join(p.read_bytes().split()) for p in parts)
+          gz = base64.b64decode(b64, validate=True)
+          print(f'Combined base64: {len(b64)} chars; gzip: {len(gz)} bytes')
+          if gz[:2] != b'\x1f\x8b' or gz[2] != 8:
+              raise SystemExit('Payload is not a gzip/deflate stream')
 
-          required = [
-              '<html', '</html>', 'ANANDA', 'addVolunteer',
-              'addAttendeeMaster', 'addKriyaban', 'addVip',
-              'v36NewRegistration', 'eventForm'
-          ]
+          # Parse gzip header so we can inspect the deflate output even when the gzip CRC is bad.
+          flg = gz[3]
+          pos = 10
+          if flg & 4:
+              xlen = struct.unpack_from('<H', gz, pos)[0]
+              pos += 2 + xlen
+          if flg & 8:
+              pos = gz.index(b'\x00', pos) + 1
+          if flg & 16:
+              pos = gz.index(b'\x00', pos) + 1
+          if flg & 2:
+              pos += 2
+          trailer = gz[-8:]
+          expected_crc, expected_size = struct.unpack('<II', trailer)
+          deflate = gz[pos:-8]
+          html_bytes = zlib.decompress(deflate, -15)
+          actual_crc = binascii.crc32(html_bytes) & 0xffffffff
+          print(f'Deflate bytes: {len(deflate)}')
+          print(f'Expected output size: {expected_size}; actual: {len(html_bytes)}')
+          print(f'Expected CRC32: {expected_crc:08x}; actual: {actual_crc:08x}')
 
-          def git_bytes(*args):
-              return subprocess.check_output(['git', *args], stderr=subprocess.DEVNULL)
+          decoded = html_bytes.decode('utf-8', errors='replace')
+          replacement_count = decoded.count('\ufffd')
+          print(f'UTF-8 replacement count: {replacement_count}')
+          cursor = 0
+          shown = 0
+          while shown < 20:
+              i = decoded.find('\ufffd', cursor)
+              if i < 0:
+                  break
+              start = max(0, i - 100)
+              end = min(len(decoded), i + 101)
+              context = decoded[start:end].replace('\r','\\r').replace('\n','\\n')
+              print(f'CORRUPTION_CONTEXT_{shown+1} char={i}: {context!r}')
+              cursor = i + 1
+              shown += 1
 
-          candidate_lists = []
-          candidate_meta = []
-          for path in paths:
-              rel = path.as_posix()
-              commits = git_bytes('log', '--all', '--format=%H', '--', rel).decode().splitlines()
-              seen = set()
-              candidates = []
-              metas = []
+          required = ['<html', '</html>', 'ANANDA', 'addVolunteer', 'addAttendeeMaster', 'addKriyaban', 'addVip', 'v36NewRegistration', 'eventForm']
+          missing = [m for m in required if m.lower() not in decoded.lower()]
+          print(f'Missing required markers: {missing}')
 
-              # Current working-tree value first.
-              current = b''.join(path.read_bytes().split())
-              digest = hashlib.sha256(current).hexdigest()
-              seen.add(digest)
-              candidates.append(current)
-              metas.append(f'WORKTREE:{digest[:12]}')
+          # Write the raw inflated bytes for byte-level diagnostics and a replacement-decoded candidate.
+          pathlib.Path('src/index.raw-corrupt.bin').write_bytes(html_bytes)
+          pathlib.Path('src/index.salvage.html').write_text(decoded, encoding='utf-8')
 
-              for commit in commits:
-                  try:
-                      raw = git_bytes('show', f'{commit}:{rel}')
-                  except subprocess.CalledProcessError:
-                      continue
-                  compact = b''.join(raw.split())
-                  digest = hashlib.sha256(compact).hexdigest()
-                  if digest in seen:
-                      continue
-                  seen.add(digest)
-                  candidates.append(compact)
-                  metas.append(f'{commit[:12]}:{digest[:12]}')
-
-              print(f'{rel}: {len(candidates)} unique historical candidate(s)')
-              candidate_lists.append(candidates)
-              candidate_meta.append(metas)
-
-          total = 1
-          for candidates in candidate_lists:
-              total *= len(candidates)
-          print(f'Testing {total} chunk combinations...')
-          if total > 20000:
-              raise SystemExit(f'Refusing unexpectedly large recovery search: {total} combinations')
-
-          output = pathlib.Path('src/index.html')
-          selected = None
-          tested = 0
-          for indexes in itertools.product(*[range(len(c)) for c in candidate_lists]):
-              tested += 1
-              b64 = b''.join(candidate_lists[i][idx] for i, idx in enumerate(indexes))
-              try:
-                  compressed = base64.b64decode(b64, validate=True)
-                  html_bytes = gzip.decompress(compressed)
-                  if len(html_bytes) < 400000:
-                      continue
-                  html = html_bytes.decode('utf-8')
-              except Exception:
-                  continue
-
-              if not all(marker.lower() in html.lower() for marker in required):
-                  continue
-              if html.count('<script') < 1 or html.count('</script>') < 1:
-                  continue
-              if html.count('<style') < 1 or html.count('</style>') < 1:
-                  continue
-
-              output.write_bytes(html_bytes)
-              selected = indexes
-              print(f'VALID APPLICATION HTML RECOVERED: {len(html_bytes)} bytes after {tested} combination(s).')
-              for i, idx in enumerate(indexes):
-                  print(f'  {paths[i].name} <- {candidate_meta[i][idx]}')
-              break
-
-          if selected is None:
-              raise SystemExit('No checksum-valid, UTF-8, structurally valid application HTML could be reconstructed from Git history.')
-          '@ | Set-Content -Path recover_html.py -Encoding utf8
-          python recover_html.py
-          Remove-Item recover_html.py -Force
+          if actual_crc == expected_crc and len(html_bytes) == expected_size and replacement_count == 0 and not missing:
+              pathlib.Path('src/index.html').write_bytes(html_bytes)
+              print('Original HTML payload is fully valid.')
+          else:
+              raise SystemExit('HTML payload is corrupt; diagnostics above identify the damage. Refusing to package until repaired.')
+          '@ | Set-Content -Path diagnose_html.py -Encoding utf8
+          python diagnose_html.py
 
       - name: Restore Ananda logo
         shell: powershell
@@ -138,10 +105,6 @@ jobs:
           node --check preload.js
           if (!(Test-Path 'installer.nsh')) { throw 'installer.nsh is missing.' }
           if (!(Test-Path 'index.html')) { throw 'index.html is missing after recovery.' }
-          $html = Get-Content 'index.html' -Raw
-          foreach ($marker in @('addVolunteer','addAttendeeMaster','addKriyaban','addVip','v36NewRegistration','eventForm')) {
-            if ($html.IndexOf($marker, [StringComparison]::OrdinalIgnoreCase) -lt 0) { throw "index.html validation failed: $marker" }
-          }
           Write-Host 'Electron source validation passed.'
 
       - name: Install build dependencies
