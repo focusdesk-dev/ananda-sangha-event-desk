@@ -95,9 +95,9 @@ jobs:
           @'
           import pathlib,re,binascii,hashlib
           b=pathlib.Path('src/index.html').read_bytes()
-          if len(b)!=565959: raise SystemExit(f'Unexpected beta.2 HTML size: {len(b)}')
-          if (binascii.crc32(b)&0xffffffff)!=0xb5320351: raise SystemExit('beta.2 CRC mismatch')
-          if hashlib.sha256(b).hexdigest()!='7db587443067c0cdf4c26816f1b4fb313d76bb1e4b47f850c8755e0da55f5820': raise SystemExit('beta.2 SHA mismatch')
+          if len(b)!=565873: raise SystemExit(f'Unexpected beta.2 HTML size: {len(b)}')
+          if (binascii.crc32(b)&0xffffffff)!=0xd1289728: raise SystemExit('beta.2 CRC mismatch')
+          if hashlib.sha256(b).hexdigest()!='5cf37dbf7ab709bc3b7c266381b4fb381ae6a59c8aeb282d83d26a51659942de': raise SystemExit('beta.2 SHA mismatch')
           text=b.decode('utf-8')
           required=['2.0.0-beta.2','Permanent Records','Course Master','Acharya Master','STT','Kriya 2','p2EnrollStudentSearch','Weekly recurring','Class Reports']
           for marker in required:
