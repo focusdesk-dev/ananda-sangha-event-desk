@@ -3,9 +3,8 @@ const path = require('path');
 const fs = require('fs');
 
 const APP_ID = 'org.anandasangha.gurgaon.eventdesk';
-const APP_VERSION = '1.0.127';
-const APP_DIR = path.dirname(process.execPath);
-const ROOT_DIR = path.resolve(APP_DIR, '..');
+const APP_VERSION = '1.0.128';
+const ROOT_DIR = path.join(app.getPath('documents'), 'ANANDA SANGHA EVENT DESK');
 const DATA_ROOT = path.join(ROOT_DIR, 'Data');
 const SYSTEM_ROOT = path.join(ROOT_DIR, 'System');
 const SESSION_ROOT = path.join(SYSTEM_ROOT, 'Session');
@@ -15,11 +14,10 @@ const MANUAL_BACKUP_ROOT = path.join(BACKUP_ROOT, 'Manual');
 const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
 const AUTO_BACKUP_KEEP = 20;
 
-for (const dir of [DATA_ROOT, SYSTEM_ROOT, SESSION_ROOT, BACKUP_ROOT, AUTO_BACKUP_ROOT, MANUAL_BACKUP_ROOT]) {
+for (const dir of [ROOT_DIR, DATA_ROOT, SYSTEM_ROOT, SESSION_ROOT, BACKUP_ROOT, AUTO_BACKUP_ROOT, MANUAL_BACKUP_ROOT]) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
-// The complete NGO handover folder is portable. All permanent records stay in ROOT_DIR\Data.
 app.setPath('userData', DATA_ROOT);
 app.setPath('sessionData', SESSION_ROOT);
 app.setName('Ananda Sangha Event Desk');
@@ -123,7 +121,6 @@ function createWindow() {
     }
   });
 
-  // Main-process keyboard handling is more reliable than browser-only handlers.
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (!input || (input.type && !String(input.type).toLowerCase().includes('keydown'))) return;
     const key = String(input.key || '').toLowerCase();
