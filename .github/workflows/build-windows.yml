@@ -1,10 +1,10 @@
-name: Build NGO Production Handover
+name: Build Windows Production Installer
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - production-v127-clean
+      - production-v128-installer
 
 jobs:
   build-windows:
@@ -46,33 +46,47 @@ jobs:
         working-directory: src
         run: npm install
 
-      - name: Build Windows x64 application folder
+      - name: Build real Windows Setup.exe
         working-directory: src
-        run: npm run build:dir
+        run: npm run dist
 
-      - name: Create complete NGO handover folder
+      - name: Verify installer exists
+        shell: powershell
+        run: |
+          $setup = 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe'
+          if (!(Test-Path $setup)) { throw "Installer not created: $setup" }
+          $size = (Get-Item $setup).Length
+          if ($size -lt 50000000) { throw "Installer looks too small: $size bytes" }
+          Write-Host "VERIFIED INSTALLER: $setup ($size bytes)"
+
+      - name: Create NGO handover folder
         shell: powershell
         run: |
           $root = Join-Path $PWD 'handover/ANANDA SANGHA EVENT DESK'
-          $app = Join-Path $root 'Application'
-          New-Item -ItemType Directory -Force -Path $app,(Join-Path $root 'Data'),(Join-Path $root 'Backup/Automatic'),(Join-Path $root 'Backup/Manual'),(Join-Path $root 'System'),(Join-Path $root 'Installer') | Out-Null
-          Copy-Item 'src/dist/win-unpacked/*' $app -Recurse -Force
-          Set-Content (Join-Path $app 'ANANDA_APP_VERSION.txt') '1.0.127' -Encoding ascii
-          Copy-Item 'installer/00_INSTALL_ANANDA.bat' (Join-Path $root 'Installer/00_INSTALL_ANANDA.bat') -Force
-          Copy-Item 'installer/INSTALL_ANANDA.ps1' (Join-Path $root 'Installer/INSTALL_ANANDA.ps1') -Force
-          Copy-Item 'START_ANANDA_EVENT_DESK.bat' (Join-Path $root 'START_ANANDA_EVENT_DESK.bat') -Force
-          Copy-Item 'README.md' (Join-Path $root 'README_START_HERE.md') -Force
-          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nNGO PRODUCTION`r`nVersion 1.0.127`r`nAuto backup: every 5 days on app launch`r`nKeyboard: + Add/New | Alt+S Save" -Encoding utf8
-          Set-Content (Join-Path $root 'Data/README_DATA_FOLDER.txt') 'Permanent app data is stored here. Do not delete this folder after production use begins.' -Encoding utf8
-          Set-Content (Join-Path $root 'Backup/README_BACKUP_FOLDER.txt') 'Automatic and manual backups are stored under this folder.' -Encoding utf8
+          $installer = Join-Path $root 'Installer'
+          $data = Join-Path $root 'Data'
+          $auto = Join-Path $root 'Backup/Automatic'
+          $manual = Join-Path $root 'Backup/Manual'
+          New-Item -ItemType Directory -Force -Path $installer,$data,$auto,$manual | Out-Null
+          Copy-Item 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe' (Join-Path $installer 'Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe') -Force
+          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nNGO PRODUCTION`r`nVersion 1.0.128`r`nInstaller: Windows NSIS Setup.exe`r`nUninstaller: Windows Installed Apps + Start Menu`r`nData preserved on uninstall`r`nAutomatic backup: every 5 days on app launch`r`nKeyboard: + Add/New | Alt+S Save" -Encoding utf8
+          Set-Content (Join-Path $data 'README_DATA_FOLDER.txt') 'After installation, permanent NGO data is stored in Documents\ANANDA SANGHA EVENT DESK\Data. Copy that Documents folder when handing the system to another PC.' -Encoding utf8
+          Set-Content (Join-Path $root 'README_START_HERE.txt') "1. Open Installer.`r`n2. Run Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe.`r`n3. Complete the normal Windows installer wizard.`r`n4. The installer creates Desktop and Start Menu shortcuts.`r`n5. Windows Installed Apps contains the Uninstaller.`r`n6. Documents\ANANDA SANGHA EVENT DESK stores Data, Backups and a copy of this installer.`r`n7. Uninstalling removes the program but keeps NGO records and backups." -Encoding utf8
 
-      - name: Compress handover ZIP
+      - name: Compress NGO handover
         shell: powershell
-        run: Compress-Archive -Path 'handover/ANANDA SANGHA EVENT DESK' -DestinationPath 'ANANDA_SANGHA_EVENT_DESK_NGO_PRODUCTION_v1.0.127.zip' -CompressionLevel Optimal
+        run: Compress-Archive -Path 'handover/ANANDA SANGHA EVENT DESK' -DestinationPath 'ANANDA_SANGHA_EVENT_DESK_NGO_PRODUCTION_v1.0.128.zip' -CompressionLevel Optimal
 
-      - name: Upload production handover
+      - name: Upload Setup.exe
         uses: actions/upload-artifact@v4
         with:
-          name: ANANDA-SANGHA-EVENT-DESK-NGO-PRODUCTION-v1.0.127
-          path: ANANDA_SANGHA_EVENT_DESK_NGO_PRODUCTION_v1.0.127.zip
+          name: Ananda-Sangha-Event-Desk-Setup-v1.0.128
+          path: src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe
+          if-no-files-found: error
+
+      - name: Upload complete NGO handover
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Sangha-Event-Desk-NGO-Handover-v1.0.128
+          path: ANANDA_SANGHA_EVENT_DESK_NGO_PRODUCTION_v1.0.128.zip
           if-no-files-found: error
