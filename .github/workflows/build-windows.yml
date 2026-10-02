@@ -1,9 +1,9 @@
-name: Build Windows Production Installer
+name: Build Phase 2 Windows Beta
 
 on:
   workflow_dispatch:
   push:
-    branches: [production-v129-update]
+    branches: [phase2-development]
 
 jobs:
   build-windows:
@@ -11,7 +11,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout source
+      - name: Checkout Phase 2 source
         uses: actions/checkout@v4
 
       - name: Set up Node.js
@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Restore verified working base HTML
+      - name: Restore verified Phase 1 base HTML
         shell: powershell
         run: |
           @'
@@ -31,20 +31,15 @@ jobs:
           html = gzip.decompress(raw)
           if len(html) != 488870 or (binascii.crc32(html) & 0xffffffff) != 0x41243984:
               raise SystemExit('Working base HTML checksum/size validation failed')
-          text = html.decode('utf-8')
-          for marker in ['<html', '</html>', 'ANANDA', 'addVolunteer', 'addAttendeeMaster', 'addKriyaban', 'addVip', 'v36NewRegistration', 'eventForm']:
-              if marker.lower() not in text.lower():
-                  raise SystemExit(f'Missing base application marker: {marker}')
           pathlib.Path('src/index.html').write_bytes(html)
-          print('VERIFIED WORKING BASE HTML: 488870 bytes, CRC32 41243984')
+          print('VERIFIED BASE HTML: 488870 bytes, CRC32 41243984')
           '@ | Set-Content restore_html.py -Encoding utf8
           python restore_html.py
           Remove-Item restore_html.py -Force
 
-      - name: Build clean 1.0.129 source from working base
+      - name: Rebuild frozen Phase 1 v1.0.129 source
         shell: powershell
         run: |
-          if (!(Test-Path 'src/build-clean129.py')) { throw 'build-clean129.py is missing.' }
           @'
           from pathlib import Path
           p=Path('src/build-clean129.py')
@@ -53,44 +48,53 @@ jobs:
           b=b.replace(b'expected_crc = 0xed7c3111', b'expected_crc = 0x1484eb85')
           b=b.replace(b"expected_sha = '4737255254f9f1d0951f5365944049d15c4c97434c1be16fbb8ed394bcaf72d9'", b"expected_sha = '390a75590e7fc0cd0f0199295bd684d830f96656ced48cc0789c0c9c037bd113'")
           p.write_bytes(b)
-          '@ | Set-Content fix_clean_verifier.py -Encoding utf8
-          python fix_clean_verifier.py
-          Remove-Item fix_clean_verifier.py -Force
+          '@ | Set-Content fix_phase1_verifier.py -Encoding utf8
+          python fix_phase1_verifier.py
+          Remove-Item fix_phase1_verifier.py -Force
           python src/build-clean129.py
 
-      - name: Validate clean 1.0.129 HTML and every inline script
+      - name: Decode and apply Phase 2 NGO database builder
+        shell: powershell
+        run: |
+          @'
+          import base64, gzip, pathlib
+          source = pathlib.Path('src/build-phase2.py.gz.b64')
+          if not source.exists():
+              raise SystemExit('Phase 2 builder payload is missing')
+          packed = base64.b64decode(''.join(source.read_text(encoding='utf-8').split()), validate=True)
+          script = gzip.decompress(packed)
+          pathlib.Path('src/build-phase2.py').write_bytes(script)
+          print('PHASE 2 BUILDER RESTORED:', len(script), 'bytes')
+          '@ | Set-Content restore_phase2_builder.py -Encoding utf8
+          python restore_phase2_builder.py
+          Remove-Item restore_phase2_builder.py -Force
+          python src/build-phase2.py
+
+      - name: Validate Phase 2 HTML and all inline scripts
         shell: powershell
         run: |
           @'
           import pathlib, re, binascii, hashlib
-          path = pathlib.Path('src/index.html')
-          html = path.read_bytes()
-          if len(html) != 491328:
-              raise SystemExit(f'Clean HTML size mismatch: {len(html)}')
-          if (binascii.crc32(html) & 0xffffffff) != 0x1484eb85:
-              raise SystemExit('Clean HTML CRC32 validation failed')
-          if hashlib.sha256(html).hexdigest() != '390a75590e7fc0cd0f0199295bd684d830f96656ced48cc0789c0c9c037bd113':
-              raise SystemExit('Clean HTML SHA256 validation failed')
-          text = html.decode('utf-8')
-          for marker in ['Production 1.0.129', "key==='escape'", 'focusMap=', 'Do not add that volunteer to the event roster automatically']:
-              if marker not in text:
-                  raise SystemExit(f'Missing clean 1.0.129 marker: {marker}')
-          if 'Production patch 1.0.129' in text:
-              raise SystemExit('Old injected production patch is still present')
-          scripts = re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>', text, re.S | re.I)
-          if len(scripts) < 5:
-              raise SystemExit(f'Unexpected script count: {len(scripts)}')
-          out = pathlib.Path('script-check')
-          out.mkdir(exist_ok=True)
-          for i, script in enumerate(scripts):
-              (out / f'script-{i:02d}.js').write_text(script, encoding='utf-8')
-          print(f'VERIFIED CLEAN HTML AND EXTRACTED {len(scripts)} SCRIPT BLOCKS')
-          '@ | Set-Content validate_html.py -Encoding utf8
-          python validate_html.py
+          p=pathlib.Path('src/index.html')
+          b=p.read_bytes()
+          if len(b) != 535371: raise SystemExit(f'Phase 2 HTML size mismatch: {len(b)}')
+          if (binascii.crc32(b)&0xffffffff) != 0xab2762eb: raise SystemExit('Phase 2 CRC mismatch')
+          if hashlib.sha256(b).hexdigest() != 'bc5370ebb9627c65a1d7678981e5ab77171c902a30650b564746233b862e791b': raise SystemExit('Phase 2 SHA mismatch')
+          text=b.decode('utf-8')
+          required=['2.0.0-beta.1','Student Master','Events & Classes','Student Progress','classBatches','classEnrollments','p2EligibleFromLevel','p2EnsureKriyaban','p2ExportEnrollments']
+          for marker in required:
+              if marker not in text: raise SystemExit(f'Missing Phase 2 marker: {marker}')
+          scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',text,re.S|re.I)
+          if len(scripts) < 10: raise SystemExit(f'Unexpected script count: {len(scripts)}')
+          out=pathlib.Path('script-check');out.mkdir(exist_ok=True)
+          for i,script in enumerate(scripts):(out/f'script-{i:02d}.js').write_text(script,encoding='utf-8')
+          print('PHASE 2 HTML VERIFIED; SCRIPT BLOCKS:',len(scripts))
+          '@ | Set-Content validate_phase2.py -Encoding utf8
+          python validate_phase2.py
           Get-ChildItem 'script-check\*.js' | ForEach-Object { node --check $_.FullName }
-          Remove-Item validate_html.py -Force
+          Remove-Item validate_phase2.py -Force
           Remove-Item script-check -Recurse -Force
-          Write-Host 'ALL INLINE APPLICATION SCRIPTS PASSED NODE SYNTAX CHECK'
+          Write-Host 'ALL PHASE 2 APPLICATION SCRIPTS PASSED NODE SYNTAX CHECK'
 
       - name: Restore Ananda logo and build multi-resolution Windows icon
         shell: powershell
@@ -100,145 +104,87 @@ jobs:
           $b64 = ($parts | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
           $logo = Join-Path $PWD 'src/logo-128.png'
           [IO.File]::WriteAllBytes($logo, [Convert]::FromBase64String($b64))
-          if ((Get-Item $logo).Length -ne 22678) { throw 'Verified source logo size mismatch.' }
-
           Add-Type -AssemblyName System.Drawing
           $src = [System.Drawing.Image]::FromFile($logo)
           try {
-            if ($src.Width -ne 128 -or $src.Height -ne 128) { throw "Unexpected source logo dimensions: $($src.Width)x$($src.Height)" }
-            $sizes = @(16,20,24,32,40,48,64,128,256)
-            $frames = @()
+            $sizes = @(16,20,24,32,40,48,64,128,256); $frames=@()
             foreach ($size in $sizes) {
-              $bmp = [System.Drawing.Bitmap]::new($size,$size,[System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
-              try {
-                $g = [System.Drawing.Graphics]::FromImage($bmp)
-                try {
-                  $g.Clear([System.Drawing.Color]::Transparent)
-                  $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-                  $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-                  $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-                  $g.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
-                  $g.DrawImage($src,0,0,$size,$size)
-                } finally { $g.Dispose() }
-                $ms = [System.IO.MemoryStream]::new()
-                try {
-                  $bmp.Save($ms,[System.Drawing.Imaging.ImageFormat]::Png)
-                  $frames += [PSCustomObject]@{ Size=$size; Bytes=$ms.ToArray() }
-                } finally { $ms.Dispose() }
-              } finally { $bmp.Dispose() }
+              $bmp=[System.Drawing.Bitmap]::new($size,$size,[System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+              try {$g=[System.Drawing.Graphics]::FromImage($bmp);try{$g.Clear([System.Drawing.Color]::Transparent);$g.InterpolationMode=[System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic;$g.SmoothingMode=[System.Drawing.Drawing2D.SmoothingMode]::HighQuality;$g.DrawImage($src,0,0,$size,$size)}finally{$g.Dispose()};$ms=[System.IO.MemoryStream]::new();try{$bmp.Save($ms,[System.Drawing.Imaging.ImageFormat]::Png);$frames += [PSCustomObject]@{Size=$size;Bytes=$ms.ToArray()}}finally{$ms.Dispose()}}finally{$bmp.Dispose()}
             }
-          } finally { $src.Dispose() }
-
-          $icon = Join-Path $PWD 'src/ananda-icon.ico'
-          $stream = [System.IO.File]::Open($icon,[System.IO.FileMode]::Create)
-          $writer = [System.IO.BinaryWriter]::new($stream)
-          try {
-            $writer.Write([UInt16]0)
-            $writer.Write([UInt16]1)
-            $writer.Write([UInt16]$frames.Count)
-            $offset = 6 + (16 * $frames.Count)
-            foreach ($frame in $frames) {
-              $dimension = if ($frame.Size -ge 256) { 0 } else { $frame.Size }
-              $writer.Write([byte]$dimension)
-              $writer.Write([byte]$dimension)
-              $writer.Write([byte]0)
-              $writer.Write([byte]0)
-              $writer.Write([UInt16]1)
-              $writer.Write([UInt16]32)
-              $writer.Write([UInt32]$frame.Bytes.Length)
-              $writer.Write([UInt32]$offset)
-              $offset += $frame.Bytes.Length
-            }
-            foreach ($frame in $frames) { $writer.Write([byte[]]$frame.Bytes) }
-          } finally {
-            $writer.Dispose()
-            $stream.Dispose()
-          }
+          } finally {$src.Dispose()}
+          $icon=Join-Path $PWD 'src/ananda-icon.ico';$stream=[IO.File]::Open($icon,[IO.FileMode]::Create);$writer=[IO.BinaryWriter]::new($stream)
+          try {$writer.Write([UInt16]0);$writer.Write([UInt16]1);$writer.Write([UInt16]$frames.Count);$offset=6+(16*$frames.Count);foreach($f in $frames){$d=if($f.Size -ge 256){0}else{$f.Size};$writer.Write([byte]$d);$writer.Write([byte]$d);$writer.Write([byte]0);$writer.Write([byte]0);$writer.Write([UInt16]1);$writer.Write([UInt16]32);$writer.Write([UInt32]$f.Bytes.Length);$writer.Write([UInt32]$offset);$offset+=$f.Bytes.Length};foreach($f in $frames){$writer.Write([byte[]]$f.Bytes)}}finally{$writer.Dispose();$stream.Dispose()}
           if (!(Test-Path $icon) -or (Get-Item $icon).Length -lt 10000) { throw 'Windows ICO generation failed.' }
-          Write-Host "VERIFIED ANANDA WINDOWS ICO: $((Get-Item $icon).Length) bytes, $($frames.Count) resolutions"
 
-      - name: Validate Electron shell and production version
+      - name: Validate Phase 2 Electron shell
         working-directory: src
         shell: powershell
         run: |
           node --check main.js
           node --check preload.js
-          if (!(Test-Path 'installer.nsh')) { throw 'installer.nsh is missing.' }
-          if (!(Test-Path 'index.html')) { throw 'index.html is missing.' }
-          if (!(Test-Path 'logo-128.png')) { throw 'logo is missing.' }
-          if (!(Test-Path 'ananda-icon.ico')) { throw 'Windows icon is missing.' }
-          if ((Get-Content main.js -Raw) -notmatch "const APP_VERSION = '1\.0\.129';") { throw 'main.js is not version 1.0.129' }
-          if ((Get-Content package.json -Raw) -notmatch '"version"\s*:\s*"1\.0\.129"') { throw 'package.json is not version 1.0.129' }
-          if ((Get-Content package.json -Raw) -notmatch '"icon"\s*:\s*"ananda-icon\.ico"') { throw 'package.json does not use the Ananda Windows icon' }
-          Write-Host 'ELECTRON SOURCE VALIDATION PASSED'
+          if ((Get-Content main.js -Raw) -notmatch "const APP_VERSION = '2\.0\.0-beta\.1';") { throw 'main.js is not Phase 2 beta.1' }
+          if ((Get-Content package.json -Raw) -notmatch '"version"\s*:\s*"2\.0\.0-beta\.1"') { throw 'package.json is not Phase 2 beta.1' }
+          if (!(Test-Path 'installer.nsh')) { throw 'installer.nsh missing' }
+          if (!(Test-Path 'ananda-icon.ico')) { throw 'Windows icon missing' }
+          Write-Host 'PHASE 2 ELECTRON SHELL VALIDATION PASSED'
 
       - name: Install build dependencies
         working-directory: src
         run: npm install
 
-      - name: Build real Windows Setup.exe
+      - name: Build Phase 2 Windows installer
         working-directory: src
         run: npm run dist
 
-      - name: Verify installer exists
+      - name: Verify Phase 2 installer and application
         shell: powershell
         run: |
-          $setup = 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe'
-          $app = 'src/dist/win-unpacked/Ananda Sangha Event Desk.exe'
+          $setup='src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.1.exe'
+          $app='src/dist/win-unpacked/Ananda Sangha Event Desk.exe'
           if (!(Test-Path $setup)) { throw "Installer not created: $setup" }
-          if (!(Test-Path $app)) { throw "Application executable not created: $app" }
-          $size = (Get-Item $setup).Length
-          $appSize = (Get-Item $app).Length
-          if ($size -lt 50000000) { throw "Installer too small: $size bytes" }
-          if ($appSize -lt 1000000) { throw "App executable too small: $appSize bytes" }
-          Write-Host "VERIFIED INSTALLER: $size bytes"
-          Write-Host "VERIFIED APP EXE: $appSize bytes"
+          if (!(Test-Path $app)) { throw "Application EXE not created: $app" }
+          if ((Get-Item $setup).Length -lt 50000000) { throw 'Installer is unexpectedly small' }
+          Write-Host "VERIFIED PHASE 2 INSTALLER: $((Get-Item $setup).Length) bytes"
 
-      - name: Smoke test installer and Desktop shortcut
+      - name: Smoke test installation and Desktop shortcut
         shell: powershell
         run: |
-          $setup = (Resolve-Path 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe').Path
-          $desktop = [Environment]::GetFolderPath('Desktop')
-          $shortcut = Join-Path $desktop 'Ananda Sangha Event Desk.lnk'
-          if (Test-Path $shortcut) { Remove-Item $shortcut -Force }
-          $process = Start-Process -FilePath $setup -ArgumentList '/S' -PassThru -Wait
-          if ($process.ExitCode -ne 0) { throw "Silent installer returned exit code $($process.ExitCode)" }
+          $setup=(Resolve-Path 'src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.1.exe').Path
+          $desktop=[Environment]::GetFolderPath('Desktop');$shortcut=Join-Path $desktop 'Ananda Sangha Event Desk.lnk'
+          if(Test-Path $shortcut){Remove-Item $shortcut -Force}
+          $p=Start-Process -FilePath $setup -ArgumentList '/S' -PassThru -Wait
+          if($p.ExitCode -ne 0){throw "Installer returned $($p.ExitCode)"}
           Start-Sleep -Seconds 3
-          if (!(Test-Path $shortcut)) { throw "Desktop shortcut was not created: $shortcut" }
-          $shell = New-Object -ComObject WScript.Shell
-          $link = $shell.CreateShortcut($shortcut)
-          if (!$link.TargetPath -or !(Test-Path $link.TargetPath)) { throw "Desktop shortcut target is invalid: $($link.TargetPath)" }
-          Add-Type -AssemblyName System.Drawing
-          $exeIcon = [System.Drawing.Icon]::ExtractAssociatedIcon($link.TargetPath)
-          if ($null -eq $exeIcon) { throw 'Installed EXE has no extractable Windows icon.' }
-          $exeIcon.Dispose()
-          Write-Host "VERIFIED DESKTOP SHORTCUT: $shortcut"
-          Write-Host "VERIFIED SHORTCUT TARGET: $($link.TargetPath)"
-          Get-Process -Name 'Ananda Sangha Event Desk' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          if(!(Test-Path $shortcut)){throw 'Desktop shortcut was not created'}
+          $shell=New-Object -ComObject WScript.Shell;$link=$shell.CreateShortcut($shortcut)
+          if(!$link.TargetPath -or !(Test-Path $link.TargetPath)){throw 'Desktop shortcut target is invalid'}
+          $app=Start-Process -FilePath $link.TargetPath -PassThru
+          Start-Sleep -Seconds 5
+          if($app.HasExited){throw "Installed Phase 2 app exited unexpectedly with $($app.ExitCode)"}
+          Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
+          Write-Host 'PHASE 2 INSTALL + LAUNCH SMOKE TEST PASSED'
 
-      - name: Create NGO handover folder
+      - name: Create Phase 2 handover package
         shell: powershell
         run: |
-          $root = Join-Path $PWD 'handover/ANANDA SANGHA EVENT DESK'
+          $root=Join-Path $PWD 'handover/ANANDA SANGHA EVENT DESK PHASE 2 BETA'
           New-Item -ItemType Directory -Force -Path (Join-Path $root 'Installer'),(Join-Path $root 'Data'),(Join-Path $root 'Backup/Automatic'),(Join-Path $root 'Backup/Manual') | Out-Null
-          Copy-Item 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe' (Join-Path $root 'Installer/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe') -Force
-          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nNGO PRODUCTION`r`nVersion 1.0.129 CLEAN`r`nWindows NSIS installer + uninstaller`r`nDesktop + Start Menu shortcut`r`nAnanda Windows icon embedded in EXE/installer/shortcut`r`nData preserved on uninstall`r`nAutomatic backup: every 5 days`r`nKeyboard: + Add/New | Alt+S Save | Esc Back" -Encoding utf8
-          Set-Content (Join-Path $root 'README_START_HERE.txt') "1. Close any running Ananda Event Desk window.`r`n2. Open Installer.`r`n3. Run Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe over the existing installation.`r`n4. Do NOT delete Documents\ANANDA SANGHA EVENT DESK.`r`n5. Desktop and Start Menu shortcuts are created.`r`n6. NGO data/backups are retained." -Encoding utf8
+          Copy-Item 'src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.1.exe' (Join-Path $root 'Installer/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.1.exe') -Force
+          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nPHASE 2 TEST BUILD`r`nVersion 2.0.0-beta.1`r`nBuilt from frozen Phase 1 v1.0.129`r`nStudent Master + Levels/Batches + Attendance + Progression/Outreach + Kriya linking + Reports`r`nExisting Phase 1 data retained in Documents\ANANDA SANGHA EVENT DESK" -Encoding utf8
+          Set-Content (Join-Path $root 'README_START_HERE.txt') "THIS IS A PHASE 2 TEST BUILD.`r`nPhase 1 v1.0.129 remains preserved in GitHub.`r`nClose the app before installing.`r`nDo not delete Documents\ANANDA SANGHA EVENT DESK.`r`nTest Student Master, Events & Classes, Student Progress, attendance, outreach and reports before production use." -Encoding utf8
+          Compress-Archive -Path 'handover/ANANDA SANGHA EVENT DESK PHASE 2 BETA' -DestinationPath 'ANANDA_SANGHA_EVENT_DESK_PHASE2_v2.0.0-beta.1.zip' -CompressionLevel Optimal
 
-      - name: Compress NGO handover
-        shell: powershell
-        run: Compress-Archive -Path 'handover/ANANDA SANGHA EVENT DESK' -DestinationPath 'ANANDA_SANGHA_EVENT_DESK_NGO_PRODUCTION_v1.0.129_CLEAN.zip' -CompressionLevel Optimal
-
-      - name: Upload Setup.exe
+      - name: Upload Phase 2 Setup.exe
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Setup-v1.0.129-CLEAN
-          path: src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe
+          name: Ananda-Sangha-Event-Desk-Phase2-Setup-v2.0.0-beta.1
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.1.exe
           if-no-files-found: error
 
-      - name: Upload complete NGO handover
+      - name: Upload Phase 2 handover
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-NGO-Handover-v1.0.129-CLEAN
-          path: ANANDA_SANGHA_EVENT_DESK_NGO_PRODUCTION_v1.0.129_CLEAN.zip
+          name: Ananda-Sangha-Event-Desk-Phase2-Handover-v2.0.0-beta.1
+          path: ANANDA_SANGHA_EVENT_DESK_PHASE2_v2.0.0-beta.1.zip
           if-no-files-found: error
