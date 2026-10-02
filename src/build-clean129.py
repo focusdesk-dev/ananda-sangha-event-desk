@@ -2,7 +2,7 @@ from pathlib import Path
 import binascii, hashlib
 
 path = Path('src/index.html')
-text = path.read_text(encoding='utf-8')
+text = path.read_bytes().decode('utf-8')
 
 # 1) Linked volunteer is a reference only when family/guests register.
 old = """  const v43RegistrationSubmitBefore=$('v36RegistrationForm').onsubmit;\n  $('v36RegistrationForm').onsubmit=function(event){const isNew=!v36RegistrationEditKey,type=$('v36RegistrationType').value,volunteerId=$('v36RegistrationVolunteer').value;v43RegistrationSubmitBefore(event);if(isNew&&type==='volunteer-family'&&volunteerId&&!$('v36RegistrationModal').classList.contains('open')){const volunteer=state.volunteers.find(item=>item.id===volunteerId);if(volunteer){ensureVolunteerRoster(volunteer,state.activeEventId,$('workingDate').value,'counter');save()}}};"""
@@ -45,7 +45,7 @@ text = text.replace(marker, flow, 1)
 
 text = text.replace("document.title='ANANDA SANGHA GURGAON Event Desk — Production 1.0.127';", "document.title='ANANDA SANGHA GURGAON Event Desk — Production 1.0.129';", 1)
 
-path.write_text(text, encoding='utf-8')
+path.write_bytes(text.encode('utf-8'))
 raw = path.read_bytes()
 expected_size = 491414
 expected_crc = 0xed7c3111
