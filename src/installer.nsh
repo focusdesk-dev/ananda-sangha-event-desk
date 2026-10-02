@@ -1,4 +1,5 @@
 !macro customInstall
+  SetShellVarContext current
   CreateDirectory "$DOCUMENTS\ANANDA SANGHA EVENT DESK"
   CreateDirectory "$DOCUMENTS\ANANDA SANGHA EVENT DESK\Installer"
   CreateDirectory "$DOCUMENTS\ANANDA SANGHA EVENT DESK\Data"
