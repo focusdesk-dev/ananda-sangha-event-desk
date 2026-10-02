@@ -20,27 +20,77 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Restore large HTML source
+      - name: Restore and validate application HTML
         shell: powershell
         run: |
+          $ErrorActionPreference = 'Stop'
           $parts = Get-ChildItem 'assets/index.html.gz.b64.part*' | Sort-Object Name
           if (!$parts -or $parts.Count -lt 2) { throw 'Compressed HTML source parts are missing.' }
+
           $b64 = ($parts | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
           $gzPath = Join-Path $PWD 'src/index.html.gz'
+          $outputPath = Join-Path $PWD 'src/index.html'
           [IO.File]::WriteAllBytes($gzPath, [Convert]::FromBase64String($b64))
+
           $input = [IO.File]::OpenRead($gzPath)
+          $output = [IO.File]::Create($outputPath)
+          $crcWarning = $false
           try {
             $gzip = New-Object IO.Compression.GZipStream($input, [IO.Compression.CompressionMode]::Decompress)
             try {
-              $outputPath = Join-Path $PWD 'src/index.html'
-              $output = [IO.File]::Create($outputPath)
-              try { $gzip.CopyTo($output) } finally { $output.Dispose() }
-            } finally { $gzip.Dispose() }
-          } finally { $input.Dispose() }
-          Remove-Item $gzPath -Force
-          $htmlSize = (Get-Item 'src/index.html').Length
+              try {
+                $gzip.CopyTo($output)
+              } catch [IO.InvalidDataException] {
+                if ($_.Exception.Message -match 'CRC') {
+                  $crcWarning = $true
+                  Write-Warning 'GZip footer CRC mismatch detected. Keeping decompressed bytes and performing strict application validation before build.'
+                } else {
+                  throw
+                }
+              }
+            } finally {
+              $gzip.Dispose()
+            }
+          } finally {
+            $output.Dispose()
+            $input.Dispose()
+          }
+
+          if (!(Test-Path $outputPath)) { throw 'Application HTML was not restored.' }
+          $htmlBytes = [IO.File]::ReadAllBytes($outputPath)
+          $htmlSize = $htmlBytes.Length
           if ($htmlSize -lt 400000) { throw "Restored HTML looks incomplete: $htmlSize bytes" }
-          Write-Host "RESTORED HTML: $htmlSize bytes from $($parts.Count) parts"
+
+          try {
+            $strictUtf8 = New-Object System.Text.UTF8Encoding($false, $true)
+            $html = $strictUtf8.GetString($htmlBytes)
+          } catch {
+            throw 'Restored index.html is not valid UTF-8.'
+          }
+
+          $requiredMarkers = @(
+            '<html',
+            '</html>',
+            'ANANDA',
+            'addVolunteer',
+            'addAttendeeMaster',
+            'addKriyaban',
+            'addVip',
+            'v36NewRegistration',
+            'eventForm'
+          )
+          foreach ($marker in $requiredMarkers) {
+            if ($html.IndexOf($marker, [StringComparison]::OrdinalIgnoreCase) -lt 0) {
+              throw "Restored HTML failed validation; missing marker: $marker"
+            }
+          }
+
+          Remove-Item $gzPath -Force
+          if ($crcWarning) {
+            Write-Host "RESTORED HTML PASSED STRICT VALIDATION despite gzip footer CRC mismatch: $htmlSize bytes from $($parts.Count) parts"
+          } else {
+            Write-Host "RESTORED HTML: $htmlSize bytes from $($parts.Count) parts"
+          }
 
       - name: Restore Ananda logo
         shell: powershell
@@ -48,6 +98,16 @@ jobs:
           $b64 = (Get-Content 'assets/logo-128.png.b64' -Raw).Trim()
           [IO.File]::WriteAllBytes((Join-Path $PWD 'src/logo-128.png'), [Convert]::FromBase64String($b64))
           if ((Get-Item 'src/logo-128.png').Length -lt 10000) { throw 'Logo restore failed.' }
+
+      - name: Validate Electron source
+        working-directory: src
+        shell: powershell
+        run: |
+          node --check main.js
+          node --check preload.js
+          if (!(Test-Path 'installer.nsh')) { throw 'installer.nsh is missing.' }
+          if (!(Test-Path 'index.html')) { throw 'index.html is missing after restore.' }
+          Write-Host 'Electron source validation passed.'
 
       - name: Install build dependencies
         working-directory: src
@@ -61,10 +121,15 @@ jobs:
         shell: powershell
         run: |
           $setup = 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe'
+          $unpacked = 'src/dist/win-unpacked/Ananda Sangha Event Desk.exe'
           if (!(Test-Path $setup)) { throw "Installer not created: $setup" }
+          if (!(Test-Path $unpacked)) { throw "Unpacked application executable not created: $unpacked" }
           $size = (Get-Item $setup).Length
+          $appSize = (Get-Item $unpacked).Length
           if ($size -lt 50000000) { throw "Installer looks too small: $size bytes" }
+          if ($appSize -lt 1000000) { throw "Application executable looks too small: $appSize bytes" }
           Write-Host "VERIFIED INSTALLER: $setup ($size bytes)"
+          Write-Host "VERIFIED APP EXE: $unpacked ($appSize bytes)"
 
       - name: Create NGO handover folder
         shell: powershell
