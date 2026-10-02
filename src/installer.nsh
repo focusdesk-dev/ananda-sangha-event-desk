@@ -1,5 +1,6 @@
 !macro customInstall
   SetShellVarContext current
+
   CreateDirectory "$DOCUMENTS\ANANDA SANGHA EVENT DESK"
   CreateDirectory "$DOCUMENTS\ANANDA SANGHA EVENT DESK\Installer"
   CreateDirectory "$DOCUMENTS\ANANDA SANGHA EVENT DESK\Data"
@@ -10,11 +11,16 @@
   CopyFiles /SILENT "$EXEPATH" "$DOCUMENTS\ANANDA SANGHA EVENT DESK\Installer\Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe"
 
   ; Explicit shortcuts as a second safety layer in addition to electron-builder's NSIS settings.
+  Delete "$DESKTOP\Ananda Sangha Event Desk.lnk"
+  Delete "$SMPROGRAMS\Ananda Sangha Event Desk.lnk"
   CreateShortCut "$DESKTOP\Ananda Sangha Event Desk.lnk" "$INSTDIR\Ananda Sangha Event Desk.exe" "" "$INSTDIR\Ananda Sangha Event Desk.exe" 0 SW_SHOWNORMAL "" "ANANDA SANGHA GURGAON Event Desk"
   CreateShortCut "$SMPROGRAMS\Ananda Sangha Event Desk.lnk" "$INSTDIR\Ananda Sangha Event Desk.exe" "" "$INSTDIR\Ananda Sangha Event Desk.exe" 0 SW_SHOWNORMAL "" "ANANDA SANGHA GURGAON Event Desk"
 !macroend
 
 !macro customUnInstall
+  SetShellVarContext current
+  Delete "$DESKTOP\Ananda Sangha Event Desk.lnk"
+  Delete "$SMPROGRAMS\Ananda Sangha Event Desk.lnk"
   ; Intentionally preserve Documents\ANANDA SANGHA EVENT DESK.
   ; NGO records, backups and the installer copy remain available after uninstall.
 !macroend
