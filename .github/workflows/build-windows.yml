@@ -12,10 +12,8 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout full source history
+      - name: Checkout source
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -37,7 +35,6 @@ jobs:
           if gz[:2] != b'\x1f\x8b' or gz[2] != 8:
               raise SystemExit('Payload is not a gzip/deflate stream')
 
-          # Parse gzip header so we can inspect the deflate output even when the gzip CRC is bad.
           flg = gz[3]
           pos = 10
           if flg & 4:
@@ -49,44 +46,48 @@ jobs:
               pos = gz.index(b'\x00', pos) + 1
           if flg & 2:
               pos += 2
-          trailer = gz[-8:]
-          expected_crc, expected_size = struct.unpack('<II', trailer)
+          expected_crc, expected_size = struct.unpack('<II', gz[-8:])
           deflate = gz[pos:-8]
           html_bytes = zlib.decompress(deflate, -15)
           actual_crc = binascii.crc32(html_bytes) & 0xffffffff
           print(f'Deflate bytes: {len(deflate)}')
-          print(f'Expected output size: {expected_size}; actual: {len(html_bytes)}')
+          print(f'Expected output size: {expected_size}; actual: {len(html_bytes)}; delta={len(html_bytes)-expected_size}')
           print(f'Expected CRC32: {expected_crc:08x}; actual: {actual_crc:08x}')
 
           decoded = html_bytes.decode('utf-8', errors='replace')
-          replacement_count = decoded.count('\ufffd')
-          print(f'UTF-8 replacement count: {replacement_count}')
-          cursor = 0
-          shown = 0
-          while shown < 20:
-              i = decoded.find('\ufffd', cursor)
-              if i < 0:
+          print(f'UTF-8 replacement count: {decoded.count(chr(0xfffd))}')
+
+          # Find exact undecodable byte ranges without printing Unicode to the Windows console.
+          errors = []
+          scan = 0
+          while scan < len(html_bytes):
+              try:
+                  html_bytes[scan:].decode('utf-8', errors='strict')
                   break
-              start = max(0, i - 100)
-              end = min(len(decoded), i + 101)
-              context = decoded[start:end].replace('\r','\\r').replace('\n','\\n')
-              print(f'CORRUPTION_CONTEXT_{shown+1} char={i}: {context!r}')
-              cursor = i + 1
-              shown += 1
+              except UnicodeDecodeError as e:
+                  start = scan + e.start
+                  end = scan + e.end
+                  errors.append((start, end, e.reason))
+                  scan = max(end, start + 1)
+          print(f'Unicode error ranges: {errors}')
+          for n, (start, end, reason) in enumerate(errors[:20], 1):
+              a = max(0, start - 180)
+              b = min(len(html_bytes), end + 180)
+              print(f'CORRUPTION_{n}: bytes {start}:{end} reason={reason}')
+              print(repr(html_bytes[a:b]))
 
           required = ['<html', '</html>', 'ANANDA', 'addVolunteer', 'addAttendeeMaster', 'addKriyaban', 'addVip', 'v36NewRegistration', 'eventForm']
           missing = [m for m in required if m.lower() not in decoded.lower()]
           print(f'Missing required markers: {missing}')
 
-          # Write the raw inflated bytes for byte-level diagnostics and a replacement-decoded candidate.
           pathlib.Path('src/index.raw-corrupt.bin').write_bytes(html_bytes)
           pathlib.Path('src/index.salvage.html').write_text(decoded, encoding='utf-8')
 
-          if actual_crc == expected_crc and len(html_bytes) == expected_size and replacement_count == 0 and not missing:
+          if actual_crc == expected_crc and len(html_bytes) == expected_size and not errors and not missing:
               pathlib.Path('src/index.html').write_bytes(html_bytes)
               print('Original HTML payload is fully valid.')
           else:
-              raise SystemExit('HTML payload is corrupt; diagnostics above identify the damage. Refusing to package until repaired.')
+              raise SystemExit('HTML payload is corrupt; exact byte contexts printed above.')
           '@ | Set-Content -Path diagnose_html.py -Encoding utf8
           python diagnose_html.py
 
