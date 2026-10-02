@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const APP_ID = 'org.anandasangha.gurgaon.eventdesk';
-const APP_VERSION = '1.0.129';
+const APP_VERSION = '2.0.0-beta.1';
 const ROOT_DIR = path.join(app.getPath('documents'), 'ANANDA SANGHA EVENT DESK');
 const DATA_ROOT = path.join(ROOT_DIR, 'Data');
 const SYSTEM_ROOT = path.join(ROOT_DIR, 'System');
@@ -140,7 +140,7 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
   mainWindow.webContents.on('did-finish-load', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setTitle(`ANANDA SANGHA GURGAON Event Desk — Production ${APP_VERSION}`);
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setTitle(`ANANDA SANGHA GURGAON Event Desk — Phase 2 ${APP_VERSION}`);
   });
   mainWindow.once('ready-to-show', () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
