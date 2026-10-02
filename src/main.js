@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 
 const APP_ID = 'org.anandasangha.gurgaon.eventdesk';
-const APP_VERSION = '1.0.128';
+const APP_VERSION = '1.0.129';
 const ROOT_DIR = path.join(app.getPath('documents'), 'ANANDA SANGHA EVENT DESK');
 const DATA_ROOT = path.join(ROOT_DIR, 'Data');
 const SYSTEM_ROOT = path.join(ROOT_DIR, 'System');
@@ -108,7 +108,7 @@ function createWindow() {
     minWidth: 1100,
     minHeight: 700,
     backgroundColor: '#f3f7fa',
-    icon: path.join(__dirname, 'logo-128.png'),
+    icon: path.join(__dirname, 'ananda-icon.ico'),
     autoHideMenuBar: true,
     show: false,
     skipTaskbar: false,
