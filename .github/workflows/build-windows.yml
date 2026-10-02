@@ -61,7 +61,9 @@ jobs:
           source = pathlib.Path('src/build-phase2.py.gz.b64')
           if not source.exists():
               raise SystemExit('Phase 2 builder payload is missing')
-          packed = base64.b64decode(''.join(source.read_text(encoding='utf-8').split()), validate=True)
+          encoded = ''.join(source.read_text(encoding='utf-8').split()).rstrip('=')
+          encoded += '=' * (-len(encoded) % 4)
+          packed = base64.b64decode(encoded, validate=False)
           script = gzip.decompress(packed)
           pathlib.Path('src/build-phase2.py').write_bytes(script)
           print('PHASE 2 BUILDER RESTORED:', len(script), 'bytes')
