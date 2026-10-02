@@ -168,6 +168,8 @@ jobs:
           if (!(Test-Path 'logo-128.png')) { throw 'logo is missing.' }
           if (!(Test-Path 'ananda-icon.ico')) { throw 'Windows icon is missing.' }
           if ((Get-Content main.js -Raw) -notmatch "const APP_VERSION = '1\.0\.129';") { throw 'main.js is not version 1.0.129' }
+          if ((Get-Content main.js -Raw) -notmatch 'ensureWindowsDesktopShortcut') { throw 'Desktop shortcut self-repair is missing from main.js' }
+          if ((Get-Content main.js -Raw) -notmatch 'runBackShortcut') { throw 'Native Esc/Back handler is missing from main.js' }
           if ((Get-Content package.json -Raw) -notmatch '"version"\s*:\s*"1\.0\.129"') { throw 'package.json is not version 1.0.129' }
           if ((Get-Content package.json -Raw) -notmatch '"icon"\s*:\s*"ananda-icon\.ico"') { throw 'package.json does not use the Ananda Windows icon' }
           Write-Host 'ELECTRON SOURCE VALIDATION PASSED'
@@ -194,27 +196,44 @@ jobs:
           Write-Host "VERIFIED INSTALLER: $size bytes"
           Write-Host "VERIFIED APP EXE: $appSize bytes"
 
-      - name: Smoke test installer and Desktop shortcut
+      - name: Smoke test installer, app shortcut repair and icon
         shell: powershell
         run: |
           $setup = (Resolve-Path 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe').Path
           $desktop = [Environment]::GetFolderPath('Desktop')
           $shortcut = Join-Path $desktop 'Ananda Sangha Event Desk.lnk'
           if (Test-Path $shortcut) { Remove-Item $shortcut -Force }
-          $process = Start-Process -FilePath $setup -ArgumentList '/S' -PassThru -Wait
-          if ($process.ExitCode -ne 0) { throw "Silent installer returned exit code $($process.ExitCode)" }
+
+          $install = Start-Process -FilePath $setup -ArgumentList '/S' -PassThru -Wait
+          if ($install.ExitCode -ne 0) { throw "Silent installer returned exit code $($install.ExitCode)" }
           Start-Sleep -Seconds 3
-          if (!(Test-Path $shortcut)) { throw "Desktop shortcut was not created: $shortcut" }
-          $shell = New-Object -ComObject WScript.Shell
-          $link = $shell.CreateShortcut($shortcut)
-          if (!$link.TargetPath -or !(Test-Path $link.TargetPath)) { throw "Desktop shortcut target is invalid: $($link.TargetPath)" }
+          if (!(Test-Path $shortcut)) { throw "Installer did not create Desktop shortcut: $shortcut" }
+
+          $wshell = New-Object -ComObject WScript.Shell
+          $link = $wshell.CreateShortcut($shortcut)
+          $installedExe = $link.TargetPath
+          if (!$installedExe -or !(Test-Path $installedExe)) { throw "Desktop shortcut target is invalid: $installedExe" }
+
           Add-Type -AssemblyName System.Drawing
-          $exeIcon = [System.Drawing.Icon]::ExtractAssociatedIcon($link.TargetPath)
+          $exeIcon = [System.Drawing.Icon]::ExtractAssociatedIcon($installedExe)
           if ($null -eq $exeIcon) { throw 'Installed EXE has no extractable Windows icon.' }
           $exeIcon.Dispose()
-          Write-Host "VERIFIED DESKTOP SHORTCUT: $shortcut"
-          Write-Host "VERIFIED SHORTCUT TARGET: $($link.TargetPath)"
+
           Get-Process -Name 'Ananda Sangha Event Desk' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 1
+          Remove-Item $shortcut -Force
+          if (Test-Path $shortcut) { throw 'Could not remove installer-created shortcut before self-repair test.' }
+
+          $appProcess = Start-Process -FilePath $installedExe -PassThru
+          Start-Sleep -Seconds 6
+          if (!(Test-Path $shortcut)) { throw "Running app did not recreate Desktop shortcut: $shortcut" }
+          $repaired = $wshell.CreateShortcut($shortcut)
+          if ($repaired.TargetPath -ne $installedExe) { throw "Recreated shortcut target mismatch: $($repaired.TargetPath)" }
+
+          Get-Process -Name 'Ananda Sangha Event Desk' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          Write-Host "VERIFIED INSTALLER DESKTOP SHORTCUT: $shortcut"
+          Write-Host "VERIFIED APP SELF-REPAIRED DESKTOP SHORTCUT: $shortcut"
+          Write-Host "VERIFIED SHORTCUT TARGET: $installedExe"
 
       - name: Create NGO handover folder
         shell: powershell
@@ -222,8 +241,8 @@ jobs:
           $root = Join-Path $PWD 'handover/ANANDA SANGHA EVENT DESK'
           New-Item -ItemType Directory -Force -Path (Join-Path $root 'Installer'),(Join-Path $root 'Data'),(Join-Path $root 'Backup/Automatic'),(Join-Path $root 'Backup/Manual') | Out-Null
           Copy-Item 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe' (Join-Path $root 'Installer/Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe') -Force
-          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nNGO PRODUCTION`r`nVersion 1.0.129 CLEAN`r`nWindows NSIS installer + uninstaller`r`nDesktop + Start Menu shortcut`r`nAnanda Windows icon embedded in EXE/installer/shortcut`r`nData preserved on uninstall`r`nAutomatic backup: every 5 days`r`nKeyboard: + Add/New | Alt+S Save | Esc Back" -Encoding utf8
-          Set-Content (Join-Path $root 'README_START_HERE.txt') "1. Close any running Ananda Event Desk window.`r`n2. Open Installer.`r`n3. Run Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe over the existing installation.`r`n4. Do NOT delete Documents\ANANDA SANGHA EVENT DESK.`r`n5. Desktop and Start Menu shortcuts are created.`r`n6. NGO data/backups are retained." -Encoding utf8
+          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nNGO PRODUCTION`r`nVersion 1.0.129 CLEAN`r`nWindows NSIS installer + uninstaller`r`nDesktop + Start Menu shortcut`r`nDesktop shortcut self-repairs on app launch`r`nNative Esc = Back`r`nAnanda Windows icon embedded in EXE/installer/shortcut`r`nData preserved on uninstall`r`nAutomatic backup: every 5 days`r`nKeyboard: + Add/New | Alt+S Save | Esc Back" -Encoding utf8
+          Set-Content (Join-Path $root 'README_START_HERE.txt') "1. Close any running Ananda Event Desk window.`r`n2. Open Installer.`r`n3. Run Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe.`r`n4. Do NOT delete Documents\ANANDA SANGHA EVENT DESK.`r`n5. Desktop and Start Menu shortcuts are created.`r`n6. If the Desktop shortcut is missing, launching the app recreates it automatically.`r`n7. NGO data/backups are retained." -Encoding utf8
 
       - name: Compress NGO handover
         shell: powershell
