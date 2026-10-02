@@ -23,24 +23,31 @@ jobs:
       - name: Restore large HTML source
         shell: powershell
         run: |
-          $b64 = (Get-Content 'assets/index.html.gz.b64' -Raw).Trim()
+          $parts = Get-ChildItem 'assets/index.html.gz.b64.part*' | Sort-Object Name
+          if (!$parts -or $parts.Count -lt 2) { throw 'Compressed HTML source parts are missing.' }
+          $b64 = ($parts | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
           $gzPath = Join-Path $PWD 'src/index.html.gz'
           [IO.File]::WriteAllBytes($gzPath, [Convert]::FromBase64String($b64))
           $input = [IO.File]::OpenRead($gzPath)
           try {
             $gzip = New-Object IO.Compression.GZipStream($input, [IO.Compression.CompressionMode]::Decompress)
             try {
-              $output = [IO.File]::Create((Join-Path $PWD 'src/index.html'))
+              $outputPath = Join-Path $PWD 'src/index.html'
+              $output = [IO.File]::Create($outputPath)
               try { $gzip.CopyTo($output) } finally { $output.Dispose() }
             } finally { $gzip.Dispose() }
           } finally { $input.Dispose() }
           Remove-Item $gzPath -Force
+          $htmlSize = (Get-Item 'src/index.html').Length
+          if ($htmlSize -lt 400000) { throw "Restored HTML looks incomplete: $htmlSize bytes" }
+          Write-Host "RESTORED HTML: $htmlSize bytes from $($parts.Count) parts"
 
       - name: Restore Ananda logo
         shell: powershell
         run: |
           $b64 = (Get-Content 'assets/logo-128.png.b64' -Raw).Trim()
           [IO.File]::WriteAllBytes((Join-Path $PWD 'src/logo-128.png'), [Convert]::FromBase64String($b64))
+          if ((Get-Item 'src/logo-128.png').Length -lt 10000) { throw 'Logo restore failed.' }
 
       - name: Install build dependencies
         working-directory: src
