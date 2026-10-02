@@ -3,8 +3,7 @@ name: Build Windows Production Installer
 on:
   workflow_dispatch:
   push:
-    branches:
-      - production-v128-installer
+    branches: [production-v128-installer]
 
 jobs:
   build-windows:
@@ -20,81 +19,61 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Diagnose and restore application HTML
+      - name: Restore and verify application HTML
         shell: powershell
         run: |
           @'
-          import base64, binascii, pathlib, struct, zlib
-
+          import base64, gzip, pathlib, binascii
           parts = sorted(pathlib.Path('assets').glob('index.html.gz.b64.part*'))
           if len(parts) != 8:
-              raise SystemExit(f'Expected 8 HTML source parts, found {len(parts)}')
-          b64 = b''.join(b''.join(p.read_bytes().split()) for p in parts)
-          gz = base64.b64decode(b64, validate=True)
-          print(f'Combined base64: {len(b64)} chars; gzip: {len(gz)} bytes')
-          if gz[:2] != b'\x1f\x8b' or gz[2] != 8:
-              raise SystemExit('Payload is not a gzip/deflate stream')
+              raise SystemExit(f'Expected 8 HTML parts, found {len(parts)}')
+          raw = base64.b64decode(b''.join(b''.join(p.read_bytes().split()) for p in parts), validate=True)
+          html = gzip.decompress(raw)
+          if len(html) != 488870 or (binascii.crc32(html) & 0xffffffff) != 0x41243984:
+              raise SystemExit('HTML checksum/size validation failed')
+          text = html.decode('utf-8')
+          for marker in ['<html', '</html>', 'ANANDA', 'addVolunteer', 'addAttendeeMaster', 'addKriyaban', 'addVip', 'v36NewRegistration', 'eventForm']:
+              if marker.lower() not in text.lower():
+                  raise SystemExit(f'Missing application marker: {marker}')
+          pathlib.Path('src/index.html').write_bytes(html)
+          print('VERIFIED HTML: 488870 bytes, CRC32 41243984')
+          '@ | Set-Content restore_html.py -Encoding utf8
+          python restore_html.py
+          Remove-Item restore_html.py -Force
 
-          flg = gz[3]
-          pos = 10
-          if flg & 4:
-              xlen = struct.unpack_from('<H', gz, pos)[0]
-              pos += 2 + xlen
-          if flg & 8:
-              pos = gz.index(b'\x00', pos) + 1
-          if flg & 16:
-              pos = gz.index(b'\x00', pos) + 1
-          if flg & 2:
-              pos += 2
-          expected_crc, expected_size = struct.unpack('<II', gz[-8:])
-          deflate = gz[pos:-8]
-          html_bytes = zlib.decompress(deflate, -15)
-          actual_crc = binascii.crc32(html_bytes) & 0xffffffff
-          print(f'Deflate bytes: {len(deflate)}')
-          print(f'Expected output size: {expected_size}; actual: {len(html_bytes)}; delta={len(html_bytes)-expected_size}')
-          print(f'Expected CRC32: {expected_crc:08x}; actual: {actual_crc:08x}')
-
-          decoded = html_bytes.decode('utf-8', errors='replace')
-          print(f'UTF-8 replacement count: {decoded.count(chr(0xfffd))}')
-
-          errors = []
-          scan = 0
-          while scan < len(html_bytes):
-              try:
-                  html_bytes[scan:].decode('utf-8', errors='strict')
-                  break
-              except UnicodeDecodeError as e:
-                  start = scan + e.start
-                  end = scan + e.end
-                  errors.append((start, end, e.reason))
-                  scan = max(end, start + 1)
-          print(f'Unicode error ranges: {errors}')
-
-          required = ['<html', '</html>', 'ANANDA', 'addVolunteer', 'addAttendeeMaster', 'addKriyaban', 'addVip', 'v36NewRegistration', 'eventForm']
-          missing = [m for m in required if m.lower() not in decoded.lower()]
-          print(f'Missing required markers: {missing}')
-
-          if actual_crc == expected_crc and len(html_bytes) == expected_size and not errors and not missing:
-              pathlib.Path('src/index.html').write_bytes(html_bytes)
-              print('Original HTML payload is fully valid.')
-          else:
-              raise SystemExit('HTML payload validation failed.')
-          '@ | Set-Content -Path diagnose_html.py -Encoding utf8
-          python diagnose_html.py
-          Remove-Item diagnose_html.py -Force
-
-      - name: Restore and verify Ananda logo
+      - name: Restore and prepare Ananda Windows icon
         shell: powershell
         run: |
           $parts = Get-ChildItem 'assets/logo-128.png.b64.part*' | Sort-Object Name
-          if (!$parts -or $parts.Count -ne 4) { throw "Expected 4 logo source parts; found $($parts.Count)." }
+          if (!$parts -or $parts.Count -ne 4) { throw "Expected 4 logo parts; found $($parts.Count)." }
           $b64 = ($parts | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
-          $logoPath = Join-Path $PWD 'src/logo-128.png'
-          [IO.File]::WriteAllBytes($logoPath, [Convert]::FromBase64String($b64))
-          $bytes = [IO.File]::ReadAllBytes($logoPath)
-          if ($bytes.Length -ne 22678) { throw "Logo restore failed: expected 22678 bytes, got $($bytes.Length)." }
-          if ($bytes[0] -ne 0x89 -or $bytes[1] -ne 0x50 -or $bytes[2] -ne 0x4E -or $bytes[3] -ne 0x47) { throw 'Logo restore failed: PNG signature is invalid.' }
-          Write-Host "VERIFIED LOGO: $($bytes.Length) bytes"
+          $logo = Join-Path $PWD 'src/logo-128.png'
+          [IO.File]::WriteAllBytes($logo, [Convert]::FromBase64String($b64))
+          if ((Get-Item $logo).Length -ne 22678) { throw 'Verified source logo size mismatch.' }
+
+          Add-Type -AssemblyName System.Drawing
+          $src = [System.Drawing.Image]::FromFile($logo)
+          try {
+            if ($src.Width -ne 128 -or $src.Height -ne 128) { throw "Unexpected source logo dimensions: $($src.Width)x$($src.Height)" }
+            $bmp = New-Object System.Drawing.Bitmap 256,256
+            try {
+              $g = [System.Drawing.Graphics]::FromImage($bmp)
+              try {
+                $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+                $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+                $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+                $g.DrawImage($src, 0, 0, 256, 256)
+              } finally { $g.Dispose() }
+              $tmp = Join-Path $PWD 'src/logo-256.tmp.png'
+              $bmp.Save($tmp, [System.Drawing.Imaging.ImageFormat]::Png)
+            } finally { $bmp.Dispose() }
+          } finally { $src.Dispose() }
+          Move-Item $tmp $logo -Force
+          $check = [System.Drawing.Image]::FromFile($logo)
+          try {
+            if ($check.Width -ne 256 -or $check.Height -ne 256) { throw 'Windows icon resize failed.' }
+            Write-Host "VERIFIED WINDOWS ICON: $($check.Width)x$($check.Height)"
+          } finally { $check.Dispose() }
 
       - name: Validate Electron source
         working-directory: src
@@ -103,8 +82,8 @@ jobs:
           node --check main.js
           node --check preload.js
           if (!(Test-Path 'installer.nsh')) { throw 'installer.nsh is missing.' }
-          if (!(Test-Path 'index.html')) { throw 'index.html is missing after recovery.' }
-          if (!(Test-Path 'logo-128.png')) { throw 'logo-128.png is missing after recovery.' }
+          if (!(Test-Path 'index.html')) { throw 'index.html is missing.' }
+          if (!(Test-Path 'logo-128.png')) { throw 'logo is missing.' }
           Write-Host 'Electron source validation passed.'
 
       - name: Install build dependencies
@@ -119,29 +98,24 @@ jobs:
         shell: powershell
         run: |
           $setup = 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe'
-          $unpacked = 'src/dist/win-unpacked/Ananda Sangha Event Desk.exe'
+          $app = 'src/dist/win-unpacked/Ananda Sangha Event Desk.exe'
           if (!(Test-Path $setup)) { throw "Installer not created: $setup" }
-          if (!(Test-Path $unpacked)) { throw "Unpacked application executable not created: $unpacked" }
+          if (!(Test-Path $app)) { throw "Application executable not created: $app" }
           $size = (Get-Item $setup).Length
-          $appSize = (Get-Item $unpacked).Length
-          if ($size -lt 50000000) { throw "Installer looks too small: $size bytes" }
-          if ($appSize -lt 1000000) { throw "Application executable looks too small: $appSize bytes" }
-          Write-Host "VERIFIED INSTALLER: $setup ($size bytes)"
-          Write-Host "VERIFIED APP EXE: $unpacked ($appSize bytes)"
+          $appSize = (Get-Item $app).Length
+          if ($size -lt 50000000) { throw "Installer too small: $size bytes" }
+          if ($appSize -lt 1000000) { throw "App executable too small: $appSize bytes" }
+          Write-Host "VERIFIED INSTALLER: $size bytes"
+          Write-Host "VERIFIED APP EXE: $appSize bytes"
 
       - name: Create NGO handover folder
         shell: powershell
         run: |
           $root = Join-Path $PWD 'handover/ANANDA SANGHA EVENT DESK'
-          $installer = Join-Path $root 'Installer'
-          $data = Join-Path $root 'Data'
-          $auto = Join-Path $root 'Backup/Automatic'
-          $manual = Join-Path $root 'Backup/Manual'
-          New-Item -ItemType Directory -Force -Path $installer,$data,$auto,$manual | Out-Null
-          Copy-Item 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe' (Join-Path $installer 'Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe') -Force
-          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nNGO PRODUCTION`r`nVersion 1.0.128`r`nInstaller: Windows NSIS Setup.exe`r`nUninstaller: Windows Installed Apps + Start Menu`r`nData preserved on uninstall`r`nAutomatic backup: every 5 days on app launch`r`nKeyboard: + Add/New | Alt+S Save" -Encoding utf8
-          Set-Content (Join-Path $data 'README_DATA_FOLDER.txt') 'After installation, permanent NGO data is stored in Documents\ANANDA SANGHA EVENT DESK\Data. Copy that Documents folder when handing the system to another PC.' -Encoding utf8
-          Set-Content (Join-Path $root 'README_START_HERE.txt') "1. Open Installer.`r`n2. Run Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe.`r`n3. Complete the normal Windows installer wizard.`r`n4. The installer creates Desktop and Start Menu shortcuts.`r`n5. Windows Installed Apps contains the Uninstaller.`r`n6. Documents\ANANDA SANGHA EVENT DESK stores Data, Backups and a copy of this installer.`r`n7. Uninstalling removes the program but keeps NGO records and backups." -Encoding utf8
+          New-Item -ItemType Directory -Force -Path (Join-Path $root 'Installer'),(Join-Path $root 'Data'),(Join-Path $root 'Backup/Automatic'),(Join-Path $root 'Backup/Manual') | Out-Null
+          Copy-Item 'src/dist/Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe' (Join-Path $root 'Installer/Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe') -Force
+          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nNGO PRODUCTION`r`nVersion 1.0.128`r`nWindows NSIS installer + uninstaller`r`nDesktop + Start Menu shortcut`r`nData preserved on uninstall`r`nAutomatic backup: every 5 days`r`nKeyboard: + Add/New | Alt+S Save" -Encoding utf8
+          Set-Content (Join-Path $root 'README_START_HERE.txt') "1. Open Installer.`r`n2. Run Ananda_Sangha_Event_Desk_Setup_v1.0.128.exe.`r`n3. Complete the Windows setup wizard.`r`n4. Desktop and Start Menu shortcuts are created.`r`n5. Uninstall from Windows Installed Apps.`r`n6. NGO data/backups are retained." -Encoding utf8
 
       - name: Compress NGO handover
         shell: powershell
