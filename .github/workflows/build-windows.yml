@@ -1,4 +1,4 @@
-name: Inspect Phase 2 Classes Dashboard
+name: Inspect Phase 2 Class Logic
 
 on:
   workflow_dispatch:
@@ -11,81 +11,51 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout Phase 2 source
-        uses: actions/checkout@v4
-
-      - name: Restore Phase 1 base HTML
+      - uses: actions/checkout@v4
+      - name: Rebuild Phase 2 beta.2 HTML
         shell: powershell
         run: |
           @'
-          import base64, gzip, pathlib, binascii
+          import base64,gzip,pathlib,binascii
           parts=sorted(pathlib.Path('assets').glob('index.html.gz.b64.part*'))
           raw=base64.b64decode(b''.join(b''.join(p.read_bytes().split()) for p in parts),validate=True)
           html=gzip.decompress(raw)
           if len(html)!=488870 or (binascii.crc32(html)&0xffffffff)!=0x41243984: raise SystemExit('base mismatch')
           pathlib.Path('src/index.html').write_bytes(html)
-          '@ | Set-Content restore_base.py -Encoding utf8
-          python restore_base.py
-
-      - name: Rebuild Phase 1 v1.0.129
-        shell: powershell
-        run: |
-          @'
-          from pathlib import Path
-          p=Path('src/build-clean129.py');b=p.read_bytes()
-          b=b.replace(b'expected_size = 491414',b'expected_size = 491328')
-          b=b.replace(b'expected_crc = 0xed7c3111',b'expected_crc = 0x1484eb85')
-          b=b.replace(b"expected_sha = '4737255254f9f1d0951f5365944049d15c4c97434c1be16fbb8ed394bcaf72d9'",b"expected_sha = '390a75590e7fc0cd0f0199295bd684d830f96656ced48cc0789c0c9c037bd113'")
+          p=pathlib.Path('src/build-clean129.py');b=p.read_bytes()
+          b=b.replace(b'expected_size = 491414',b'expected_size = 491328').replace(b'expected_crc = 0xed7c3111',b'expected_crc = 0x1484eb85').replace(b"expected_sha = '4737255254f9f1d0951f5365944049d15c4c97434c1be16fbb8ed394bcaf72d9'",b"expected_sha = '390a75590e7fc0cd0f0199295bd684d830f96656ced48cc0789c0c9c037bd113'")
           p.write_bytes(b)
-          '@ | Set-Content fix_p1.py -Encoding utf8
-          python fix_p1.py
+          '@ | Set-Content prep.py -Encoding utf8
+          python prep.py
           python src/build-clean129.py
-
-      - name: Rebuild Phase 2 beta.1
-        shell: powershell
-        run: |
           @'
           import base64,gzip,pathlib
-          source=pathlib.Path('src/build-phase2.py.gz.b64')
-          encoded=''.join(source.read_text(encoding='utf-8').split()).rstrip('=');encoded+='='*(-len(encoded)%4)
+          source=pathlib.Path('src/build-phase2.py.gz.b64');encoded=''.join(source.read_text(encoding='utf-8').split()).rstrip('=');encoded+='='*(-len(encoded)%4)
           script=gzip.decompress(base64.b64decode(encoded,validate=False)).decode('utf-8')
-          script=script.replace("if len(raw)!=expected_size: raise SystemExit(f'Phase 2 HTML size mismatch: {len(raw)}')\n",'')
-          script=script.replace("if (binascii.crc32(raw)&0xffffffff)!=expected_crc: raise SystemExit('Phase 2 CRC mismatch')\n",'')
-          script=script.replace("if hashlib.sha256(raw).hexdigest()!=expected_sha: raise SystemExit('Phase 2 SHA mismatch')\n",'')
+          for line in ["if len(raw)!=expected_size: raise SystemExit(f'Phase 2 HTML size mismatch: {len(raw)}')\n","if (binascii.crc32(raw)&0xffffffff)!=expected_crc: raise SystemExit('Phase 2 CRC mismatch')\n","if hashlib.sha256(raw).hexdigest()!=expected_sha: raise SystemExit('Phase 2 SHA mismatch')\n"]: script=script.replace(line,'')
           pathlib.Path('src/build-phase2.py').write_text(script,encoding='utf-8',newline='\n')
-          '@ | Set-Content restore_p2.py -Encoding utf8
-          python restore_p2.py
+          '@ | Set-Content p2.py -Encoding utf8
+          python p2.py
           python src/build-phase2.py
-
-      - name: Apply Phase 2 beta.2 corrections
-        shell: powershell
-        run: |
           @'
           import base64,gzip,pathlib
-          parts=sorted(pathlib.Path('src').glob('build-beta2-patch.py.gz.b64.part*'))
-          encoded=''.join(''.join(p.read_text(encoding='utf-8').split()) for p in parts).rstrip('=');encoded+='='*(-len(encoded)%4)
+          parts=sorted(pathlib.Path('src').glob('build-beta2-patch.py.gz.b64.part*'));encoded=''.join(''.join(p.read_text(encoding='utf-8').split()) for p in parts).rstrip('=');encoded+='='*(-len(encoded)%4)
           pathlib.Path('src/build-beta2-patch.py').write_bytes(gzip.decompress(base64.b64decode(encoded,validate=False)))
-          '@ | Set-Content restore_b2.py -Encoding utf8
-          python restore_b2.py
+          '@ | Set-Content b2.py -Encoding utf8
+          python b2.py
           python src/build-beta2-patch.py
 
-      - name: Print Classes dashboard source safely
+      - name: Print class logic safely
         shell: powershell
         run: |
           @'
           from pathlib import Path
           text=Path('src/index.html').read_text(encoding='utf-8')
           def safe(s): return s.encode('ascii','backslashreplace').decode('ascii')
-          needles=['Course Master','New Class Batch','Batches & Schedule','Student Progress','Progression','Outreach','Meditation Courses','Classes']
+          needles=['function p2RenderClasses','p2ClassBatches','p2ClassesOutreach','p2ClassesAttendance','p2ProgressSearch','p2StatusFilter','p2ClassList','function p2RenderProgress','function p2EligibleFromLevel']
           for needle in needles:
-              hits=[];start=0
-              while True:
-                  i=text.lower().find(needle.lower(),start)
-                  if i<0: break
-                  hits.append(i);start=i+1
-              print(safe(f'=== {needle} HITS: {hits[:20]} ==='))
-              for n,i in enumerate(hits[:4]):
-                  print(safe(f'--- {needle} CONTEXT {n+1} @ {i} ---'))
-                  print(safe(text[max(0,i-3000):i+5000]))
+              i=text.find(needle)
+              print(safe(f'=== {needle} @ {i} ==='))
+              if i>=0: print(safe(text[max(0,i-1800):i+8500]))
           '@ | Set-Content inspect.py -Encoding utf8
           python inspect.py
