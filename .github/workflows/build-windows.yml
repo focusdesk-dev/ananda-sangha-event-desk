@@ -94,6 +94,27 @@ jobs:
           python patch_shell_files.py
           Remove-Item patch_shell_files.py -Force
 
+      - name: Inspect current Classes dashboard structure
+        shell: powershell
+        run: |
+          @'
+          from pathlib import Path
+          text=Path('src/index.html').read_text(encoding='utf-8')
+          needles=['Course Master','New Class Batch','Batches & Schedule','Student Progress','Progression','Outreach','Meditation Courses','CLASSES']
+          for needle in needles:
+              hits=[]; start=0
+              while True:
+                  i=text.lower().find(needle.lower(),start)
+                  if i<0: break
+                  hits.append(i); start=i+1
+              print(f'=== {needle} HITS: {hits[:20]} ===')
+              for n,i in enumerate(hits[:3]):
+                  print(f'--- {needle} CONTEXT {n+1} @ {i} ---')
+                  print(text[max(0,i-4500):i+6500])
+          '@ | Set-Content inspect_classes.py -Encoding utf8
+          python inspect_classes.py
+          Remove-Item inspect_classes.py -Force
+
       - name: Validate Phase 2 beta.2 HTML and scripts
         shell: powershell
         run: |
