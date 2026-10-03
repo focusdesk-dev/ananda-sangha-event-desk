@@ -1,4 +1,4 @@
-name: Build Phase 2 Windows Beta
+name: Inspect Phase 2 Classes Dashboard
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     branches: [phase2-development]
 
 jobs:
-  build-windows:
+  inspect:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -14,216 +14,78 @@ jobs:
       - name: Checkout Phase 2 source
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Restore verified Phase 1 base HTML
+      - name: Restore Phase 1 base HTML
         shell: powershell
         run: |
           @'
           import base64, gzip, pathlib, binascii
-          parts = sorted(pathlib.Path('assets').glob('index.html.gz.b64.part*'))
-          if len(parts) != 8: raise SystemExit(f'Expected 8 HTML parts, found {len(parts)}')
-          raw = base64.b64decode(b''.join(b''.join(p.read_bytes().split()) for p in parts), validate=True)
-          html = gzip.decompress(raw)
-          if len(html) != 488870 or (binascii.crc32(html) & 0xffffffff) != 0x41243984:
-              raise SystemExit('Working base HTML checksum/size validation failed')
+          parts=sorted(pathlib.Path('assets').glob('index.html.gz.b64.part*'))
+          raw=base64.b64decode(b''.join(b''.join(p.read_bytes().split()) for p in parts),validate=True)
+          html=gzip.decompress(raw)
+          if len(html)!=488870 or (binascii.crc32(html)&0xffffffff)!=0x41243984: raise SystemExit('base mismatch')
           pathlib.Path('src/index.html').write_bytes(html)
-          print('VERIFIED BASE HTML: 488870 bytes, CRC32 41243984')
-          '@ | Set-Content restore_html.py -Encoding utf8
-          python restore_html.py
-          Remove-Item restore_html.py -Force
+          '@ | Set-Content restore_base.py -Encoding utf8
+          python restore_base.py
 
-      - name: Rebuild frozen Phase 1 v1.0.129 source
+      - name: Rebuild Phase 1 v1.0.129
         shell: powershell
         run: |
           @'
           from pathlib import Path
-          p=Path('src/build-clean129.py'); b=p.read_bytes()
-          b=b.replace(b'expected_size = 491414', b'expected_size = 491328')
-          b=b.replace(b'expected_crc = 0xed7c3111', b'expected_crc = 0x1484eb85')
-          b=b.replace(b"expected_sha = '4737255254f9f1d0951f5365944049d15c4c97434c1be16fbb8ed394bcaf72d9'", b"expected_sha = '390a75590e7fc0cd0f0199295bd684d830f96656ced48cc0789c0c9c037bd113'")
+          p=Path('src/build-clean129.py');b=p.read_bytes()
+          b=b.replace(b'expected_size = 491414',b'expected_size = 491328')
+          b=b.replace(b'expected_crc = 0xed7c3111',b'expected_crc = 0x1484eb85')
+          b=b.replace(b"expected_sha = '4737255254f9f1d0951f5365944049d15c4c97434c1be16fbb8ed394bcaf72d9'",b"expected_sha = '390a75590e7fc0cd0f0199295bd684d830f96656ced48cc0789c0c9c037bd113'")
           p.write_bytes(b)
-          '@ | Set-Content fix_phase1_verifier.py -Encoding utf8
-          python fix_phase1_verifier.py
-          Remove-Item fix_phase1_verifier.py -Force
+          '@ | Set-Content fix_p1.py -Encoding utf8
+          python fix_p1.py
           python src/build-clean129.py
 
-      - name: Rebuild Phase 2 beta.1 base
+      - name: Rebuild Phase 2 beta.1
         shell: powershell
         run: |
           @'
-          import base64, gzip, pathlib
+          import base64,gzip,pathlib
           source=pathlib.Path('src/build-phase2.py.gz.b64')
-          encoded=''.join(source.read_text(encoding='utf-8').split()).rstrip('=')
-          encoded += '=' * (-len(encoded) % 4)
+          encoded=''.join(source.read_text(encoding='utf-8').split()).rstrip('=');encoded+='='*(-len(encoded)%4)
           script=gzip.decompress(base64.b64decode(encoded,validate=False)).decode('utf-8')
           script=script.replace("if len(raw)!=expected_size: raise SystemExit(f'Phase 2 HTML size mismatch: {len(raw)}')\n",'')
           script=script.replace("if (binascii.crc32(raw)&0xffffffff)!=expected_crc: raise SystemExit('Phase 2 CRC mismatch')\n",'')
           script=script.replace("if hashlib.sha256(raw).hexdigest()!=expected_sha: raise SystemExit('Phase 2 SHA mismatch')\n",'')
           pathlib.Path('src/build-phase2.py').write_text(script,encoding='utf-8',newline='\n')
-          '@ | Set-Content restore_phase2_builder.py -Encoding utf8
-          python restore_phase2_builder.py
-          Remove-Item restore_phase2_builder.py -Force
+          '@ | Set-Content restore_p2.py -Encoding utf8
+          python restore_p2.py
           python src/build-phase2.py
 
       - name: Apply Phase 2 beta.2 corrections
         shell: powershell
         run: |
           @'
-          import base64, gzip, pathlib
-          parts = sorted(pathlib.Path('src').glob('build-beta2-patch.py.gz.b64.part*'))
-          if len(parts) != 4: raise SystemExit(f'Expected 4 beta.2 patch parts, found {len(parts)}')
-          encoded=''.join(''.join(p.read_text(encoding='utf-8').split()) for p in parts).rstrip('=')
-          encoded += '=' * (-len(encoded) % 4)
-          script=gzip.decompress(base64.b64decode(encoded,validate=False))
-          pathlib.Path('src/build-beta2-patch.py').write_bytes(script)
-          '@ | Set-Content restore_beta2.py -Encoding utf8
-          python restore_beta2.py
-          Remove-Item restore_beta2.py -Force
+          import base64,gzip,pathlib
+          parts=sorted(pathlib.Path('src').glob('build-beta2-patch.py.gz.b64.part*'))
+          encoded=''.join(''.join(p.read_text(encoding='utf-8').split()) for p in parts).rstrip('=');encoded+='='*(-len(encoded)%4)
+          pathlib.Path('src/build-beta2-patch.py').write_bytes(gzip.decompress(base64.b64decode(encoded,validate=False)))
+          '@ | Set-Content restore_b2.py -Encoding utf8
+          python restore_b2.py
           python src/build-beta2-patch.py
 
-          @'
-          from pathlib import Path
-          p=Path('src/main.js'); p.write_text(p.read_text(encoding='utf-8-sig').replace('2.0.0-beta.1','2.0.0-beta.2'),encoding='utf-8',newline='\n')
-          p=Path('src/package.json'); p.write_text(p.read_text(encoding='utf-8-sig').replace('"2.0.0-beta.1"','"2.0.0-beta.2"'),encoding='utf-8',newline='\n')
-          p=Path('src/installer.nsh'); p.write_text(p.read_text(encoding='utf-8-sig').replace('Ananda_Sangha_Event_Desk_Setup_v1.0.129.exe','Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.2.exe'),encoding='utf-8',newline='\n')
-          '@ | Set-Content patch_shell_files.py -Encoding utf8
-          python patch_shell_files.py
-          Remove-Item patch_shell_files.py -Force
-
-      - name: Inspect current Classes dashboard structure
+      - name: Print Classes dashboard source safely
         shell: powershell
         run: |
           @'
           from pathlib import Path
           text=Path('src/index.html').read_text(encoding='utf-8')
-          needles=['Course Master','New Class Batch','Batches & Schedule','Student Progress','Progression','Outreach','Meditation Courses','CLASSES']
+          def safe(s): return s.encode('ascii','backslashreplace').decode('ascii')
+          needles=['Course Master','New Class Batch','Batches & Schedule','Student Progress','Progression','Outreach','Meditation Courses','Classes']
           for needle in needles:
-              hits=[]; start=0
+              hits=[];start=0
               while True:
                   i=text.lower().find(needle.lower(),start)
                   if i<0: break
-                  hits.append(i); start=i+1
-              print(f'=== {needle} HITS: {hits[:20]} ===')
-              for n,i in enumerate(hits[:3]):
-                  print(f'--- {needle} CONTEXT {n+1} @ {i} ---')
-                  print(text[max(0,i-4500):i+6500])
-          '@ | Set-Content inspect_classes.py -Encoding utf8
-          python inspect_classes.py
-          Remove-Item inspect_classes.py -Force
-
-      - name: Validate Phase 2 beta.2 HTML and scripts
-        shell: powershell
-        run: |
-          @'
-          import pathlib,re,binascii,hashlib
-          b=pathlib.Path('src/index.html').read_bytes()
-          if len(b)!=565873: raise SystemExit(f'Unexpected beta.2 HTML size: {len(b)}')
-          if (binascii.crc32(b)&0xffffffff)!=0xd1289728: raise SystemExit('beta.2 CRC mismatch')
-          if hashlib.sha256(b).hexdigest()!='5cf37dbf7ab709bc3b7c266381b4fb381ae6a59c8aeb282d83d26a51659942de': raise SystemExit('beta.2 SHA mismatch')
-          text=b.decode('utf-8')
-          required=['2.0.0-beta.2','Permanent Records','Course Master','Acharya Master','STT','Kriya 2','p2EnrollStudentSearch','Weekly recurring','Class Reports']
-          for marker in required:
-              if marker not in text: raise SystemExit(f'Missing beta.2 marker: {marker}')
-          if 'Acharya / Volunteer Assignments' in text: raise SystemExit('Removed class report still present')
-          scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',text,re.S|re.I)
-          if len(scripts)!=10: raise SystemExit(f'Unexpected script count: {len(scripts)}')
-          out=pathlib.Path('script-check');out.mkdir(exist_ok=True)
-          for i,script in enumerate(scripts):(out/f'script-{i:02d}.js').write_text(script,encoding='utf-8')
-          print('VERIFIED BETA.2 HTML',len(b),'CRC32',format(binascii.crc32(b)&0xffffffff,'08x'))
-          '@ | Set-Content validate_beta2.py -Encoding utf8
-          python validate_beta2.py
-          Get-ChildItem 'script-check\*.js' | ForEach-Object { node --check $_.FullName }
-          Remove-Item validate_beta2.py -Force
-          Remove-Item script-check -Recurse -Force
-
-      - name: Restore Ananda logo and build multi-resolution Windows icon
-        shell: powershell
-        run: |
-          $parts = Get-ChildItem 'assets/logo-128.png.b64.part*' | Sort-Object Name
-          if (!$parts -or $parts.Count -ne 4) { throw "Expected 4 logo parts; found $($parts.Count)." }
-          $b64 = ($parts | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
-          $logo = Join-Path $PWD 'src/logo-128.png'
-          [IO.File]::WriteAllBytes($logo, [Convert]::FromBase64String($b64))
-          Add-Type -AssemblyName System.Drawing
-          $src=[System.Drawing.Image]::FromFile($logo)
-          try {
-            $sizes=@(16,20,24,32,40,48,64,128,256);$frames=@()
-            foreach($size in $sizes){$bmp=[System.Drawing.Bitmap]::new($size,$size,[System.Drawing.Imaging.PixelFormat]::Format32bppArgb);try{$g=[System.Drawing.Graphics]::FromImage($bmp);try{$g.Clear([System.Drawing.Color]::Transparent);$g.InterpolationMode=[System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic;$g.SmoothingMode=[System.Drawing.Drawing2D.SmoothingMode]::HighQuality;$g.DrawImage($src,0,0,$size,$size)}finally{$g.Dispose()};$ms=[IO.MemoryStream]::new();try{$bmp.Save($ms,[System.Drawing.Imaging.ImageFormat]::Png);$frames += [PSCustomObject]@{Size=$size;Bytes=$ms.ToArray()}}finally{$ms.Dispose()}}finally{$bmp.Dispose()}}
-          } finally {$src.Dispose()}
-          $icon=Join-Path $PWD 'src/ananda-icon.ico';$stream=[IO.File]::Open($icon,[IO.FileMode]::Create);$writer=[IO.BinaryWriter]::new($stream)
-          try{$writer.Write([UInt16]0);$writer.Write([UInt16]1);$writer.Write([UInt16]$frames.Count);$offset=6+(16*$frames.Count);foreach($f in $frames){$d=if($f.Size -ge 256){0}else{$f.Size};$writer.Write([byte]$d);$writer.Write([byte]$d);$writer.Write([byte]0);$writer.Write([byte]0);$writer.Write([UInt16]1);$writer.Write([UInt16]32);$writer.Write([UInt32]$f.Bytes.Length);$writer.Write([UInt32]$offset);$offset+=$f.Bytes.Length};foreach($f in $frames){$writer.Write([byte[]]$f.Bytes)}}finally{$writer.Dispose();$stream.Dispose()}
-          if(!(Test-Path $icon) -or (Get-Item $icon).Length -lt 10000){throw 'Windows ICO generation failed'}
-
-      - name: Validate Phase 2 Electron shell
-        working-directory: src
-        shell: powershell
-        run: |
-          node --check main.js
-          node --check preload.js
-          if ((Get-Content main.js -Raw) -notmatch "const APP_VERSION = '2\.0\.0-beta\.2';") { throw 'main.js is not beta.2' }
-          if ((Get-Content package.json -Raw) -notmatch '"version"\s*:\s*"2\.0\.0-beta\.2"') { throw 'package.json is not beta.2' }
-          if (!(Test-Path 'installer.nsh')) { throw 'installer.nsh missing' }
-          if (!(Test-Path 'ananda-icon.ico')) { throw 'Windows icon missing' }
-
-      - name: Install build dependencies
-        working-directory: src
-        run: npm install
-
-      - name: Build Phase 2 Windows installer
-        working-directory: src
-        run: npm run dist
-
-      - name: Verify Phase 2 installer and application
-        shell: powershell
-        run: |
-          $setup='src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.2.exe'
-          $app='src/dist/win-unpacked/Ananda Sangha Event Desk.exe'
-          if(!(Test-Path $setup)){throw "Installer not created: $setup"}
-          if(!(Test-Path $app)){throw "Application EXE not created: $app"}
-          if((Get-Item $setup).Length -lt 50000000){throw 'Installer is unexpectedly small'}
-
-      - name: Smoke test installation, shortcut and launch
-        shell: powershell
-        run: |
-          $setup=(Resolve-Path 'src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.2.exe').Path
-          $desktop=[Environment]::GetFolderPath('Desktop');$shortcut=Join-Path $desktop 'Ananda Sangha Event Desk.lnk'
-          if(Test-Path $shortcut){Remove-Item $shortcut -Force}
-          $p=Start-Process -FilePath $setup -ArgumentList '/S' -PassThru -Wait
-          if($p.ExitCode -ne 0){throw "Installer returned $($p.ExitCode)"}
-          Start-Sleep -Seconds 3
-          if(!(Test-Path $shortcut)){throw 'Desktop shortcut was not created'}
-          $shell=New-Object -ComObject WScript.Shell;$link=$shell.CreateShortcut($shortcut)
-          if(!$link.TargetPath -or !(Test-Path $link.TargetPath)){throw 'Desktop shortcut target is invalid'}
-          $app=Start-Process -FilePath $link.TargetPath -PassThru
-          Start-Sleep -Seconds 5
-          if($app.HasExited){throw "Installed beta.2 app exited unexpectedly with $($app.ExitCode)"}
-          Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
-          Write-Host 'BETA.2 INSTALL + LAUNCH SMOKE TEST PASSED'
-
-      - name: Create Phase 2 beta.2 handover package
-        shell: powershell
-        run: |
-          $root=Join-Path $PWD 'handover/ANANDA SANGHA EVENT DESK PHASE 2 BETA'
-          New-Item -ItemType Directory -Force -Path (Join-Path $root 'Installer'),(Join-Path $root 'Data'),(Join-Path $root 'Backup/Automatic'),(Join-Path $root 'Backup/Manual') | Out-Null
-          Copy-Item 'src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.2.exe' (Join-Path $root 'Installer/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.2.exe') -Force
-          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nPHASE 2 TEST BUILD`r`nVersion 2.0.0-beta.2`r`nClasses and Events separated`r`nPermanent Records: Volunteer, Attendee, Kriyaban, VIP, Student, Acharya`r`nCourse Master: Level 1-4, STT, Kriya 2, future courses`r`nScheduling: weekly, monthly, custom, single date`r`nEnrollment selection fixed`r`nReports grouped into Event, Class, Student Progress, Master and Annual Summary`r`nExisting NGO data retained in Documents\ANANDA SANGHA EVENT DESK" -Encoding utf8
-          Set-Content (Join-Path $root 'README_START_HERE.txt') "THIS IS PHASE 2 BETA.2.`r`nPhase 1 v1.0.129 remains preserved in GitHub.`r`nClose the app before installing.`r`nDo not delete Documents\ANANDA SANGHA EVENT DESK.`r`nInstall over the existing Ananda Sangha Event Desk and test with a backup of NGO data." -Encoding utf8
-          Compress-Archive -Path 'handover/ANANDA SANGHA EVENT DESK PHASE 2 BETA' -DestinationPath 'ANANDA_SANGHA_EVENT_DESK_PHASE2_v2.0.0-beta.2.zip' -CompressionLevel Optimal
-
-      - name: Upload Phase 2 Setup.exe
-        uses: actions/upload-artifact@v4
-        with:
-          name: Ananda-Sangha-Event-Desk-Phase2-Setup-v2.0.0-beta.2
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.2.exe
-          if-no-files-found: error
-
-      - name: Upload Phase 2 handover
-        uses: actions/upload-artifact@v4
-        with:
-          name: Ananda-Sangha-Event-Desk-Phase2-Handover-v2.0.0-beta.2
-          path: ANANDA_SANGHA_EVENT_DESK_PHASE2_v2.0.0-beta.2.zip
-          if-no-files-found: error
+                  hits.append(i);start=i+1
+              print(safe(f'=== {needle} HITS: {hits[:20]} ==='))
+              for n,i in enumerate(hits[:4]):
+                  print(safe(f'--- {needle} CONTEXT {n+1} @ {i} ---'))
+                  print(safe(text[max(0,i-3000):i+5000]))
+          '@ | Set-Content inspect.py -Encoding utf8
+          python inspect.py
