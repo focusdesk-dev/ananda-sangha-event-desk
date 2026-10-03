@@ -1,0 +1,89 @@
+name: Export Generated Beta4A Source
+
+on:
+  push:
+    branches: [phase2-development]
+
+jobs:
+  export-source:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore verified Phase 1 base HTML
+        shell: powershell
+        run: |
+          @'
+          import base64,gzip,pathlib,binascii
+          parts=sorted(pathlib.Path('assets').glob('index.html.gz.b64.part*'))
+          if len(parts)!=8: raise SystemExit(f'Expected 8 base HTML parts, found {len(parts)}')
+          raw=base64.b64decode(b''.join(b''.join(p.read_bytes().split()) for p in parts),validate=True)
+          html=gzip.decompress(raw)
+          if len(html)!=488870 or (binascii.crc32(html)&0xffffffff)!=0x41243984: raise SystemExit('Verified Phase 1 base mismatch')
+          pathlib.Path('src/index.html').write_bytes(html)
+          '@ | Set-Content restore_base.py -Encoding utf8
+          python restore_base.py
+
+      - name: Rebuild Phase 1 v1.0.129
+        shell: powershell
+        run: |
+          @'
+          from pathlib import Path
+          p=Path('src/build-clean129.py');b=p.read_bytes()
+          b=b.replace(b'expected_size = 491414',b'expected_size = 491328')
+          b=b.replace(b'expected_crc = 0xed7c3111',b'expected_crc = 0x1484eb85')
+          b=b.replace(b"expected_sha = '4737255254f9f1d0951f5365944049d15c4c97434c1be16fbb8ed394bcaf72d9'",b"expected_sha = '390a75590e7fc0cd0f0199295bd684d830f96656ced48cc0789c0c9c037bd113'")
+          p.write_bytes(b)
+          '@ | Set-Content fix_phase1.py -Encoding utf8
+          python fix_phase1.py
+          python src/build-clean129.py
+
+      - name: Rebuild Phase 2 beta.1
+        shell: powershell
+        run: |
+          @'
+          import base64,gzip,pathlib
+          source=pathlib.Path('src/build-phase2.py.gz.b64')
+          encoded=''.join(source.read_text(encoding='utf-8').split()).rstrip('=');encoded+='='*(-len(encoded)%4)
+          script=gzip.decompress(base64.b64decode(encoded,validate=False)).decode('utf-8')
+          for line in [
+              "if len(raw)!=expected_size: raise SystemExit(f'Phase 2 HTML size mismatch: {len(raw)}')\n",
+              "if (binascii.crc32(raw)&0xffffffff)!=expected_crc: raise SystemExit('Phase 2 CRC mismatch')\n",
+              "if hashlib.sha256(raw).hexdigest()!=expected_sha: raise SystemExit('Phase 2 SHA mismatch')\n"
+          ]: script=script.replace(line,'')
+          pathlib.Path('src/build-phase2.py').write_text(script,encoding='utf-8',newline='\n')
+          '@ | Set-Content restore_phase2.py -Encoding utf8
+          python restore_phase2.py
+          python src/build-phase2.py
+
+      - name: Apply beta.2
+        shell: powershell
+        run: |
+          @'
+          import base64,gzip,pathlib
+          parts=sorted(pathlib.Path('src').glob('build-beta2-patch.py.gz.b64.part*'))
+          encoded=''.join(''.join(p.read_text(encoding='utf-8').split()) for p in parts).rstrip('=');encoded+='='*(-len(encoded)%4)
+          pathlib.Path('src/build-beta2-patch.py').write_bytes(gzip.decompress(base64.b64decode(encoded,validate=False)))
+          '@ | Set-Content restore_beta2.py -Encoding utf8
+          python restore_beta2.py
+          python src/build-beta2-patch.py
+
+      - name: Apply beta.3 and beta.4A
+        shell: powershell
+        run: |
+          python src/build-beta3-classes.py
+          python src/set-beta3-version.py
+          python src/build-beta4a.py
+          python src/set-beta4a-version.py
+
+      - name: Upload generated source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-beta4a-source
+          path: |
+            src/index.html
+            src/main.js
+            src/package.json
+            src/preload.js
+          if-no-files-found: error
