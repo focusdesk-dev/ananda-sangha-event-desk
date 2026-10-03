@@ -7,8 +7,9 @@ text=path.read_text(encoding='utf-8')
 # Add an open-ended/manual session-date manager to the class workspace without
 # disturbing the existing attendance/enrolment implementation (reserved for 4C).
 marker='</body>'
-if marker not in text:
-    raise SystemExit('Could not locate body end for beta.4B')
+body_pos=text.rfind(marker)
+if body_pos<0:
+    raise SystemExit('Could not locate real body end for beta.4B')
 
 script=r'''
 <script>
@@ -91,8 +92,6 @@ script=r'''
     };
   }
   function makeEndDateOptional(){
-    // The existing batch form may vary between Phase 2 builds. Find the date input
-    // whose visible label contains "end" and allow it to stay blank.
     document.querySelectorAll('form').forEach(form=>{
       const labels=[...form.querySelectorAll('label')];
       labels.forEach(label=>{
@@ -108,7 +107,7 @@ script=r'''
 })();
 </script>
 '''
-text=text.replace(marker,script+'\n'+marker,1)
+text=text[:body_pos]+script+'\n'+text[body_pos:]
 
 css=r'''
 <style>
