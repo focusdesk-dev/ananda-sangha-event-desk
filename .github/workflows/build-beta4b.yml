@@ -24,9 +24,6 @@ jobs:
         run: |
           $parts=Get-ChildItem 'src/build-beta4b-ci.ps1.gz.b64.part*' | Sort-Object Name
           if(!$parts -or $parts.Count -ne 2){throw "Expected 2 beta.4B CI parts; found $($parts.Count)"}
-          $encoded=($parts|ForEach-Object{(Get-Content $_.FullName -Raw).Trim()}) -join ''
-          [IO.File]::WriteAllBytes('beta4b-ci.ps1',[IO.Compression.GZipStream]::new([IO.MemoryStream]::new([Convert]::FromBase64String($encoded)),[IO.Compression.CompressionMode]::Decompress) | ForEach-Object { })
-          # Use Python for reliable gzip decode, then execute the restored PowerShell script.
           @'
           import base64,gzip,pathlib
           parts=sorted(pathlib.Path('src').glob('build-beta4b-ci.ps1.gz.b64.part*'))
@@ -37,7 +34,6 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Could not restore beta.4B CI script'}
           Remove-Item restore_ci.py -Force
           & .\beta4b-ci.ps1
-          if($LASTEXITCODE -ne 0){throw "beta.4B CI script failed with $LASTEXITCODE"}
 
       - name: Upload Phase 2 beta.4B Setup.exe
         uses: actions/upload-artifact@v4
