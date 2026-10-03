@@ -1,11 +1,11 @@
-name: Export generated beta3 source
+name: Validate generated beta4 source
 
 on:
   push:
     branches: [phase2-beta4-work]
 
 jobs:
-  export-source:
+  validate-source:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,9 +54,35 @@ jobs:
           python src/build-beta2-patch.py
           python src/build-beta3-classes.py
           python src/set-beta3-version.py
-      - name: Upload generated beta3 HTML
+
+      - name: Apply and validate beta4 source
+        shell: powershell
+        run: |
+          python src/build-beta4.py
+          python src/set-beta4-version.py
+          @'
+          import pathlib,re,hashlib,binascii
+          p=pathlib.Path('src/index.html');b=p.read_bytes();text=b.decode('utf-8')
+          required=['2.0.0-beta.4','Classes by Year','Double-click a year','Open-ended / dates announced later','p2AddClassDate','p2NextClass','p2AttendanceGridSearch','p2-attendance-grid','p2EnrollmentPeople','Also add/link to Student Master','Search Student, Volunteer, Attendee or Kriyaban','p2SessionModal']
+          for m in required:
+              if m not in text: raise SystemExit('Missing beta4 marker: '+m)
+          scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',text,re.S|re.I)
+          if len(scripts)!=10: raise SystemExit(f'Unexpected script count: {len(scripts)}')
+          out=pathlib.Path('script-check');out.mkdir(exist_ok=True)
+          for i,s in enumerate(scripts):(out/f'script-{i:02d}.js').write_text(s,encoding='utf-8')
+          print('BETA4 HTML',len(b),'CRC32',format(binascii.crc32(b)&0xffffffff,'08x'),'SHA256',hashlib.sha256(b).hexdigest())
+          '@ | Set-Content validate_beta4.py -Encoding utf8
+          python validate_beta4.py
+          Get-ChildItem 'script-check\*.js' | ForEach-Object { node --check $_.FullName }
+          node --check src/main.js
+          node --check src/preload.js
+          if((Get-Content src/main.js -Raw) -notmatch "const APP_VERSION = '2\.0\.0-beta\.4';"){throw 'main.js beta4 version mismatch'}
+          if((Get-Content src/package.json -Raw) -notmatch '"version"\s*:\s*"2\.0\.0-beta\.4"'){throw 'package beta4 version mismatch'}
+          Write-Host 'BETA4 SOURCE VALIDATION PASSED'
+
+      - name: Upload generated beta4 HTML
         uses: actions/upload-artifact@v4
         with:
-          name: generated-beta3-html
+          name: generated-beta4-html
           path: src/index.html
           if-no-files-found: error
