@@ -45,6 +45,13 @@ text = text.replace(marker, flow, 1)
 
 text = text.replace("document.title='ANANDA SANGHA GURGAON Event Desk — Production 1.0.127';", "document.title='ANANDA SANGHA GURGAON Event Desk — Production 1.0.129';", 1)
 
+# Temporary build diagnostic for the Classes opening page. This prints structure only; it does not alter HTML.
+for needle in ['COURSE MASTER','NEW CLASS BATCH','BATCHES & SCHEDULE','STUDENT PROGRESS','PROGRESSION','OUTREACH']:
+    i=text.upper().find(needle)
+    print(f'=== CLASSES DIAGNOSTIC {needle} @ {i} ===')
+    if i >= 0:
+        print(text[max(0,i-1500):i+3000])
+
 path.write_bytes(text.encode('utf-8'))
 raw = path.read_bytes()
 expected_size = 491414
