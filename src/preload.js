@@ -99,6 +99,17 @@ function handleAddShortcut() {
   if (pageId === 'attendeeMaster' && clickById('addAttendeeMaster')) return;
   if (pageId === 'kriyabans' && clickById('addKriyaban')) return;
   if (pageId === 'vips' && clickById('addVip')) return;
+
+  // Phase 2 beta.4A: when already inside a permanent master, + must add that record directly.
+  if (page && clickVisibleByText([
+    /^(?:\+|＋)?\s*(?:add\s+)?acharya$/i,
+    /^(?:\+|＋)?\s*(?:add\s+)?student$/i,
+    /^(?:\+|＋)?\s*(?:add\s+)?volunteer$/i,
+    /^(?:\+|＋)?\s*(?:add\s+)?attendee$/i,
+    /^(?:\+|＋)?\s*(?:add\s+)?kriyaban$/i,
+    /^(?:\+|＋)?\s*(?:add\s+)?vip$/i
+  ], page)) return;
+
   if (pageId === 'events') {
     const cancel = document.getElementById('cancelEventEdit');
     if (cancel && isVisible(cancel)) cancel.click();
@@ -151,6 +162,25 @@ function handleSaveShortcut() {
     if (modal && (modal.classList.contains('open') || isVisible(modal)) && submitFormWithPreferredButton(form, form?.querySelector('button[type="submit"]'))) return;
   }
 
+  // Phase 2 beta.4A: support Acharya/Student custom forms directly.
+  const visibleDialogOrPage = [...document.querySelectorAll('.modal-backdrop.open, [role="dialog"], .page.active')].filter(isVisible);
+  for (const scope of visibleDialogOrPage) {
+    if (clickVisibleByText([
+      /^save\s+acharya$/i,
+      /^update\s+acharya$/i,
+      /^save\s+student$/i,
+      /^update\s+student$/i,
+      /^save\s+volunteer$/i,
+      /^update\s+volunteer$/i,
+      /^save\s+attendee$/i,
+      /^update\s+attendee$/i,
+      /^save\s+kriyaban$/i,
+      /^update\s+kriyaban$/i,
+      /^save\s+vip$/i,
+      /^update\s+vip$/i
+    ], scope)) return;
+  }
+
   const page = activePage();
   if (page?.id === 'events') {
     const form = document.getElementById('eventForm');
@@ -168,9 +198,17 @@ function handleSaveShortcut() {
   }
 
   const scope = page || document;
+  const visibleForm = [...scope.querySelectorAll('form')].filter(isVisible).find(form =>
+    [...form.querySelectorAll('button[type="submit"]')].some(isVisible)
+  );
+  if (visibleForm) {
+    const preferred = [...visibleForm.querySelectorAll('button[type="submit"]')].filter(isVisible).find(b => !/check\s*in/i.test(b.textContent || ''));
+    if (submitFormWithPreferredButton(visibleForm, preferred)) return;
+  }
+
   const saveButton = [...scope.querySelectorAll('button')].filter(isVisible).find(b => {
     const t = (b.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-    return /^(save|save event|update event|save volunteer|save attendee|save kriyaban|save vip|save registration|register only)$/.test(t) && !/check in/.test(t);
+    return /^(save|update|save event|update event|save volunteer|update volunteer|save attendee|update attendee|save kriyaban|update kriyaban|save vip|update vip|save acharya|update acharya|save student|update student|save registration|register only)$/.test(t) && !/check in/.test(t);
   });
   if (saveButton) saveButton.click();
 }
