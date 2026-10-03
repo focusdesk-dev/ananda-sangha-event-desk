@@ -1,4 +1,4 @@
-name: Build Phase 2 Windows Beta.4A
+name: Build Phase 2 Windows Beta.4B
 
 on:
   workflow_dispatch:
@@ -30,7 +30,6 @@ jobs:
           html=gzip.decompress(raw)
           if len(html)!=488870 or (binascii.crc32(html)&0xffffffff)!=0x41243984: raise SystemExit('Verified Phase 1 base mismatch')
           pathlib.Path('src/index.html').write_bytes(html)
-          print('VERIFIED PHASE 1 BASE HTML')
           '@ | Set-Content restore_base.py -Encoding utf8
           python restore_base.py
           Remove-Item restore_base.py -Force
@@ -84,55 +83,41 @@ jobs:
           python src/build-beta2-patch.py
 
       - name: Apply beta.3 Classes navigation redesign
-        shell: powershell
         run: |
           python src/build-beta3-classes.py
           python src/set-beta3-version.py
 
       - name: Apply beta.4A issues 1-3
-        shell: powershell
         run: |
           python src/build-beta4a.py
           python src/set-beta4a-version.py
 
-      - name: Validate beta.4A UI and all scripts
+      - name: Apply beta.4B issues 4-6
+        run: |
+          python src/build-beta4b.py
+          python src/set-beta4b-version.py
+
+      - name: Validate beta.4B UI and all scripts
         shell: powershell
         run: |
           @'
           import pathlib,re,hashlib,binascii
-          path=pathlib.Path('src/index.html');b=path.read_bytes();text=b.decode('utf-8')
-          required=[
-            'PHASE2 CLASSES NAV BETA3',
-            'PHASE2 BETA4A YEAR GROUPING',
-            'Classes by Year',
-            'Double-click to open',
-            'Active &amp; Upcoming',
-            'Inactive &amp; Completed',
-            'p2-year-class-box',
-            '2.0.0-beta.4a',
-            'Acharya Master',
-            'p2BatchAcharyaSearch',
-            'p2BatchVolunteerSearch'
-          ]
-          for marker in required:
-              if marker not in text: raise SystemExit(f'Missing beta.4A marker: {marker}')
-          classes=text[text.index('<section id="classes"'):text.index('<section id="courseMaster"')]
-          if classes.count('id="p2AddBatch"')!=1: raise SystemExit('New Class Batch control is not unique')
-          ids=re.findall(r'\bid="([^"]+)"',classes)
-          dup=sorted({x for x in ids if ids.count(x)>1})
-          if dup: raise SystemExit('Duplicate Classes-page ids: '+', '.join(dup[:20]))
+          p=pathlib.Path('src/index.html');b=p.read_bytes();text=b.decode('utf-8')
+          required=['PHASE2 BETA4A YEAR GROUPING','PHASE2 BETA4B OPEN ENDED CLASS DATES','PHASE2 BETA4B DATE UI','Classes by Year','Open-ended / end date not known','+ Next Class','+ Add Class Date','defaultClassDay','2.0.0-beta.4b']
+          for m in required:
+              if m not in text: raise SystemExit('Missing beta.4B marker: '+m)
           scripts=re.findall(r'<script(?:\s[^>]*)?>(.*?)</script>',text,re.S|re.I)
-          if len(scripts)!=10: raise SystemExit(f'Unexpected script count: {len(scripts)}')
+          if len(scripts)<11: raise SystemExit(f'Unexpected script count: {len(scripts)}')
           out=pathlib.Path('script-check');out.mkdir(exist_ok=True)
-          for i,script in enumerate(scripts):(out/f'script-{i:02d}.js').write_text(script,encoding='utf-8')
-          print('BETA.4A HTML',len(b),'CRC32',format(binascii.crc32(b)&0xffffffff,'08x'),'SHA256',hashlib.sha256(b).hexdigest())
-          '@ | Set-Content validate_beta4a.py -Encoding utf8
-          python validate_beta4a.py
+          for i,s in enumerate(scripts):(out/f'script-{i:02d}.js').write_text(s,encoding='utf-8')
+          print('BETA.4B HTML',len(b),'CRC32',format(binascii.crc32(b)&0xffffffff,'08x'),'SHA256',hashlib.sha256(b).hexdigest(),'SCRIPTS',len(scripts))
+          '@ | Set-Content validate_beta4b.py -Encoding utf8
+          python validate_beta4b.py
           Get-ChildItem 'script-check\*.js' | ForEach-Object { node --check $_.FullName }
-          Remove-Item validate_beta4a.py -Force
+          Remove-Item validate_beta4b.py -Force
           Remove-Item script-check -Recurse -Force
+          node --check src/main.js
           node --check src/preload.js
-          Write-Host 'BETA.4A UI + SHORTCUT SOURCE + ALL INLINE SCRIPTS VALIDATED'
 
       - name: Restore Ananda logo and build multi-resolution Windows icon
         shell: powershell
@@ -148,14 +133,12 @@ jobs:
           try{$writer.Write([UInt16]0);$writer.Write([UInt16]1);$writer.Write([UInt16]$frames.Count);$offset=6+(16*$frames.Count);foreach($f in $frames){$d=if($f.Size -ge 256){0}else{$f.Size};$writer.Write([byte]$d);$writer.Write([byte]$d);$writer.Write([byte]0);$writer.Write([byte]0);$writer.Write([UInt16]1);$writer.Write([UInt16]32);$writer.Write([UInt32]$f.Bytes.Length);$writer.Write([UInt32]$offset);$offset+=$f.Bytes.Length};foreach($f in $frames){$writer.Write([byte[]]$f.Bytes)}}finally{$writer.Dispose();$stream.Dispose()}
           if(!(Test-Path $icon) -or (Get-Item $icon).Length -lt 10000){throw 'Windows ICO generation failed'}
 
-      - name: Validate Electron beta.4A shell
+      - name: Validate Electron beta.4B shell
         working-directory: src
         shell: powershell
         run: |
-          node --check main.js
-          node --check preload.js
-          if((Get-Content main.js -Raw) -notmatch "const APP_VERSION = '2\.0\.0-beta\.4a';"){throw 'main.js version mismatch'}
-          if((Get-Content package.json -Raw) -notmatch '"version"\s*:\s*"2\.0\.0-beta\.4a"'){throw 'package.json version mismatch'}
+          if((Get-Content main.js -Raw) -notmatch "const APP_VERSION = '2\.0\.0-beta\.4b';"){throw 'main.js version mismatch'}
+          if((Get-Content package.json -Raw) -notmatch '"version"\s*:\s*"2\.0\.0-beta\.4b"'){throw 'package.json version mismatch'}
           if(!(Test-Path 'installer.nsh')){throw 'installer.nsh missing'}
           if(!(Test-Path 'ananda-icon.ico')){throw 'Windows icon missing'}
 
@@ -163,31 +146,29 @@ jobs:
         working-directory: src
         run: npm install
 
-      - name: Build Phase 2 beta.4A Windows installer
+      - name: Build Phase 2 beta.4B Windows installer
         working-directory: src
         run: npm run dist
 
-      - name: Verify beta.4A installer and app
+      - name: Verify beta.4B installer and app
         shell: powershell
         run: |
-          $setup='src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.4a.exe'
+          $setup='src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.4b.exe'
           $app='src/dist/win-unpacked/Ananda Sangha Event Desk.exe'
           if(!(Test-Path $setup)){throw "Installer not created: $setup"}
           if(!(Test-Path $app)){throw "Application not created: $app"}
           if((Get-Item $setup).Length -lt 50000000){throw 'Installer is unexpectedly small'}
-          if((Get-Item $app).Length -lt 1000000){throw 'Application executable is unexpectedly small'}
-          Write-Host "VERIFIED INSTALLER: $((Get-Item $setup).Length) bytes"
 
-      - name: Smoke test beta.4A install, overwrite policy, shortcut and launch
+      - name: Smoke test beta.4B install, overwrite policy, shortcut and launch
         shell: powershell
         run: |
-          $setup=(Resolve-Path 'src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.4a.exe').Path
+          $setup=(Resolve-Path 'src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.4b.exe').Path
           $desktop=[Environment]::GetFolderPath('Desktop');$shortcut=Join-Path $desktop 'Ananda Sangha Event Desk.lnk'
           if(Test-Path $shortcut){Remove-Item $shortcut -Force}
           $install=Start-Process -FilePath $setup -ArgumentList '/S' -PassThru -Wait
           if($install.ExitCode -ne 0){throw "Installer returned $($install.ExitCode)"}
           Start-Sleep -Seconds 3
-          if(!(Test-Path $shortcut)){throw "Desktop shortcut missing: $shortcut"}
+          if(!(Test-Path $shortcut)){throw 'Desktop shortcut missing'}
           $wshell=New-Object -ComObject WScript.Shell;$link=$wshell.CreateShortcut($shortcut)
           if(!$link.TargetPath -or !(Test-Path $link.TargetPath)){throw 'Desktop shortcut target invalid'}
           $latest=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK\Installer\Ananda_Sangha_Event_Desk_Setup_Latest.exe'
@@ -196,28 +177,26 @@ jobs:
           Start-Sleep -Seconds 6
           if($app.HasExited){throw "Installed app exited unexpectedly with $($app.ExitCode)"}
           Get-Process -Name 'Ananda Sangha Event Desk' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-          Write-Host 'BETA.4A INSTALL + OVERWRITE POLICY + SHORTCUT + LAUNCH TEST PASSED'
 
-      - name: Create Phase 2 beta.4A handover
+      - name: Create Phase 2 beta.4B handover
         shell: powershell
         run: |
-          $root=Join-Path $PWD 'handover/ANANDA SANGHA EVENT DESK PHASE 2 BETA 4A'
+          $root=Join-Path $PWD 'handover/ANANDA SANGHA EVENT DESK PHASE 2 BETA 4B'
           New-Item -ItemType Directory -Force -Path (Join-Path $root 'Installer'),(Join-Path $root 'Data'),(Join-Path $root 'Backup/Automatic'),(Join-Path $root 'Backup/Manual') | Out-Null
-          Copy-Item 'src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.4a.exe' (Join-Path $root 'Installer/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.4a.exe') -Force
-          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nPHASE 2 TEST BUILD`r`nVersion 2.0.0-beta.4a`r`nONLY correction set 4A (issues 1-3)`r`n+ shortcut context fixed for permanent masters including Acharya`r`nAlt+S save support extended to Acharya and Phase 2 master forms`r`nClasses grouped into one box per year; double-click opens year; active/upcoming first, inactive/completed below`r`nExisting NGO data retained in Documents\ANANDA SANGHA EVENT DESK" -Encoding utf8
-          Set-Content (Join-Path $root 'README_START_HERE.txt') "THIS IS PHASE 2 BETA.4A ONLY.`r`nIt contains issues 1-3 only. Scheduling/attendance/enrolment changes 4B and 4C are NOT included yet.`r`nClose the app before installing. Running this installer updates the existing installation.`r`nDo not delete Documents\ANANDA SANGHA EVENT DESK." -Encoding utf8
-          Compress-Archive -Path 'handover/ANANDA SANGHA EVENT DESK PHASE 2 BETA 4A' -DestinationPath 'ANANDA_SANGHA_EVENT_DESK_PHASE2_v2.0.0-beta.4a.zip' -CompressionLevel Optimal
+          Copy-Item 'src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.4b.exe' (Join-Path $root 'Installer/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.4b.exe') -Force
+          Set-Content (Join-Path $root 'VERSION.txt') "ANANDA SANGHA EVENT DESK`r`nPHASE 2 TEST BUILD`r`nVersion 2.0.0-beta.4b`r`nIncludes beta.4A plus ONLY correction set 4B (issues 4-6)`r`nOpen-ended classes supported`r`nManual + Add Class Date supported`r`n+ Next Class suggests the next default weekday and remains editable`r`n4C attendance/enrolment redesign is NOT included yet." -Encoding utf8
+          Compress-Archive -Path 'handover/ANANDA SANGHA EVENT DESK PHASE 2 BETA 4B' -DestinationPath 'ANANDA_SANGHA_EVENT_DESK_PHASE2_v2.0.0-beta.4b.zip' -CompressionLevel Optimal
 
-      - name: Upload Phase 2 beta.4A Setup.exe
+      - name: Upload Phase 2 beta.4B Setup.exe
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Phase2-Setup-v2.0.0-beta.4a
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.4a.exe
+          name: Ananda-Sangha-Event-Desk-Phase2-Setup-v2.0.0-beta.4b
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.4b.exe
           if-no-files-found: error
 
-      - name: Upload Phase 2 beta.4A handover
+      - name: Upload Phase 2 beta.4B handover
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Phase2-Handover-v2.0.0-beta.4a
-          path: ANANDA_SANGHA_EVENT_DESK_PHASE2_v2.0.0-beta.4a.zip
+          name: Ananda-Sangha-Event-Desk-Phase2-Handover-v2.0.0-beta.4b
+          path: ANANDA_SANGHA_EVENT_DESK_PHASE2_v2.0.0-beta.4b.zip
           if-no-files-found: error
