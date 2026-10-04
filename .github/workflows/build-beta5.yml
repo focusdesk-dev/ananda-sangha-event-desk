@@ -1,0 +1,42 @@
+name: Inspect Phase 2 Beta.4C Output for Beta.5
+
+on:
+  push:
+    branches: [phase2-development]
+  workflow_dispatch:
+
+jobs:
+  inspect-beta4c-output:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Phase 2 source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Restore and run existing beta.4C build/test chain
+        shell: powershell
+        run: |
+          @'
+          import base64,gzip,pathlib
+          source=pathlib.Path('src/build-beta4c-ci.ps1.gz.b64')
+          encoded=''.join(source.read_text(encoding='utf-8').split()).rstrip('=');encoded+='='*(-len(encoded)%4)
+          pathlib.Path('beta4c-ci.ps1').write_bytes(gzip.decompress(base64.b64decode(encoded,validate=False)))
+          '@ | Set-Content restore_ci.py -Encoding utf8
+          python restore_ci.py
+          if($LASTEXITCODE -ne 0){throw 'Could not restore beta.4C CI script'}
+          Remove-Item restore_ci.py -Force
+          & .\beta4c-ci.ps1
+          if($LASTEXITCODE -ne 0){throw 'beta.4C build/test script failed'}
+
+      - name: Upload generated beta.4C HTML for exact beta.5 patching
+        uses: actions/upload-artifact@v4
+        with:
+          name: beta4c-generated-index
+          path: src/index.html
+          if-no-files-found: error
