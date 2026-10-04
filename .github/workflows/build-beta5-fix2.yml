@@ -119,7 +119,7 @@ jobs:
           @'
           const asar=require('./src/node_modules/@electron/asar');
           const html=asar.extractFile(process.env.BETA52_ASAR,'index.html').toString('utf8');
-          for(const x of ['PHASE2 BETA5 FIX2','p2v5Fix2OpenDateDialog','p2v5-date-edit','localeCompare(zn'){if(!html.includes(x)){console.error('Missing installed marker',x);process.exit(2)}}
+          for(const x of ['PHASE2 BETA5 FIX2','p2v5Fix2OpenDateDialog','p2v5-date-edit','localeCompare(zn']){if(!html.includes(x)){console.error('Missing installed marker',x);process.exit(2)}}
           '@ | Set-Content verify_installed_beta52.js -Encoding utf8
           node verify_installed_beta52.js
           if($LASTEXITCODE -ne 0){throw 'Installed app is not beta.5.2'}
