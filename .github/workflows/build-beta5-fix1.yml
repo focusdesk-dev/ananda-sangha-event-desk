@@ -1,0 +1,191 @@
+name: Build Phase 2 Windows Beta.5.1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [phase2-development]
+
+jobs:
+  build-windows-beta5fix1:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Phase 2 source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Rebuild verified beta.4C base
+        shell: powershell
+        run: |
+          @'
+          import base64,gzip,pathlib
+          source=pathlib.Path('src/build-beta4c-ci.ps1.gz.b64')
+          encoded=''.join(source.read_text(encoding='utf-8').split()).rstrip('=');encoded+='='*(-len(encoded)%4)
+          pathlib.Path('beta4c-ci.ps1').write_bytes(gzip.decompress(base64.b64decode(encoded,validate=False)))
+          '@ | Set-Content restore_ci.py -Encoding utf8
+          python restore_ci.py
+          if($LASTEXITCODE -ne 0){throw 'Could not restore beta.4C CI script'}
+          Remove-Item restore_ci.py -Force
+          & .\beta4c-ci.ps1
+          if($LASTEXITCODE -ne 0){throw 'beta.4C base build/test failed'}
+
+      - name: Apply exact beta.5 batch page
+        shell: powershell
+        run: |
+          @'
+          import base64,gzip,pathlib
+          parts=sorted(pathlib.Path('src').glob('build-beta5-batch-page.py.gz.b64.part*'))
+          if len(parts)!=4: raise SystemExit(f'Expected 4 beta.5 builder parts, found {len(parts)}')
+          encoded=''.join(''.join(p.read_text(encoding='utf-8').split()) for p in parts).rstrip('=');encoded+='='*(-len(encoded)%4)
+          pathlib.Path('src/build-beta5-batch-page.py').write_bytes(gzip.decompress(base64.b64decode(encoded,validate=False)))
+          '@ | Set-Content restore_beta5.py -Encoding utf8
+          python restore_beta5.py
+          if($LASTEXITCODE -ne 0){throw 'Could not restore beta.5 builder'}
+          Remove-Item restore_beta5.py -Force
+          python src/build-beta5-batch-page.py
+          if($LASTEXITCODE -ne 0){throw 'beta.5 patch failed'}
+
+      - name: Apply beta.5 issues 1-6 corrections
+        shell: powershell
+        run: |
+          python src/build-beta5-fix1.py
+          if($LASTEXITCODE -ne 0){throw 'beta.5 fix1 patch failed'}
+          @'
+          import json,pathlib
+          p=pathlib.Path('src/package.json')
+          d=json.loads(p.read_text(encoding='utf-8'))
+          d['version']='2.0.0-beta.5.1'
+          p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
+          '@ | Set-Content set_beta51_version.py -Encoding utf8
+          python set_beta51_version.py
+          if($LASTEXITCODE -ne 0){throw 'Could not set beta.5.1 version'}
+          Remove-Item set_beta51_version.py -Force
+
+      - name: Validate beta.5.1 exact corrections
+        shell: powershell
+        run: |
+          @'
+          from pathlib import Path
+          import re,hashlib,binascii
+          p=Path('src/index.html')
+          html=p.read_text(encoding='utf-8')
+          required=[
+            'PHASE2 BETA5 EXACT BATCH PAGE',
+            'PHASE2 BETA5 FIX1',
+            'p2v5FixEnsureDates',
+            'p2v5FixIso',
+            'search.oninput=applySearch',
+            'UNPAID',
+            '<option>Cash</option><option>Card</option><option>UPI</option>',
+            'MARK REMAINING ABSENT',
+            'p2v5-new-class-field'
+          ]
+          missing=[x for x in required if x not in html]
+          if missing: raise SystemExit('Missing beta.5.1 correction markers: '+repr(missing))
+          # Fix block must not add unapproved payment-generation or payment-mode choices.
+          fix=html[html.index('// PHASE2 BETA5 FIX1'):html.index('    updateBackButton();',html.index('// PHASE2 BETA5 FIX1'))]
+          for bad in ['Bank Transfer','<option>Other</option>','GENERATE NOW','Mark All Present','Attendance Done']:
+              if bad in fix: raise SystemExit('Unapproved beta.5.1 item found in fix block: '+bad)
+          m=re.search(r'<script>(.*?)</script>',html,re.S|re.I)
+          if not m: raise SystemExit('Main app script not found')
+          Path('beta51-main-check.js').write_text(m.group(1),encoding='utf-8')
+          raw=p.read_bytes()
+          print('BETA.5.1 HTML',len(raw),'CRC32',format(binascii.crc32(raw)&0xffffffff,'08x'),'SHA256',hashlib.sha256(raw).hexdigest())
+          '@ | Set-Content validate_beta51.py -Encoding utf8
+          python validate_beta51.py
+          if($LASTEXITCODE -ne 0){throw 'beta.5.1 source validation failed'}
+          node --check beta51-main-check.js
+          if($LASTEXITCODE -ne 0){throw 'beta.5.1 main application script syntax failed'}
+          node --check src/main.js
+          if($LASTEXITCODE -ne 0){throw 'Electron main.js syntax failed'}
+          node --check src/preload.js
+          if($LASTEXITCODE -ne 0){throw 'Electron preload.js syntax failed'}
+          Remove-Item validate_beta51.py,beta51-main-check.js -Force
+          $pkg = Get-Content src/package.json -Raw | ConvertFrom-Json
+          if($pkg.version -ne '2.0.0-beta.5.1'){throw 'Wrong beta.5.1 package version'}
+
+      - name: Build beta.5.1 Windows x64 installer
+        shell: powershell
+        run: |
+          Remove-Item src\dist -Recurse -Force -ErrorAction SilentlyContinue
+          Push-Location src
+          npm run dist
+          if($LASTEXITCODE -ne 0){throw 'beta.5.1 electron-builder failed'}
+          Pop-Location
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.1.exe'
+          if(!(Test-Path $setup)){throw 'beta.5.1 Setup.exe missing'}
+          Write-Host ('SETUP SIZE: '+(Get-Item $setup).Length)
+
+      - name: Real overwrite, latest-installer, shortcut and launch smoke test
+        shell: powershell
+        run: |
+          $setup=(Resolve-Path 'src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.1.exe').Path
+          $proc=Start-Process -FilePath $setup -ArgumentList '/S' -Wait -PassThru
+          if($proc.ExitCode -ne 0){throw "beta.5.1 silent installer failed with exit code $($proc.ExitCode)"}
+          Start-Sleep -Seconds 2
+          $programs=Join-Path $env:LOCALAPPDATA 'Programs'
+          $app=Get-ChildItem $programs -Filter 'Ananda Sangha Event Desk.exe' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(!$app){throw 'Installed Ananda Sangha Event Desk.exe not found'}
+          $shortcut=Join-Path ([Environment]::GetFolderPath('Desktop')) 'Ananda Sangha Event Desk.lnk'
+          if(!(Test-Path $shortcut)){throw 'Desktop shortcut not found after beta.5.1 update'}
+          $docs=[Environment]::GetFolderPath('MyDocuments')
+          $latest=Join-Path $docs 'ANANDA SANGHA EVENT DESK\Installer\Ananda_Sangha_Event_Desk_Setup_Latest.exe'
+          if(!(Test-Path $latest)){throw 'Stored latest installer copy not found'}
+          $h1=(Get-FileHash $setup -Algorithm SHA256).Hash
+          $h2=(Get-FileHash $latest -Algorithm SHA256).Hash
+          if($h1 -ne $h2){throw 'Stored latest installer is not the beta.5.1 installer'}
+          $asar=Join-Path $app.Directory.FullName 'resources\app.asar'
+          if(!(Test-Path $asar)){throw 'Installed app.asar not found'}
+          $env:BETA51_ASAR=$asar
+          @'
+          const asar=require('./src/node_modules/@electron/asar');
+          const html=asar.extractFile(process.env.BETA51_ASAR,'index.html').toString('utf8');
+          const checks=['PHASE2 BETA5 FIX1','p2v5FixEnsureDates','search.oninput=applySearch','UNPAID','MARK REMAINING ABSENT'];
+          for(const x of checks){if(!html.includes(x)){console.error('Installed beta.5.1 marker missing:',x);process.exit(2)}}
+          console.log('Installed app.asar contains beta.5.1 correction markers');
+          '@ | Set-Content verify_installed_beta51.js -Encoding utf8
+          node verify_installed_beta51.js
+          if($LASTEXITCODE -ne 0){throw 'Installed application is not beta.5.1'}
+          Remove-Item verify_installed_beta51.js -Force
+          $run=Start-Process -FilePath $app.FullName -PassThru
+          Start-Sleep -Seconds 7
+          if($run.HasExited){throw "Installed beta.5.1 app exited during launch smoke test (exit $($run.ExitCode))"}
+          Stop-Process -Id $run.Id -Force -ErrorAction SilentlyContinue
+          Write-Host 'BETA.5.1 OVERWRITE + LATEST COPY + SHORTCUT + INSTALLED SOURCE + LAUNCH TEST PASSED'
+
+      - name: Create beta.5.1 handover package
+        shell: powershell
+        run: |
+          $root='ANANDA SANGHA EVENT DESK PHASE 2 BETA 5.1'
+          Remove-Item $root -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force "$root\Installer","$root\Data","$root\Backup\Automatic","$root\Backup\Manual" | Out-Null
+          Copy-Item 'src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.1.exe' "$root\Installer\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.1.exe"
+          @'
+          ANANDA SANGHA EVENT DESK — PHASE 2 v2.0.0-beta.5.1
+          Targeted corrections to Beta 5 issues 1-6 only.
+          Installer updates the existing installation in place and preserves Documents data/backups.
+          Phase 1 remains frozen.
+          '@ | Set-Content "$root\VERSION.txt" -Encoding utf8
+          $zip='ANANDA_SANGHA_EVENT_DESK_PHASE2_v2.0.0-beta.5.1.zip'
+          Remove-Item $zip -Force -ErrorAction SilentlyContinue
+          Compress-Archive -Path $root -DestinationPath $zip -CompressionLevel Optimal
+          if(!(Test-Path $zip)){throw 'beta.5.1 handover zip missing'}
+
+      - name: Upload Phase 2 beta.5.1 Setup.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Sangha-Event-Desk-Phase2-Setup-v2.0.0-beta.5.1
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.1.exe
+          if-no-files-found: error
+
+      - name: Upload Phase 2 beta.5.1 handover
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Sangha-Event-Desk-Phase2-Handover-v2.0.0-beta.5.1
+          path: ANANDA_SANGHA_EVENT_DESK_PHASE2_v2.0.0-beta.5.1.zip
+          if-no-files-found: error
