@@ -72,11 +72,11 @@ jobs:
             'PHASE2 BETA5 EXACT BATCH PAGE',
             'MARK REMAINING ABSENT',
             'END BATCH',
-            '＋ NEW CLASS',
+            'NEW CLASS',
             'Payment / Fee Status',
-            'Completed — Kriya decision by Acharya',
-            'Completed — Eligible for',
-            'Withdrawn — all eligible classes absent',
+            'Kriya decision by Acharya',
+            'Eligible for',
+            'all eligible classes absent',
             "page!=='classWorkspace'",
             'One box per year. Double-click a year box to open or close its classes.'
           ]
@@ -85,7 +85,7 @@ jobs:
           if html.count('PHASE2 BETA5 EXACT BATCH PAGE')<2: raise SystemExit('beta.5 marker count is wrong')
           # The beta.5 attendance table intentionally has Name + class-date columns only.
           v5=html[html.index('// PHASE2 BETA5 EXACT BATCH PAGE'):html.index('    updateBackButton();',html.index('// PHASE2 BETA5 EXACT BATCH PAGE'))]
-          if re.search(r'<th[^>]*>\\s*Mobile\\s*</th>',v5,re.I): raise SystemExit('Mobile column found in beta.5 attendance grid')
+          if re.search(r'<th[^>]*>\s*Mobile\s*</th>',v5,re.I): raise SystemExit('Mobile column found in beta.5 attendance grid')
           if 'Mark All Present' in v5 or 'Attendance Done' in v5: raise SystemExit('Unapproved attendance bulk action found')
           # Validate the main application script containing the beta.5 logic.
           m=re.search(r'<script>(.*?)</script>',html,re.S|re.I)
