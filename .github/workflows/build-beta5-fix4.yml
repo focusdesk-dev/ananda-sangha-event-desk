@@ -1,0 +1,184 @@
+name: Build Phase 2 Windows Beta.5.4
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [phase2-development]
+
+jobs:
+  build-windows-beta5fix4:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Phase 2 source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rebuild verified beta.4C base
+        shell: powershell
+        run: |
+          @'
+          import base64,gzip,pathlib
+          source=pathlib.Path('src/build-beta4c-ci.ps1.gz.b64')
+          encoded=''.join(source.read_text(encoding='utf-8').split()).rstrip('=');encoded+='='*(-len(encoded)%4)
+          pathlib.Path('beta4c-ci.ps1').write_bytes(gzip.decompress(base64.b64decode(encoded,validate=False)))
+          '@ | Set-Content restore_ci.py -Encoding utf8
+          python restore_ci.py
+          if($LASTEXITCODE -ne 0){throw 'Could not restore beta.4C CI script'}
+          Remove-Item restore_ci.py -Force
+          & .\beta4c-ci.ps1
+          if($LASTEXITCODE -ne 0){throw 'beta.4C base build/test failed'}
+      - name: Apply exact beta.5 batch page
+        shell: powershell
+        run: |
+          @'
+          import base64,gzip,pathlib
+          parts=sorted(pathlib.Path('src').glob('build-beta5-batch-page.py.gz.b64.part*'))
+          if len(parts)!=4: raise SystemExit(f'Expected 4 beta.5 builder parts, found {len(parts)}')
+          encoded=''.join(''.join(p.read_text(encoding='utf-8').split()) for p in parts).rstrip('=');encoded+='='*(-len(encoded)%4)
+          pathlib.Path('src/build-beta5-batch-page.py').write_bytes(gzip.decompress(base64.b64decode(encoded,validate=False)))
+          '@ | Set-Content restore_beta5.py -Encoding utf8
+          python restore_beta5.py
+          if($LASTEXITCODE -ne 0){throw 'Could not restore beta.5 builder'}
+          Remove-Item restore_beta5.py -Force
+          python src/build-beta5-batch-page.py
+          if($LASTEXITCODE -ne 0){throw 'beta.5 patch failed'}
+      - name: Apply beta.5.1 corrections
+        shell: powershell
+        run: |
+          python src/build-beta5-fix1.py
+          if($LASTEXITCODE -ne 0){throw 'beta.5.1 patch failed'}
+      - name: Apply beta.5.2 corrections
+        shell: powershell
+        run: |
+          python src/build-beta5-fix2.py
+          if($LASTEXITCODE -ne 0){throw 'beta.5.2 patch failed'}
+      - name: Apply beta.5.3 corrections
+        shell: powershell
+        run: |
+          python src/build-beta5-fix3.py
+          if($LASTEXITCODE -ne 0){throw 'beta.5.3 patch failed'}
+      - name: Apply beta.5.4 corrections
+        shell: powershell
+        run: |
+          @'
+          from pathlib import Path
+          p=Path('src/build-beta5-fix4.py')
+          s=p.read_text(encoding='utf-8')
+          bad="required=['PHASE2 BETA5 FIX4','Student Progress List','Follow-up & Outreach','Annual Class Summary','Admin approval required','All\\',\\'Joined\\',\\'Eligible\\',\\'Not Eligible','export the filtered Batch Report','p2v54NextStatus']"
+          good="required=['PHASE2 BETA5 FIX4','Student Progress List','Follow-up & Outreach','Annual Class Summary','Admin approval required','Joined','Eligible','Not Eligible','export the filtered Batch Report','p2v54NextStatus']"
+          if bad not in s: raise SystemExit('Expected beta.5.4 validation typo not found')
+          p.write_text(s.replace(bad,good),encoding='utf-8')
+          '@ | Set-Content repair_fix4.py -Encoding utf8
+          python repair_fix4.py
+          if($LASTEXITCODE -ne 0){throw 'Could not repair beta.5.4 validation line'}
+          Remove-Item repair_fix4.py -Force
+          python src/build-beta5-fix4.py
+          if($LASTEXITCODE -ne 0){throw 'beta.5.4 patch failed'}
+          @'
+          import json,pathlib
+          p=pathlib.Path('src/package.json');d=json.loads(p.read_text(encoding='utf-8'));d['version']='2.0.0-beta.5.4';p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
+          '@ | Set-Content set_beta54_version.py -Encoding utf8
+          python set_beta54_version.py
+          if($LASTEXITCODE -ne 0){throw 'Could not set beta.5.4 version'}
+          Remove-Item set_beta54_version.py -Force
+      - name: Validation pass 1 - preserve all prior fixes and syntax
+        shell: powershell
+        run: |
+          @'
+          from pathlib import Path
+          import re
+          html=Path('src/index.html').read_text(encoding='utf-8')
+          required=['PHASE2 BETA5 FIX1','PHASE2 BETA5 FIX2','PHASE2 BETA5 FIX3','PHASE2 BETA5 FIX4','MARK REMAINING ABSENT','p2v5Fix2OpenDateDialog','p2v53MigrateClassOnlyStudents','End Batch Summary','Edit Ended Batch','Student Progress List','Follow-up & Outreach','Admin approval required','p2v54NextStatus']
+          missing=[x for x in required if x not in html]
+          if missing: raise SystemExit('Missing beta.5.4 markers: '+repr(missing))
+          m=re.search(r'<script>(.*?)</script>',html,re.S|re.I)
+          if not m: raise SystemExit('Main app script not found')
+          Path('beta54-main-check.js').write_text(m.group(1),encoding='utf-8')
+          '@ | Set-Content validate_beta54.py -Encoding utf8
+          python validate_beta54.py
+          if($LASTEXITCODE -ne 0){throw 'beta.5.4 source validation failed'}
+          node --check beta54-main-check.js
+          if($LASTEXITCODE -ne 0){throw 'beta.5.4 main script syntax failed'}
+          node --check src/main.js
+          if($LASTEXITCODE -ne 0){throw 'Electron main.js syntax failed'}
+          node --check src/preload.js
+          if($LASTEXITCODE -ne 0){throw 'Electron preload.js syntax failed'}
+          Remove-Item validate_beta54.py,beta54-main-check.js -Force
+      - name: Validation pass 2 - agreed post-5.3 behavior guards
+        shell: powershell
+        run: |
+          @'
+          from pathlib import Path
+          html=Path('src/index.html').read_text(encoding='utf-8')
+          checks={
+            'four reports':['01 · Batch Report','02 · Student Progress List','03 · Follow-up & Outreach','04 · Annual Class Summary'],
+            'status filter only':['All','Joined','Eligible','Not Eligible'],
+            'view before export':['Reports open on screen first','Export Excel'],
+            'progression guard':['has not completed','administrator approval','adminOverride'],
+            'level4 acharya':['Acharya Decision','Kriya Received'],
+            'batch full width':['p2v54-filterbar','p2v54-table-card','p2v54-progression'],
+            'old fixes':['p2v5EnrollmentEligibleOn=function(){return true}','p2v53EnsureStudentMasterUi','p2v53RenderSummary']
+          }
+          for name,items in checks.items():
+            missing=[x for x in items if x not in html]
+            if missing: raise SystemExit(f'{name} missing: {missing}')
+          forbidden=['Attendance by Session</strong>','Level-wise Student Report</strong>']
+          # Old function strings may remain in source, but must not be present inside the new Class Reports home.
+          start=html.find('function p2v54ClassReportHome')
+          end=html.find('function p2v54BatchCandidates',start)
+          home=html[start:end]
+          for x in forbidden:
+            if x in home: raise SystemExit('Old report option still exposed in beta.5.4 home: '+x)
+          '@ | Set-Content guard_beta54.py -Encoding utf8
+          python guard_beta54.py
+          if($LASTEXITCODE -ne 0){throw 'beta.5.4 behavior guard failed'}
+      - name: Build beta.5.4 Windows x64 installer
+        shell: powershell
+        run: |
+          Remove-Item src\dist -Recurse -Force -ErrorAction SilentlyContinue
+          Push-Location src
+          npm run dist
+          if($LASTEXITCODE -ne 0){throw 'beta.5.4 electron-builder failed'}
+          Pop-Location
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.4.exe'
+          if(!(Test-Path $setup)){throw 'beta.5.4 Setup.exe missing'}
+      - name: Validation pass 3 - real overwrite, installed source, shortcut and launch
+        shell: powershell
+        run: |
+          $setup=(Resolve-Path 'src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.4.exe').Path
+          $proc=Start-Process -FilePath $setup -ArgumentList '/S' -Wait -PassThru
+          if($proc.ExitCode -ne 0){throw "beta.5.4 silent installer failed with exit code $($proc.ExitCode)"}
+          Start-Sleep -Seconds 2
+          $programs=Join-Path $env:LOCALAPPDATA 'Programs'
+          $app=Get-ChildItem $programs -Filter 'Ananda Sangha Event Desk.exe' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(!$app){throw 'Installed app not found'}
+          $shortcut=Join-Path ([Environment]::GetFolderPath('Desktop')) 'Ananda Sangha Event Desk.lnk'
+          if(!(Test-Path $shortcut)){throw 'Desktop shortcut not found'}
+          $docs=[Environment]::GetFolderPath('MyDocuments')
+          $latest=Join-Path $docs 'ANANDA SANGHA EVENT DESK\Installer\Ananda_Sangha_Event_Desk_Setup_Latest.exe'
+          if(!(Test-Path $latest)){throw 'Stored latest installer copy not found'}
+          if((Get-FileHash $setup -Algorithm SHA256).Hash -ne (Get-FileHash $latest -Algorithm SHA256).Hash){throw 'Stored latest installer mismatch'}
+          $asar=Join-Path $app.Directory.FullName 'resources\app.asar'
+          $env:BETA54_ASAR=$asar
+          @'
+          const asar=require('./src/node_modules/@electron/asar');
+          const html=asar.extractFile(process.env.BETA54_ASAR,'index.html').toString('utf8');
+          for(const x of ['PHASE2 BETA5 FIX1','PHASE2 BETA5 FIX2','PHASE2 BETA5 FIX3','PHASE2 BETA5 FIX4','Admin approval required','Student Progress List','Follow-up & Outreach','p2v54NextStatus']){if(!html.includes(x)){console.error('Missing installed marker',x);process.exit(2)}}
+          '@ | Set-Content verify_installed_beta54.js -Encoding utf8
+          node verify_installed_beta54.js
+          if($LASTEXITCODE -ne 0){throw 'Installed app is not beta.5.4'}
+          Remove-Item verify_installed_beta54.js -Force
+          $run=Start-Process -FilePath $app.FullName -PassThru
+          Start-Sleep -Seconds 7
+          if($run.HasExited){throw "Installed beta.5.4 app exited during launch test (exit $($run.ExitCode))"}
+          Stop-Process -Id $run.Id -Force -ErrorAction SilentlyContinue
+      - name: Upload Phase 2 beta.5.4 Setup.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Sangha-Event-Desk-Phase2-Setup-v2.0.0-beta.5.4
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.4.exe
+          if-no-files-found: error
