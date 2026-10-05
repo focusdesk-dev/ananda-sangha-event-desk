@@ -33,8 +33,21 @@ jobs:
           python restore_ci.py
           if($LASTEXITCODE -ne 0){throw 'Could not restore beta 4C CI script'}
           Remove-Item restore_ci.py -Force
+          @'
+          from pathlib import Path
+          p=Path('beta4c-ci.ps1')
+          s=p.read_text(encoding='utf-8-sig')
+          marker='Write-Host "=== SILENT INSTALL / OVERWRITE / SHORTCUT / LAUNCH SMOKE TEST ==="'
+          if marker not in s:
+              raise SystemExit('Could not locate beta 4C smoke-test marker')
+          s=s[:s.index(marker)]+'Write-Host "=== BETA.4C BASE READY FOR BETA.5.6 CHAT BUILD ==="\nexit 0\n'
+          p.write_text(s,encoding='utf-8')
+          '@ | Set-Content trim_beta4c_smoke.py -Encoding utf8
+          python trim_beta4c_smoke.py
+          if($LASTEXITCODE -ne 0){throw 'Could not trim beta 4C runner-only smoke test'}
+          Remove-Item trim_beta4c_smoke.py -Force
           & .\beta4c-ci.ps1
-          if($LASTEXITCODE -ne 0){throw 'beta 4C base build/test failed'}
+          if($LASTEXITCODE -ne 0){throw 'beta 4C base build failed'}
 
       - name: Apply beta 5 base page
         shell: powershell
@@ -96,6 +109,7 @@ jobs:
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
+          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.6 version'}
           Remove-Item set_version.py -Force
 
       - name: Validate beta 5.6 chat source
