@@ -33,19 +33,23 @@ jobs:
           python restore_ci.py
           if($LASTEXITCODE -ne 0){throw 'Could not restore beta 4C CI script'}
           Remove-Item restore_ci.py -Force
+
           @'
           from pathlib import Path
           p=Path('beta4c-ci.ps1')
           s=p.read_text(encoding='utf-8-sig')
-          marker='Write-Host "=== SILENT INSTALL / OVERWRITE / SHORTCUT / LAUNCH SMOKE TEST ==="'
-          if marker not in s:
-              raise SystemExit('Could not locate beta 4C smoke-test marker')
-          s=s[:s.index(marker)]+'Write-Host "=== BETA.4C BASE READY FOR BETA.5.6 CHAT BUILD ==="\nexit 0\n'
+          needle='SILENT INSTALL / OVERWRITE / SHORTCUT / LAUNCH SMOKE TEST'
+          pos=s.upper().find(needle)
+          if pos < 0:
+              raise SystemExit('Could not locate beta 4C smoke-test section')
+          cut=s.rfind('\n',0,pos)+1
+          s=s[:cut]+'Write-Host "=== BETA.4C BASE READY FOR BETA.5.6 CHAT BUILD ==="\nexit 0\n'
           p.write_text(s,encoding='utf-8')
           '@ | Set-Content trim_beta4c_smoke.py -Encoding utf8
           python trim_beta4c_smoke.py
           if($LASTEXITCODE -ne 0){throw 'Could not trim beta 4C runner-only smoke test'}
           Remove-Item trim_beta4c_smoke.py -Force
+
           & .\beta4c-ci.ps1
           if($LASTEXITCODE -ne 0){throw 'beta 4C base build failed'}
 
@@ -75,16 +79,19 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'beta 5.2 failed'}
           python src/build-beta5-fix3.py
           if($LASTEXITCODE -ne 0){throw 'beta 5.3 failed'}
+
           @'
           from pathlib import Path
           p=Path('src/build-beta5-fix4.py')
           s=p.read_text(encoding='utf-8')
           bad="required=['PHASE2 BETA5 FIX4','Student Progress List','Follow-up & Outreach','Annual Class Summary','Admin approval required','All\\',\\'Joined\\',\\'Eligible\\',\\'Not Eligible','export the filtered Batch Report','p2v54NextStatus']"
           good="required=['PHASE2 BETA5 FIX4','Student Progress List','Follow-up & Outreach','Annual Class Summary','Admin approval required','Joined','Eligible','Not Eligible','export the filtered Batch Report','p2v54NextStatus']"
-          if bad in s:p.write_text(s.replace(bad,good),encoding='utf-8')
+          if bad in s:
+              p.write_text(s.replace(bad,good),encoding='utf-8')
           '@ | Set-Content repair_fix4.py -Encoding utf8
           python repair_fix4.py
           Remove-Item repair_fix4.py -Force
+
           python src/build-beta5-fix4.py
           if($LASTEXITCODE -ne 0){throw 'beta 5.4 failed'}
           python src/build-beta5-fix5.py
@@ -119,16 +126,7 @@ jobs:
           from pathlib import Path
           import re
           html=Path('src/index.html').read_text(encoding='utf-8')
-          required=[
-            'PHASE2 BETA5 FIX6',
-            'PHASE2 BETA56 CHAT FINAL',
-            'Double-click to open',
-            'Batch Wise',
-            'Student Wise',
-            'p2v56ChatOpenBatch',
-            'p2v56ChatRenderBatchProgress',
-            'p2v56ChatRenderStudentProgress'
-          ]
+          required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','Double-click to open','Batch Wise','Student Wise','p2v56ChatOpenBatch','p2v56ChatRenderBatchProgress','p2v56ChatRenderStudentProgress']
           missing=[x for x in required if x not in html]
           if missing: raise SystemExit('Missing chat-build markers: '+repr(missing))
           scripts=re.findall(r'<script>(.*?)</script>',html,re.S|re.I)
