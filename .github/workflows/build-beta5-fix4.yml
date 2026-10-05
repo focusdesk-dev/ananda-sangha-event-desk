@@ -115,7 +115,7 @@ jobs:
           from pathlib import Path
           html=Path('src/index.html').read_text(encoding='utf-8')
           checks={
-            'four reports':['01 · Batch Report','02 · Student Progress List','03 · Follow-up & Outreach','04 · Annual Class Summary'],
+            'four reports':['Batch Report</strong>','Student Progress List</strong>','Follow-up & Outreach</strong>','Annual Class Summary</strong>'],
             'status filter only':['All','Joined','Eligible','Not Eligible'],
             'view before export':['Reports open on screen first','Export Excel'],
             'progression guard':['has not completed','administrator approval','adminOverride'],
@@ -127,7 +127,6 @@ jobs:
             missing=[x for x in items if x not in html]
             if missing: raise SystemExit(f'{name} missing: {missing}')
           forbidden=['Attendance by Session</strong>','Level-wise Student Report</strong>']
-          # Old function strings may remain in source, but must not be present inside the new Class Reports home.
           start=html.find('function p2v54ClassReportHome')
           end=html.find('function p2v54BatchCandidates',start)
           home=html[start:end]
