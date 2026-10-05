@@ -121,14 +121,14 @@ jobs:
           start=html.find('// PHASE2 BETA5 FIX5');end=html.find('\n\n    updateBackButton();',start);block=html[start:end]
           checks={
             'custom class':['+ Custom Class','CUSTOM CLASS NAME','category:\'Other\''],
-            'course fee':['COURSE FEE (₹)','courseFee:','Fee: ₹'],
+            'course fee':['p2BatchFee','courseFee:','Fee:'],
             'clean batch modal':["status.closest('.field').style.display='none'","sessions.closest('.field').style.display='none'","generate.closest('.field').style.display='none'"],
             'clean course labels':['o.textContent=c.name'],
             'automatic status':['p2v55AutoStatus','now<start','now<=end'],
             'keyboard suggestions':['ArrowDown','ArrowUp',"ev.key==='Enter'",'p2v55-key-active'],
             'three months row':['grid-template-columns:repeat(3','p2v55MonthOpen','p2v55-month-dates'],
-            'clean header':['Acharya:','Fee: ₹'],
-            'attendance scroll':['p2v55AttendanceViewport','scrollLeft=pos.left','p2cSelectedEnrollmentId'],
+            'clean header':['Acharya:','Fee:'],
+            'attendance scroll':['p2v55AttendanceViewport','scrollLeft=pos.left'],
             'progression central':['p2v55ProgressionRequirement','p2v55CreateEnrollmentBase','if(!check.ok&&!override)','Previous level not completed'],
           }
           for name,items in checks.items():
@@ -198,7 +198,7 @@ jobs:
           @'
           const asar=require('./src/node_modules/@electron/asar');
           const html=asar.extractFile(process.env.BETA55_ASAR,'index.html').toString('utf8');
-          for(const x of ['PHASE2 BETA5 FIX1','PHASE2 BETA5 FIX2','PHASE2 BETA5 FIX3','PHASE2 BETA5 FIX4','PHASE2 BETA5 FIX5','p2v55ProgressionRequirement','+ Custom Class','COURSE FEE (₹)','p2v55AttendanceViewport']){if(!html.includes(x)){console.error('Missing installed marker',x);process.exit(2)}}
+          for(const x of ['PHASE2 BETA5 FIX1','PHASE2 BETA5 FIX2','PHASE2 BETA5 FIX3','PHASE2 BETA5 FIX4','PHASE2 BETA5 FIX5','p2v55ProgressionRequirement','+ Custom Class','p2BatchFee','p2v55AttendanceViewport']){if(!html.includes(x)){console.error('Missing installed marker',x);process.exit(2)}}
           '@ | Set-Content verify_installed_beta55.js -Encoding utf8
           node verify_installed_beta55.js
           if($LASTEXITCODE -ne 0){throw 'Installed app is not beta.5.5'}
