@@ -25,7 +25,7 @@ jobs:
           @'
           import base64,gzip,pathlib
           source=pathlib.Path('src/build-beta4c-ci.ps1.gz.b64')
-          encoded=''.join(source.read_text(encoding='utf-8').split()).rstrip('=');encoded+='='*(-len(encoded)%4)
+          encoded=''.join(source.read_text(encoding='utf-8').split()).rstrip('='); encoded+='='*(-len(encoded)%4)
           pathlib.Path('beta4c-ci.ps1').write_bytes(gzip.decompress(base64.b64decode(encoded,validate=False)))
           '@ | Set-Content restore_ci.py -Encoding utf8
           python restore_ci.py
@@ -41,7 +41,7 @@ jobs:
           import base64,gzip,pathlib
           parts=sorted(pathlib.Path('src').glob('build-beta5-batch-page.py.gz.b64.part*'))
           if len(parts)!=4: raise SystemExit(f'Expected 4 beta.5 builder parts, found {len(parts)}')
-          encoded=''.join(''.join(p.read_text(encoding='utf-8').split()) for p in parts).rstrip('=');encoded+='='*(-len(encoded)%4)
+          encoded=''.join(''.join(p.read_text(encoding='utf-8').split()) for p in parts).rstrip('='); encoded+='='*(-len(encoded)%4)
           pathlib.Path('src/build-beta5-batch-page.py').write_bytes(gzip.decompress(base64.b64decode(encoded,validate=False)))
           '@ | Set-Content restore_beta5.py -Encoding utf8
           python restore_beta5.py
@@ -66,7 +66,7 @@ jobs:
           @'
           import base64,gzip,pathlib
           source=pathlib.Path('src/build-beta5-fix4.py.gz.b64')
-          encoded=''.join(source.read_text(encoding='utf-8').split()).rstrip('=');encoded+='='*(-len(encoded)%4)
+          encoded=''.join(source.read_text(encoding='utf-8').split()).rstrip('='); encoded+='='*(-len(encoded)%4)
           pathlib.Path('src/build-beta5-fix4.py').write_bytes(gzip.decompress(base64.b64decode(encoded,validate=False)))
           '@ | Set-Content restore_beta54.py -Encoding utf8
           python restore_beta54.py
@@ -148,8 +148,8 @@ jobs:
           }
           bad=[name for name,marker in required.items() if marker not in fix]
           if bad: raise SystemExit('Post-5.3 checklist missing: '+repr(bad))
-          choices=re.findall(r'data-report=\\"(batch|progress|followup|annual)\\"',fix)
-          if choices[:4]!=['batch','progress','followup','annual'] or len(choices)!=4:
+          choices=re.findall(r'data-report="(batch|progress|followup|annual)"',fix)
+          if choices!=['batch','progress','followup','annual']:
               raise SystemExit('Class Reports home is not exactly four report choices: '+repr(choices))
           for forbidden in ['Attendance by Session','LEVEL-WISE STUDENT REPORT','REPORT NOTES','REPORT FILTERS']:
               if forbidden in fix: raise SystemExit('Removed/duplicate report UI returned: '+forbidden)
