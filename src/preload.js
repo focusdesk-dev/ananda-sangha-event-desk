@@ -56,14 +56,16 @@ function showPermanentRecordChooser() {
   backdrop.id = 'anandaShortcutChooser';
   backdrop.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(16,38,54,.35);display:flex;align-items:center;justify-content:center;padding:20px';
   const box = document.createElement('div');
-  box.style.cssText = 'background:#fff;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.24);padding:20px;min-width:330px;max-width:520px;font-family:Arial,sans-serif';
+  box.style.cssText = 'background:#fff;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.24);padding:20px;min-width:330px;max-width:560px;font-family:Arial,sans-serif';
   box.innerHTML = '<div style="font-size:18px;font-weight:700;margin-bottom:5px">Add Permanent Record</div><div style="font-size:13px;color:#667;margin-bottom:16px">Choose the record you want to add.</div>';
 
   const options = [
     ['Volunteer', 'volunteers', 'addVolunteer'],
     ['Attendee', 'attendeeMaster', 'addAttendeeMaster'],
     ['Kriyaban', 'kriyabans', 'addKriyaban'],
-    ['VIP', 'vips', 'addVip']
+    ['VIP', 'vips', 'addVip'],
+    ['Student', 'students', 'p2AddStudent'],
+    ['Acharya', 'acharyas', 'p2AddAcharya']
   ];
   const grid = document.createElement('div');
   grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px';
@@ -91,25 +93,35 @@ function handleAddShortcut() {
   const page = activePage();
   const pageId = page?.id || '';
 
-  if (pageId === 'dashboard') {
+  // Permanent Records home is the only place where + opens the generic chooser.
+  if (pageId === 'permanentRecords') {
     showPermanentRecordChooser();
     return;
   }
-  if (pageId === 'volunteers' && clickById('addVolunteer')) return;
-  if (pageId === 'attendeeMaster' && clickById('addAttendeeMaster')) return;
-  if (pageId === 'kriyabans' && clickById('addKriyaban')) return;
-  if (pageId === 'vips' && clickById('addVip')) return;
 
-  // Phase 2 beta.4A: when already inside a permanent master, + must add that record directly.
-  if (page && clickVisibleByText([
-    /^(?:\+|＋)?\s*(?:add\s+)?acharya$/i,
-    /^(?:\+|＋)?\s*(?:add\s+)?student$/i,
-    /^(?:\+|＋)?\s*(?:add\s+)?volunteer$/i,
-    /^(?:\+|＋)?\s*(?:add\s+)?attendee$/i,
-    /^(?:\+|＋)?\s*(?:add\s+)?kriyaban$/i,
-    /^(?:\+|＋)?\s*(?:add\s+)?vip$/i
-  ], page)) return;
+  // Inside a specific permanent master, + opens that exact Add form directly.
+  const masterMap = {
+    volunteers: 'addVolunteer',
+    attendeeMaster: 'addAttendeeMaster',
+    kriyabans: 'addKriyaban',
+    vips: 'addVip',
+    students: 'p2AddStudent',
+    acharyas: 'p2AddAcharya'
+  };
+  if (masterMap[pageId] && clickById(masterMap[pageId])) return;
 
+  // Classes: + means New Class Batch on the Classes home, and New Class Date inside a batch.
+  if (pageId === 'classes') {
+    if (clickById('p2AddBatch')) return;
+    if (clickVisibleByText([/^\+?\s*new class batch$/i, /^＋?\s*new class batch$/i], page)) return;
+    return;
+  }
+  if (pageId === 'classWorkspace') {
+    if (clickById('p2v56HeaderNewClass')) return;
+    return;
+  }
+
+  // Preserve the established event-specific shortcuts, but never fall back to Permanent Records.
   if (pageId === 'events') {
     const cancel = document.getElementById('cancelEventEdit');
     if (cancel && isVisible(cancel)) cancel.click();
@@ -122,11 +134,8 @@ function handleAddShortcut() {
   }
   if ((pageId === 'daily' || pageId === 'eventWorkspace') && clickById('v48AddVolunteer')) return;
   if ((pageId === 'checkin' || pageId === 'register' || pageId === 'eventWorkspace') && clickById('v36NewRegistration')) return;
-  if (clickById('v36NewRegistration')) return;
-  if (clickById('v48AddVolunteer')) return;
-  if (clickVisibleByText([/^＋?\s*new registration$/i, /^\+?\s*new registration$/i, /^＋?\s*add volunteer$/i, /^\+?\s*add volunteer$/i, /^＋?\s*add attendee$/i, /^\+?\s*add attendee$/i], page || document)) return;
 
-  showPermanentRecordChooser();
+  // All other pages: + has no action. In particular it must never open the generic chooser.
 }
 
 function submitFormWithPreferredButton(form, preferredButton) {
