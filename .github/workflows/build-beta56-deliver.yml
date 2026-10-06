@@ -1,4 +1,4 @@
-name: Build Phase 2 Windows Beta 5.6 Deliver
+name: Build Phase 2 Windows Beta 5.7
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     branches: [phase2-beta56-chatbuild]
 
 jobs:
-  build-windows-beta56-deliver:
+  build-windows-beta57:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -42,7 +42,7 @@ jobs:
           pos=s.upper().find(needle)
           if pos < 0: raise SystemExit('Could not locate beta 4C smoke-test section')
           cut=s.rfind('\n',0,pos)+1
-          s=s[:cut]+'Write-Host "=== BETA.4C BASE READY FOR BETA.5.6 DELIVER BUILD ==="\nexit 0\n'
+          s=s[:cut]+'Write-Host "=== BETA.4C BASE READY FOR BETA.5.7 BUILD ==="\nexit 0\n'
           p.write_text(s,encoding='utf-8')
           '@ | Set-Content trim_beta4c_smoke.py -Encoding utf8
           python trim_beta4c_smoke.py
@@ -94,70 +94,76 @@ jobs:
           python src/build-beta5-fix6.py
           if($LASTEXITCODE -ne 0){throw 'beta 5.6 failed'}
 
-      - name: Apply current chat changes
+      - name: Apply decisions from 05 Oct 18:42 onward
         shell: powershell
         run: |
           python src/build-beta56-chat.py
-          if($LASTEXITCODE -ne 0){throw 'Current-chat patch failed'}
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.6 chat patch failed'}
+          python src/build-beta57-refine.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.7 refinement failed'}
 
-      - name: Repair legacy key-hint multiline literal
+      - name: Repair legacy v125 style literal
         shell: powershell
         run: |
           @'
           from pathlib import Path
           p=Path('src/index.html')
           s=p.read_text(encoding='utf-8')
-          start=s.find("document.head.insertAdjacentHTML('beforeend','<style>.v125-keyhint")
-          if start < 0: raise SystemExit('Legacy v125 key-hint block not found')
-          end=s.find("</style>');",start)
-          if end < 0: raise SystemExit('Legacy v125 key-hint block end not found')
-          end += len("</style>');")
-          segment=s[start:end]
-          fixed=segment.replace('\r','').replace('\n','\\n')
+          prefix="document.head.insertAdjacentHTML('beforeend','"
+          start=s.find(prefix+"<style>.v125-keyhint")
+          if start < 0: raise SystemExit('Legacy v125 style block not found')
+          content_start=start+len(prefix)
+          close=s.find("</style>');",content_start)
+          if close < 0: raise SystemExit('Legacy v125 style block end not found')
+          content_end=close+len('</style>')
+          inner=s[content_start:content_end]
+          inner=inner.replace('`','\\`').replace('${','\\${')
+          fixed="document.head.insertAdjacentHTML('beforeend',`"+inner+"`);"
+          end=close+len("</style>');")
           p.write_text(s[:start]+fixed+s[end:],encoding='utf-8')
-          print('Legacy key-hint JS literal repaired')
+          print('Legacy v125 style block converted to a template literal')
           '@ | Set-Content repair_legacy_js.py -Encoding utf8
           python repair_legacy_js.py
           if($LASTEXITCODE -ne 0){throw 'Legacy JS repair failed'}
           Remove-Item repair_legacy_js.py -Force
 
-      - name: Set beta 5.6 version
+      - name: Set beta 5.7 version
         shell: powershell
         run: |
           @'
           import json,pathlib
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.6'
+          d['version']='2.0.0-beta.5.7'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.6 version'}
+          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.7 version'}
           Remove-Item set_version.py -Force
 
-      - name: Validate beta 5.6 source
+      - name: Validate beta 5.7 source
         shell: powershell
         run: |
           @'
           from pathlib import Path
           import re
           html=Path('src/index.html').read_text(encoding='utf-8')
-          required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','Double-click to open','Batch Wise','Student Wise','p2v56ChatOpenBatch','p2v56ChatRenderBatchProgress','p2v56ChatRenderStudentProgress']
+          required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','PHASE2 BETA57 REFINE','Double-click a class card to open its batch.','BATCH WISE','STUDENT WISE','Progressed','Pending','Search student by name or mobile','p2v56ChatOpenBatch','p2v56ChatRenderBatchProgress','p2v56ChatRenderStudentProgress']
           missing=[x for x in required if x not in html]
-          if missing: raise SystemExit('Missing chat-build markers: '+repr(missing))
+          if missing: raise SystemExit('Missing beta 5.7 markers: '+repr(missing))
           scripts=re.findall(r'<script>(.*?)</script>',html,re.S|re.I)
           if not scripts: raise SystemExit('No app scripts found')
-          Path('beta56-deliver-check.js').write_text('\n'.join(scripts),encoding='utf-8')
-          '@ | Set-Content validate_deliver.py -Encoding utf8
-          python validate_deliver.py
+          Path('beta57-check.js').write_text('\n'.join(scripts),encoding='utf-8')
+          '@ | Set-Content validate_beta57.py -Encoding utf8
+          python validate_beta57.py
           if($LASTEXITCODE -ne 0){throw 'Source marker validation failed'}
-          node --check beta56-deliver-check.js
+          node --check beta57-check.js
           if($LASTEXITCODE -ne 0){throw 'Index JavaScript syntax failed'}
           node --check src/main.js
           if($LASTEXITCODE -ne 0){throw 'main.js syntax failed'}
           node --check src/preload.js
           if($LASTEXITCODE -ne 0){throw 'preload.js syntax failed'}
-          Remove-Item validate_deliver.py,beta56-deliver-check.js -Force
+          Remove-Item validate_beta57.py,beta57-check.js -Force
 
       - name: Build Windows x64 installer
         shell: powershell
@@ -167,12 +173,12 @@ jobs:
           npm run dist
           if($LASTEXITCODE -ne 0){throw 'electron-builder failed'}
           Pop-Location
-          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.6.exe'
-          if(!(Test-Path $setup)){throw 'Beta 5.6 Setup.exe missing'}
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.7.exe'
+          if(!(Test-Path $setup)){throw 'Beta 5.7 Setup.exe missing'}
 
-      - name: Upload Beta 5.6 installer
+      - name: Upload Beta 5.7 installer
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.6-Installer
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.6.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.7-Installer
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.7.exe
           if-no-files-found: error
