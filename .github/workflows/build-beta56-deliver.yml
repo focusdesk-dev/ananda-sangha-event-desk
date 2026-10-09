@@ -159,7 +159,7 @@ jobs:
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.8.1 version'}
+          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.8 version'}
           Remove-Item set_version.py -Force
 
       - name: Validate beta 5.8.1 source
@@ -264,27 +264,9 @@ jobs:
           Push-Location src
           npx asar list dist\win-unpacked\resources\app.asar | Set-Content asar-files.txt
           $files=Get-Content asar-files.txt
-          if(!($files -match '^\\qrcode-client\.js
-        uses: actions/upload-artifact@v4
-        with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.8.1-Attendance-QR-Installer
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.1.exe
-          if-no-files-found: error
-)){throw 'Packaged qrcode-client.js missing from app.asar'}
-          if(!($files -match '^\\jsqr-client\.js
-        uses: actions/upload-artifact@v4
-        with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.8.1-Attendance-QR-Installer
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.1.exe
-          if-no-files-found: error
-)){throw 'Packaged jsqr-client.js missing from app.asar'}
-          if(!($files -match '^\\index\.html
-        uses: actions/upload-artifact@v4
-        with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.8.1-Attendance-QR-Installer
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.1.exe
-          if-no-files-found: error
-)){throw 'Packaged index.html missing from app.asar'}
+          if(-not ($files -contains '\qrcode-client.js')){throw 'Packaged qrcode-client.js missing from app.asar'}
+          if(-not ($files -contains '\jsqr-client.js')){throw 'Packaged jsqr-client.js missing from app.asar'}
+          if(-not ($files -contains '\index.html')){throw 'Packaged index.html missing from app.asar'}
           Remove-Item asar-files.txt -Force
           Pop-Location
 
