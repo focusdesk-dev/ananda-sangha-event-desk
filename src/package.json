@@ -21,7 +21,9 @@
       "preload.js",
       "index.html",
       "logo-128.png",
-      "ananda-icon.ico"
+      "ananda-icon.ico",
+      "qrcode-client.js",
+      "jsqr-client.js"
     ],
     "win": {
       "target": [
@@ -52,8 +54,6 @@
     }
   },
   "dependencies": {
-    "qrcode": "1.5.4",
-    "jsqr": "1.4.0",
     "pngjs": "7.0.0"
   }
 }
