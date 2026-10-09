@@ -1,4 +1,4 @@
-name: Build Phase 2 Windows Beta 5.8 Attendance QR
+name: Build Phase 2 Windows Beta 5.8.1 Attendance QR
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     branches: [phase2-beta56-chatbuild]
 
 jobs:
-  build-windows-beta58:
+  build-windows-beta581:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -148,21 +148,21 @@ jobs:
           Remove-Item qrcode-entry.js,jsqr-entry.js -Force
           Pop-Location
 
-      - name: Set beta 5.8 version
+      - name: Set beta 5.8.1 version
         shell: powershell
         run: |
           @'
           import json,pathlib
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.8'
+          d['version']='2.0.0-beta.5.8.1'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.8 version'}
+          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.8.1 version'}
           Remove-Item set_version.py -Force
 
-      - name: Validate beta 5.8 source
+      - name: Validate beta 5.8.1 source
         shell: powershell
         run: |
           @'
@@ -255,12 +255,42 @@ jobs:
           npm run dist
           if($LASTEXITCODE -ne 0){throw 'electron-builder failed'}
           Pop-Location
-          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.exe'
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.1.exe'
           if(!(Test-Path $setup)){throw 'Beta 5.8 Setup.exe missing'}
 
-      - name: Upload Beta 5.8 installer
+      - name: Verify packaged QR renderer files
+        shell: powershell
+        run: |
+          Push-Location src
+          npx asar list dist\win-unpacked\resources\app.asar | Set-Content asar-files.txt
+          $files=Get-Content asar-files.txt
+          if(!($files -match '^\\qrcode-client\.js
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.8-Attendance-QR-Installer
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.8.1-Attendance-QR-Installer
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.1.exe
+          if-no-files-found: error
+)){throw 'Packaged qrcode-client.js missing from app.asar'}
+          if(!($files -match '^\\jsqr-client\.js
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Sangha-Event-Desk-Beta-5.8.1-Attendance-QR-Installer
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.1.exe
+          if-no-files-found: error
+)){throw 'Packaged jsqr-client.js missing from app.asar'}
+          if(!($files -match '^\\index\.html
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Sangha-Event-Desk-Beta-5.8.1-Attendance-QR-Installer
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.1.exe
+          if-no-files-found: error
+)){throw 'Packaged index.html missing from app.asar'}
+          Remove-Item asar-files.txt -Force
+          Pop-Location
+
+      - name: Upload Beta 5.8.1 installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Sangha-Event-Desk-Beta-5.8.1-Attendance-QR-Installer
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.1.exe
           if-no-files-found: error
