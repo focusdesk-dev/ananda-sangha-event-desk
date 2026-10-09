@@ -1,7 +1,4 @@
 const { contextBridge, ipcRenderer } = require('electron');
-const QRCode = require('qrcode');
-const jsQR = require('jsqr');
-
 const STATE_KEY = 'annualEventRegistration.v1';
 
 function isVisible(el) {
@@ -250,27 +247,6 @@ contextBridge.exposeInMainWorld('anandaDesktop', {
   dataLocation: () => ipcRenderer.invoke('ananda-data-location'),
   autoBackupState: (stateJson) => ipcRenderer.invoke('ananda-auto-backup-state', stateJson),
   manualBackupState: (stateJson) => ipcRenderer.invoke('ananda-manual-backup-state', stateJson),
-
-  // Phase 2 beta.5.8 — fully offline QR generation/reading.
-  makeQrDataUrl: async (text, options = {}) => QRCode.toDataURL(String(text || ''), {
-    errorCorrectionLevel: 'M',
-    margin: Number.isFinite(options.margin) ? options.margin : 1,
-    width: Number.isFinite(options.width) ? options.width : 220
-  }),
-  decodeQrImageData: (payload) => {
-    try {
-      if (!payload || !payload.data || !payload.width || !payload.height) return null;
-      const bytes = payload.data instanceof Uint8ClampedArray
-        ? payload.data
-        : new Uint8ClampedArray(payload.data);
-      const hit = jsQR(bytes, Number(payload.width), Number(payload.height), {
-        inversionAttempts: 'attemptBoth'
-      });
-      return hit ? { data: hit.data, location: hit.location || null } : null;
-    } catch {
-      return null;
-    }
-  },
   startAttendancePhoneUpload: () => ipcRenderer.invoke('ananda-start-attendance-phone-server'),
   stopAttendancePhoneUpload: () => ipcRenderer.invoke('ananda-stop-attendance-phone-server'),
   onAttendancePhoneUpload: (callback) => {
