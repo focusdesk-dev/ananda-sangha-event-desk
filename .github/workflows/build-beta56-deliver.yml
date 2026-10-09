@@ -133,13 +133,19 @@ jobs:
         shell: powershell
         run: |
           Push-Location src
-          npm install qrcode@1.5.4 jsqr@1.4.0 --save --ignore-scripts
+          npm install qrcode@1.5.4 jsqr@1.4.0 browserify@17.0.1 --save-dev --ignore-scripts
           if($LASTEXITCODE -ne 0){throw 'Could not install offline QR libraries'}
-          $qrcode = @('node_modules\\qrcode\\build\\qrcode.min.js','node_modules\\qrcode\\build\\qrcode.js') | Where-Object { Test-Path $_ } | Select-Object -First 1
-          if(!$qrcode){throw 'qrcode browser bundle not found'}
-          Copy-Item $qrcode qrcode-client.js -Force
-          if(!(Test-Path 'node_modules\\jsqr\\dist\\jsQR.js')){throw 'jsQR browser bundle not found'}
-          Copy-Item 'node_modules\\jsqr\\dist\\jsQR.js' jsqr-client.js -Force
+          @'
+          module.exports = require('qrcode');
+          '@ | Set-Content qrcode-entry.js -Encoding utf8
+          @'
+          module.exports = require('jsqr');
+          '@ | Set-Content jsqr-entry.js -Encoding utf8
+          npx browserify qrcode-entry.js --standalone QRCode -o qrcode-client.js
+          if($LASTEXITCODE -ne 0 -or !(Test-Path 'qrcode-client.js')){throw 'Could not bundle QRCode for offline renderer'}
+          npx browserify jsqr-entry.js --standalone jsQR -o jsqr-client.js
+          if($LASTEXITCODE -ne 0 -or !(Test-Path 'jsqr-client.js')){throw 'Could not bundle jsQR for offline renderer'}
+          Remove-Item qrcode-entry.js,jsqr-entry.js -Force
           Pop-Location
 
       - name: Set beta 5.8 version
