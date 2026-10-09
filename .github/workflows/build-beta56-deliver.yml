@@ -1,4 +1,4 @@
-name: Build Phase 2 Windows Beta 5.7
+name: Build Phase 2 Windows Beta 5.8 Attendance QR
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
     branches: [phase2-beta56-chatbuild]
 
 jobs:
-  build-windows-beta57:
+  build-windows-beta58:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -42,7 +42,7 @@ jobs:
           pos=s.upper().find(needle)
           if pos < 0: raise SystemExit('Could not locate beta 4C smoke-test section')
           cut=s.rfind('\n',0,pos)+1
-          s=s[:cut]+'Write-Host "=== BETA.4C BASE READY FOR BETA.5.7 BUILD ==="\nexit 0\n'
+          s=s[:cut]+'Write-Host "=== BETA.4C BASE READY FOR BETA.5.8 BUILD ==="\nexit 0\n'
           p.write_text(s,encoding='utf-8')
           '@ | Set-Content trim_beta4c_smoke.py -Encoding utf8
           python trim_beta4c_smoke.py
@@ -101,6 +101,8 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Beta 5.6 chat patch failed'}
           python src/build-beta57-refine.py
           if($LASTEXITCODE -ne 0){throw 'Beta 5.7 refinement failed'}
+          python src/build-beta58-attendance-qr.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.8 attendance QR patch failed'}
 
       - name: Repair legacy v125 style literal
         shell: powershell
@@ -127,43 +129,85 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Legacy JS repair failed'}
           Remove-Item repair_legacy_js.py -Force
 
-      - name: Set beta 5.7 version
+      - name: Install offline QR libraries
+        shell: powershell
+        run: |
+          Push-Location src
+          npm install qrcode@1.5.4 jsqr@1.4.0 --save --ignore-scripts
+          if($LASTEXITCODE -ne 0){throw 'Could not install offline QR libraries'}
+          $qrcode = @('node_modules\\qrcode\\build\\qrcode.min.js','node_modules\\qrcode\\build\\qrcode.js') | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if(!$qrcode){throw 'qrcode browser bundle not found'}
+          Copy-Item $qrcode qrcode-client.js -Force
+          if(!(Test-Path 'node_modules\\jsqr\\dist\\jsQR.js')){throw 'jsQR browser bundle not found'}
+          Copy-Item 'node_modules\\jsqr\\dist\\jsQR.js' jsqr-client.js -Force
+          Pop-Location
+
+      - name: Set beta 5.8 version
         shell: powershell
         run: |
           @'
           import json,pathlib
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.7'
+          d['version']='2.0.0-beta.5.8'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.7 version'}
+          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.8 version'}
           Remove-Item set_version.py -Force
 
-      - name: Validate beta 5.7 source
+      - name: Validate beta 5.8 source
         shell: powershell
         run: |
           @'
           from pathlib import Path
           import re
           html=Path('src/index.html').read_text(encoding='utf-8')
-          required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','PHASE2 BETA57 REFINE','Double-click a class card to open its batch.','BATCH WISE','STUDENT WISE','Progressed','Pending','Search student by name or mobile','p2v56ChatOpenBatch','p2v56ChatRenderBatchProgress','p2v56ChatRenderStudentProgress']
+          required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','PHASE2 BETA57 REFINE','PHASE2 BETA58 ATTENDANCE QR','classAttendanceHub','PRINT QR ATTENDANCE SHEET','SCAN / UPLOAD ATTENDANCE SHEET','p2v58Payload','p2v58ParsePayload','Class, batch and date selected automatically','BATCH WISE','STUDENT WISE','Double-click a class card to open its batch.']
           missing=[x for x in required if x not in html]
-          if missing: raise SystemExit('Missing beta 5.7 markers: '+repr(missing))
+          if missing: raise SystemExit('Missing beta 5.8 markers: '+repr(missing))
           scripts=re.findall(r'<script>(.*?)</script>',html,re.S|re.I)
           if not scripts: raise SystemExit('No app scripts found')
-          Path('beta57-check.js').write_text('\n'.join(scripts),encoding='utf-8')
-          '@ | Set-Content validate_beta57.py -Encoding utf8
-          python validate_beta57.py
+          Path('beta58-check.js').write_text('\n'.join(scripts),encoding='utf-8')
+          '@ | Set-Content validate_beta58.py -Encoding utf8
+          python validate_beta58.py
           if($LASTEXITCODE -ne 0){throw 'Source marker validation failed'}
-          node --check beta57-check.js
+          node --check beta58-check.js
           if($LASTEXITCODE -ne 0){throw 'Index JavaScript syntax failed'}
           node --check src/main.js
           if($LASTEXITCODE -ne 0){throw 'main.js syntax failed'}
           node --check src/preload.js
           if($LASTEXITCODE -ne 0){throw 'preload.js syntax failed'}
-          Remove-Item validate_beta57.py,beta57-check.js -Force
+          if(!(Test-Path src\\qrcode-client.js)){throw 'qrcode-client.js missing'}
+          if(!(Test-Path src\\jsqr-client.js)){throw 'jsqr-client.js missing'}
+          Remove-Item validate_beta58.py,beta58-check.js -Force
+
+      - name: QR round-trip mockup check x5
+        shell: powershell
+        run: |
+          @'
+          const QRCode=require('./src/node_modules/qrcode');
+          const jsQR=require('./src/node_modules/jsqr');
+          function hash(text){let h=2166136261>>>0;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(16).padStart(8,'0')}
+          function payload(batchId,date,sheet,totalSheets){const core=[batchId,date,sheet,totalSheets].join('|');return JSON.stringify({v:1,kind:'ANANDA_ATTENDANCE',batchId,date,sheet,totalSheets,sessionId:batchId+':'+date,verify:hash(core)})}
+          function renderQr(text){
+            const q=QRCode.create(text,{errorCorrectionLevel:'M'}),n=q.modules.size,quiet=4,scale=7,w=(n+quiet*2)*scale,data=new Uint8ClampedArray(w*w*4);data.fill(255);
+            for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(q.modules.get(x,y)){for(let yy=0;yy<scale;yy++)for(let xx=0;xx<scale;xx++){const px=((y+quiet)*scale+yy)*w+((x+quiet)*scale+xx),i=px*4;data[i]=0;data[i+1]=0;data[i+2]=0;data[i+3]=255}}
+            return {data,w}
+          }
+          const cases=[
+            ['batch-level1-a','2026-10-03',1,1],
+            ['batch-level1-b','2026-10-10',1,2],
+            ['batch-level1-b','2026-10-10',2,2],
+            ['batch-level2-a','2026-11-01',1,1],
+            ['batch-level4-kriya','2026-12-20',1,3]
+          ];
+          cases.forEach((c,i)=>{const text=payload(...c),img=renderQr(text),out=jsQR(img.data,img.w,img.w,{inversionAttempts:'attemptBoth'});if(!out||out.data!==text)throw new Error('QR mockup round-trip failed at check '+(i+1));const o=JSON.parse(out.data),core=[o.batchId,o.date,o.sheet,o.totalSheets].join('|');if(o.verify!==hash(core)||o.kind!=='ANANDA_ATTENDANCE')throw new Error('QR payload verification failed at check '+(i+1));console.log('QR CHECK '+(i+1)+'/5 PASS',o.batchId,o.date,'sheet',o.sheet+'/'+o.totalSheets)});
+          console.log('ALL 5 QR MOCKUP CHECKS PASSED');
+          '@ | Set-Content qr_roundtrip_5x.js -Encoding utf8
+          node qr_roundtrip_5x.js
+          if($LASTEXITCODE -ne 0){throw '5x QR round-trip mockup check failed'}
+          Remove-Item qr_roundtrip_5x.js -Force
 
       - name: Build Windows x64 installer
         shell: powershell
@@ -174,11 +218,11 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'electron-builder failed'}
           Pop-Location
           $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.7.exe'
-          if(!(Test-Path $setup)){throw 'Beta 5.7 Setup.exe missing'}
+          if(!(Test-Path $setup)){throw 'Beta 5.8 Setup.exe missing'}
 
-      - name: Upload Beta 5.7 installer
+      - name: Upload Beta 5.8 installer
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.7-Installer
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.7.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.8-Attendance-QR-Installer
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.exe
           if-no-files-found: error
