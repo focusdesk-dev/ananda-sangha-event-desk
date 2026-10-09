@@ -223,7 +223,7 @@ jobs:
           npm run dist
           if($LASTEXITCODE -ne 0){throw 'electron-builder failed'}
           Pop-Location
-          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.7.exe'
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.exe'
           if(!(Test-Path $setup)){throw 'Beta 5.8 Setup.exe missing'}
 
       - name: Upload Beta 5.8 installer
