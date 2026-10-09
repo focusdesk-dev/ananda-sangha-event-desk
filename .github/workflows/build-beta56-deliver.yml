@@ -99,8 +99,8 @@ jobs:
         run: |
           python src/build-beta56-chat.py
           if($LASTEXITCODE -ne 0){throw 'Beta 5.6 chat patch failed'}
-          python src/build-beta57-refine.py
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.7 refinement failed'}
+          python src/build-beta58-refine.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.8 refinement failed'}
           python src/build-beta58-attendance-qr.py
           if($LASTEXITCODE -ne 0){throw 'Beta 5.8 attendance QR patch failed'}
 
@@ -214,6 +214,38 @@ jobs:
           node qr_roundtrip_5x.js
           if($LASTEXITCODE -ne 0){throw '5x QR round-trip mockup check failed'}
           Remove-Item qr_roundtrip_5x.js -Force
+
+      - name: Mock QR round-trip test five times
+        shell: powershell
+        run: |
+          @'
+          const QRCode=require('qrcode');
+          const jsQR=require('jsqr');
+          const {PNG}=require('pngjs');
+          const cases=[
+            {courseId:'L1',batchId:'B2',date:'2026-10-03',sheet:1,total:1},
+            {courseId:'L1',batchId:'B2',date:'2026-10-10',sheet:1,total:2},
+            {courseId:'L2',batchId:'B7',date:'2026-11-01',sheet:2,total:2},
+            {courseId:'L3',batchId:'B4',date:'2027-01-15',sheet:1,total:1},
+            {courseId:'L4',batchId:'B9',date:'2027-03-21',sheet:3,total:3}
+          ];
+          (async()=>{
+            for(let i=0;i<cases.length;i++){
+              const text='ANANDA_ATT_V1:'+Buffer.from(JSON.stringify(cases[i]),'utf8').toString('base64');
+              const pngBuffer=await QRCode.toBuffer(text,{errorCorrectionLevel:'M',margin:1,width:360});
+              const png=PNG.sync.read(pngBuffer);
+              const hit=jsQR(new Uint8ClampedArray(png.data),png.width,png.height,{inversionAttempts:'attemptBoth'});
+              if(!hit||hit.data!==text) throw new Error('QR round-trip failed on mock '+(i+1));
+              console.log('QR MOCK '+(i+1)+' PASS');
+            }
+            console.log('ALL 5 QR MOCK ROUND-TRIPS PASS');
+          })().catch(e=>{console.error(e);process.exit(1)});
+          '@ | Set-Content src\qr5test.js -Encoding utf8
+          Push-Location src
+          node qr5test.js
+          if($LASTEXITCODE -ne 0){throw 'Five-round QR mock test failed'}
+          Remove-Item qr5test.js -Force
+          Pop-Location
 
       - name: Build Windows x64 installer
         shell: powershell
