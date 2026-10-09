@@ -27,7 +27,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "ananda-icon.ico",
@@ -48,5 +50,10 @@
       "uninstallDisplayName": "Ananda Sangha Event Desk",
       "include": "installer.nsh"
     }
+  },
+  "dependencies": {
+    "qrcode": "1.5.4",
+    "jsqr": "1.4.0",
+    "pngjs": "7.0.0"
   }
 }
