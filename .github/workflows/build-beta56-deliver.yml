@@ -1,12 +1,12 @@
-name: Build Phase 2 Windows Beta 5.12 Active Classes Fix
+name: Build Phase 2 Windows Beta 5.13 Current
 
 on:
   workflow_dispatch:
   push:
-    branches: [phase2-beta512-activeclasses]
+    branches: [phase2-beta513-current]
 
 jobs:
-  build-windows-beta512:
+  build-windows-beta513:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -255,6 +255,18 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Beta 5.12 active classes patch failed'}
           Select-String -Path src\index.html -Pattern 'p2v512FixActiveClasses' -Quiet | Out-Null
           if(-not $?) {throw 'Active Classes patch missing immediately after apply'}
+
+      - name: Upload Beta 5.13 source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: beta513-source-snapshot
+          path: |
+            src/index.html
+            src/main.js
+            src/preload.js
+            src/package.json
+            src/installer.nsh
+          if-no-files-found: error
 
       - name: Validate beta 5.12 source
         shell: powershell
