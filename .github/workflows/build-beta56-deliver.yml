@@ -314,6 +314,7 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'main.js syntax failed'}
           node --check src/preload.js
           if($LASTEXITCODE -ne 0){throw 'preload.js syntax failed'}
+          $html=Get-Content src\index.html -Raw
           $main=Get-Content src\main.js -Raw
           $pre=Get-Content src\preload.js -Raw
           if($main -notmatch 'BETA59 PRINT PREVIEW'){throw 'Print preview missing'}
