@@ -1,10 +1,12 @@
 !include "nsDialogs.nsh"
 
+!ifndef BUILD_UNINSTALLER
 Var /GLOBAL anandaDirCtl
 Var /GLOBAL anandaDesktopCtl
 Var /GLOBAL anandaStartCtl
 Var /GLOBAL anandaDesktopChoice
 Var /GLOBAL anandaStartChoice
+!endif
 
 !macro customHeader
   BrandingText "Ananda Sangha"
