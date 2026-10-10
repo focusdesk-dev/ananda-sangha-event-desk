@@ -1,12 +1,12 @@
-name: Build Phase 2 Windows Beta 5.9 Attendance Final
+name: Build Phase 2 Windows Beta 5.10 Current
 
 on:
   workflow_dispatch:
   push:
-    branches: [phase2-beta59-attendance-fixes]
+    branches: [phase2-beta510-current]
 
 jobs:
-  build-windows-beta59:
+  build-windows-beta510:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -103,6 +103,17 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Beta 5.7 refinement failed'}
           python src/build-beta58-attendance-qr.py
           if($LASTEXITCODE -ne 0){throw 'Beta 5.9 attendance patch failed'}
+
+      - name: Upload rebuilt source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: beta510-source-snapshot
+          path: |
+            src/index.html
+            src/main.js
+            src/preload.js
+            src/package.json
+          if-no-files-found: error
 
       - name: Repair legacy v125 style literal
         shell: powershell
