@@ -257,10 +257,10 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Beta 5.14 enrol/payment/identity patch failed'}
           $html=Get-Content src\index.html -Raw
           if($html -notmatch 'PHASE2 BETA514 ENROL PAYMENT IDENTITY'){throw 'Beta 5.14 marker missing after apply'}
-          python src/build-beta516-print-preview.py
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.16 print preview patch failed'}
+          python src/build-beta515-print-preview.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.15 print preview patch failed'}
           $main=Get-Content src\main.js -Raw
-          if($main -notmatch 'BETA515 PRINT PREVIEW DATA URL FIX'){throw 'Beta 5.16 print preview marker missing after apply'}
+          if($main -notmatch 'BETA515 PRINT PREVIEW DATA URL FIX'){throw 'Beta 5.15 print preview marker missing after apply'}
           python src/build-beta516-sheet-reader.py
           if($LASTEXITCODE -ne 0){throw 'Beta 5.16 sheet reader patch failed'}
           $html=Get-Content src\index.html -Raw
