@@ -103,10 +103,28 @@ patch=r'''  // PHASE2 BETA58 ATTENDANCE QR — dedicated attendance page + offli
       attendance.innerHTML='<span class="no">03</span><div><strong>Attendance</strong><br><small>Manual attendance, print QR attendance sheet, scan/upload attendance sheet.</small></div>'
     }
     if(student){const n=student.querySelector('.no');if(n)n.textContent='04';const strong=student.querySelector('strong');if(strong)strong.textContent='Student Progress';const sm=student.querySelector('small');if(sm)sm.textContent='Search a student and view class history, progress and next-stage follow-up.'}
-    if(reports){const n=reports.querySelector('.no');if(n)n.textContent='05'}
+    if(reports){const n=reports.querySelector('.no');if(n)n.textContent='05';reports.onclick=()=>p2v59OpenClassReports()}
     attendance.onclick=()=>switchPage('classAttendanceHub')
   }
 
+  function p2v59EnsureClassReportsPage(){
+    if($('classReportsHub'))return;
+    const sec=document.createElement('section');sec.id='classReportsHub';sec.className='page';
+    sec.innerHTML=`<div class='p2v59-class-reports'><div class='p2v59-class-report-title'><div><h2>CLASS REPORTS</h2><p>CLASS BATCHES, ATTENDANCE, COMPLETION, PROGRESSION AND ANNUAL CLASS SUMMARY</p></div><button id='p2v59ClassReportsBack' class='btn secondary' type='button'>← BACK</button></div><div id='p2v59ClassReportsPanel'></div></div>`;
+    const base=$('classAttendanceHub')||$('phase2Reports')||$('classes');base.insertAdjacentElement('afterend',sec);
+    $('p2v59ClassReportsBack').onclick=()=>switchPage('classes')
+  }
+  function p2v59CleanClassReportLabels(){
+    const panel=$('p2v59ClassReportsPanel');if(!panel)return;
+    panel.querySelectorAll('button').forEach(b=>{if(/back to reports/i.test((b.textContent||'').trim()))b.textContent='← Back to Class Reports'})
+  }
+  function p2v59OpenClassReports(){
+    p2v59EnsureClassReportsPage();
+    switchPage('classReportsHub');
+    const panel=$('p2v59ClassReportsPanel');p2v54ClassReportHome(panel);p2v59CleanClassReportLabels();
+    if(!panel.dataset.watch){panel.dataset.watch='1';new MutationObserver(()=>p2v59CleanClassReportLabels()).observe(panel,{childList:true,subtree:true,characterData:true})}
+    $('pageTitle').textContent='Class Reports';$('pageSubtitle').textContent='Class-only reports and summaries'
+  }
   function p2v58EnsurePage(){
     if($('classAttendanceHub'))return;
     const sec=document.createElement('section');sec.id='classAttendanceHub';sec.className='page';
@@ -253,7 +271,7 @@ patch=r'''  // PHASE2 BETA58 ATTENDANCE QR — dedicated attendance page + offli
   function p2v58EnsureStyle(){
     if($('p2v58Style'))return;const st=document.createElement('style');st.id='p2v58Style';st.textContent=`
       .p2v58-page{background:#fff;border-radius:14px;padding:4px 2px 18px}.p2v58-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:16px}.p2v58-title-row h2{margin:0;color:#102d5e;font-size:25px}.p2v58-title-row p{margin:5px 0 0;color:#61758d;font-size:12px}.p2v58-filters{display:grid;grid-template-columns:1fr 1fr 1.05fr 1.8fr;gap:16px;align-items:end;border:1px solid #e0e8ef;border-radius:12px;padding:14px;background:#fff}.p2v58-filters label{display:block;color:#173f7d;font-size:11px;font-weight:900;margin-bottom:6px}.p2v58-filters select{width:100%;height:40px;border:1px solid #cad8e5;border-radius:7px;background:white;padding:0 10px;color:#173f7d}.p2v58-date-only{height:70px;background:#f3f8fc;border-radius:8px;display:flex;align-items:center;padding:0 22px;color:#123f7d;font-size:15px;font-weight:900}.p2v58-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.p2v58-actions .btn{min-height:56px}.p2v58-actions small{font-size:10px}.p2v58-detected{border:1px solid #b9e1cf;background:#eff9f4;color:#176247;border-radius:9px;padding:10px 12px;margin-bottom:10px}.p2v58-detected.hidden,.p2v58-upload-panel.hidden,.p2v58-phone.hidden{display:none}.p2v58-detected button{border:0;background:none;color:#0c5c9c;text-decoration:underline;cursor:pointer}.p2v58-upload-panel{border:1px solid #d8e4ee;background:#f8fbfd;border-radius:12px;padding:14px;margin-bottom:12px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center}.p2v58-upload-panel h3{margin:0 0 3px;color:#123f7d}.p2v58-upload-panel p{margin:0;color:#607790;font-size:12px}.p2v58-upload-buttons{display:flex;gap:8px}.p2v58-phone{grid-column:1/-1;display:flex;align-items:center;gap:16px;background:#fff;border:1px solid #dbe6ef;border-radius:10px;padding:12px}.p2v58-phone img{width:145px;height:145px}.p2v58-phone p{font-family:Consolas,monospace;font-size:11px;word-break:break-all}.p2v58-phone small{color:#64798e}.p2v58-upload-status{grid-column:1/-1;font-size:12px;color:#547089}.p2v58-upload-status .good{color:#13704c}.p2v58-upload-status .bad{color:#b62d2d}.p2v58-list-head{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #e6edf3;padding-top:10px}.p2v58-tab{border:0;border-bottom:3px solid #1c62b3;background:transparent;color:#164d92;font-weight:900;padding:10px 20px}.p2v58-list-head .search{width:290px}.p2v58-namebar{margin-top:8px;background:#174e94;color:#fff;text-align:center;font-weight:900;padding:8px;border-radius:5px 5px 0 0}.p2v58-two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.p2v58-row{display:grid;grid-template-columns:46px 1fr 42px;align-items:center;min-height:34px;padding:0 12px;color:#102f68;cursor:pointer}.p2v58-row:nth-child(odd){background:#f3f8fc}.p2v58-no{font-size:10px}.p2v58-name{font-weight:800;font-size:12px}.p2v58-check{position:absolute;opacity:0;pointer-events:none}.p2v58-box{width:17px;height:17px;border:1px solid #7891ad;border-radius:3px;background:#fff;justify-self:center;position:relative}.p2v58-check:checked+.p2v58-box{background:#10a04a;border-color:#10a04a}.p2v58-check:checked+.p2v58-box:after{content:'✓';position:absolute;color:#fff;font-size:13px;font-weight:900;left:2px;top:-2px}.p2v58-footer{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;border-top:1px solid #e3eaf0;margin-top:10px;padding-top:12px}.p2v58-footer>div:last-child{text-align:right}.p2v58-left-actions{display:flex;gap:8px}.p2v58-totals{display:flex;gap:20px;color:#4c6784}.p2v58-totals .green{color:#099447}.p2v58-totals .red{color:#d62d2d}.p2v58-totals .pending{color:#8a6a17}
-      @media(max-width:1000px){.p2v58-filters{grid-template-columns:1fr 1fr}.p2v58-actions{grid-template-columns:1fr 1fr}.p2v58-two{grid-template-columns:1fr}.p2v58-upload-panel{grid-template-columns:1fr}.p2v58-footer{grid-template-columns:1fr}.p2v58-footer>div:last-child{text-align:left}}
+      .p2v59-class-reports{background:#fff;border-radius:14px;padding:4px 2px 18px}.p2v59-class-report-title{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:16px}.p2v59-class-report-title h2{margin:0;color:#102d5e;font-size:25px}.p2v59-class-report-title p{margin:5px 0 0;color:#61758d;font-size:12px}@media(max-width:1000px){.p2v58-filters{grid-template-columns:1fr 1fr}.p2v58-actions{grid-template-columns:1fr 1fr}.p2v58-two{grid-template-columns:1fr}.p2v58-upload-panel{grid-template-columns:1fr}.p2v58-footer{grid-template-columns:1fr}.p2v58-footer>div:last-child{text-align:left}}
     `;document.head.appendChild(st)
   }
 
