@@ -258,6 +258,24 @@ jobs:
           $html=Get-Content src\index.html -Raw
           if($html -notmatch 'PHASE2 BETA514 ENROL PAYMENT IDENTITY'){throw 'Beta 5.14 marker missing after apply'}
 
+      - name: Restore Beta 5.14 version after final patches
+        shell: powershell
+        run: |
+          @'
+          import json,pathlib,re
+          p=pathlib.Path('src/package.json')
+          d=json.loads(p.read_text(encoding='utf-8'))
+          d['version']='2.0.0-beta.5.14'
+          p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
+          m=pathlib.Path('src/main.js')
+          ms=m.read_text(encoding='utf-8')
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.14';",ms,count=1)
+          m.write_text(ms,encoding='utf-8')
+          '@ | Set-Content restore_beta514_version.py -Encoding utf8
+          python restore_beta514_version.py
+          if($LASTEXITCODE -ne 0){throw 'Could not restore Beta 5.14 version after final patches'}
+          Remove-Item restore_beta514_version.py -Force
+
       - name: Validate Beta 5.14 source and corrections
         shell: powershell
         run: |
