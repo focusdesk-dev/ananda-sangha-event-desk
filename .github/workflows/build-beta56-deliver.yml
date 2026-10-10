@@ -429,7 +429,7 @@ jobs:
           $required=@('AnandaWelcomeCreate','Welcome To','Ananda Sangha','AnandaLicenseCreate','License Agreement','AnandaOptionsPageCreate','Choose Install Location','Create a desktop shortcut','Create a Start Menu shortcut','Launch Ananda Sangha after installation','AnandaFinishCreate','Installation completed successfully!','installer-sidebar.bmp','installer-logo.bmp')
           foreach($x in $required){if($nsh -notmatch [regex]::Escape($x)){throw "Installer flow missing: $x"}}
           if($nsh -match 'Anyone who uses this computer'){throw 'Old install-mode screen text must not exist'}
-          Write-Host 'INSTALLER CHECK 1/3 PASS — all approved page elements exist'
+          Write-Host 'INSTALLER CHECK 1/3 PASS - all approved page elements exist'
 
       - name: Installer visual-flow check 2 of 3
         shell: powershell
@@ -442,7 +442,7 @@ jobs:
           if sidebar.size!=(164,314): raise SystemExit('Sidebar must be 164x314')
           if logo.size!=(96,96): raise SystemExit('Finish logo must be 96x96')
           if not Path('src/installer-sidebar-master.b64').exists(): raise SystemExit('Approved sidebar master transport missing')
-          print('INSTALLER CHECK 2/3 PASS — approved artwork dimensions verified')
+          print('INSTALLER CHECK 2/3 PASS - approved artwork dimensions verified')
           '@ | Set-Content check_installer_art.py -Encoding utf8
           python check_installer_art.py
           if($LASTEXITCODE -ne 0){throw 'Installer artwork check failed'}
@@ -457,7 +457,7 @@ jobs:
           if($pkg.build.nsis.allowElevation -ne $true){throw 'Installer elevation setting missing'}
           if($pkg.build.nsis.include -ne 'installer.nsh'){throw 'Custom installer include missing'}
           if($pkg.build.nsis.runAfterFinish -ne $false){throw 'Default finish launcher must be disabled'}
-          Write-Host 'INSTALLER CHECK 3/3 PASS — package is wired to the custom flow'
+          Write-Host 'INSTALLER CHECK 3/3 PASS - package is wired to the custom flow'
 
       - name: Build Windows x64 installer
         shell: powershell
@@ -477,7 +477,7 @@ jobs:
           if(!(Test-Path $setup)){throw 'Beta 5.13 installer missing'}
           $size=(Get-Item $setup).Length
           if($size -lt 50000000){throw "Installer unexpectedly small: $size"}
-          Write-Host "COMPILED INSTALLER PASS — $size bytes"
+          Write-Host "COMPILED INSTALLER PASS - $size bytes"
 
       - name: Verify packaged QR renderer files
         shell: powershell
