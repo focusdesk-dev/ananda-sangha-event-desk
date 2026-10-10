@@ -117,7 +117,7 @@ patch=r'''
       <div class="p2v514-pay-title">PAYMENT</div>
       <div class="form-grid">
         <div class="field"><label>PAYMENT STATUS</label><select id="p2v514PaymentStatus"><option value="Unpaid">Unpaid</option><option value="Paid">Paid</option></select></div>
-        <div class="field"><label>COURSE FEE /label><input id="p2v514FeeAmount" readonly></div>
+        <div class="field"><label>COURSE FEE</label><input id="p2v514FeeAmount" readonly></div>
         <div class="field"><label>PAYMENT DATE</label><input id="p2v514PaymentDate" type="date"></div>
         <div class="field"><label>MODE</label><select id="p2v514PaymentMode"><option value="">Select mode</option><option>Cash</option><option>UPI</option><option>Bank Transfer</option><option>Card</option><option>Other</option></select></div>
       </div>
