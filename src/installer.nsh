@@ -78,7 +78,7 @@ FunctionEnd
 !macroend
 
 Function AnandaStartApp
-  ${StdUtils.ExecShellAsUser} $0 "$launchLink" "open" ""
+  ExecShell "open" "$INSTDIR\Ananda Sangha Event Desk.exe"
 FunctionEnd
 
 !macro customFinishPage
@@ -106,12 +106,15 @@ FunctionEnd
   Delete "$DOCUMENTS\ANANDA SANGHA EVENT DESK\Installer\Ananda_Sangha_Event_Desk_Setup_Latest.exe"
   CopyFiles /SILENT "$EXEPATH" "$DOCUMENTS\ANANDA SANGHA EVENT DESK\Installer\Ananda_Sangha_Event_Desk_Setup_Latest.exe"
 
+  ; Per-machine shortcuts are in the all-users shell context.
+  SetShellVarContext all
   ${If} $anandaDesktopChoice != ${BST_CHECKED}
     Delete "$DESKTOP\Ananda Sangha Event Desk.lnk"
   ${EndIf}
   ${If} $anandaStartChoice != ${BST_CHECKED}
     Delete "$SMPROGRAMS\Ananda Sangha Event Desk.lnk"
   ${EndIf}
+  SetShellVarContext current
 !macroend
 
 !macro customUnInstall
