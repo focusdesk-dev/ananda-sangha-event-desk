@@ -1,12 +1,12 @@
-name: Build Phase 2 Windows Beta 5.11 Complete
+name: Build Phase 2 Windows Beta 5.12 Active Classes Fix
 
 on:
   workflow_dispatch:
   push:
-    branches: [phase2-beta511-complete]
+    branches: [phase2-beta512-activeclasses]
 
 jobs:
-  build-windows-beta511:
+  build-windows-beta512:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -81,7 +81,7 @@ jobs:
           from pathlib import Path
           p=Path('src/build-beta5-fix4.py')
           s=p.read_text(encoding='utf-8')
-          bad="required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','PHASE2 BETA57 REFINE','PHASE2 BETA58 ATTENDANCE QR','PHASE2 BETA59 ATTENDANCE FINAL','PHASE2 BETA510 CURRENT APPROVED','PHASE2 BETA511 COMPLETE','classAttendanceHub','classReportsHub','MARK REMAINING ABSENT','p2v510EventLanding','p2v510ClassYear','UPDATE ATTENDANCE','SCAN TO UPLOAD','REVIEW DETECTED ATTENDANCE','P2V511_QR_DOC','BATCH WISE','STUDENT WISE']"
+          bad="required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','PHASE2 BETA57 REFINE','PHASE2 BETA58 ATTENDANCE QR','PHASE2 BETA59 ATTENDANCE FINAL','PHASE2 BETA510 CURRENT APPROVED','PHASE2 BETA511 COMPLETE','PHASE2 BETA512 ACTIVE CLASSES FIX','classAttendanceHub','classReportsHub','MARK REMAINING ABSENT','p2v510EventLanding','p2v510ClassYear','UPDATE ATTENDANCE','SCAN TO UPLOAD','REVIEW DETECTED ATTENDANCE','P2V511_QR_DOC','BATCH WISE','STUDENT WISE']"
           good="required=['PHASE2 BETA5 FIX4','Student Progress List','Follow-up & Outreach','Annual Class Summary','Admin approval required','Joined','Eligible','Not Eligible','export the filtered Batch Report','p2v54NextStatus']"
           if bad in s: p.write_text(s.replace(bad,good),encoding='utf-8')
           '@ | Set-Content repair_fix4.py -Encoding utf8
@@ -107,6 +107,8 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Beta 5.10 approved-flow patch failed'}
           python src/build-beta511-complete.py
           if($LASTEXITCODE -ne 0){throw 'Beta 5.11 complete patch failed'}
+          python src/build-beta512-activeclasses.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.12 active classes patch failed'}
 
       - name: Repair legacy v125 style literal
         shell: powershell
@@ -229,26 +231,26 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Approved logo/installer artwork generation failed'}
           Remove-Item make_approved_art.py -Force
 
-      - name: Set beta 5.11 version
+      - name: Set beta 5.12 version
         shell: powershell
         run: |
           @'
           import json,pathlib
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.11'
+          d['version']='2.0.0-beta.5.12'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
           import re
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.11';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.12';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
           if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.11 version'}
           Remove-Item set_version.py -Force
 
-      - name: Validate beta 5.11 source
+      - name: Validate beta 5.12 source
         shell: powershell
         run: |
           @'
@@ -292,7 +294,9 @@ jobs:
           $pkg=Get-Content src\package.json -Raw | ConvertFrom-Json
           if($pkg.build.nsis.oneClick -ne $false){throw 'Installer must be assisted mode'}
           if($pkg.build.nsis.perMachine -ne $true){throw 'Installer must be all-users/per-machine'}
-          if($pkg.version -ne '2.0.0-beta.5.11'){throw 'Beta 5.11 package version missing'}
+          if($pkg.version -ne '2.0.0-beta.5.12'){throw 'Beta 5.12 package version missing'}
+          if($html -notmatch 'PHASE2 BETA512 ACTIVE CLASSES FIX'){throw 'Active Classes fix marker missing'}
+          if($html -notmatch "switchPage\('activeClasses'\)"){throw 'Active Classes navigation target missing'}
           if(!(Test-Path src\installer-sidebar.bmp)){throw 'Modern installer sidebar missing'}
           if(!(Test-Path src\installer-header.bmp)){throw 'Modern installer header missing'}
           if(!(Test-Path src\ananda-icon.ico)){throw 'Approved app icon missing'}
@@ -399,8 +403,8 @@ jobs:
           npm run dist
           if($LASTEXITCODE -ne 0){throw 'electron-builder failed'}
           Pop-Location
-          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.11.exe'
-          if(!(Test-Path $setup)){throw 'Beta 5.11 Setup.exe missing'}
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.12.exe'
+          if(!(Test-Path $setup)){throw 'Beta 5.12 Setup.exe missing'}
 
       - name: Verify packaged QR renderer files
         shell: powershell
@@ -415,9 +419,9 @@ jobs:
           Remove-Item asar-files.txt -Force
           Pop-Location
 
-      - name: Upload Beta 5.11 installer
+      - name: Upload Beta 5.12 installer
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.11-Complete-Installer
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.11.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.12-Active-Classes-Fix-Installer
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.12.exe
           if-no-files-found: error
