@@ -353,6 +353,31 @@ ipcMain.handle('ananda-attendance-stop-upload-server',async()=>{anandaAttendance
 '''
     m=m.replace(hook,server+'\n'+hook,1)
     m=m.replace("const APP_VERSION = '2.0.0-beta.1';","const APP_VERSION = '2.0.0-beta.5.8';")
+    # BETA59 PRINT PREVIEW — show exact A4 preview before print/save.
+    m=m.replace("const { app, BrowserWindow, Menu, ipcMain, shell } = require('electron');","const { app, BrowserWindow, Menu, ipcMain, shell, dialog } = require('electron');")
+    ps=m.find("ipcMain.handle('ananda-native-print-html'")
+    pe=m.find("ipcMain.handle('ananda-open-data-folder'",ps)
+    if ps<0 or pe<0: raise SystemExit('Could not find native print handler for preview')
+    preview=r'''// BETA59 PRINT PREVIEW
+let anandaPrintPreviewWindow=null;
+let anandaPrintPreviewFile='';
+function anandaDecoratePrintPreview(source){
+  const addon=`<style>.ananda-preview-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;position:fixed;z-index:999999;left:0;right:0;top:0;height:58px;padding:0 18px;background:#123f7d;color:#fff;font-family:Arial,sans-serif;box-shadow:0 2px 12px #0002}.ananda-preview-toolbar .group{display:flex;align-items:center;gap:8px}.ananda-preview-toolbar button{border:1px solid #d9e7f5;background:#fff;color:#123f7d;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer}.ananda-preview-toolbar button.primary{background:#1762c4;color:#fff;border-color:#1762c4}.ananda-preview-counter{min-width:70px;text-align:center;font-weight:700}@media screen{body{background:#e9eef4!important;padding:76px 24px 30px!important}.sheet{display:none!important;background:#fff;margin:0 auto 22px!important;max-width:210mm;box-shadow:0 8px 30px #102d5e22}.sheet.ananda-preview-active{display:block!important}}@media print{.ananda-preview-toolbar{display:none!important}body{padding:0!important;background:#fff!important}.sheet{display:block!important;box-shadow:none!important}}</style><div class='ananda-preview-toolbar'><div class='group'><strong>QR ATTENDANCE PRINT PREVIEW</strong></div><div class='group'><button id='anandaPrev'>Previous</button><span id='anandaCounter' class='ananda-preview-counter'></span><button id='anandaNext'>Next</button></div><div class='group'><button id='anandaSave'>Save PDF</button><button id='anandaPrint' class='primary'>Print</button><button id='anandaClose'>Close</button></div></div><script>(function(){const sheets=[...document.querySelectorAll('.sheet')],counter=document.getElementById('anandaCounter');let idx=0;function show(){sheets.forEach((x,i)=>x.classList.toggle('ananda-preview-active',i===idx));counter.textContent=sheets.length?((idx+1)+' / '+sheets.length):'1 / 1';document.getElementById('anandaPrev').disabled=idx<=0;document.getElementById('anandaNext').disabled=idx>=sheets.length-1}document.getElementById('anandaPrev').onclick=()=>{if(idx>0){idx--;show()}};document.getElementById('anandaNext').onclick=()=>{if(idx<sheets.length-1){idx++;show()}};document.getElementById('anandaPrint').onclick=()=>location.href='ananda-preview://print';document.getElementById('anandaSave').onclick=()=>location.href='ananda-preview://save';document.getElementById('anandaClose').onclick=()=>location.href='ananda-preview://close';show()})();</script>`;
+  return /<\\/body>/i.test(source)?source.replace(/<\\/body>/i,addon+'</body>'):source+addon
+}
+ipcMain.handle('ananda-native-print-html',async(_event,payload)=>{
+  const html=payload&&typeof payload.html==='string'?payload.html:'';if(!html)return{ok:false,error:'Nothing to preview.'};
+  try{
+    if(anandaPrintPreviewWindow&&!anandaPrintPreviewWindow.isDestroyed())anandaPrintPreviewWindow.close();
+    anandaPrintPreviewFile=path.join(SESSION_ROOT,'attendance-print-preview.html');fs.writeFileSync(anandaPrintPreviewFile,anandaDecoratePrintPreview(html),'utf8');
+    const win=new BrowserWindow({width:1120,height:860,minWidth:900,minHeight:650,show:false,autoHideMenuBar:true,parent:mainWindow||undefined,icon:path.join(__dirname,'ananda-icon.ico'),webPreferences:{contextIsolation:true,nodeIntegration:false}});anandaPrintPreviewWindow=win;
+    win.webContents.on('will-navigate',async(event,url)=>{if(!String(url).startsWith('ananda-preview://'))return;event.preventDefault();const action=new URL(url).hostname;if(action==='close'){win.close();return}if(action==='print'){win.webContents.print({silent:false,printBackground:true},()=>{});return}if(action==='save'){try{const pdf=await win.webContents.printToPDF({printBackground:true,preferCSSPageSize:true,pageSize:'A4'});const result=await dialog.showSaveDialog(win,{title:'Save QR Attendance Sheet as PDF',defaultPath:path.join(app.getPath('documents'),'Ananda_QR_Attendance_'+safeTimestamp()+'.pdf'),filters:[{name:'PDF',extensions:['pdf']}]});if(!result.canceled&&result.filePath)fs.writeFileSync(result.filePath,pdf)}catch{}}});
+    win.on('closed',()=>{if(anandaPrintPreviewWindow===win)anandaPrintPreviewWindow=null;try{if(anandaPrintPreviewFile&&fs.existsSync(anandaPrintPreviewFile))fs.unlinkSync(anandaPrintPreviewFile)}catch{}});
+    await win.loadFile(anandaPrintPreviewFile);win.show();win.focus();return{ok:true,preview:true}
+  }catch(error){return{ok:false,error:error&&error.message?error.message:String(error)}}
+});
+'''
+    m=m[:ps]+preview+m[pe:]
     main.write_text(m,encoding='utf-8')
 
 # Expose phone-upload bridge from preload.
