@@ -25,6 +25,7 @@ Var /GLOBAL anandaStartChoice
   !insertmacro MUI_PAGE_LICENSE "${PROJECT_DIR}\license.txt"
 !macroend
 
+!ifndef BUILD_UNINSTALLER
 Function AnandaBrowseInstallFolder
   nsDialogs::SelectFolderDialog "Choose Install Location" "$INSTDIR"
   Pop $0
@@ -80,6 +81,7 @@ FunctionEnd
 Function AnandaStartApp
   ExecShell "open" "$INSTDIR\Ananda Sangha Event Desk.exe"
 FunctionEnd
+!endif
 
 !macro customFinishPage
   !define MUI_FINISHPAGE_TITLE "Ananda Sangha"
