@@ -177,9 +177,13 @@ jobs:
           ico=Image.open('src/ananda-icon.ico')
           if set(sizes)-set(ico.ico.sizes()): raise SystemExit('Multi-resolution icon is incomplete')
 
-          master=Path('src/installer-sidebar-master.jpg')
-          if not master.exists(): raise SystemExit('Approved installer sidebar master missing')
-          side=Image.open(master).convert('RGB').resize((164,314),Image.Resampling.LANCZOS)
+          sidebar_transport=Path('src/installer-sidebar-master.b64')
+          if not sidebar_transport.exists(): raise SystemExit('Approved installer sidebar transport missing')
+          sidebar_bytes=base64.b64decode(''.join(sidebar_transport.read_text(encoding='utf-8').split()),validate=True)
+          sidebar_jpg=Path('src/installer-sidebar-master-decoded.jpg')
+          sidebar_jpg.write_bytes(sidebar_bytes)
+          side=Image.open(sidebar_jpg).convert('RGB');side.load()
+          if side.size!=(164,314): raise SystemExit('Approved sidebar source dimensions invalid: '+repr(side.size))
           side.save('src/installer-sidebar.bmp')
           side.save('src/uninstaller-sidebar.bmp')
 
@@ -437,7 +441,7 @@ jobs:
           logo=Image.open('src/installer-logo.bmp')
           if sidebar.size!=(164,314): raise SystemExit('Sidebar must be 164x314')
           if logo.size!=(96,96): raise SystemExit('Finish logo must be 96x96')
-          if not Path('src/installer-sidebar-master.jpg').exists(): raise SystemExit('Approved sidebar master missing')
+          if not Path('src/installer-sidebar-master.b64').exists(): raise SystemExit('Approved sidebar master transport missing')
           print('INSTALLER CHECK 2/3 PASS — approved artwork dimensions verified')
           '@ | Set-Content check_installer_art.py -Encoding utf8
           python check_installer_art.py
