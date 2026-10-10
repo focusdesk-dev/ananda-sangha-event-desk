@@ -263,7 +263,7 @@ jobs:
           from pathlib import Path
           import re
           html=Path('src/index.html').read_text(encoding='utf-8')
-          required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','PHASE2 BETA57 REFINE','PHASE2 BETA58 ATTENDANCE QR','PHASE2 BETA59 ATTENDANCE FINAL','PHASE2 BETA510 CURRENT APPROVED','classAttendanceHub','classReportsHub','MARK REMAINING ABSENT','p2v510EventLanding','p2v510ClassYear','UPDATE ATTENDANCE','SCAN TO UPLOAD','prepareSheetLink','BATCH WISE','STUDENT WISE']
+          required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','PHASE2 BETA57 REFINE','PHASE2 BETA58 ATTENDANCE QR','PHASE2 BETA59 ATTENDANCE FINAL','PHASE2 BETA510 CURRENT APPROVED','p2v512FixActiveClasses','switchPage(\'activeClasses\')','classAttendanceHub','classReportsHub','MARK REMAINING ABSENT','p2v510EventLanding','p2v510ClassYear','UPDATE ATTENDANCE','SCAN TO UPLOAD','prepareSheetLink','BATCH WISE','STUDENT WISE']
           missing=[x for x in required if x not in html]
           if missing: raise SystemExit('Missing beta 5.11 markers: '+repr(missing))
           scripts=re.findall(r'<script>(.*?)</script>',html,re.S|re.I)
@@ -301,8 +301,6 @@ jobs:
           if($pkg.build.nsis.oneClick -ne $false){throw 'Installer must be assisted mode'}
           if($pkg.build.nsis.perMachine -ne $true){throw 'Installer must be all-users/per-machine'}
           if($pkg.version -ne '2.0.0-beta.5.12'){throw 'Beta 5.12 package version missing'}
-          if($html -notmatch 'p2v512FixActiveClasses'){throw 'Active Classes fix function missing'}
-          if($html -notmatch "switchPage\('activeClasses'\)"){throw 'Active Classes navigation target missing'}
           if(!(Test-Path src\installer-sidebar.bmp)){throw 'Modern installer sidebar missing'}
           if(!(Test-Path src\installer-header.bmp)){throw 'Modern installer header missing'}
           if(!(Test-Path src\ananda-icon.ico)){throw 'Approved app icon missing'}
