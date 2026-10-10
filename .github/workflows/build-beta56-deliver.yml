@@ -1,4 +1,4 @@
-name: Inspect Phase 2 Beta 5.14 fixes
+name: Build Phase 2 Windows Beta 5.14 Fixes
 
 on:
   workflow_dispatch:
@@ -254,10 +254,30 @@ jobs:
           $html=Get-Content src\index.html -Raw
           if($html -notmatch 'PHASE2 BETA513 CURRENT FINAL'){throw 'Beta 5.13 marker missing immediately after apply'}
 
-      - name: Upload generated Beta 5.13 source for inspection
+      - name: Apply Beta 5.14 enrolment and identity fixes
+        shell: powershell
+        run: |
+          python src/build-beta514-fixes.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.14 app fixes failed'}
+          @'
+          import json,pathlib,re
+          p=pathlib.Path('src/package.json')
+          d=json.loads(p.read_text(encoding='utf-8'))
+          d['version']='2.0.0-beta.5.14'
+          p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
+          m=pathlib.Path('src/main.js')
+          ms=m.read_text(encoding='utf-8')
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.14';",ms,count=1)
+          m.write_text(ms,encoding='utf-8')
+          '@ | Set-Content set_beta514.py -Encoding utf8
+          python set_beta514.py
+          if($LASTEXITCODE -ne 0){throw 'Could not set Beta 5.14 version'}
+          Remove-Item set_beta514.py -Force
+
+      - name: Upload generated Beta 5.14 source for inspection
         uses: actions/upload-artifact@v4
         with:
-          name: beta513-generated-source
+          name: beta514-generated-source
           path: |
             src/index.html
             src/main.js
@@ -267,7 +287,7 @@ jobs:
             src/build-beta513-final.py
           if-no-files-found: error
 
-      - name: Validate Beta 5.13 source and corrections
+      - name: Validate Beta 5.14 source and corrections
         shell: powershell
         run: |
           @'
@@ -280,6 +300,8 @@ jobs:
             'PHASE2 BETA510 CURRENT APPROVED','PHASE2 BETA511 COMPLETE',
             'p2v512FixActiveClasses',"switchPage('activeClasses')",
             'PHASE2 BETA513 CURRENT FINAL','p2v513PermanentMobileIdentityRule',
+            'PHASE2 BETA514 ENROL PAYMENT IDENTITY','p2v514GuardIdentity','p2v514PaymentFields',
+            'p2v514StudentFromCandidateBase','key=mobile?',
             'p2v513VipSectionInOutsideList','p2v513-vip-head','P2V513_PRINT',
             'p2v513Geometry','grid-template-columns:9mm minmax(0,1fr) 18mm',
             'classAttendanceHub','classReportsHub','MARK REMAINING ABSENT',
@@ -293,14 +315,14 @@ jobs:
           Path('beta513-check.js').write_text('\n'.join(scripts),encoding='utf-8')
           pkg=json.loads(Path('src/package.json').read_text(encoding='utf-8'))
           nsis=pkg['build']['nsis']
-          if pkg['version']!='2.0.0-beta.5.13': raise SystemExit('Wrong package version')
+          if pkg['version']!='2.0.0-beta.5.14': raise SystemExit('Wrong package version')
           if nsis.get('oneClick') is not False or nsis.get('perMachine') is not True:
               raise SystemExit('Installer must be assisted all-users mode')
           '@ | Set-Content validate_beta513.py -Encoding utf8
           python validate_beta513.py
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.13 source marker validation failed'}
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.14 source marker validation failed'}
           node --check beta513-check.js
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.13 renderer JavaScript syntax failed'}
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.14 renderer JavaScript syntax failed'}
           node --check src/main.js
           if($LASTEXITCODE -ne 0){throw 'main.js syntax failed'}
           node --check src/preload.js
@@ -435,6 +457,34 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Beta 5.13 mark geometry checks failed'}
           Remove-Item beta513_mark_geometry.js -Force
 
+      - name: Beta 5.14 identity and enrolment checks
+        shell: powershell
+        run: |
+          @'
+          function nn(v){return String(v||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim()}
+          function nm(v){let d=String(v||'').replace(/\D/g,'');if(d.length>10&&d.startsWith('91'))d=d.slice(-10);return d}
+          function conflict(rows,name,mobile,role,id=''){const m=nm(mobile),n=nn(name);return rows.find(x=>!(x.role===role&&x.id===id)&&nm(x.mobile)===m&&nn(x.name)!==n)||null}
+          const cases=[
+            {name:'Ankit Kohli',mobile:'9810000000',role:'Acharya',rows:[{role:'Volunteer',id:'v1',name:'Ankit Kohli',mobile:'9810000000'}],want:false,label:'same person Volunteer + Acharya allowed'},
+            {name:'Rahul Nitin',mobile:'9810000000',role:'Acharya',rows:[{role:'Volunteer',id:'v1',name:'Ankit Kohli',mobile:'9810000000'}],want:true,label:'different name same phone blocked'},
+            {name:'Ankit Kohli',mobile:'9810000000',role:'Kriyaban',rows:[{role:'Student',id:'s1',name:'ANKIT KOHLI',mobile:'9810000000'}],want:false,label:'same person Student + Kriyaban allowed'},
+            {name:'Rahul',mobile:'9876543210',role:'Volunteer',rows:[{role:'Attendee',id:'a1',name:'Dhruv',mobile:'9876543210'}],want:true,label:'outside attendee conflict blocked'},
+            {name:'Ankit Kohli',mobile:'9810000000',role:'Student',rows:[{role:'Volunteer',id:'v1',name:'Ankit Kohli',mobile:'9810000000'},{role:'Kriyaban',id:'k1',name:'Ankit Kohli',mobile:'9810000000'}],want:false,label:'same identity may hold multiple roles'}
+          ];
+          cases.forEach((c,i)=>{const got=!!conflict(c.rows,c.name,c.mobile,c.role);if(got!==c.want)throw new Error('IDENTITY '+(i+1)+' failed '+c.label);console.log('IDENTITY '+(i+1)+'/5 PASS - '+c.label)});
+          const key=(name,mobile)=>mobile?'m:'+nm(mobile)+'|n:'+nn(name):'n:'+nn(name);
+          if(key('Ankit Kohli','9810000000')!==key('ANKIT KOHLI','9810000000'))throw new Error('same identity must merge in enrol search');
+          if(key('Ankit Kohli','9810000000')===key('Rahul','9810000000'))throw new Error('different names sharing old duplicate number must not hide each other');
+          console.log('ENROL SEARCH IDENTITY KEY PASS');
+          '@ | Set-Content beta514_identity.js -Encoding utf8
+          node beta514_identity.js
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.14 identity checks failed'}
+          Remove-Item beta514_identity.js -Force
+          $html=Get-Content src\index.html -Raw
+          if($html -match 'migrateLegacyPeople\(\);mergeVolunteerAttendeeDuplicates\(\);'){throw 'Legacy cross-list auto-merge still active'}
+          foreach($x in @('p2v514PaymentStatus','p2v514PaymentAmount','p2v514PaymentDate','p2v514PaymentMode','state.volunteers.forEach(v=>add(')){if($html -notmatch [regex]::Escape($x)){throw "Beta 5.14 enrolment feature missing: $x"}}
+          Write-Host 'BETA 5.14 IDENTITY + ENROLMENT CHECKS PASS'
+
       - name: Installer visual-flow check 1 of 3
         shell: powershell
         run: |
@@ -480,14 +530,14 @@ jobs:
           npm run dist
           if($LASTEXITCODE -ne 0){throw 'electron-builder failed'}
           Pop-Location
-          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.13.exe'
-          if(!(Test-Path $setup)){throw 'Beta 5.13 Setup.exe missing'}
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.14.exe'
+          if(!(Test-Path $setup)){throw 'Beta 5.14 Setup.exe missing'}
 
-      - name: Verify compiled Beta 5.13 installer
+      - name: Verify compiled Beta 5.14 installer
         shell: powershell
         run: |
-          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.13.exe'
-          if(!(Test-Path $setup)){throw 'Beta 5.13 installer missing'}
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.14.exe'
+          if(!(Test-Path $setup)){throw 'Beta 5.14 installer missing'}
           $size=(Get-Item $setup).Length
           if($size -lt 50000000){throw "Installer unexpectedly small: $size"}
           Write-Host "COMPILED INSTALLER PASS - $size bytes"
@@ -505,9 +555,9 @@ jobs:
           Remove-Item asar-files.txt -Force
           Pop-Location
 
-      - name: Upload Beta 5.13 installer
+      - name: Upload Beta 5.14 installer
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.13-Current-Final-Installer
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.13.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.14-Fixes-Installer
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.14.exe
           if-no-files-found: error
