@@ -133,14 +133,6 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Legacy JS repair failed'}
           Remove-Item repair_legacy_js.py -Force
 
-      - name: Apply Beta 5.12 Active Classes fix after legacy repair
-        shell: powershell
-        run: |
-          python src/build-beta512-activeclasses.py
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.12 active classes patch failed'}
-          $html=Get-Content src\index.html -Raw
-          if($html -notmatch 'p2v512FixActiveClasses'){throw 'Active Classes patch did not persist'}
-
       - name: Install offline QR libraries
         shell: powershell
         run: |
@@ -255,6 +247,14 @@ jobs:
           python set_version.py
           if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.11 version'}
           Remove-Item set_version.py -Force
+
+      - name: Apply Beta 5.12 Active Classes fix before validation
+        shell: powershell
+        run: |
+          python src/build-beta512-activeclasses.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.12 active classes patch failed'}
+          Select-String -Path src\index.html -Pattern 'p2v512FixActiveClasses' -Quiet | Out-Null
+          if(-not $?) {throw 'Active Classes patch missing immediately after apply'}
 
       - name: Validate beta 5.12 source
         shell: powershell
