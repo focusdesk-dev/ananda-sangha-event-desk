@@ -42,7 +42,7 @@ jobs:
           pos=s.upper().find(needle)
           if pos < 0: raise SystemExit('Could not locate beta 4C smoke-test section')
           cut=s.rfind('\n',0,pos)+1
-          s=s[:cut]+'Write-Host "=== BETA.4C BASE READY FOR BETA.5.9 BUILD ==="\nexit 0\n'
+          s=s[:cut]+'Write-Host "=== BETA.4C BASE READY FOR BETA.5.10 BUILD ==="\nexit 0\n'
           p.write_text(s,encoding='utf-8')
           '@ | Set-Content trim_beta4c_smoke.py -Encoding utf8
           python trim_beta4c_smoke.py
@@ -103,17 +103,8 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Beta 5.7 refinement failed'}
           python src/build-beta58-attendance-qr.py
           if($LASTEXITCODE -ne 0){throw 'Beta 5.9 attendance patch failed'}
-
-      - name: Upload rebuilt source snapshot
-        uses: actions/upload-artifact@v4
-        with:
-          name: beta510-source-snapshot
-          path: |
-            src/index.html
-            src/main.js
-            src/preload.js
-            src/package.json
-          if-no-files-found: error
+          python src/build-beta510-current.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.10 approved-flow patch failed'}
 
       - name: Repair legacy v125 style literal
         shell: powershell
@@ -159,60 +150,121 @@ jobs:
           Remove-Item qrcode-entry.js,jsqr-entry.js -Force
           Pop-Location
 
-      - name: Create sharp multi-resolution Windows icon
+      - name: Create approved logo, icon and installer artwork
         shell: powershell
         run: |
           python -m pip install pillow --quiet
           @'
-          from PIL import Image, ImageOps, ImageFilter
+          from PIL import Image, ImageDraw, ImageFont, ImageFilter
           from pathlib import Path
-          src=Path('src/logo-128.png')
-          if not src.exists(): raise SystemExit('logo-128.png missing')
-          im=Image.open(src).convert('RGBA')
-          side=max(im.size)
-          square=Image.new('RGBA',(side,side),(0,0,0,0))
-          square.paste(im,((side-im.width)//2,(side-im.height)//2),im)
-          base=square.resize((512,512),Image.Resampling.LANCZOS).filter(ImageFilter.UnsharpMask(radius=.7,percent=115,threshold=2))
+          import math
+
+          SCALE=4
+          def star_points(cx,cy,r1,r2,n=5):
+              pts=[]
+              for i in range(n*2):
+                  a=-math.pi/2+i*math.pi/n
+                  r=r1 if i%2==0 else r2
+                  pts.append((cx+math.cos(a)*r,cy+math.sin(a)*r))
+              return pts
+
+          def emblem(size=512, transparent=True):
+              S=size*SCALE
+              img=Image.new('RGBA',(S,S),(0,0,0,0) if transparent else (14,50,116,255))
+              d=ImageDraw.Draw(img)
+              c=S/2
+              # soft glow behind the golden ring
+              glow=Image.new('RGBA',(S,S),(0,0,0,0)); gd=ImageDraw.Draw(glow)
+              gd.ellipse((.08*S,.08*S,.92*S,.92*S),fill=(255,206,36,100))
+              glow=glow.filter(ImageFilter.GaussianBlur(int(.035*S)))
+              img.alpha_composite(glow)
+              # blue spiritual centre
+              d.ellipse((.18*S,.18*S,.82*S,.82*S),fill=(12,50,128,255))
+              d.ellipse((.23*S,.23*S,.77*S,.77*S),fill=(20,72,158,255))
+              # luminous golden ring, no white outside
+              d.ellipse((.08*S,.08*S,.92*S,.92*S),outline=(255,217,47,255),width=int(.12*S))
+              d.ellipse((.105*S,.105*S,.895*S,.895*S),outline=(255,239,104,255),width=int(.025*S))
+              # original simple five-point star
+              d.polygon(star_points(c,c,.055*S,.023*S),fill=(255,255,255,255))
+              return img.resize((size,size),Image.Resampling.LANCZOS)
+
+          logo=emblem(512,True)
+          logo.save('src/logo-128.png',optimize=True)
           sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)]
-          base.save('src/ananda-icon.ico',format='ICO',sizes=sizes)
+          logo.save('src/ananda-icon.ico',format='ICO',sizes=sizes)
           ico=Image.open('src/ananda-icon.ico')
           made=set(ico.ico.sizes())
           missing=set(sizes)-made
           if missing: raise SystemExit('Missing icon sizes: '+repr(sorted(missing)))
-          print('Sharp Windows icon sizes:',sorted(made))
-          '@ | Set-Content make_sharp_icon.py -Encoding utf8
-          python make_sharp_icon.py
-          if($LASTEXITCODE -ne 0){throw 'Sharp icon generation failed'}
-          Remove-Item make_sharp_icon.py -Force
-      - name: Set beta 5.9 version
+
+          # Modern NSIS sidebar: dark Ananda blue, correct halo/star logo, subtle mountains.
+          W,H=164,314
+          side=Image.new('RGB',(W,H),(10,43,97)); sd=ImageDraw.Draw(side)
+          for y in range(H):
+              t=y/(H-1); col=(int(8+8*t),int(42+30*t),int(96+55*t))
+              sd.line((0,y,W,y),fill=col)
+          sm=emblem(86,True); side.paste(sm,(39,35),sm)
+          try:
+              fb=ImageFont.truetype(r'C:\Windows\Fonts\arialbd.ttf',16)
+              fs=ImageFont.truetype(r'C:\Windows\Fonts\arial.ttf',11)
+          except:
+              fb=fs=None
+          text='ANANDA\nSANGHA'
+          box=sd.multiline_textbbox((0,0),text,font=fb,spacing=3,align='center')
+          tw=box[2]-box[0]
+          sd.multiline_text(((W-tw)//2,135),text,font=fb,fill=(255,255,255),spacing=3,align='center')
+          # subtle gold divider
+          sd.rounded_rectangle((55,188,109,190),1,fill=(238,184,55))
+          # clean mountain silhouettes
+          sd.polygon([(0,271),(24,252),(45,267),(69,239),(96,262),(119,246),(164,270),(164,314),(0,314)],fill=(20,68,120))
+          sd.polygon([(0,289),(33,273),(58,289),(85,266),(115,286),(139,270),(164,283),(164,314),(0,314)],fill=(12,52,103))
+          side.save('src/installer-sidebar.bmp')
+          side.save('src/uninstaller-sidebar.bmp')
+
+          # Header artwork for interior installer pages.
+          HW,HH=150,57
+          head=Image.new('RGB',(HW,HH),'white')
+          hm=emblem(45,True);head.paste(hm,(6,6),hm)
+          hd=ImageDraw.Draw(head)
+          try: hf=ImageFont.truetype(r'C:\Windows\Fonts\arialbd.ttf',14)
+          except: hf=None
+          hd.text((58,19),'ANANDA SANGHA',font=hf,fill=(15,55,116))
+          head.save('src/installer-header.bmp')
+          print('Approved icon sizes:',sorted(made))
+          '@ | Set-Content make_approved_art.py -Encoding utf8
+          python make_approved_art.py
+          if($LASTEXITCODE -ne 0){throw 'Approved logo/installer artwork generation failed'}
+          Remove-Item make_approved_art.py -Force
+
+      - name: Set beta 5.10 version
         shell: powershell
         run: |
           @'
           import json,pathlib
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.9'
+          d['version']='2.0.0-beta.5.10'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
           import re
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.9';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.10';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.9 version'}
+          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.10 version'}
           Remove-Item set_version.py -Force
 
-      - name: Validate beta 5.9 source
+      - name: Validate beta 5.10 source
         shell: powershell
         run: |
           @'
           from pathlib import Path
           import re
           html=Path('src/index.html').read_text(encoding='utf-8')
-          required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','PHASE2 BETA57 REFINE','PHASE2 BETA58 ATTENDANCE QR','PHASE2 BETA59 ATTENDANCE FINAL','classAttendanceHub','classReportsHub','Mark Remaining Absent','PRINT QR ATTENDANCE SHEET','SCAN / UPLOAD ATTENDANCE SHEET','p2v58Payload','p2v58ParsePayload','Class, batch and date selected automatically','Attendance confirmed and saved everywhere','BATCH WISE','STUDENT WISE','Double-click a class card to open its batch.']
+          required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','PHASE2 BETA57 REFINE','PHASE2 BETA58 ATTENDANCE QR','PHASE2 BETA59 ATTENDANCE FINAL','PHASE2 BETA510 CURRENT APPROVED','classAttendanceHub','classReportsHub','MARK REMAINING ABSENT','p2v510EventLanding','p2v510ClassYear','UPDATE ATTENDANCE','SCAN TO UPLOAD','prepareSheetLink','BATCH WISE','STUDENT WISE']
           missing=[x for x in required if x not in html]
-          if missing: raise SystemExit('Missing beta 5.9 markers: '+repr(missing))
+          if missing: raise SystemExit('Missing beta 5.10 markers: '+repr(missing))
           scripts=re.findall(r'<script>(.*?)</script>',html,re.S|re.I)
           if not scripts: raise SystemExit('No app scripts found')
           Path('beta58-check.js').write_text('\n'.join(scripts),encoding='utf-8')
@@ -231,6 +283,12 @@ jobs:
           if($main -notmatch 'phone hotspot first'){throw 'Wi-Fi/hotspot address fix missing'}
           $pre=Get-Content src\preload.js -Raw
           if($pre -notmatch 'onPhoneStatus'){throw 'Phone status bridge missing'}
+          if($pre -notmatch 'prepareSheetLink'){throw 'Printed-QR phone link bridge missing'}
+          if($main -notmatch 'BETA510 UNIFIED ATTENDANCE PHONE SERVER'){throw 'Unified phone server missing'}
+          if($main -notmatch 'ananda-attendance-prepare-sheet-link'){throw 'Direct printed QR route missing'}
+          if(!(Test-Path src\installer-sidebar.bmp)){throw 'Modern installer sidebar missing'}
+          if(!(Test-Path src\installer-header.bmp)){throw 'Modern installer header missing'}
+          if(!(Test-Path src\ananda-icon.ico)){throw 'Approved app icon missing'}
           if(!(Test-Path src\\qrcode-client.js)){throw 'qrcode-client.js missing'}
           if(!(Test-Path src\\jsqr-client.js)){throw 'jsqr-client.js missing'}
           Remove-Item validate_beta58.py,beta58-check.js -Force
@@ -262,37 +320,43 @@ jobs:
           if($LASTEXITCODE -ne 0){throw '5x QR round-trip mockup check failed'}
           Remove-Item qr_roundtrip_5x.js -Force
 
-      - name: Mock QR round-trip test five times
+      - name: Printed QR direct-link round-trip check x5
         shell: powershell
         run: |
           @'
-          const QRCode=require('qrcode');
-          const jsQR=require('jsqr');
-          const {PNG}=require('pngjs');
+          const QRCode=require('./src/node_modules/qrcode');
+          const jsQR=require('./src/node_modules/jsqr');
+          const {PNG}=require('./src/node_modules/pngjs');
+          function hash(text){let h=2166136261>>>0;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(16).padStart(8,'0')}
+          function payload(batchId,date,sheet,totalSheets){const core=[batchId,date,sheet,totalSheets].join('|');return JSON.stringify({v:1,kind:'ANANDA_ATTENDANCE',batchId,date,sheet,totalSheets,sessionId:batchId+':'+date,verify:hash(core)})}
           const cases=[
-            {courseId:'L1',batchId:'B2',date:'2026-10-03',sheet:1,total:1},
-            {courseId:'L1',batchId:'B2',date:'2026-10-10',sheet:1,total:2},
-            {courseId:'L2',batchId:'B7',date:'2026-11-01',sheet:2,total:2},
-            {courseId:'L3',batchId:'B4',date:'2027-01-15',sheet:1,total:1},
-            {courseId:'L4',batchId:'B9',date:'2027-03-21',sheet:3,total:3}
+            ['L1-B1','2026-10-03',1,1,'Level 1','Batch 1'],
+            ['L1-B2','2026-10-10',1,2,'Level 1','Batch 2'],
+            ['L1-B2','2026-10-10',2,2,'Level 1','Batch 2'],
+            ['L2-B1','2026-11-01',1,1,'Level 2','Batch 1'],
+            ['L4-B3','2027-03-21',3,3,'Level 4','Batch 3']
           ];
           (async()=>{
             for(let i=0;i<cases.length;i++){
-              const text='ANANDA_ATT_V1:'+Buffer.from(JSON.stringify(cases[i]),'utf8').toString('base64');
-              const pngBuffer=await QRCode.toBuffer(text,{errorCorrectionLevel:'M',margin:1,width:360});
+              const [batchId,date,sheet,total,course,batch]=cases[i];
+              const meta={payload:payload(batchId,date,sheet,total),course,batch,date,sheet,total};
+              const a=Buffer.from(JSON.stringify(meta),'utf8').toString('base64url');
+              const url='http://192.168.1.6:8787/?a='+encodeURIComponent(a);
+              const pngBuffer=await QRCode.toBuffer(url,{errorCorrectionLevel:'M',margin:1,width:420});
               const png=PNG.sync.read(pngBuffer);
               const hit=jsQR(new Uint8ClampedArray(png.data),png.width,png.height,{inversionAttempts:'attemptBoth'});
-              if(!hit||hit.data!==text) throw new Error('QR round-trip failed on mock '+(i+1));
-              console.log('QR MOCK '+(i+1)+' PASS');
+              if(!hit||hit.data!==url)throw new Error('Printed direct-link QR failed '+(i+1));
+              const decoded=JSON.parse(Buffer.from(new URL(hit.data).searchParams.get('a'),'base64url').toString('utf8'));
+              const p=JSON.parse(decoded.payload),core=[p.batchId,p.date,p.sheet,p.totalSheets].join('|');
+              if(p.verify!==hash(core)||p.kind!=='ANANDA_ATTENDANCE')throw new Error('Printed QR payload failed '+(i+1));
+              console.log('PRINTED QR '+(i+1)+'/5 PASS',course,batch,date,'sheet',sheet+'/'+total);
             }
-            console.log('ALL 5 QR MOCK ROUND-TRIPS PASS');
+            console.log('ALL 5 PRINTED QR DIRECT-LINK CHECKS PASSED');
           })().catch(e=>{console.error(e);process.exit(1)});
-          '@ | Set-Content src\qr5test.js -Encoding utf8
-          Push-Location src
-          node qr5test.js
-          if($LASTEXITCODE -ne 0){throw 'Five-round QR mock test failed'}
-          Remove-Item qr5test.js -Force
-          Pop-Location
+          '@ | Set-Content printed_qr_5x.js -Encoding utf8
+          node printed_qr_5x.js
+          if($LASTEXITCODE -ne 0){throw '5x printed direct-link QR check failed'}
+          Remove-Item printed_qr_5x.js -Force
 
       - name: Build Windows x64 installer
         shell: powershell
@@ -302,8 +366,8 @@ jobs:
           npm run dist
           if($LASTEXITCODE -ne 0){throw 'electron-builder failed'}
           Pop-Location
-          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.9.exe'
-          if(!(Test-Path $setup)){throw 'Beta 5.9 Setup.exe missing'}
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.10.exe'
+          if(!(Test-Path $setup)){throw 'Beta 5.10 Setup.exe missing'}
 
       - name: Verify packaged QR renderer files
         shell: powershell
@@ -317,9 +381,9 @@ jobs:
           Remove-Item asar-files.txt -Force
           Pop-Location
 
-      - name: Upload Beta 5.9 installer
+      - name: Upload Beta 5.10 installer
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.9-Attendance-Final-Installer
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.9.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.10-Approved-Flow-Installer
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.10.exe
           if-no-files-found: error
