@@ -295,7 +295,7 @@ jobs:
           if($pkg.build.nsis.oneClick -ne $false){throw 'Installer must be assisted mode'}
           if($pkg.build.nsis.perMachine -ne $true){throw 'Installer must be all-users/per-machine'}
           if($pkg.version -ne '2.0.0-beta.5.12'){throw 'Beta 5.12 package version missing'}
-          if($html -notmatch 'PHASE2 BETA512 ACTIVE CLASSES FIX'){throw 'Active Classes fix marker missing'}
+          if($html -notmatch 'p2v512FixActiveClasses'){throw 'Active Classes fix function missing'}
           if($html -notmatch "switchPage\('activeClasses'\)"){throw 'Active Classes navigation target missing'}
           if(!(Test-Path src\installer-sidebar.bmp)){throw 'Modern installer sidebar missing'}
           if(!(Test-Path src\installer-header.bmp)){throw 'Modern installer header missing'}
