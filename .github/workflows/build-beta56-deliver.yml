@@ -1,12 +1,12 @@
-name: Build Phase 2 Windows Beta 5.8.1 Attendance QR
+name: Build Phase 2 Windows Beta 5.9 Attendance Final
 
 on:
   workflow_dispatch:
   push:
-    branches: [phase2-beta56-chatbuild]
+    branches: [phase2-beta59-attendance-fixes]
 
 jobs:
-  build-windows-beta581:
+  build-windows-beta59:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -42,7 +42,7 @@ jobs:
           pos=s.upper().find(needle)
           if pos < 0: raise SystemExit('Could not locate beta 4C smoke-test section')
           cut=s.rfind('\n',0,pos)+1
-          s=s[:cut]+'Write-Host "=== BETA.4C BASE READY FOR BETA.5.8 BUILD ==="\nexit 0\n'
+          s=s[:cut]+'Write-Host "=== BETA.4C BASE READY FOR BETA.5.9 BUILD ==="\nexit 0\n'
           p.write_text(s,encoding='utf-8')
           '@ | Set-Content trim_beta4c_smoke.py -Encoding utf8
           python trim_beta4c_smoke.py
@@ -102,7 +102,7 @@ jobs:
           python src/build-beta57-refine.py
           if($LASTEXITCODE -ne 0){throw 'Beta 5.7 refinement failed'}
           python src/build-beta58-attendance-qr.py
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.8 attendance QR patch failed'}
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.9 attendance patch failed'}
 
       - name: Repair legacy v125 style literal
         shell: powershell
@@ -148,30 +148,60 @@ jobs:
           Remove-Item qrcode-entry.js,jsqr-entry.js -Force
           Pop-Location
 
-      - name: Set beta 5.8.1 version
+      - name: Create sharp multi-resolution Windows icon
+        shell: powershell
+        run: |
+          python -m pip install pillow --quiet
+          @'
+          from PIL import Image, ImageOps, ImageFilter
+          from pathlib import Path
+          src=Path('src/logo-128.png')
+          if not src.exists(): raise SystemExit('logo-128.png missing')
+          im=Image.open(src).convert('RGBA')
+          side=max(im.size)
+          square=Image.new('RGBA',(side,side),(0,0,0,0))
+          square.paste(im,((side-im.width)//2,(side-im.height)//2),im)
+          base=square.resize((512,512),Image.Resampling.LANCZOS).filter(ImageFilter.UnsharpMask(radius=.7,percent=115,threshold=2))
+          sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)]
+          base.save('src/ananda-icon.ico',format='ICO',sizes=sizes)
+          ico=Image.open('src/ananda-icon.ico')
+          made=set(ico.ico.sizes())
+          missing=set(sizes)-made
+          if missing: raise SystemExit('Missing icon sizes: '+repr(sorted(missing)))
+          print('Sharp Windows icon sizes:',sorted(made))
+          '@ | Set-Content make_sharp_icon.py -Encoding utf8
+          python make_sharp_icon.py
+          if($LASTEXITCODE -ne 0){throw 'Sharp icon generation failed'}
+          Remove-Item make_sharp_icon.py -Force
+      - name: Set beta 5.9 version
         shell: powershell
         run: |
           @'
           import json,pathlib
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.8.1'
+          d['version']='2.0.0-beta.5.9'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
+          m=pathlib.Path('src/main.js')
+          ms=m.read_text(encoding='utf-8')
+          import re
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.9';",ms,count=1)
+          m.write_text(ms,encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.8 version'}
+          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.9 version'}
           Remove-Item set_version.py -Force
 
-      - name: Validate beta 5.8.1 source
+      - name: Validate beta 5.9 source
         shell: powershell
         run: |
           @'
           from pathlib import Path
           import re
           html=Path('src/index.html').read_text(encoding='utf-8')
-          required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','PHASE2 BETA57 REFINE','PHASE2 BETA58 ATTENDANCE QR','classAttendanceHub','PRINT QR ATTENDANCE SHEET','SCAN / UPLOAD ATTENDANCE SHEET','p2v58Payload','p2v58ParsePayload','Class, batch and date selected automatically','BATCH WISE','STUDENT WISE','Double-click a class card to open its batch.']
+          required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','PHASE2 BETA57 REFINE','PHASE2 BETA58 ATTENDANCE QR','PHASE2 BETA59 ATTENDANCE FINAL','classAttendanceHub','classReportsHub','Mark Remaining Absent','PRINT QR ATTENDANCE SHEET','SCAN / UPLOAD ATTENDANCE SHEET','p2v58Payload','p2v58ParsePayload','Class, batch and date selected automatically','Attendance confirmed and saved everywhere','BATCH WISE','STUDENT WISE','Double-click a class card to open its batch.']
           missing=[x for x in required if x not in html]
-          if missing: raise SystemExit('Missing beta 5.8 markers: '+repr(missing))
+          if missing: raise SystemExit('Missing beta 5.9 markers: '+repr(missing))
           scripts=re.findall(r'<script>(.*?)</script>',html,re.S|re.I)
           if not scripts: raise SystemExit('No app scripts found')
           Path('beta58-check.js').write_text('\n'.join(scripts),encoding='utf-8')
@@ -184,6 +214,12 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'main.js syntax failed'}
           node --check src/preload.js
           if($LASTEXITCODE -ne 0){throw 'preload.js syntax failed'}
+          $main=Get-Content src\main.js -Raw
+          if($main -notmatch 'BETA59 PRINT PREVIEW'){throw 'Print preview patch missing'}
+          if($main -notmatch 'ananda-preview://save'){throw 'Save PDF preview action missing'}
+          if($main -notmatch 'phone hotspot first'){throw 'Wi-Fi/hotspot address fix missing'}
+          $pre=Get-Content src\preload.js -Raw
+          if($pre -notmatch 'onPhoneStatus'){throw 'Phone status bridge missing'}
           if(!(Test-Path src\\qrcode-client.js)){throw 'qrcode-client.js missing'}
           if(!(Test-Path src\\jsqr-client.js)){throw 'jsqr-client.js missing'}
           Remove-Item validate_beta58.py,beta58-check.js -Force
@@ -255,8 +291,8 @@ jobs:
           npm run dist
           if($LASTEXITCODE -ne 0){throw 'electron-builder failed'}
           Pop-Location
-          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.1.exe'
-          if(!(Test-Path $setup)){throw 'Beta 5.8 Setup.exe missing'}
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.9.exe'
+          if(!(Test-Path $setup)){throw 'Beta 5.9 Setup.exe missing'}
 
       - name: Verify packaged QR renderer files
         shell: powershell
@@ -270,9 +306,9 @@ jobs:
           Remove-Item asar-files.txt -Force
           Pop-Location
 
-      - name: Upload Beta 5.8.1 installer
+      - name: Upload Beta 5.9 installer
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.8.1-Attendance-QR-Installer
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.8.1.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.9-Attendance-Final-Installer
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.9.exe
           if-no-files-found: error
