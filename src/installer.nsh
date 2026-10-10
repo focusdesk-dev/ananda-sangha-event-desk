@@ -34,31 +34,32 @@ done:
 FunctionEnd
 
 Function AnandaOptionsPageCreate
-  !insertmacro MUI_HEADER_TEXT "Choose Install Location" "Select where Ananda Sangha will be installed."
   nsDialogs::Create 1018
   Pop $0
   ${If} $0 == error
     Abort
   ${EndIf}
 
-  ${NSD_CreateLabel} 0 4u 100% 12u "Install folder"
+  ${NSD_CreateLabel} 0 2u 100% 18u "Choose Install Location"
   Pop $0
-  ${NSD_CreateText} 0 21u 77% 14u "$INSTDIR"
+  ${NSD_CreateLabel} 0 20u 100% 12u "Install folder"
+  Pop $0
+  ${NSD_CreateText} 0 36u 77% 14u "$INSTDIR"
   Pop $anandaDirCtl
-  ${NSD_CreateButton} 79% 20u 21% 16u "Browse..."
+  ${NSD_CreateButton} 79% 35u 21% 16u "Browse..."
   Pop $1
   ${NSD_OnClick} $1 AnandaBrowseInstallFolder
 
-  ${NSD_CreateLabel} 0 49u 100% 12u "Install options"
+  ${NSD_CreateLabel} 0 63u 100% 12u "Install options"
   Pop $0
-  ${NSD_CreateCheckbox} 0 67u 100% 13u "Create a desktop shortcut"
+  ${NSD_CreateCheckbox} 0 81u 100% 13u "Create a desktop shortcut"
   Pop $anandaDesktopCtl
   ${NSD_Check} $anandaDesktopCtl
-  ${NSD_CreateCheckbox} 0 87u 100% 13u "Create a Start Menu shortcut"
+  ${NSD_CreateCheckbox} 0 101u 100% 13u "Create a Start Menu shortcut"
   Pop $anandaStartCtl
   ${NSD_Check} $anandaStartCtl
 
-  ${NSD_CreateLabel} 0 117u 100% 32u "Ananda Sangha will be installed for all users on this computer. Your NGO records and backups are stored separately and are preserved during updates."
+  ${NSD_CreateLabel} 0 131u 100% 32u "Ananda Sangha will be installed for all users on this computer. Your NGO records and backups are stored separately and are preserved during updates."
   Pop $0
 
   nsDialogs::Show
