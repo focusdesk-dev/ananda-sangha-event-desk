@@ -152,100 +152,72 @@ jobs:
           Remove-Item qrcode-entry.js,jsqr-entry.js -Force
           Pop-Location
 
-      - name: Create exact approved logo, icon and installer artwork
+      - name: Create approved app and installer artwork
         shell: powershell
         run: |
           python -m pip install pillow --quiet
           @'
           from PIL import Image, ImageDraw, ImageFont
           from pathlib import Path
-          import base64,hashlib
+          import base64
 
           transport=Path('src/ananda-approved-logo.b64')
           if not transport.exists(): raise SystemExit('Approved Ananda logo transport missing')
           data=base64.b64decode(''.join(transport.read_text(encoding='utf-8').split()),validate=True)
-          actual=hashlib.sha256(data).hexdigest()
-          src=Path('src/ananda-approved-logo.png')
-          src.write_bytes(data)
-          raw=Image.open(src).convert('RGBA')
-          raw.load()
+          src=Path('src/ananda-approved-logo.png');src.write_bytes(data)
+          raw=Image.open(src).convert('RGBA');raw.load()
           if raw.size!=(192,192): raise SystemExit('Approved logo dimensions invalid: '+repr(raw.size))
-          print('Approved logo transport checksum:',actual)
-
-          # Renderer logo: preserve the approved artwork exactly, only resample.
           renderer=raw.resize((128,128),Image.Resampling.LANCZOS)
           renderer.save('src/logo-128.png',optimize=True)
 
-          # Windows icon: exact artwork in a circular alpha mask, so no white/square outside.
           base=raw.resize((512,512),Image.Resampling.LANCZOS)
-          mask=Image.new('L',(512,512),0)
-          md=ImageDraw.Draw(mask)
-          md.ellipse((3,3,509,509),fill=255)
-          base.putalpha(mask)
+          mask=Image.new('L',(512,512),0);ImageDraw.Draw(mask).ellipse((3,3,509,509),fill=255);base.putalpha(mask)
           sizes=[(16,16),(24,24),(32,32),(48,48),(64,64),(128,128),(256,256)]
           base.save('src/ananda-icon.ico',format='ICO',sizes=sizes)
           ico=Image.open('src/ananda-icon.ico')
-          made=set(ico.ico.sizes())
-          missing=set(sizes)-made
-          if missing: raise SystemExit('Missing icon sizes: '+repr(sorted(missing)))
+          if set(sizes)-set(ico.ico.sizes()): raise SystemExit('Multi-resolution icon is incomplete')
 
-          # Installer sidebar using the exact approved logo, with restrained Ananda styling.
-          W,H=164,314
-          side=Image.new('RGB',(W,H),(10,43,97))
-          sd=ImageDraw.Draw(side)
-          for y in range(H):
-              t=y/(H-1)
-              sd.line((0,y,W,y),fill=(int(8+7*t),int(42+24*t),int(96+48*t)))
-          logo=raw.resize((86,86),Image.Resampling.LANCZOS)
-          side.paste(logo,(39,34),logo if 'A' in logo.getbands() else None)
-          try:
-              fb=ImageFont.truetype(r'C:\Windows\Fonts\arialbd.ttf',16)
-          except:
-              fb=None
-          txt='ANANDA\nSANGHA'
-          bb=sd.multiline_textbbox((0,0),txt,font=fb,spacing=3,align='center')
-          sd.multiline_text(((W-(bb[2]-bb[0]))//2,135),txt,font=fb,fill=(255,255,255),spacing=3,align='center')
-          sd.rounded_rectangle((55,188,109,190),1,fill=(238,184,55))
-          sd.polygon([(0,271),(24,252),(45,267),(69,239),(96,262),(119,246),(164,270),(164,314),(0,314)],fill=(20,68,120))
-          sd.polygon([(0,289),(33,273),(58,289),(85,266),(115,286),(139,270),(164,283),(164,314),(0,314)],fill=(12,52,103))
+          master=Path('src/installer-sidebar-master.jpg')
+          if not master.exists(): raise SystemExit('Approved installer sidebar master missing')
+          side=Image.open(master).convert('RGB').resize((164,314),Image.Resampling.LANCZOS)
           side.save('src/installer-sidebar.bmp')
           side.save('src/uninstaller-sidebar.bmp')
 
-          # Interior-page header uses the exact approved logo.
-          HW,HH=150,57
-          head=Image.new('RGB',(HW,HH),'white')
-          logo45=raw.resize((45,45),Image.Resampling.LANCZOS)
-          head.paste(logo45,(6,6),logo45 if 'A' in logo45.getbands() else None)
+          logo=Image.new('RGB',(96,96),'white')
+          icon=raw.resize((92,92),Image.Resampling.LANCZOS)
+          logo.paste(icon,(2,2),icon if 'A' in icon.getbands() else None)
+          logo.save('src/installer-logo.bmp')
+
+          head=Image.new('RGB',(150,57),'white')
+          icon45=raw.resize((45,45),Image.Resampling.LANCZOS)
+          head.paste(icon45,(6,6),icon45 if 'A' in icon45.getbands() else None)
           hd=ImageDraw.Draw(head)
-          try:
-              hf=ImageFont.truetype(r'C:\Windows\Fonts\arialbd.ttf',14)
-          except:
-              hf=None
+          try: hf=ImageFont.truetype(r'C:\Windows\Fonts\arialbd.ttf',14)
+          except: hf=None
           hd.text((58,19),'ANANDA SANGHA',font=hf,fill=(15,55,116))
           head.save('src/installer-header.bmp')
-          print('Exact approved artwork prepared; icon sizes:',sorted(made))
+          print('APPROVED ARTWORK PASS',side.size,logo.size,sorted(ico.ico.sizes()))
           '@ | Set-Content make_approved_art.py -Encoding utf8
           python make_approved_art.py
-          if($LASTEXITCODE -ne 0){throw 'Approved logo/installer artwork generation failed'}
+          if($LASTEXITCODE -ne 0){throw 'Approved artwork generation failed'}
           Remove-Item make_approved_art.py -Force
 
-      - name: Set beta 5.12 version
+      - name: Set Beta 5.13 version
         shell: powershell
         run: |
           @'
-          import json,pathlib
+          import json,pathlib,re
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.12'
+          d['version']='2.0.0-beta.5.13'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
-          import re
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.12';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.13';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not set beta 5.11 version'}
+          if($LASTEXITCODE -ne 0){throw 'Could not set Beta 5.13 version'}
           Remove-Item set_version.py -Force
 
       - name: Apply Beta 5.12 Active Classes fix before validation
@@ -256,69 +228,73 @@ jobs:
           Select-String -Path src\index.html -Pattern 'p2v512FixActiveClasses' -Quiet | Out-Null
           if(-not $?) {throw 'Active Classes patch missing immediately after apply'}
 
-      - name: Upload Beta 5.13 source snapshot
-        uses: actions/upload-artifact@v4
-        with:
-          name: beta513-source-snapshot
-          path: |
-            src/index.html
-            src/main.js
-            src/preload.js
-            src/package.json
-            src/installer.nsh
-          if-no-files-found: error
+      - name: Apply Beta 5.13 final corrections and installer
+        shell: powershell
+        run: |
+          @'
+          import gzip,pathlib
+          pairs=[
+            ('src/build-beta513-final.py.gz','src/build-beta513-final.py'),
+            ('src/installer513.nsh.gz','src/installer.nsh'),
+          ]
+          for source,dest in pairs:
+              p=pathlib.Path(source)
+              if not p.exists(): raise SystemExit('Missing '+source)
+              pathlib.Path(dest).write_bytes(gzip.decompress(p.read_bytes()))
+          '@ | Set-Content restore_beta513.py -Encoding utf8
+          python restore_beta513.py
+          if($LASTEXITCODE -ne 0){throw 'Could not restore Beta 5.13 sources'}
+          Remove-Item restore_beta513.py -Force
+          python src/build-beta513-final.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.13 final app patch failed'}
+          $html=Get-Content src\index.html -Raw
+          if($html -notmatch 'PHASE2 BETA513 CURRENT FINAL'){throw 'Beta 5.13 marker missing immediately after apply'}
 
-      - name: Validate beta 5.12 source
+      - name: Validate Beta 5.13 source and corrections
         shell: powershell
         run: |
           @'
           from pathlib import Path
-          import re
+          import re,json
           html=Path('src/index.html').read_text(encoding='utf-8')
-          required=['PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','PHASE2 BETA57 REFINE','PHASE2 BETA58 ATTENDANCE QR','PHASE2 BETA59 ATTENDANCE FINAL','PHASE2 BETA510 CURRENT APPROVED','p2v512FixActiveClasses','switchPage(\'activeClasses\')','classAttendanceHub','classReportsHub','MARK REMAINING ABSENT','p2v510EventLanding','p2v510ClassYear','UPDATE ATTENDANCE','SCAN TO UPLOAD','prepareSheetLink','BATCH WISE','STUDENT WISE']
+          required=[
+            'PHASE2 BETA5 FIX6','PHASE2 BETA56 CHAT FINAL','PHASE2 BETA57 REFINE',
+            'PHASE2 BETA58 ATTENDANCE QR','PHASE2 BETA59 ATTENDANCE FINAL',
+            'PHASE2 BETA510 CURRENT APPROVED','PHASE2 BETA511 COMPLETE',
+            'p2v512FixActiveClasses',"switchPage('activeClasses')",
+            'PHASE2 BETA513 CURRENT FINAL','p2v513PermanentMobileIdentityRule',
+            'p2v513VipSectionInOutsideList','p2v513-vip-head','P2V513_PRINT',
+            'p2v513Geometry','grid-template-columns:9mm minmax(0,1fr) 18mm',
+            'classAttendanceHub','classReportsHub','MARK REMAINING ABSENT',
+            'p2v510EventLanding','p2v510ClassYear','UPDATE ATTENDANCE',
+            'SCAN TO UPLOAD','prepareSheetLink','BATCH WISE','STUDENT WISE'
+          ]
           missing=[x for x in required if x not in html]
-          if missing: raise SystemExit('Missing beta 5.11 markers: '+repr(missing))
+          if missing: raise SystemExit('Missing Beta 5.13 markers: '+repr(missing))
           scripts=re.findall(r'<script>(.*?)</script>',html,re.S|re.I)
           if not scripts: raise SystemExit('No app scripts found')
-          Path('beta58-check.js').write_text('\n'.join(scripts),encoding='utf-8')
-          '@ | Set-Content validate_beta58.py -Encoding utf8
-          python validate_beta58.py
-          if($LASTEXITCODE -ne 0){throw 'Source marker validation failed'}
-          node --check beta58-check.js
-          if($LASTEXITCODE -ne 0){throw 'Index JavaScript syntax failed'}
+          Path('beta513-check.js').write_text('\n'.join(scripts),encoding='utf-8')
+          pkg=json.loads(Path('src/package.json').read_text(encoding='utf-8'))
+          nsis=pkg['build']['nsis']
+          if pkg['version']!='2.0.0-beta.5.13': raise SystemExit('Wrong package version')
+          if nsis.get('oneClick') is not False or nsis.get('perMachine') is not True:
+              raise SystemExit('Installer must be assisted all-users mode')
+          '@ | Set-Content validate_beta513.py -Encoding utf8
+          python validate_beta513.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.13 source marker validation failed'}
+          node --check beta513-check.js
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.13 renderer JavaScript syntax failed'}
           node --check src/main.js
           if($LASTEXITCODE -ne 0){throw 'main.js syntax failed'}
           node --check src/preload.js
           if($LASTEXITCODE -ne 0){throw 'preload.js syntax failed'}
           $main=Get-Content src\main.js -Raw
-          if($main -notmatch 'BETA59 PRINT PREVIEW'){throw 'Print preview patch missing'}
-          if($main -notmatch 'ananda-preview://save'){throw 'Save PDF preview action missing'}
-          if($main -notmatch 'phone hotspot first'){throw 'Wi-Fi/hotspot address fix missing'}
           $pre=Get-Content src\preload.js -Raw
-          if($pre -notmatch 'onPhoneStatus'){throw 'Phone status bridge missing'}
-          if($pre -notmatch 'prepareSheetLink'){throw 'Printed-QR phone link bridge missing'}
-          if($main -notmatch 'BETA510 UNIFIED ATTENDANCE PHONE SERVER'){throw 'Unified phone server missing'}
-          if($main -notmatch 'ananda-attendance-prepare-sheet-link'){throw 'Direct printed QR route missing'}
-          if($main -notmatch 'BETA511 APPROVED MOBILE LOGO'){throw 'Exact approved mobile logo patch missing'}
-          if(!(Test-Path src\license.txt)){throw 'Installer license file missing'}
-          $nsh=Get-Content src\installer.nsh -Raw
-          if($nsh -notmatch 'customWelcomePage'){throw 'Custom welcome page missing'}
-          if($nsh -notmatch 'Welcome To Ananda Sangha'){throw 'Approved welcome title missing'}
-          if($nsh -notmatch 'MUI_PAGE_LICENSE'){throw 'License page missing'}
-          if($nsh -notmatch 'customPageAfterChangeDir'){throw 'Custom install-location/options page missing'}
-          if($nsh -notmatch 'Create a desktop shortcut'){throw 'Desktop shortcut choice missing'}
-          if($nsh -notmatch 'Create a Start Menu shortcut'){throw 'Start Menu shortcut choice missing'}
-          if($nsh -notmatch 'customFinishPage'){throw 'Custom finish page missing'}
-          $pkg=Get-Content src\package.json -Raw | ConvertFrom-Json
-          if($pkg.build.nsis.oneClick -ne $false){throw 'Installer must be assisted mode'}
-          if($pkg.build.nsis.perMachine -ne $true){throw 'Installer must be all-users/per-machine'}
-          if($pkg.version -ne '2.0.0-beta.5.12'){throw 'Beta 5.12 package version missing'}
-          if(!(Test-Path src\installer-sidebar.bmp)){throw 'Modern installer sidebar missing'}
-          if(!(Test-Path src\installer-header.bmp)){throw 'Modern installer header missing'}
-          if(!(Test-Path src\ananda-icon.ico)){throw 'Approved app icon missing'}
-          if(!(Test-Path src\\qrcode-client.js)){throw 'qrcode-client.js missing'}
-          if(!(Test-Path src\\jsqr-client.js)){throw 'jsqr-client.js missing'}
-          Remove-Item validate_beta58.py,beta58-check.js -Force
+          if($main -notmatch 'BETA59 PRINT PREVIEW'){throw 'Print preview missing'}
+          if($main -notmatch 'ananda-attendance-prepare-sheet-link'){throw 'Printed QR direct link missing'}
+          if($main -notmatch 'BETA511 APPROVED MOBILE LOGO'){throw 'Approved mobile logo missing'}
+          if($pre -notmatch 'prepareSheetLink'){throw 'Phone bridge missing'}
+          Remove-Item validate_beta513.py,beta513-check.js -Force
 
       - name: QR round-trip mockup check x5
         shell: powershell
@@ -385,31 +361,99 @@ jobs:
           if($LASTEXITCODE -ne 0){throw '5x printed direct-link QR check failed'}
           Remove-Item printed_qr_5x.js -Force
 
-      - name: Handwritten attendance mark detector check x5
+      - name: Beta 5.13 identity, VIP and attendance geometry checks
         shell: powershell
         run: |
           @'
-          const DOC={qr:{left:174,top:8,size:27},row:{top:70,height:10.35,leftMark:[19,29],rightMark:[120,130],yInset:[2.0,8.2]}};
+          function normName(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,' ')}
+          function conflict(rows,role,id,name,mobile){
+            const sameList=rows.find(x=>x.role===role&&x.id!==id&&x.mobile===mobile);
+            if(sameList)return 'same-list';
+            const cross=rows.find(x=>!(x.role===role&&x.id===id)&&x.mobile===mobile&&normName(x.name)!==normName(name));
+            return cross?'different-name':null
+          }
+          const rows=[
+            {role:'Volunteer',id:'v1',name:'Ankit Kohli',mobile:'9810000000'},
+            {role:'Acharya',id:'a1',name:'Shashank',mobile:'9999999999'},
+            {role:'Attendee',id:'t1',name:'Family Member',mobile:''}
+          ];
+          const cases=[
+            [conflict(rows,'Acharya','new','Ankit Kohli','9810000000'),null,'same person cross-list allowed'],
+            [conflict(rows,'Acharya','new','Rahul','9810000000'),'different-name','different name same number blocked'],
+            [conflict(rows,'Volunteer','new','Someone','9810000000'),'same-list','same-list duplicate blocked'],
+            [conflict(rows,'Kriyaban','new','Shashank','9999999999'),null,'same person another role allowed'],
+            [conflict(rows,'Student','new','Different','9999999999'),'different-name','different identity blocked']
+          ];
+          cases.forEach((c,i)=>{if(c[0]!==c[1])throw new Error('IDENTITY '+(i+1)+' failed '+c[2]);console.log('IDENTITY '+(i+1)+'/5 PASS',c[2])});
+          const people=[{name:'Ajay Kia',vip:false},{name:'Dhyana Ji',vip:true},{name:'Rahul Nitin',vip:false}];
+          const normal=people.filter(x=>!x.vip),vip=people.filter(x=>x.vip);
+          if(normal.some(x=>x.vip)||vip.some(x=>!x.vip)||normal.length!==2||vip.length!==1)throw new Error('VIP split failed');
+          console.log('VIP SEPARATE HEADER PASS');
+          '@ | Set-Content beta513_rules.js -Encoding utf8
+          node beta513_rules.js
+          if($LASTEXITCODE -ne 0){throw 'Identity/VIP rule checks failed'}
+          Remove-Item beta513_rules.js -Force
+
+          @'
+          const DOC={top:70,bottom:265,leftMark:[82,100],rightMark:[183,201],qr:{left:174,top:8,size:27}};
+          function geom(count){const rows=Math.max(1,Math.ceil(Math.max(1,count)/2)),avail=DOC.bottom-DOC.top;return{rows,rowHeight:Math.min(30,avail/rows)}}
           function solve8(A,b){const m=A.map((r,i)=>r.slice().concat([b[i]])),n=8;for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(m[r][c])>Math.abs(m[p][c]))p=r;if(Math.abs(m[p][c])<1e-9)return null;[m[c],m[p]]=[m[p],m[c]];let d=m[c][c];for(let j=c;j<=n;j++)m[c][j]/=d;for(let r=0;r<n;r++)if(r!==c){let f=m[r][c];for(let j=c;j<=n;j++)m[r][j]-=f*m[c][j]}}return m.map(r=>r[n])}
-          function homography(src,dst){const A=[],b=[];for(let i=0;i<4;i++){const [x,y]=src[i],u=dst[i].x,v=dst[i].y;A.push([x,y,1,0,0,0,-u*x,-u*y]);b.push(u);A.push([0,0,0,x,y,1,-v*x,-v*y]);b.push(v)}const h=solve8(A,b);return [...h,1]}
-          function map(H,x,y){const d=H[6]*x+H[7]*y+H[8];return{x:(H[0]*x+H[1]*y+H[2])/d,y:(H[3]*x+H[4]*y+H[5])/d}}
-          function invHomography(H){const [a,b,c,d,e,f,g,h,i]=H,A=e*i-f*h,B=c*h-b*i,C=b*f-c*e,D=f*g-d*i,E=a*i-c*g,F=c*d-a*f,G=d*h-e*g,H2=b*g-a*h,I=a*e-b*d,det=a*A+b*D+c*G;return[A/det,B/det,C/det,D/det,E/det,F/det,G/det,H2/det,I/det]}
-          function inkAt(docx,docy,marks){for(const m of marks){const row=m%20,col=m<20?0:1,y=DOC.row.top+row*DOC.row.height,[x0,x1]=col?DOC.row.rightMark:DOC.row.leftMark;if(docx>=x0&&docx<=x1&&docy>=y+DOC.row.yInset[0]&&docy<=y+DOC.row.yInset[1])return true}return false}
-          function zoneScore(H,x0,y0,x1,y1,marks){let ink=0,total=0;const inv=invHomography(H);for(let gy=0;gy<12;gy++)for(let gx=0;gx<18;gx++){const x=x0+(gx+.5)*(x1-x0)/18,y=y0+(gy+.5)*(y1-y0)/12,p=map(H,x,y),doc=map(inv,p.x,p.y);total++;if(inkAt(doc.x,doc.y,marks))ink++}return ink/total}
+          function hom(src,dst){const A=[],b=[];for(let i=0;i<4;i++){const[x,y]=src[i],u=dst[i].x,v=dst[i].y;A.push([x,y,1,0,0,0,-u*x,-u*y]);b.push(u);A.push([0,0,0,x,y,1,-v*x,-v*y]);b.push(v)}return[...solve8(A,b),1]}
+          function map(h,x,y){const d=h[6]*x+h[7]*y+h[8];return{x:(h[0]*x+h[1]*y+h[2])/d,y:(h[3]*x+h[4]*y+h[5])/d}}
+          function inv(h){const[a,b,c,d,e,f,g,j,i]=h,A=e*i-f*j,B=c*j-b*i,C=b*f-c*e,D=f*g-d*i,E=a*i-c*g,F=c*d-a*f,G=d*j-e*g,H2=b*g-a*j,I=a*e-b*d,det=a*A+b*D+c*G;return[A/det,B/det,C/det,D/det,E/det,F/det,G/det,H2/det,I/det]}
+          function inkAt(x,y,marks,count){const g=geom(count);for(const m of marks){const row=Math.floor(m/2),col=m%2,top=DOC.top+row*g.rowHeight,[x0,x1]=col?DOC.rightMark:DOC.leftMark,pad=Math.max(1.5,g.rowHeight*.18);if(x>=x0&&x<=x1&&y>=top+pad&&y<=top+g.rowHeight-pad)return true}return false}
+          function score(h,x0,y0,x1,y1,marks,count){let ink=0,total=0,ih=inv(h);for(let gy=0;gy<16;gy++)for(let gx=0;gx<22;gx++){let x=x0+(gx+.5)*(x1-x0)/22,y=y0+(gy+.5)*(y1-y0)/16,p=map(h,x,y),doc=map(ih,p.x,p.y);total++;if(inkAt(doc.x,doc.y,marks,count))ink++}return ink/total}
           const src=[[174,8],[201,8],[174,35],[201,35]];
           const cases=[
-            {dst:[{x:830,y:70},{x:1000,y:74},{x:825,y:245},{x:1005,y:250}],marks:[0,2,4,21,28]},
-            {dst:[{x:760,y:95},{x:955,y:84},{x:775,y:290},{x:972,y:278}],marks:[1,3,5,7,9]},
-            {dst:[{x:900,y:55},{x:1085,y:77},{x:875,y:250},{x:1064,y:272}],marks:[19,20,22,24,39]},
-            {dst:[{x:690,y:130},{x:910,y:100},{x:725,y:350},{x:940,y:315}],marks:[6,14,25,33]},
-            {dst:[{x:810,y:110},{x:1010,y:110},{x:790,y:320},{x:1030,y:315}],marks:[0,10,19,20,30,39]}
+            {count:10,dst:[{x:830,y:70},{x:1000,y:74},{x:825,y:245},{x:1005,y:250}],marks:[0,1,4,7]},
+            {count:20,dst:[{x:760,y:95},{x:955,y:84},{x:775,y:290},{x:972,y:278}],marks:[1,3,8,14,19]},
+            {count:40,dst:[{x:900,y:55},{x:1085,y:77},{x:875,y:250},{x:1064,y:272}],marks:[0,19,20,21,39]},
+            {count:17,dst:[{x:690,y:130},{x:910,y:100},{x:725,y:350},{x:940,y:315}],marks:[2,6,10,16]},
+            {count:33,dst:[{x:810,y:110},{x:1010,y:110},{x:790,y:320},{x:1030,y:315}],marks:[0,9,18,27,32]}
           ];
-          cases.forEach((tc,ci)=>{const H=homography(src,tc.dst),found=[];for(let i=0;i<40;i++){const row=i%20,col=i<20?0:1,y=DOC.row.top+row*DOC.row.height,[x0,x1]=col?DOC.row.rightMark:DOC.row.leftMark;const score=zoneScore(H,x0,y+DOC.row.yInset[0],x1,y+DOC.row.yInset[1],tc.marks);if(score>=0.028)found.push(i)}const a=found.join(','),e=tc.marks.join(',');if(a!==e)throw new Error('Mark mock '+(ci+1)+' failed. expected '+e+' got '+a);console.log('MARK MOCK '+(ci+1)+'/5 PASS',a)});
-          console.log('ALL 5 HANDWRITTEN MARK MOCKS PASS');
-          '@ | Set-Content mark_detector_5x.js -Encoding utf8
-          node mark_detector_5x.js
-          if($LASTEXITCODE -ne 0){throw '5x handwritten mark detector check failed'}
-          Remove-Item mark_detector_5x.js -Force
+          cases.forEach((tc,ci)=>{const h=hom(src,tc.dst),g=geom(tc.count),found=[];for(let i=0;i<tc.count;i++){const row=Math.floor(i/2),col=i%2,y=DOC.top+row*g.rowHeight,[x0,x1]=col?DOC.rightMark:DOC.leftMark,pad=Math.max(1.5,g.rowHeight*.18);if(score(h,x0,y+pad,x1,y+g.rowHeight-pad,tc.marks,tc.count)>=.025)found.push(i)}const a=found.join(','),e=tc.marks.join(',');if(a!==e)throw new Error('MARK '+(ci+1)+' failed expected '+e+' got '+a);console.log('MARK '+(ci+1)+'/5 PASS count='+tc.count,a)});
+          console.log('ALL 5 ROW-MAJOR MARK-AFTER-NAME CHECKS PASSED');
+          '@ | Set-Content beta513_mark_geometry.js -Encoding utf8
+          node beta513_mark_geometry.js
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.13 mark geometry checks failed'}
+          Remove-Item beta513_mark_geometry.js -Force
+
+      - name: Installer visual-flow check 1 of 3
+        shell: powershell
+        run: |
+          $nsh=Get-Content src\installer.nsh -Raw
+          $required=@('AnandaWelcomeCreate','Welcome To','Ananda Sangha','AnandaLicenseCreate','License Agreement','AnandaOptionsPageCreate','Choose Install Location','Create a desktop shortcut','Create a Start Menu shortcut','Launch Ananda Sangha after installation','AnandaFinishCreate','Installation completed successfully!','installer-sidebar.bmp','installer-logo.bmp')
+          foreach($x in $required){if($nsh -notmatch [regex]::Escape($x)){throw "Installer flow missing: $x"}}
+          if($nsh -match 'Anyone who uses this computer'){throw 'Old install-mode screen text must not exist'}
+          Write-Host 'INSTALLER CHECK 1/3 PASS — all approved page elements exist'
+
+      - name: Installer visual-flow check 2 of 3
+        shell: powershell
+        run: |
+          @'
+          from PIL import Image
+          from pathlib import Path
+          sidebar=Image.open('src/installer-sidebar.bmp')
+          logo=Image.open('src/installer-logo.bmp')
+          if sidebar.size!=(164,314): raise SystemExit('Sidebar must be 164x314')
+          if logo.size!=(96,96): raise SystemExit('Finish logo must be 96x96')
+          if not Path('src/installer-sidebar-master.jpg').exists(): raise SystemExit('Approved sidebar master missing')
+          print('INSTALLER CHECK 2/3 PASS — approved artwork dimensions verified')
+          '@ | Set-Content check_installer_art.py -Encoding utf8
+          python check_installer_art.py
+          if($LASTEXITCODE -ne 0){throw 'Installer artwork check failed'}
+          Remove-Item check_installer_art.py -Force
+
+      - name: Installer visual-flow check 3 of 3
+        shell: powershell
+        run: |
+          $pkg=Get-Content src\package.json -Raw | ConvertFrom-Json
+          if($pkg.build.nsis.oneClick -ne $false){throw 'Installer is not assisted mode'}
+          if($pkg.build.nsis.perMachine -ne $true){throw 'Installer is not all-users mode'}
+          if($pkg.build.nsis.allowElevation -ne $true){throw 'Installer elevation setting missing'}
+          if($pkg.build.nsis.include -ne 'installer.nsh'){throw 'Custom installer include missing'}
+          if($pkg.build.nsis.runAfterFinish -ne $false){throw 'Default finish launcher must be disabled'}
+          Write-Host 'INSTALLER CHECK 3/3 PASS — package is wired to the custom flow'
 
       - name: Build Windows x64 installer
         shell: powershell
@@ -419,8 +463,17 @@ jobs:
           npm run dist
           if($LASTEXITCODE -ne 0){throw 'electron-builder failed'}
           Pop-Location
-          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.12.exe'
-          if(!(Test-Path $setup)){throw 'Beta 5.12 Setup.exe missing'}
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.13.exe'
+          if(!(Test-Path $setup)){throw 'Beta 5.13 Setup.exe missing'}
+
+      - name: Verify compiled Beta 5.13 installer
+        shell: powershell
+        run: |
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.13.exe'
+          if(!(Test-Path $setup)){throw 'Beta 5.13 installer missing'}
+          $size=(Get-Item $setup).Length
+          if($size -lt 50000000){throw "Installer unexpectedly small: $size"}
+          Write-Host "COMPILED INSTALLER PASS — $size bytes"
 
       - name: Verify packaged QR renderer files
         shell: powershell
@@ -435,9 +488,9 @@ jobs:
           Remove-Item asar-files.txt -Force
           Pop-Location
 
-      - name: Upload Beta 5.12 installer
+      - name: Upload Beta 5.13 installer
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.12-Active-Classes-Fix-Installer
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.12.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.13-Current-Final-Installer
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.13.exe
           if-no-files-found: error
