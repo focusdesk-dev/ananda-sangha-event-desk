@@ -1,3 +1,10 @@
+!macro customHeader
+  !define /redef MUI_WELCOMEPAGE_TITLE "Welcome To Ananda Sangha"
+  !define /redef MUI_WELCOMEPAGE_TEXT ""
+  !define /redef MUI_FINISHPAGE_TITLE "Ananda Sangha"
+  !define /redef MUI_FINISHPAGE_TEXT "Installation completed successfully!"
+!macroend
+
 !macro customInstall
   SetShellVarContext current
 
