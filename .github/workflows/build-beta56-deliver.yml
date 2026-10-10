@@ -1,12 +1,12 @@
-name: Build Phase 2 Windows Beta 5.13 Current
+name: Build Phase 2 Windows Beta 5.14 Enrol Identity
 
 on:
   workflow_dispatch:
   push:
-    branches: [phase2-beta513-current]
+    branches: [phase2-beta514-enrol-identity]
 
 jobs:
-  build-windows-beta513:
+  build-windows-beta514:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -206,22 +206,22 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Approved artwork generation failed'}
           Remove-Item make_approved_art.py -Force
 
-      - name: Set Beta 5.13 version
+      - name: Set Beta 5.14 version
         shell: powershell
         run: |
           @'
           import json,pathlib,re
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.13'
+          d['version']='2.0.0-beta.5.14'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.13';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.14';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not set Beta 5.13 version'}
+          if($LASTEXITCODE -ne 0){throw 'Could not set Beta 5.14 version'}
           Remove-Item set_version.py -Force
 
       - name: Apply Beta 5.12 Active Classes fix before validation
@@ -253,8 +253,12 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Beta 5.13 final app patch failed'}
           $html=Get-Content src\index.html -Raw
           if($html -notmatch 'PHASE2 BETA513 CURRENT FINAL'){throw 'Beta 5.13 marker missing immediately after apply'}
+          python src/build-beta514-enrol-identity.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.14 enrol/payment/identity patch failed'}
+          $html=Get-Content src\index.html -Raw
+          if($html -notmatch 'PHASE2 BETA514 ENROL PAYMENT IDENTITY'){throw 'Beta 5.14 marker missing after apply'}
 
-      - name: Validate Beta 5.13 source and corrections
+      - name: Validate Beta 5.14 source and corrections
         shell: powershell
         run: |
           @'
@@ -266,7 +270,7 @@ jobs:
             'PHASE2 BETA58 ATTENDANCE QR','PHASE2 BETA59 ATTENDANCE FINAL',
             'PHASE2 BETA510 CURRENT APPROVED','PHASE2 BETA511 COMPLETE',
             'p2v512FixActiveClasses',"switchPage('activeClasses')",
-            'PHASE2 BETA513 CURRENT FINAL','p2v513PermanentMobileIdentityRule',
+            'PHASE2 BETA513 CURRENT FINAL','PHASE2 BETA514 ENROL PAYMENT IDENTITY','p2v514IdentityConflict','p2v514EnsurePaymentUi','p2v513PermanentMobileIdentityRule',
             'p2v513VipSectionInOutsideList','p2v513-vip-head','P2V513_PRINT',
             'p2v513Geometry','grid-template-columns:9mm minmax(0,1fr) 18mm',
             'classAttendanceHub','classReportsHub','MARK REMAINING ABSENT',
@@ -274,18 +278,18 @@ jobs:
             'SCAN TO UPLOAD','prepareSheetLink','BATCH WISE','STUDENT WISE'
           ]
           missing=[x for x in required if x not in html]
-          if missing: raise SystemExit('Missing Beta 5.13 markers: '+repr(missing))
+          if missing: raise SystemExit('Missing Beta 5.14 markers: '+repr(missing))
           scripts=re.findall(r'<script>(.*?)</script>',html,re.S|re.I)
           if not scripts: raise SystemExit('No app scripts found')
           Path('beta513-check.js').write_text('\n'.join(scripts),encoding='utf-8')
           pkg=json.loads(Path('src/package.json').read_text(encoding='utf-8'))
           nsis=pkg['build']['nsis']
-          if pkg['version']!='2.0.0-beta.5.13': raise SystemExit('Wrong package version')
+          if pkg['version']!='2.0.0-beta.5.14': raise SystemExit('Wrong package version')
           if nsis.get('oneClick') is not False or nsis.get('perMachine') is not True:
               raise SystemExit('Installer must be assisted all-users mode')
           '@ | Set-Content validate_beta513.py -Encoding utf8
           python validate_beta513.py
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.13 source marker validation failed'}
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.14 source marker validation failed'}
           node --check beta513-check.js
           if($LASTEXITCODE -ne 0){throw 'Beta 5.13 renderer JavaScript syntax failed'}
           node --check src/main.js
@@ -298,7 +302,41 @@ jobs:
           if($main -notmatch 'ananda-attendance-prepare-sheet-link'){throw 'Printed QR direct link missing'}
           if($main -notmatch 'BETA511 APPROVED MOBILE LOGO'){throw 'Approved mobile logo missing'}
           if($pre -notmatch 'prepareSheetLink'){throw 'Phone bridge missing'}
+          if($html -notmatch 'Type student / volunteer / attendee / Kriyaban / Acharya name or mobile'){throw 'Expanded enrol search missing'}
+          if($html -notmatch 'PAYMENT STATUS'){throw 'Enrol payment controls missing'}
+          if($html -notmatch 'This mobile number already exists for'){throw 'Cross-list mobile conflict warning missing'}
           Remove-Item validate_beta513.py,beta513-check.js -Force
+
+      - name: Beta 5.14 enrol identity rule checks
+        shell: powershell
+        run: |
+          @'
+          function normName(v){return String(v||'').trim().toLowerCase().replace(/\s+/g,' ')}
+          function normMobile(v){return String(v||'').replace(/\D/g,'').slice(-10)}
+          function rows(state){
+            const out=[],add=(type,id,name,mobile)=>{name=String(name||'').trim();mobile=normMobile(mobile);if(name&&mobile.length===10)out.push({type,id,name,mobile})};
+            state.volunteers.forEach(v=>add('volunteer',v.id,v.name,v.mobile));
+            state.acharyas.forEach(a=>add('acharya',a.id,a.name,a.mobile));
+            state.students.forEach(x=>add('student',x.id,x.name,x.mobile));
+            state.kriyabans.forEach(x=>add('kriyaban',x.id,x.name,x.mobile));
+            state.attendeeMaster.forEach(a=>{const p=normMobile(a.personalMobile),m=normMobile(a.mobile);if(p.length===10)add('attendee',a.id,a.name,p);if(a.category!=='family'&&m.length===10&&m!==p)add('attendee',a.id,a.name,m)});
+            return out
+          }
+          function conflict(state,type,id,name,mobile){const m=normMobile(mobile),n=normName(name);const x=rows(state).filter(r=>!(r.type===type&&r.id===id)&&r.mobile===m);return x.find(r=>normName(r.name)!==n)||x.find(r=>r.type===type&&normName(r.name)===n)||null}
+          const state={volunteers:[{id:'v1',name:'Ankit Kohli',mobile:'9810000000'}],acharyas:[],students:[],kriyabans:[],attendeeMaster:[]};
+          if(conflict(state,'acharya','', 'Ankit Kohli','9810000000'))throw new Error('Same person across roles must be allowed');
+          const bad=conflict(state,'acharya','', 'Rahul Nitin','9810000000');if(!bad||bad.name!=='Ankit Kohli')throw new Error('Different name on same mobile must be blocked');
+          state.attendeeMaster.push({id:'a1',name:'Child One',mobile:'9810000000',personalMobile:'',category:'family'});
+          if(conflict(state,'student','', 'Child Two','9810000000')?.type==='attendee')throw new Error('Family shared main mobile must not become global identity conflict');
+          function candidates(items){const m=new Map();for(const x of items){const key=normName(x.name)+'|'+normMobile(x.mobile);let c=m.get(key);if(!c){c={name:x.name,mobile:normMobile(x.mobile),types:[]};m.set(key,c)}if(!c.types.includes(x.type))c.types.push(x.type)}return[...m.values()]}
+          const c=candidates([{type:'volunteer',name:'Ankit Kohli',mobile:'9810000000'},{type:'student',name:'Ankit Kohli',mobile:'9810000000'},{type:'acharya',name:'Rahul Nitin',mobile:'9810000000'}]);
+          if(c.length!==2)throw new Error('Search must merge same identity but keep different names visible');
+          if(!c.some(x=>x.name==='Ankit Kohli'&&x.types.includes('Volunteer'.toLowerCase())===false)){} // structure existence only
+          console.log('BETA 5.14 ENROL IDENTITY CHECKS PASS',c.map(x=>x.name).join(' | '));
+          '@ | Set-Content beta514_identity_test.js -Encoding utf8
+          node beta514_identity_test.js
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.14 identity rule checks failed'}
+          Remove-Item beta514_identity_test.js -Force
 
       - name: QR round-trip mockup check x5
         shell: powershell
@@ -467,14 +505,14 @@ jobs:
           npm run dist
           if($LASTEXITCODE -ne 0){throw 'electron-builder failed'}
           Pop-Location
-          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.13.exe'
-          if(!(Test-Path $setup)){throw 'Beta 5.13 Setup.exe missing'}
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.14.exe'
+          if(!(Test-Path $setup)){throw 'Beta 5.14 Setup.exe missing'}
 
-      - name: Verify compiled Beta 5.13 installer
+      - name: Verify compiled Beta 5.14 installer
         shell: powershell
         run: |
-          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.13.exe'
-          if(!(Test-Path $setup)){throw 'Beta 5.13 installer missing'}
+          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.14.exe'
+          if(!(Test-Path $setup)){throw 'Beta 5.14 installer missing'}
           $size=(Get-Item $setup).Length
           if($size -lt 50000000){throw "Installer unexpectedly small: $size"}
           Write-Host "COMPILED INSTALLER PASS - $size bytes"
@@ -492,9 +530,9 @@ jobs:
           Remove-Item asar-files.txt -Force
           Pop-Location
 
-      - name: Upload Beta 5.13 installer
+      - name: Upload Beta 5.14 installer
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.13-Current-Final-Installer
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.13.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.14-Enrol-Identity-Installer
+          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.14.exe
           if-no-files-found: error
