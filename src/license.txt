@@ -1,0 +1,11 @@
+ANANDA SANGHA SOFTWARE LICENSE AGREEMENT
+
+This software is provided for the internal use of Ananda Sangha and its authorised volunteers and members.
+
+By installing or using the software, you agree to use it only for legitimate organisational purposes. You may not distribute, sell, sublicense, reverse engineer, or modify the software except with permission from the organisation responsible for it.
+
+Operational records and backups created by the application remain separate from the application files. Uninstalling the application is not intended to delete those records.
+
+The software is provided “as is”, without warranties of any kind, to the extent permitted by applicable law.
+
+If you do not agree to these terms, do not install the software.
