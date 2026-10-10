@@ -21,6 +21,7 @@ if 'qrcode-client.js' not in html:
     html=html[:head_end]+qr_tags+html[head_end:]
 
 patch=r'''  // PHASE2 BETA58 ATTENDANCE QR — dedicated attendance page + offline QR workflow.
+  // PHASE2 BETA59 ATTENDANCE FINAL — print preview, class-only reports, hotspot/Wi-Fi fix, remaining-absent workflow.
   let p2v58Course='';
   let p2v58Batch='';
   let p2v58Date='';
@@ -364,7 +365,7 @@ ipcMain.handle('ananda-attendance-start-upload-server',async()=>{
 ipcMain.handle('ananda-attendance-stop-upload-server',async()=>{anandaAttendanceStopServer();return{ok:true}});
 '''
     m=m.replace(hook,server+'\n'+hook,1)
-    m=m.replace("const APP_VERSION = '2.0.0-beta.1';","const APP_VERSION = '2.0.0-beta.5.8';")
+    m=m.replace("const APP_VERSION = '2.0.0-beta.1';","const APP_VERSION = '2.0.0-beta.5.9';")
     # BETA59 PRINT PREVIEW — show exact A4 preview before print/save.
     m=m.replace("const { app, BrowserWindow, Menu, ipcMain, shell } = require('electron');","const { app, BrowserWindow, Menu, ipcMain, shell, dialog } = require('electron');")
     ps=m.find("ipcMain.handle('ananda-native-print-html'")
@@ -419,10 +420,10 @@ pkg=json.loads(pkgp.read_text(encoding='utf-8'))
 files=pkg.setdefault('build',{}).setdefault('files',[])
 for f in ['qrcode-client.js','jsqr-client.js']:
     if f not in files: files.append(f)
-pkg['version']='2.0.0-beta.5.8'
+pkg['version']='2.0.0-beta.5.9'
 pkgp.write_text(json.dumps(pkg,indent=2)+'\n',encoding='utf-8')
 
 required=['PHASE2 BETA58 ATTENDANCE QR','classAttendanceHub','PRINT QR ATTENDANCE SHEET','SCAN / UPLOAD ATTENDANCE SHEET','p2v58Payload','p2v58ParsePayload','Class, batch and date selected automatically','qrcode-client.js','jsqr-client.js']
 missing=[x for x in required if x not in html]
 if missing: raise SystemExit('Missing beta 5.8 attendance markers: '+repr(missing))
-print('BETA 5.8 ATTENDANCE QR APPLIED',len(html))
+print('BETA 5.9 ATTENDANCE FINAL APPLIED',len(html))
