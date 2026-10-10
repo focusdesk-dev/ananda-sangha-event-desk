@@ -252,7 +252,12 @@ patch=r'''  // PHASE2 BETA58 ATTENDANCE QR — dedicated attendance page + offli
   async function p2v58HandleDataUrl(dataUrl,name='Phone photo'){
     try{const blob=await (await fetch(dataUrl)).blob(),raw=await p2v58DecodeSource(blob);await p2v58ApplyQrRaw(raw,name)}catch(e){const status=$('p2v58UploadStatus');p2v58LockSelectors(false);if(status)status.innerHTML=`<span class="bad">${esc(e.message||'QR could not be read')} — select class manually.</span>`}
   }
-  function p2v58BindPhoneListener(){
+    let p2v59PhoneStatusBound=false;
+  function p2v59BindPhoneStatus(){
+    if(p2v59PhoneStatusBound||!window.anandaAttendanceBridge?.onPhoneStatus)return;p2v59PhoneStatusBound=true;
+    window.anandaAttendanceBridge.onPhoneStatus(payload=>{const status=$('p2v58UploadStatus');if(!status)return;if(payload?.status==='connected')status.innerHTML='<span class="good"><b>PHONE CONNECTED ✓</b> Waiting for attendance sheet…</span>';if(payload?.status==='received')status.innerHTML='<span class="good"><b>ATTENDANCE SHEET RECEIVED ✓</b> Reading the printed QR…</span>'})
+  }
+function p2v58BindPhoneListener(){
     if(p2v58PhoneListenerBound||!window.anandaAttendanceBridge?.onPhoneUpload)return;p2v58PhoneListenerBound=true;
     window.anandaAttendanceBridge.onPhoneUpload(payload=>{if(payload?.dataUrl){switchPage('classAttendanceHub');$('p2v58UploadPanel')?.classList.remove('hidden');p2v58HandleDataUrl(payload.dataUrl,payload.name||'Phone photo')}})
   }
@@ -275,7 +280,7 @@ patch=r'''  // PHASE2 BETA58 ATTENDANCE QR — dedicated attendance page + offli
     `;document.head.appendChild(st)
   }
 
-  p2v58EnsureStyle();p2v58EnsurePage();p2v58PrepareClassesHome();p2v58BindPhoneListener();
+  p2v58EnsureStyle();p2v58EnsurePage();p2v58PrepareClassesHome();p2v58BindPhoneListener();p2v59BindPhoneStatus();
   const p2v58SwitchBase=switchPage;
   switchPage=function(id){
     const r=p2v58SwitchBase(id);
@@ -307,9 +312,15 @@ function anandaAttendanceStopServer(){
   if(anandaAttendanceServer){try{anandaAttendanceServer.close()}catch{}anandaAttendanceServer=null}
 }
 function anandaAttendanceIp(){
-  const nets=anandaOs.networkInterfaces();
-  for(const group of Object.values(nets))for(const n of group||[])if(n&&n.family==='IPv4'&&!n.internal)return n.address;
-  return '127.0.0.1'
+  const nets=anandaOs.networkInterfaces(),candidates=[];
+  for(const group of Object.values(nets))for(const n of group||[]){
+    const ipv4=n&&(n.family==='IPv4'||n.family===4),a=String(n?.address||'');
+    if(!ipv4||n.internal||!a||a==='0.0.0.0'||a==='127.0.0.1'||a.startsWith('169.254.'))continue;
+    let priority=9;if(a.startsWith('192.168.'))priority=1;else if(a.startsWith('10.'))priority=2;else{const mt=/^172\.(\d+)\./.exec(a);if(mt&&Number(mt[1])>=16&&Number(mt[1])<=31)priority=3}
+    candidates.push({a,priority})
+  }
+  candidates.sort((x,y)=>x.priority-y.priority);
+  return candidates[0]?.a||''
 }
 function anandaMultipartFile(buf,contentType){
   const m=/boundary=(?:"([^"]+)"|([^;]+))/i.exec(contentType||'');if(!m)return null;
@@ -331,20 +342,21 @@ ipcMain.handle('ananda-attendance-start-upload-server',async()=>{
         const u=new URL(req.url,'http://local/');
         if(u.searchParams.get('token')!==anandaAttendanceToken){res.writeHead(403,{'Content-Type':'text/plain'});return res.end('Invalid or expired connection')}
         if(req.method==='GET'){
+          if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('ananda-attendance-phone-status',{status:'connected',remoteAddress:req.socket?.remoteAddress||''});
           const page='<!doctype html><html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ananda Attendance Upload</title><style>body{font-family:Arial,sans-serif;background:#f4f7fa;color:#123f7d;padding:24px}main{max-width:520px;margin:auto;background:white;border-radius:14px;padding:22px;box-shadow:0 8px 30px #1232}h2{margin-top:0}input,button{width:100%;margin-top:14px;padding:14px;border-radius:9px;border:1px solid #bed0e0}button{background:#174e94;color:white;font-weight:700}</style><main><h2>ANANDA SANGHA</h2><h3>Upload Attendance Sheet</h3><p>Take a clear photo showing the QR code and the marked attendance sheet.</p><form method="post" enctype="multipart/form-data"><input name="sheet" type="file" accept="image/*" capture="environment" required><button>UPLOAD TO EVENT DESK</button></form></main></html>';
           res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});return res.end(page)
         }
         if(req.method==='POST'){
           const chunks=[];let size=0,tooBig=false;
           req.on('data',c=>{size+=c.length;if(size>16*1024*1024){tooBig=true;req.destroy()}else chunks.push(c)});
-          req.on('end',()=>{if(tooBig)return;const file=anandaMultipartFile(Buffer.concat(chunks),req.headers['content-type']);if(!file){res.writeHead(400,{'Content-Type':'text/plain'});return res.end('No image received')}const dataUrl='data:'+file.mime+';base64,'+file.data.toString('base64');if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('ananda-attendance-phone-upload',{name:file.name,mime:file.mime,dataUrl});res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end('<h2 style="font-family:Arial;color:#087a46">Uploaded successfully.</h2><p>You can return to the Ananda Event Desk.</p>');setTimeout(anandaAttendanceStopServer,800)})
+          req.on('end',()=>{if(tooBig)return;const file=anandaMultipartFile(Buffer.concat(chunks),req.headers['content-type']);if(!file){res.writeHead(400,{'Content-Type':'text/plain'});return res.end('No image received')}const dataUrl='data:'+file.mime+';base64,'+file.data.toString('base64');if(mainWindow&&!mainWindow.isDestroyed()){mainWindow.webContents.send('ananda-attendance-phone-status',{status:'received'});mainWindow.webContents.send('ananda-attendance-phone-upload',{name:file.name,mime:file.mime,dataUrl})};res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end('<h2 style="font-family:Arial;color:#087a46">Uploaded successfully.</h2><p>You can return to the Ananda Event Desk.</p>');setTimeout(anandaAttendanceStopServer,800)})
           return
         }
         res.writeHead(405);res.end()
       }catch(e){res.writeHead(500,{'Content-Type':'text/plain'});res.end('Upload error')}
     });
-    await new Promise((resolve,reject)=>{anandaAttendanceServer.once('error',reject);anandaAttendanceServer.listen(0,'0.0.0',resolve)});
-    const port=anandaAttendanceServer.address().port,ip=anandaAttendanceIp(),url='http://'+ip+':'+port+'/?token='+anandaAttendanceToken;
+    await new Promise((resolve,reject)=>{anandaAttendanceServer.once('error',reject);anandaAttendanceServer.listen(0,resolve)});
+    const port=anandaAttendanceServer.address().port,ip=anandaAttendanceIp();if(!ip){anandaAttendanceStopServer();return{ok:false,error:'Connect this laptop to Wi-Fi or to the phone hotspot first.'}}const url='http://'+ip+':'+port+'/?token='+anandaAttendanceToken;
     anandaAttendanceTimer=setTimeout(anandaAttendanceStopServer,15*60*1000);
     return{ok:true,url,ip,port}
   }catch(error){anandaAttendanceStopServer();return{ok:false,error:error?.message||String(error)}}
@@ -392,6 +404,10 @@ contextBridge.exposeInMainWorld('anandaAttendanceBridge', {
   onPhoneUpload: (callback) => {
     ipcRenderer.removeAllListeners('ananda-attendance-phone-upload');
     ipcRenderer.on('ananda-attendance-phone-upload', (_event, payload) => callback(payload));
+  },
+  onPhoneStatus: (callback) => {
+    ipcRenderer.removeAllListeners('ananda-attendance-phone-status');
+    ipcRenderer.on('ananda-attendance-phone-status', (_event, payload) => callback(payload));
   }
 });
 '''
