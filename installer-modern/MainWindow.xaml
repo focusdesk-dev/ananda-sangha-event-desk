@@ -30,15 +30,15 @@
             <Image Source="pack://application:,,,/Assets/logo.png" Stretch="Uniform"/>
           </Border>
           <TextBlock Text="ANANDA SANGHA" Foreground="White" FontSize="23" FontWeight="SemiBold"
-                     HorizontalAlignment="Center" Margin="0,22,0,0" CharacterSpacing="70"/>
+                     HorizontalAlignment="Center" Margin="0,22,0,0"/>
           <TextBlock Text="MEDITATION · SERVICE · JOY" Foreground="#D5E4F5" FontSize="10"
-                     HorizontalAlignment="Center" Margin="0,8,0,0" CharacterSpacing="120"/>
+                     HorizontalAlignment="Center" Margin="0,8,0,0"/>
         </StackPanel>
 
         <StackPanel VerticalAlignment="Bottom" Margin="34,0,34,30">
           <Rectangle Height="2" Fill="#E9B62F" Width="58" HorizontalAlignment="Left"/>
           <TextBlock Text="ANANDA SANGHA GURGAON" Foreground="#BFD2E8" FontSize="10" FontWeight="SemiBold"
-                     Margin="0,10,0,0" CharacterSpacing="80"/>
+                     Margin="0,10,0,0"/>
         </StackPanel>
       </Grid>
 
@@ -50,7 +50,7 @@
         <Grid Margin="58,58,58,94">
           <Grid x:Name="WelcomePage">
             <StackPanel VerticalAlignment="Center">
-              <TextBlock Text="WELCOME TO" Foreground="#E0A820" FontSize="12" FontWeight="Bold" CharacterSpacing="150"/>
+              <TextBlock Text="WELCOME TO" Foreground="#E0A820" FontSize="12" FontWeight="Bold"/>
               <TextBlock Text="Welcome To&#x0a;Ananda Sangha" Foreground="#0B2F6B" FontSize="40" FontWeight="SemiBold"
                          LineHeight="49" Margin="0,11,0,0"/>
             </StackPanel>
@@ -63,7 +63,7 @@
               <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <StackPanel>
-              <TextBlock Text="LICENSE AGREEMENT" Foreground="#E0A820" FontSize="12" FontWeight="Bold" CharacterSpacing="150"/>
+              <TextBlock Text="LICENSE AGREEMENT" Foreground="#E0A820" FontSize="12" FontWeight="Bold"/>
               <TextBlock Text="License Agreement" Foreground="#0B2F6B" FontSize="31" FontWeight="SemiBold" Margin="0,8,0,20"/>
             </StackPanel>
             <Border Grid.Row="1" Background="#F7FAFD" BorderBrush="#DCE6EF" BorderThickness="1" CornerRadius="12" Padding="16">
@@ -89,7 +89,7 @@
               <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             <StackPanel>
-              <TextBlock Text="INSTALLATION" Foreground="#E0A820" FontSize="12" FontWeight="Bold" CharacterSpacing="150"/>
+              <TextBlock Text="INSTALLATION" Foreground="#E0A820" FontSize="12" FontWeight="Bold"/>
               <TextBlock Text="Choose Install Location" Foreground="#0B2F6B" FontSize="31" FontWeight="SemiBold" Margin="0,8,0,8"/>
               <TextBlock Text="Choose where Ananda Sangha will be installed." Foreground="#6B7F94" FontSize="13"/>
             </StackPanel>
@@ -115,7 +115,7 @@
 
           <Grid x:Name="InstallingPage" Visibility="Collapsed">
             <StackPanel VerticalAlignment="Center">
-              <TextBlock Text="INSTALLING" Foreground="#E0A820" FontSize="12" FontWeight="Bold" CharacterSpacing="150"/>
+              <TextBlock Text="INSTALLING" Foreground="#E0A820" FontSize="12" FontWeight="Bold"/>
               <TextBlock Text="Installing Ananda Sangha" Foreground="#0B2F6B" FontSize="31" FontWeight="SemiBold" Margin="0,8,0,8"/>
               <TextBlock x:Name="InstallStatus" Text="Preparing installation…" Foreground="#6B7F94" FontSize="13"/>
               <Border x:Name="ProgressTrack" Height="10" Background="#E7EEF5" CornerRadius="5" Margin="0,32,0,0" SizeChanged="ProgressTrack_SizeChanged">
