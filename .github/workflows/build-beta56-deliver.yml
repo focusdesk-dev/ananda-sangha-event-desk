@@ -1,12 +1,12 @@
-name: Build Phase 2 Windows Beta 5.16 Sheet Reader
+name: Build Phase 2 Windows Beta 5.17 Attendance + Modern Installer
 
 on:
   workflow_dispatch:
   push:
-    branches: [phase2-beta516-sheet-reader]
+    branches: [phase2-beta517-attendance-modern-installer]
 
 jobs:
-  build-windows-beta516:
+  build-windows-beta517:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -19,6 +19,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
 
       - name: Rebuild verified beta 4C base
         shell: powershell
@@ -206,22 +211,22 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Approved artwork generation failed'}
           Remove-Item make_approved_art.py -Force
 
-      - name: Set Beta 5.16 version
+      - name: Set Beta 5.17 version
         shell: powershell
         run: |
           @'
           import json,pathlib,re
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.16'
+          d['version']='2.0.0-beta.5.17'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.16';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.17';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not set Beta 5.16 version'}
+          if($LASTEXITCODE -ne 0){throw 'Could not set Beta 5.17 version'}
           Remove-Item set_version.py -Force
 
       - name: Apply Beta 5.12 Active Classes fix before validation
@@ -262,31 +267,42 @@ jobs:
           $main=Get-Content src\main.js -Raw
           if($main -notmatch 'BETA515 PRINT PREVIEW DATA URL FIX'){throw 'Beta 5.15 print preview marker missing after apply'}
           python src/build-beta516-sheet-reader.py
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.16 sheet reader patch failed'}
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.17 sheet reader patch failed'}
           $html=Get-Content src\index.html -Raw
           $main=Get-Content src\main.js -Raw
-          if($html -notmatch 'PHASE2 BETA516 SHEET READER'){throw 'Beta 5.16 renderer marker missing'}
-          if($main -notmatch 'BETA516 COMPACT PRINTED QR'){throw 'Beta 5.16 compact QR marker missing'}
+          if($html -notmatch 'PHASE2 BETA516 SHEET READER'){throw 'Beta 5.17 renderer marker missing'}
+          if($main -notmatch 'BETA516 COMPACT PRINTED QR'){throw 'Beta 5.17 compact QR marker missing'}
+          python src/build-beta517-attendance-genius.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.17 attendance genius patch failed'}
+          python src/build-beta517-attendance-report.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.17 attendance report patch failed'}
+          python src/build-beta517-phone-date.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.17 phone date patch failed'}
+          $html=Get-Content src\index.html -Raw
+          $main=Get-Content src\main.js -Raw
+          if($html -notmatch 'PHASE2 BETA517 ATTENDANCE GENIUS'){throw 'Beta 5.17 attendance genius marker missing'}
+          if($html -notmatch 'PHASE2 BETA517 ATTENDANCE REPORT'){throw 'Beta 5.17 attendance report marker missing'}
+          if($main -notmatch 'BETA517 PHONE CLASS DATE'){throw 'Beta 5.17 phone class/date marker missing'}
 
-      - name: Restore Beta 5.16 version after final patches
+      - name: Restore Beta 5.17 version after final patches
         shell: powershell
         run: |
           @'
           import json,pathlib,re
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.16'
+          d['version']='2.0.0-beta.5.17'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.16';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.17';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
-          '@ | Set-Content restore_beta516_version.py -Encoding utf8
-          python restore_beta516_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not restore Beta 5.16 version after final patches'}
-          Remove-Item restore_beta516_version.py -Force
+          '@ | Set-Content restore_beta517_version.py -Encoding utf8
+          python restore_beta517_version.py
+          if($LASTEXITCODE -ne 0){throw 'Could not restore Beta 5.17 version after final patches'}
+          Remove-Item restore_beta517_version.py -Force
 
-      - name: Validate Beta 5.16 source and corrections
+      - name: Validate Beta 5.17 source and corrections
         shell: powershell
         run: |
           @'
@@ -300,24 +316,24 @@ jobs:
             'p2v512FixActiveClasses',"switchPage('activeClasses')",
             'PHASE2 BETA513 CURRENT FINAL','PHASE2 BETA514 ENROL PAYMENT IDENTITY','p2v514IdentityConflict','p2v514EnsurePaymentUi','p2v513PermanentMobileIdentityRule',
             'p2v513VipSectionInOutsideList','p2v513-vip-head','P2V513_PRINT',
-            'p2v513Geometry','grid-template-columns:9mm minmax(0,1fr) 18mm','PHASE2 BETA516 SHEET READER','p2v516FindQr','p2v516MarkGeometry',
+            'p2v513Geometry','grid-template-columns:9mm minmax(0,1fr) 18mm','PHASE2 BETA516 SHEET READER','p2v516FindQr','p2v516MarkGeometry','PHASE2 BETA517 ATTENDANCE GENIUS','p2v517InkEvidence','P2V517_DOC','PHASE2 BETA517 ATTENDANCE REPORT','p2v517OpenAttendanceReport',
             'classAttendanceHub','classReportsHub','MARK REMAINING ABSENT',
             'p2v510EventLanding','p2v510ClassYear','UPDATE ATTENDANCE',
             'SCAN TO UPLOAD','prepareSheetLink','BATCH WISE','STUDENT WISE'
           ]
           missing=[x for x in required if x not in html]
-          if missing: raise SystemExit('Missing Beta 5.16 markers: '+repr(missing))
+          if missing: raise SystemExit('Missing Beta 5.17 markers: '+repr(missing))
           scripts=re.findall(r'<script>(.*?)</script>',html,re.S|re.I)
           if not scripts: raise SystemExit('No app scripts found')
           Path('beta513-check.js').write_text('\n'.join(scripts),encoding='utf-8')
           pkg=json.loads(Path('src/package.json').read_text(encoding='utf-8'))
           nsis=pkg['build']['nsis']
-          if pkg['version']!='2.0.0-beta.5.16': raise SystemExit('Wrong package version')
+          if pkg['version']!='2.0.0-beta.5.17': raise SystemExit('Wrong package version')
           if nsis.get('oneClick') is not False or nsis.get('perMachine') is not True:
               raise SystemExit('Installer must be assisted all-users mode')
           '@ | Set-Content validate_beta513.py -Encoding utf8
           python validate_beta513.py
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.16 source marker validation failed'}
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.17 source marker validation failed'}
           node --check beta513-check.js
           if($LASTEXITCODE -ne 0){throw 'Beta 5.13 renderer JavaScript syntax failed'}
           node --check src/main.js
@@ -328,7 +344,7 @@ jobs:
           $main=Get-Content src\main.js -Raw
           $pre=Get-Content src\preload.js -Raw
           if($main -notmatch 'BETA59 PRINT PREVIEW'){throw 'Print preview missing'}
-          if($main -notmatch 'BETA515 PRINT PREVIEW DATA URL FIX'){throw 'Beta 5.16 preview fix missing'}
+          if($main -notmatch 'BETA515 PRINT PREVIEW DATA URL FIX'){throw 'Beta 5.17 preview fix missing'}
           if($main -match "loadFile\(anandaPrintPreviewFile\)"){throw 'Print preview must not load a temp HTML file'}
           if($main -notmatch "loadURL\(previewDataUrl\)"){throw 'Print preview data URL load missing'}
           if($main -notmatch 'ananda-attendance-prepare-sheet-link'){throw 'Printed QR direct link missing'}
@@ -339,7 +355,7 @@ jobs:
           if($html -notmatch 'This mobile number already exists for'){throw 'Cross-list mobile conflict warning missing'}
           Remove-Item validate_beta513.py,beta513-check.js -Force
 
-      - name: Beta 5.16 enrol identity rule checks
+      - name: Beta 5.17 enrol identity rule checks
         shell: powershell
         run: |
           @'
@@ -367,8 +383,32 @@ jobs:
           console.log('BETA 5.14 ENROL IDENTITY CHECKS PASS',c.map(x=>x.name).join(' | '));
           '@ | Set-Content beta514_identity_test.js -Encoding utf8
           node beta514_identity_test.js
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.16 identity rule checks failed'}
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.17 identity rule checks failed'}
           Remove-Item beta514_identity_test.js -Force
+
+      - name: Shadow and ink detector check
+        shell: powershell
+        run: |
+          @'
+          function evidence(p,cw,ch){
+            const lum=p.map(x=>.299*x[0]+.587*x[1]+.114*x[2]),integ=new Float64Array((cw+1)*(ch+1));
+            for(let y=0;y<ch;y++){let row=0;for(let x=0;x<cw;x++){row+=lum[y*cw+x];integ[(y+1)*(cw+1)+(x+1)]=integ[y*(cw+1)+(x+1)]+row}}
+            const mean=(x0,y0,x1,y1)=>{x0=Math.max(0,x0);y0=Math.max(0,y0);x1=Math.min(cw,x1);y1=Math.min(ch,y1);const A=integ[y0*(cw+1)+x0],B=integ[y0*(cw+1)+x1],C=integ[y1*(cw+1)+x0],D=integ[y1*(cw+1)+x1];return(D-B-C+A)/Math.max(1,(x1-x0)*(y1-y0))};
+            const mask=new Uint8Array(cw*ch);let total=0;
+            for(let y=3;y<ch-3;y++)for(let x=3;x<cw-3;x++){const i=y*cw+x,L=lum[i],local=mean(x-6,y-6,x+7,y+7),contrast=local-L,r=p[i][0],g=p[i][1],b=p[i][2],blue=b>r+16&&b>g+8&&L<198&&contrast>8,black=L<178&&contrast>22;if(black||blue){mask[i]=1;total++}}
+            let largest=0,seen=new Uint8Array(mask.length),stack=[];
+            for(let i=0;i<mask.length;i++){if(!mask[i]||seen[i])continue;let n=0;stack.push(i);seen[i]=1;while(stack.length){let q=stack.pop();n++;let y=Math.floor(q/cw),x=q-y*cw;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;let nx=x+dx,ny=y+dy;if(nx<2||ny<2||nx>=cw-2||ny>=ch-2)continue;let ni=ny*cw+nx;if(mask[ni]&&!seen[ni]){seen[ni]=1;stack.push(ni)}}}largest=Math.max(largest,n)}
+            return largest>=3&&total>=4
+          }
+          const W=132,H=42,base=()=>Array.from({length:W*H},(_,i)=>{let x=i%W;let shade=Math.round(244-55*x/(W-1));return[shade,shade,shade]});
+          const shadow=base();if(evidence(shadow,W,H))throw new Error('Smooth camera shadow must not count as attendance');
+          const black=base();for(let y=19;y<22;y++)for(let x=66;x<69;x++)black[y*W+x]=[25,25,25];if(!evidence(black,W,H))throw new Error('Small black pen dot must count as present');
+          const blue=base();for(let y=12;y<15;y++)for(let x=40;x<44;x++)blue[y*W+x]=[25,48,145];if(!evidence(blue,W,H))throw new Error('Small dark blue pen dot must count as present');
+          console.log('SHADOW + BLACK DOT + BLUE DOT DETECTOR PASS');
+          '@ | Set-Content beta517_ink_test.js -Encoding utf8
+          node beta517_ink_test.js
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.17 ink/shadow detector check failed'}
+          Remove-Item beta517_ink_test.js -Force
 
       - name: Compact printed QR screenshot check
         shell: powershell
@@ -564,25 +604,44 @@ jobs:
           if($pkg.build.nsis.runAfterFinish -ne $false){throw 'Default finish launcher must be disabled'}
           Write-Host 'INSTALLER CHECK 3/3 PASS - package is wired to the custom flow'
 
-      - name: Build Windows x64 installer
+      - name: Build inner silent installation engine
         shell: powershell
         run: |
           Remove-Item src\dist -Recurse -Force -ErrorAction SilentlyContinue
           Push-Location src
           npm run dist
-          if($LASTEXITCODE -ne 0){throw 'electron-builder failed'}
+          if($LASTEXITCODE -ne 0){throw 'electron-builder inner engine failed'}
           Pop-Location
-          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.16.exe'
-          if(!(Test-Path $setup)){throw 'Beta 5.16 Setup.exe missing'}
+          $inner='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.17.exe'
+          if(!(Test-Path $inner)){throw 'Beta 5.17 inner installer missing'}
+          if((Get-Item $inner).Length -lt 50000000){throw 'Inner installer unexpectedly small'}
 
-      - name: Verify compiled Beta 5.16 installer
+      - name: Validate modern installer source
         shell: powershell
         run: |
-          $setup='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.16.exe'
-          if(!(Test-Path $setup)){throw 'Beta 5.16 installer missing'}
-          $size=(Get-Item $setup).Length
-          if($size -lt 50000000){throw "Installer unexpectedly small: $size"}
-          Write-Host "COMPILED INSTALLER PASS - $size bytes"
+          $xaml=Get-Content installer-modern\MainWindow.xaml -Raw
+          $code=Get-Content installer-modern\MainWindow.xaml.cs -Raw
+          $manifest=Get-Content installer-modern\app.manifest -Raw
+          $required=@('Welcome To','License Agreement','Choose Install Location','Installing Ananda Sangha','Installation completed successfully!','ProgressFill','ANANDA SANGHA')
+          foreach($x in $required){if($xaml -notmatch [regex]::Escape($x)){throw "Modern installer UI missing: $x"}}
+          if($code -notmatch 'GetManifestResourceStream\("InnerInstaller.exe"\)'){throw 'Embedded inner installer extraction missing'}
+          if($code -notmatch 'ArgumentList.Add\("/S"\)'){throw 'Silent NSIS execution missing'}
+          if($manifest -notmatch 'requireAdministrator'){throw 'Modern installer elevation manifest missing'}
+          Write-Host 'MODERN INSTALLER SOURCE PASS - custom WPF shell will be the only visible wizard'
+
+      - name: Build modern Windows installer
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force installer-modern\Payload | Out-Null
+          Copy-Item 'src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.17.exe' 'installer-modern\Payload\InnerInstaller.exe' -Force
+          Remove-Item installer-modern\publish -Recurse -Force -ErrorAction SilentlyContinue
+          dotnet publish installer-modern\AnandaModernInstaller.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o installer-modern\publish
+          if($LASTEXITCODE -ne 0){throw 'Modern WPF installer build failed'}
+          $modern='installer-modern\publish\Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.17.exe'
+          if(!(Test-Path $modern)){throw 'Modern Beta 5.17 installer missing'}
+          $size=(Get-Item $modern).Length
+          if($size -lt 100000000){throw "Modern installer unexpectedly small: $size"}
+          Write-Host "MODERN INSTALLER PASS - $size bytes"
 
       - name: Verify packaged QR renderer files
         shell: powershell
@@ -597,9 +656,9 @@ jobs:
           Remove-Item asar-files.txt -Force
           Pop-Location
 
-      - name: Upload Beta 5.16 installer
+      - name: Upload Beta 5.17 modern installer
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.16-Sheet-Reader-Installer
-          path: src/dist/Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.16.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.17-Modern-Installer
+          path: installer-modern/publish/Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.17.exe
           if-no-files-found: error
