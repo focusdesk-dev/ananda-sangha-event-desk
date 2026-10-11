@@ -88,16 +88,17 @@ public partial class MainWindow : Window
 
     private void BrowseButton_Click(object sender, RoutedEventArgs e)
     {
-        using var dialog = new System.Windows.Forms.FolderBrowserDialog
+        var dialog = new Microsoft.Win32.OpenFolderDialog
         {
-            Description = "Choose where Ananda Sangha Event Desk will be installed",
-            UseDescriptionForTitle = true,
-            SelectedPath = InstallPathBox.Text,
-            ShowNewFolderButton = true
+            Title = "Choose where Ananda Sangha Event Desk will be installed",
+            InitialDirectory = Directory.Exists(InstallPathBox.Text)
+                ? InstallPathBox.Text
+                : Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            Multiselect = false
         };
 
-        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            InstallPathBox.Text = dialog.SelectedPath;
+        if (dialog.ShowDialog(this) == true)
+            InstallPathBox.Text = dialog.FolderName;
     }
 
     private void ShowPage(int page)
