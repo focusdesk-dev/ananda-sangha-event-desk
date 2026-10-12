@@ -1,6 +1,6 @@
 {
   "name": "ananda-sangha-event-desk",
-  "version": "2.0.0-beta.5.26",
+  "version": "2.0.0-beta.5.27",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -30,7 +30,8 @@
       "logo-128.png",
       "ananda-icon.ico",
       "qrcode-client.js",
-      "jsqr-client.js"
+      "jsqr-client.js",
+      "omr-scanner.js"
     ],
     "win": {
       "target": [
