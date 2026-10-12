@@ -3,7 +3,7 @@ name: Build Phase 2 Windows Beta 5.20 A4 40-Name Attendance
 on:
   workflow_dispatch:
   push:
-    branches: [phase2-beta520-a4-40-attendance]
+    branches: [phase2-beta521-approved-a4-30]
 
 jobs:
   build-windows-beta520:
@@ -380,6 +380,16 @@ jobs:
           if($html -notmatch 'PAYMENT STATUS'){throw 'Enrol payment controls missing'}
           if($html -notmatch 'This mobile number already exists for'){throw 'Cross-list mobile conflict warning missing'}
           Remove-Item validate_beta513.py,beta513-check.js -Force
+
+      - name: Inspect print preview decorator
+        shell: powershell
+        run: |
+          $main=Get-Content src\main.js -Raw
+          $needle='function anandaDecoratePrintPreview'
+          $i=$main.IndexOf($needle)
+          if($i -lt 0){throw 'anandaDecoratePrintPreview not found'}
+          $len=[Math]::Min(10000,$main.Length-$i)
+          Write-Host $main.Substring($i,$len)
 
       - name: Beta 5.18 enrol identity rule checks
         shell: powershell
