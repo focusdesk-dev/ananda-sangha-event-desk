@@ -631,7 +631,7 @@ jobs:
             "p2v518ActiveRows.forEach(r=>p2v58Draft[r.en.id]=null)",
             "only the '+p2v518ActiveRows.length+' names actually printed on this sheet",
             "scheduled.includes(String(date))?scheduled:[String(date),...scheduled]",
-            "PRINTED SHEET ·",
+            "PRINTED SHEET",
             "left:198mm;top:9mm;width:25mm"
           ];
           for(const x of must)if(!b.includes(x))throw new Error('Missing exact-scan safeguard: '+x);
