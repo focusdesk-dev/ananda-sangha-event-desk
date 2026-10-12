@@ -633,10 +633,12 @@ jobs:
           const watchdog=setTimeout(()=>app.exit(2),15000);
           app.whenReady().then(async()=>{
             const win=new BrowserWindow({show:false,width:1140,height:900,webPreferences:{offscreen:true,contextIsolation:true,nodeIntegration:false}});
+            win.webContents.on('console-message',(_e,level,msg,line,source)=>console.log('RENDER_CONSOLE',level,msg,line,source));
             await win.loadFile(path.resolve('beta523-preview.html'));
             await new Promise(r=>setTimeout(r,900));
-            const state1=await win.webContents.executeJavaScript("(()=>{const p=[...document.querySelectorAll('.ananda-preview-page')],m=document.querySelector('.sheetmeta b'),mark=document.querySelector('.mark');return{pages:p.length,p1:getComputedStyle(p[0]).display,p2:getComputedStyle(p[1]).display,metaW:m.getBoundingClientRect().width,metaText:m.textContent,markRight:getComputedStyle(mark).borderRightWidth,counter:document.getElementById('anandaCounter').textContent}})()");
+            const state1=await win.webContents.executeJavaScript("(()=>{try{const p=[...document.querySelectorAll('.ananda-preview-page')],m=document.querySelector('.sheetmeta b'),mark=document.querySelector('.mark'),c=document.getElementById('anandaCounter');return{pages:p.length,p1:p[0]?getComputedStyle(p[0]).display:'MISSING',p2:p[1]?getComputedStyle(p[1]).display:'MISSING',metaW:m?m.getBoundingClientRect().width:0,metaText:m?m.textContent:'MISSING',markRight:mark?getComputedStyle(mark).borderRightWidth:'MISSING',counter:c?c.textContent:'MISSING',body:document.body.innerText.slice(0,160)}}catch(e){return{error:String(e&&e.stack||e)}}})()");
             console.log('PAGE1',JSON.stringify(state1));
+            if(state1.error)throw new Error('Preview state error: '+state1.error);
             if(state1.pages!==2||state1.p1==='none'||state1.p2!=='none')throw new Error('Preview must show page 1 only');
             if(state1.counter.trim()!=='1 / 2')throw new Error('Page counter must start at 1 / 2');
             if(state1.metaW<80||!state1.metaText.includes('AS-2026'))throw new Error('Sheet metadata is clipped');
