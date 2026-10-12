@@ -1,12 +1,12 @@
-name: Build Phase 2 Windows Beta 5.23 Page Preview Fixed
+name: Build Phase 2 Windows Beta 5.24 Exact Scan Review
 
 on:
   workflow_dispatch:
   push:
-    branches: [phase2-beta523-preview-meta-borders]
+    branches: [phase2-beta524-exact-scan-review]
 
 jobs:
-  build-windows-beta523:
+  build-windows-beta524:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -218,11 +218,11 @@ jobs:
           import json,pathlib,re
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.23'
+          d['version']='2.0.0-beta.5.24'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.23';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.24';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
@@ -317,36 +317,40 @@ jobs:
           $main=Get-Content src\main.js -Raw
           if($html -notmatch 'PHASE2 BETA523 PAGE BY PAGE PREVIEW'){throw 'Beta 5.23 renderer marker missing'}
           if($main -notmatch 'BETA523 TRUE PAGE BY PAGE PREVIEW'){throw 'Beta 5.23 preview marker missing'}
+          python src/build-beta524-exact-scan-review.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.24 exact scan review patch failed'}
+          $html=Get-Content src\index.html -Raw
+          if($html -notmatch 'PHASE2 BETA524 EXACT SCAN REVIEW'){throw 'Beta 5.24 scan marker missing'}
 
-      - name: Upload Beta 5.23 generated source for inspection
+      - name: Upload Beta 5.24 generated source for inspection
         uses: actions/upload-artifact@v4
         with:
-          name: Beta-5.23-Generated-Source
+          name: Beta-5.24-Generated-Source
           path: |
             src/main.js
             src/preload.js
             src/index.html
           if-no-files-found: error
 
-      - name: Restore Beta 5.23 version after final patches
+      - name: Restore Beta 5.24 version after final patches
         shell: powershell
         run: |
           @'
           import json,pathlib,re
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.23'
+          d['version']='2.0.0-beta.5.24'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.23';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.24';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
-          '@ | Set-Content restore_beta523_version.py -Encoding utf8
-          python restore_beta523_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not restore Beta 5.23 version after final patches'}
-          Remove-Item restore_beta523_version.py -Force
+          '@ | Set-Content restore_beta524_version.py -Encoding utf8
+          python restore_beta524_version.py
+          if($LASTEXITCODE -ne 0){throw 'Could not restore Beta 5.24 version after final patches'}
+          Remove-Item restore_beta524_version.py -Force
 
-      - name: Validate Beta 5.23 source and corrections
+      - name: Validate Beta 5.24 source and corrections
         shell: powershell
         run: |
           @'
@@ -360,24 +364,24 @@ jobs:
             'p2v512FixActiveClasses',"switchPage('activeClasses')",
             'PHASE2 BETA513 CURRENT FINAL','PHASE2 BETA514 ENROL PAYMENT IDENTITY','p2v514IdentityConflict','p2v514EnsurePaymentUi','p2v513PermanentMobileIdentityRule',
             'p2v513VipSectionInOutsideList','p2v513-vip-head','P2V513_PRINT',
-            'p2v513Geometry','grid-template-columns:9mm minmax(0,1fr) 18mm','PHASE2 BETA516 SHEET READER','p2v516FindQr','p2v516MarkGeometry','PHASE2 BETA517 ATTENDANCE GENIUS','p2v517InkEvidence','P2V517_DOC','PHASE2 BETA517 ATTENDANCE REPORT','p2v517OpenAttendanceReport','PHASE2 BETA518 FROZEN SHEET SCAN','p2v518FindAnchor','p2v518RowsForSnapshot','attendanceSheetSnapshots','P2V518_DOC','PHASE2 BETA519 A4 LANDSCAPE 30','P2V519_LAYOUT','P2V519_DOC','p2v519Detect','p2v519Pos','PHASE2 BETA520 A4 LANDSCAPE 40','P2V520_LAYOUT','P2V520_DOC','p2v520Detect','p2v520Pos','PHASE2 BETA521 APPROVED A4 30','P2V521_LAYOUT','P2V521_DOC','p2v521Detect','p2v521Pos','PHASE2 BETA523 PAGE BY PAGE PREVIEW',
+            'p2v513Geometry','grid-template-columns:9mm minmax(0,1fr) 18mm','PHASE2 BETA516 SHEET READER','p2v516FindQr','p2v516MarkGeometry','PHASE2 BETA517 ATTENDANCE GENIUS','p2v517InkEvidence','P2V517_DOC','PHASE2 BETA517 ATTENDANCE REPORT','p2v517OpenAttendanceReport','PHASE2 BETA518 FROZEN SHEET SCAN','p2v518FindAnchor','p2v518RowsForSnapshot','attendanceSheetSnapshots','P2V518_DOC','PHASE2 BETA519 A4 LANDSCAPE 30','P2V519_LAYOUT','P2V519_DOC','p2v519Detect','p2v519Pos','PHASE2 BETA520 A4 LANDSCAPE 40','P2V520_LAYOUT','P2V520_DOC','p2v520Detect','p2v520Pos','PHASE2 BETA521 APPROVED A4 30','P2V521_LAYOUT','P2V521_DOC','p2v521Detect','p2v521Pos','PHASE2 BETA523 PAGE BY PAGE PREVIEW','PHASE2 BETA524 EXACT SCAN REVIEW','p2v524ScanSession','p2v524SyncSelectors','p2v524DisplayNumber',
             'classAttendanceHub','classReportsHub','MARK REMAINING ABSENT',
             'p2v510EventLanding','p2v510ClassYear','UPDATE ATTENDANCE',
             'SCAN TO UPLOAD','prepareSheetLink','BATCH WISE','STUDENT WISE'
           ]
           missing=[x for x in required if x not in html]
-          if missing: raise SystemExit('Missing Beta 5.23 markers: '+repr(missing))
+          if missing: raise SystemExit('Missing Beta 5.24 markers: '+repr(missing))
           scripts=re.findall(r'<script>(.*?)</script>',html,re.S|re.I)
           if not scripts: raise SystemExit('No app scripts found')
           Path('beta513-check.js').write_text('\n'.join(scripts),encoding='utf-8')
           pkg=json.loads(Path('src/package.json').read_text(encoding='utf-8'))
           nsis=pkg['build']['nsis']
-          if pkg['version']!='2.0.0-beta.5.23': raise SystemExit('Wrong package version')
+          if pkg['version']!='2.0.0-beta.5.24': raise SystemExit('Wrong package version')
           if nsis.get('oneClick') is not False or nsis.get('perMachine') is not True:
               raise SystemExit('Installer must be assisted all-users mode')
           '@ | Set-Content validate_beta513.py -Encoding utf8
           python validate_beta513.py
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.23 source marker validation failed'}
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.24 source marker validation failed'}
           node --check beta513-check.js
           if($LASTEXITCODE -ne 0){throw 'Beta 5.13 renderer JavaScript syntax failed'}
           node --check src/main.js
@@ -399,6 +403,10 @@ jobs:
           if($main -notmatch 'BETA521 APPROVED LANDSCAPE PREVIEW'){throw 'Beta 5.21 preview calibration marker missing'}
           if($main -notmatch 'BETA522 PREVIEW FAILSAFE'){throw 'Beta 5.22 preview failsafe marker missing'}
           if($main -notmatch 'BETA523 TRUE PAGE BY PAGE PREVIEW'){throw 'Beta 5.23 page-by-page marker missing'}
+          if($html -notmatch 'PHASE2 BETA524 EXACT SCAN REVIEW'){throw 'Beta 5.24 exact scan review missing'}
+          if($html -notmatch 'PRINTED SHEET ·'){throw 'Printed-sheet review header missing'}
+          if($html -notmatch "scheduled\.includes\(String\(date\)\)\?scheduled:\[String\(date\),\.\.\.scheduled\]"){throw 'Frozen printed date fallback missing'}
+          if($html -match "p2v511ApplyPhotoBlob=async function[\s\S]{0,4500}p2v58ApplyQrRaw\(raw,name\)"){throw 'Final scanner must not render/load current roster through p2v58ApplyQrRaw'}
           if($main -notmatch "shell, dialog \} = require\('electron'\)"){throw 'Save PDF dialog import missing'}
           if($main -notmatch "anandaPrint'\)\.onclick=.*ananda-preview://print"){throw 'Print button route missing'}
           if($main -notmatch "anandaSave'\)\.onclick=.*ananda-preview://save"){throw 'Save PDF button route missing'}
@@ -602,6 +610,61 @@ jobs:
           node beta521_exact_test.js
           if($LASTEXITCODE -ne 0){throw 'Beta 5.21 exact approved sheet check failed'}
           Remove-Item beta521_exact_test.js -Force
+
+      - name: Beta 5.24 exact scan isolation check
+        shell: powershell
+        run: |
+          @'
+          const fs=require('fs');
+          const h=fs.readFileSync('src/index.html','utf8');
+          const start=h.indexOf('PHASE2 BETA524 EXACT SCAN REVIEW');
+          const end=h.indexOf('updateBackButton();',start);
+          if(start<0||end<0)throw new Error('Beta 5.24 block missing');
+          const b=h.slice(start,end);
+          const must=[
+            "p2v524ScanSession={snapshot:snap,rows:mapped.out,data}",
+            "p2v58Draft={}",
+            "p2v518ActiveRows.forEach(r=>p2v58Draft[r.en.id]=null)",
+            "only the '+p2v518ActiveRows.length+' names actually printed on this sheet",
+            "scheduled.includes(String(date))?scheduled:[String(date),...scheduled]",
+            "PRINTED SHEET ·",
+            "left:198mm;top:9mm;width:25mm"
+          ];
+          for(const x of must)if(!b.includes(x))throw new Error('Missing exact-scan safeguard: '+x);
+          if(b.includes('await p2v58ApplyQrRaw(raw,name)'))throw new Error('Final scanner still loads current roster before frozen snapshot');
+          // The user's marked test sheet: 01,05,09,15 on left and 22,26,30 on right.
+          const pos=n=>n<=15?['L',n]:['R',n-15];
+          const expected=[[1,'L',1],[5,'L',5],[9,'L',9],[15,'L',15],[22,'R',7],[26,'R',11],[30,'R',15]];
+          for(const [n,c,row] of expected){const p=pos(n);if(p[0]!==c||p[1]!==row)throw new Error('Printed mark mapping wrong for '+n)}
+          // 30-name Sheet 1 must never render current-class rows 31-40.
+          const snapRows=Array.from({length:30},(_,i)=>({position:i+1}));
+          if(snapRows.some(r=>r.position>30))throw new Error('Frozen sheet leaked current class rows');
+          // Sheet 2 with only ten students stays on printed positions 01-10 (left column), not 5+5.
+          const sheet2=Array.from({length:10},(_,i)=>pos(i+1));
+          if(sheet2.some(p=>p[0]!=='L'))throw new Error('Short final sheet must preserve printed left-column positions');
+          console.log('BETA 5.24 EXACT SCAN ISOLATION PASS');
+          '@ | Set-Content beta524_scan_test.js -Encoding utf8
+          node beta524_scan_test.js
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.24 exact scan isolation check failed'}
+          Remove-Item beta524_scan_test.js -Force
+
+      - name: Beta 5.24 19-Jul QR acceptance check
+        shell: powershell
+        run: |
+          @'
+          const fs=require('fs');
+          const h=fs.readFileSync('src/index.html','utf8');
+          const m=fs.readFileSync('src/main.js','utf8');
+          if(!h.includes("scheduled.includes(String(date))?scheduled:[String(date),...scheduled]"))throw new Error('Printed date fallback missing');
+          if(!m.includes("layout==='A4L30V2'?5"))throw new Error('A4L30V2 compact QR version mapping missing');
+          if(!m.includes("date=d8.slice(0,4)+'-'+d8.slice(4,6)+'-'+d8.slice(6,8)"))throw new Error('Compact QR date reconstruction missing');
+          const d8='20260719',date=d8.slice(0,4)+'-'+d8.slice(4,6)+'-'+d8.slice(6,8);
+          if(date!=='2026-07-19')throw new Error('19 Jul QR date reconstruction failed');
+          console.log('BETA 5.24 19-JUL QR ACCEPTANCE PASS');
+          '@ | Set-Content beta524_qr19_test.js -Encoding utf8
+          node beta524_qr19_test.js
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.24 19-Jul QR check failed'}
+          Remove-Item beta524_qr19_test.js -Force
 
       - name: Beta 5.23 actual two-page preview check
         shell: powershell
@@ -907,7 +970,7 @@ jobs:
           npm run dist
           if($LASTEXITCODE -ne 0){throw 'electron-builder inner engine failed'}
           Pop-Location
-          $inner='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.23.exe'
+          $inner='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.24.exe'
           if(!(Test-Path $inner)){throw 'Beta 5.17 inner installer missing'}
           if((Get-Item $inner).Length -lt 50000000){throw 'Inner installer unexpectedly small'}
 
@@ -928,12 +991,12 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force installer-modern\Payload | Out-Null
-          Copy-Item 'src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.23.exe' 'installer-modern\Payload\InnerInstaller.exe' -Force
+          Copy-Item 'src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.24.exe' 'installer-modern\Payload\InnerInstaller.exe' -Force
           Remove-Item installer-modern\publish -Recurse -Force -ErrorAction SilentlyContinue
           dotnet publish installer-modern\AnandaModernInstaller.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o installer-modern\publish
           if($LASTEXITCODE -ne 0){throw 'Modern WPF installer build failed'}
-          $modern='installer-modern\publish\Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.23.exe'
-          if(!(Test-Path $modern)){throw 'Modern Beta 5.23 installer missing'}
+          $modern='installer-modern\publish\Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.24.exe'
+          if(!(Test-Path $modern)){throw 'Modern Beta 5.24 installer missing'}
           $size=(Get-Item $modern).Length
           if($size -lt 100000000){throw "Modern installer unexpectedly small: $size"}
           Write-Host "MODERN INSTALLER PASS - $size bytes"
@@ -951,9 +1014,9 @@ jobs:
           Remove-Item asar-files.txt -Force
           Pop-Location
 
-      - name: Upload Beta 5.23 modern installer
+      - name: Upload Beta 5.24 modern installer
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.23-Page-Preview-Fixed-Modern-Installer
-          path: installer-modern/publish/Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.23.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.24-Exact-Scan-Review-Modern-Installer
+          path: installer-modern/publish/Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.24.exe
           if-no-files-found: error
