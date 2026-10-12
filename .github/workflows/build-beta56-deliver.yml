@@ -1,12 +1,12 @@
-name: Build Phase 2 Windows Beta 5.17 Attendance + Modern Installer
+name: Build Phase 2 Windows Beta 5.18 Frozen Sheet Scanner
 
 on:
   workflow_dispatch:
   push:
-    branches: [phase2-beta517-attendance-modern-installer]
+    branches: [phase2-beta518-frozen-sheet-scan]
 
 jobs:
-  build-windows-beta517:
+  build-windows-beta518:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -211,22 +211,22 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Approved artwork generation failed'}
           Remove-Item make_approved_art.py -Force
 
-      - name: Set Beta 5.17 version
+      - name: Set Beta 5.18 version
         shell: powershell
         run: |
           @'
           import json,pathlib,re
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.17'
+          d['version']='2.0.0-beta.5.18'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.17';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.18';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not set Beta 5.17 version'}
+          if($LASTEXITCODE -ne 0){throw 'Could not set Beta 5.18 version'}
           Remove-Item set_version.py -Force
 
       - name: Apply Beta 5.12 Active Classes fix before validation
@@ -283,26 +283,32 @@ jobs:
           if($html -notmatch 'PHASE2 BETA517 ATTENDANCE GENIUS'){throw 'Beta 5.17 attendance genius marker missing'}
           if($html -notmatch 'PHASE2 BETA517 ATTENDANCE REPORT'){throw 'Beta 5.17 attendance report marker missing'}
           if($main -notmatch 'BETA517 PHONE CLASS DATE'){throw 'Beta 5.17 phone class/date marker missing'}
+          python src/build-beta518-frozen-sheet-scan.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.18 frozen-sheet scanner patch failed'}
+          $html=Get-Content src\index.html -Raw
+          $main=Get-Content src\main.js -Raw
+          if($html -notmatch 'PHASE2 BETA518 FROZEN SHEET SCAN'){throw 'Beta 5.18 frozen-sheet marker missing'}
+          if($main -notmatch 'BETA518 SHEET ID \+ PHONE CLOSE'){throw 'Beta 5.18 phone-close marker missing'}
 
-      - name: Restore Beta 5.17 version after final patches
+      - name: Restore Beta 5.18 version after final patches
         shell: powershell
         run: |
           @'
           import json,pathlib,re
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.17'
+          d['version']='2.0.0-beta.5.18'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.17';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.18';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
-          '@ | Set-Content restore_beta517_version.py -Encoding utf8
-          python restore_beta517_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not restore Beta 5.17 version after final patches'}
-          Remove-Item restore_beta517_version.py -Force
+          '@ | Set-Content restore_beta518_version.py -Encoding utf8
+          python restore_beta518_version.py
+          if($LASTEXITCODE -ne 0){throw 'Could not restore Beta 5.18 version after final patches'}
+          Remove-Item restore_beta518_version.py -Force
 
-      - name: Validate Beta 5.17 source and corrections
+      - name: Validate Beta 5.18 source and corrections
         shell: powershell
         run: |
           @'
@@ -316,24 +322,24 @@ jobs:
             'p2v512FixActiveClasses',"switchPage('activeClasses')",
             'PHASE2 BETA513 CURRENT FINAL','PHASE2 BETA514 ENROL PAYMENT IDENTITY','p2v514IdentityConflict','p2v514EnsurePaymentUi','p2v513PermanentMobileIdentityRule',
             'p2v513VipSectionInOutsideList','p2v513-vip-head','P2V513_PRINT',
-            'p2v513Geometry','grid-template-columns:9mm minmax(0,1fr) 18mm','PHASE2 BETA516 SHEET READER','p2v516FindQr','p2v516MarkGeometry','PHASE2 BETA517 ATTENDANCE GENIUS','p2v517InkEvidence','P2V517_DOC','PHASE2 BETA517 ATTENDANCE REPORT','p2v517OpenAttendanceReport',
+            'p2v513Geometry','grid-template-columns:9mm minmax(0,1fr) 18mm','PHASE2 BETA516 SHEET READER','p2v516FindQr','p2v516MarkGeometry','PHASE2 BETA517 ATTENDANCE GENIUS','p2v517InkEvidence','P2V517_DOC','PHASE2 BETA517 ATTENDANCE REPORT','p2v517OpenAttendanceReport','PHASE2 BETA518 FROZEN SHEET SCAN','p2v518FindAnchor','p2v518RowsForSnapshot','attendanceSheetSnapshots','P2V518_DOC',
             'classAttendanceHub','classReportsHub','MARK REMAINING ABSENT',
             'p2v510EventLanding','p2v510ClassYear','UPDATE ATTENDANCE',
             'SCAN TO UPLOAD','prepareSheetLink','BATCH WISE','STUDENT WISE'
           ]
           missing=[x for x in required if x not in html]
-          if missing: raise SystemExit('Missing Beta 5.17 markers: '+repr(missing))
+          if missing: raise SystemExit('Missing Beta 5.18 markers: '+repr(missing))
           scripts=re.findall(r'<script>(.*?)</script>',html,re.S|re.I)
           if not scripts: raise SystemExit('No app scripts found')
           Path('beta513-check.js').write_text('\n'.join(scripts),encoding='utf-8')
           pkg=json.loads(Path('src/package.json').read_text(encoding='utf-8'))
           nsis=pkg['build']['nsis']
-          if pkg['version']!='2.0.0-beta.5.17': raise SystemExit('Wrong package version')
+          if pkg['version']!='2.0.0-beta.5.18': raise SystemExit('Wrong package version')
           if nsis.get('oneClick') is not False or nsis.get('perMachine') is not True:
               raise SystemExit('Installer must be assisted all-users mode')
           '@ | Set-Content validate_beta513.py -Encoding utf8
           python validate_beta513.py
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.17 source marker validation failed'}
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.18 source marker validation failed'}
           node --check beta513-check.js
           if($LASTEXITCODE -ne 0){throw 'Beta 5.13 renderer JavaScript syntax failed'}
           node --check src/main.js
@@ -349,13 +355,16 @@ jobs:
           if($main -notmatch "loadURL\(previewDataUrl\)"){throw 'Print preview data URL load missing'}
           if($main -notmatch 'ananda-attendance-prepare-sheet-link'){throw 'Printed QR direct link missing'}
           if($main -notmatch 'BETA511 APPROVED MOBILE LOGO'){throw 'Approved mobile logo missing'}
+          if($main -notmatch 'BETA518 SHEET ID \+ PHONE CLOSE'){throw 'Beta 5.18 phone-close marker missing'}
+          if($main -notmatch "window\.open\('','_self'\);window\.close\(\)"){throw 'Phone close-button logic missing'}
+          if($main -notmatch "searchParams\.get\('x'\)"){throw 'Frozen Sheet ID missing from compact QR URL parser'}
           if($pre -notmatch 'prepareSheetLink'){throw 'Phone bridge missing'}
           if($html -notmatch 'Type student / volunteer / attendee / Kriyaban / Acharya name or mobile'){throw 'Expanded enrol search missing'}
           if($html -notmatch 'PAYMENT STATUS'){throw 'Enrol payment controls missing'}
           if($html -notmatch 'This mobile number already exists for'){throw 'Cross-list mobile conflict warning missing'}
           Remove-Item validate_beta513.py,beta513-check.js -Force
 
-      - name: Beta 5.17 enrol identity rule checks
+      - name: Beta 5.18 enrol identity rule checks
         shell: powershell
         run: |
           @'
@@ -385,6 +394,44 @@ jobs:
           node beta514_identity_test.js
           if($LASTEXITCODE -ne 0){throw 'Beta 5.17 identity rule checks failed'}
           Remove-Item beta514_identity_test.js -Force
+
+      - name: Frozen roster isolation check
+        shell: powershell
+        run: |
+          @'
+          const current=[
+            {id:'e1',name:'Ajay Kia'},{id:'e2',name:'Amit Kokkar'},{id:'e3',name:'Ankit Kohli'},
+            {id:'e4',name:'Bhai Achive'},{id:'e5',name:'Dhruv Match'},{id:'e6',name:'Divya Gupta'},
+            {id:'e7',name:'Gautam Gulati'},{id:'e8',name:'Hriday'},{id:'e9',name:'Rahul Nitin'},
+            {id:'e10',name:'Raj'},{id:'e11',name:'Sara Jain'}
+          ];
+          const snap={rows:current.slice(0,8).map((x,i)=>({position:i+1,enrollmentId:x.id,name:x.name}))};
+          const mapped=snap.rows.map(r=>current.find(x=>x.id===r.enrollmentId)).filter(Boolean);
+          if(mapped.length!==8)throw new Error('Frozen roster did not map all printed rows');
+          if(mapped.some(x=>['e9','e10','e11'].includes(x.id)))throw new Error('Names not printed on sheet leaked into scan roster');
+          const detected=new Set(['e1','e4','e5','e6']);
+          const checked=mapped.filter(x=>detected.has(x.id)).map(x=>x.name);
+          if(checked.join('|')!=='Ajay Kia|Bhai Achive|Dhruv Match|Divya Gupta')throw new Error('Frozen sheet result mapped wrong names');
+          console.log('FROZEN ROSTER ISOLATION PASS',checked.join(', '));
+          '@ | Set-Content beta518_frozen_roster_test.js -Encoding utf8
+          node beta518_frozen_roster_test.js
+          if($LASTEXITCODE -ne 0){throw 'Frozen roster isolation check failed'}
+          Remove-Item beta518_frozen_roster_test.js -Force
+
+      - name: Beta 5.18 v2 QR Sheet ID round-trip
+        shell: powershell
+        run: |
+          @'
+          const QRCode=require('./src/node_modules/qrcode');
+          const jsQR=require('./src/node_modules/jsqr');
+          function hash(text){let h=2166136261>>>0;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619)}return(h>>>0).toString(16).padStart(8,'0')}
+          const b='batch-level-1',d='2026-07-19',s=1,t=1,x='ASMF7TEST1234',core=[b,d,s,t,x].join('|'),v=hash(core);
+          const url='http://192.168.1.10:8787/?b='+encodeURIComponent(b)+'&d=20260719&s=1&t=1&v='+v+'&x='+encodeURIComponent(x);
+          (async()=>{const data=await QRCode.toDataURL(url,{errorCorrectionLevel:'M',margin:1,width:320}),b64=data.split(',')[1],{PNG}=require('./src/node_modules/pngjs'),png=PNG.sync.read(Buffer.from(b64,'base64')),out=jsQR(new Uint8ClampedArray(png.data),png.width,png.height,{inversionAttempts:'attemptBoth'});if(!out||out.data!==url)throw new Error('v2 Sheet ID QR did not round-trip');const u=new URL(out.data);if(u.searchParams.get('x')!==x)throw new Error('Sheet ID lost from QR');console.log('V2 SHEET ID QR PASS',x)})().catch(e=>{console.error(e);process.exit(1)});
+          '@ | Set-Content beta518_qr.js -Encoding utf8
+          node beta518_qr.js
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.18 v2 QR round-trip failed'}
+          Remove-Item beta518_qr.js -Force
 
       - name: Shadow and ink detector check
         shell: powershell
@@ -612,7 +659,7 @@ jobs:
           npm run dist
           if($LASTEXITCODE -ne 0){throw 'electron-builder inner engine failed'}
           Pop-Location
-          $inner='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.17.exe'
+          $inner='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.18.exe'
           if(!(Test-Path $inner)){throw 'Beta 5.17 inner installer missing'}
           if((Get-Item $inner).Length -lt 50000000){throw 'Inner installer unexpectedly small'}
 
@@ -633,12 +680,12 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force installer-modern\Payload | Out-Null
-          Copy-Item 'src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.17.exe' 'installer-modern\Payload\InnerInstaller.exe' -Force
+          Copy-Item 'src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.18.exe' 'installer-modern\Payload\InnerInstaller.exe' -Force
           Remove-Item installer-modern\publish -Recurse -Force -ErrorAction SilentlyContinue
           dotnet publish installer-modern\AnandaModernInstaller.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o installer-modern\publish
           if($LASTEXITCODE -ne 0){throw 'Modern WPF installer build failed'}
-          $modern='installer-modern\publish\Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.17.exe'
-          if(!(Test-Path $modern)){throw 'Modern Beta 5.17 installer missing'}
+          $modern='installer-modern\publish\Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.18.exe'
+          if(!(Test-Path $modern)){throw 'Modern Beta 5.18 installer missing'}
           $size=(Get-Item $modern).Length
           if($size -lt 100000000){throw "Modern installer unexpectedly small: $size"}
           Write-Host "MODERN INSTALLER PASS - $size bytes"
@@ -656,9 +703,9 @@ jobs:
           Remove-Item asar-files.txt -Force
           Pop-Location
 
-      - name: Upload Beta 5.17 modern installer
+      - name: Upload Beta 5.18 modern installer
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.17-Modern-Installer
-          path: installer-modern/publish/Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.17.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.18-Frozen-Sheet-Modern-Installer
+          path: installer-modern/publish/Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.18.exe
           if-no-files-found: error
