@@ -211,7 +211,7 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Approved artwork generation failed'}
           Remove-Item make_approved_art.py -Force
 
-      - name: Set Beta 5.23 version
+      - name: Set Beta 5.24 version
         shell: powershell
         run: |
           @'
@@ -595,7 +595,7 @@ jobs:
             "@page{size:297mm 210mm;margin:0}",
             "grid-template-columns:13mm 47mm 76mm",
             ".mark{background:#fff!important",
-            "left:202mm;top:11mm;width:21mm",
+            "left:198mm;top:9mm;width:25mm",
             "left:228mm;top:14mm;width:60mm"
           ];
           for(const x of must)if(!b.includes(x))throw new Error('Approved layout mismatch: '+x);
