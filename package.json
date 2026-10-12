@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "prepare:assets": "node scripts/prepare-assets.js",
-    "dist:win": "npm run prepare:assets && electron-builder --win nsis --x64"
+    "dist:win": "npm run prepare:assets && electron-builder --win nsis --x64 --publish never"
   },
   "dependencies": {
     "qrcode": "^1.5.4",
