@@ -334,7 +334,7 @@ jobs:
             'p2v512FixActiveClasses',"switchPage('activeClasses')",
             'PHASE2 BETA513 CURRENT FINAL','PHASE2 BETA514 ENROL PAYMENT IDENTITY','p2v514IdentityConflict','p2v514EnsurePaymentUi','p2v513PermanentMobileIdentityRule',
             'p2v513VipSectionInOutsideList','p2v513-vip-head','P2V513_PRINT',
-            'p2v513Geometry','grid-template-columns:9mm minmax(0,1fr) 18mm','PHASE2 BETA516 SHEET READER','p2v516FindQr','p2v516MarkGeometry','PHASE2 BETA517 ATTENDANCE GENIUS','p2v517InkEvidence','P2V517_DOC','PHASE2 BETA517 ATTENDANCE REPORT','p2v517OpenAttendanceReport','PHASE2 BETA518 FROZEN SHEET SCAN','p2v518FindAnchor','p2v518RowsForSnapshot','attendanceSheetSnapshots','P2V518_DOC','PHASE2 BETA519 A4 LANDSCAPE 30','P2V519_LAYOUT','P2V519_DOC','p2v519Detect','p2v519Pos''PHASE2 BETA520 A4 LANDSCAPE 40','P2V520_LAYOUT','P2V520_DOC','p2v520Detect','p2v520Pos',
+            'p2v513Geometry','grid-template-columns:9mm minmax(0,1fr) 18mm','PHASE2 BETA516 SHEET READER','p2v516FindQr','p2v516MarkGeometry','PHASE2 BETA517 ATTENDANCE GENIUS','p2v517InkEvidence','P2V517_DOC','PHASE2 BETA517 ATTENDANCE REPORT','p2v517OpenAttendanceReport','PHASE2 BETA518 FROZEN SHEET SCAN','p2v518FindAnchor','p2v518RowsForSnapshot','attendanceSheetSnapshots','P2V518_DOC','PHASE2 BETA519 A4 LANDSCAPE 30','P2V519_LAYOUT','P2V519_DOC','p2v519Detect','p2v519Pos','PHASE2 BETA520 A4 LANDSCAPE 40','P2V520_LAYOUT','P2V520_DOC','p2v520Detect','p2v520Pos',
             'classAttendanceHub','classReportsHub','MARK REMAINING ABSENT',
             'p2v510EventLanding','p2v510ClassYear','UPDATE ATTENDANCE',
             'SCAN TO UPLOAD','prepareSheetLink','BATCH WISE','STUDENT WISE'
