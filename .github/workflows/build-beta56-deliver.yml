@@ -437,6 +437,53 @@ jobs:
           if($html -notmatch 'This mobile number already exists for'){throw 'Cross-list mobile conflict warning missing'}
           Remove-Item validate_beta513.py,beta513-check.js -Force
 
+      - name: Prepare Beta 5.24 full source package
+        shell: powershell
+        run: |
+          $out='Beta-5.24-Full-Source'
+          Remove-Item $out -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force $out | Out-Null
+          Copy-Item src "$out\src" -Recurse -Force
+          Remove-Item "$out\src\node_modules" -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item "$out\src\dist" -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item installer-modern "$out\installer-modern" -Recurse -Force
+          Remove-Item "$out\installer-modern\bin","$out\installer-modern\obj","$out\installer-modern\publish","$out\installer-modern\Payload" -Recurse -Force -ErrorAction SilentlyContinue
+          if(Test-Path installer){ Copy-Item installer "$out\installer" -Recurse -Force }
+          if(Test-Path assets){ Copy-Item assets "$out\assets" -Recurse -Force }
+          New-Item -ItemType Directory -Force "$out\.github\workflows" | Out-Null
+          Copy-Item ".github\workflows\build-beta56-deliver.yml" "$out\.github\workflows\build-beta56-deliver.yml" -Force
+          @'
+          ANANDA SANGHA EVENT DESK - BETA 5.24 FULL SOURCE
+          Includes exact generated app source, packaging configuration, build scripts,
+          installer-modern WPF source, legacy installer scripts, and visual assets.
+          Excludes generated node_modules, dist, bin, obj, publish and Payload folders.
+          '@ | Set-Content "$out\SOURCE-PACKAGE-README.txt" -Encoding utf8
+          $required=@(
+            "$out\src\index.html",
+            "$out\src\main.js",
+            "$out\src\preload.js",
+            "$out\src\package.json",
+            "$out\src\ananda-icon.ico",
+            "$out\src\logo-128.png",
+            "$out\src\installer-logo.bmp",
+            "$out\src\installer-header.bmp",
+            "$out\src\installer-sidebar.bmp",
+            "$out\installer-modern\AnandaModernInstaller.csproj",
+            "$out\installer-modern\MainWindow.xaml",
+            "$out\installer-modern\MainWindow.xaml.cs",
+            "$out\installer-modern\app.manifest",
+            "$out\.github\workflows\build-beta56-deliver.yml"
+          )
+          foreach($f in $required){if(!(Test-Path $f)){throw "Missing source handoff file: $f"}}
+          Write-Host 'BETA 5.24 FULL SOURCE PACKAGE PASS'
+
+      - name: Upload Beta 5.24 full source package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Sangha-Event-Desk-Beta-5.24-Full-Source
+          path: Beta-5.24-Full-Source
+          if-no-files-found: error
+
       - name: Beta 5.18 enrol identity rule checks
         shell: powershell
         run: |
