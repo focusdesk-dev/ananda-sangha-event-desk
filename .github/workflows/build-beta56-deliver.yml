@@ -602,7 +602,7 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Could not generate decorated preview fixture'}
 
           @'
-          const {app,BrowserWindow}=require('./src/node_modules/electron');
+          const {app,BrowserWindow}=require('electron');
           const fs=require('fs'),path=require('path');
           app.disableHardwareAcceleration();
           const watchdog=setTimeout(()=>{console.error('RENDER_TIMEOUT');app.exit(2)},15000);
@@ -621,9 +621,9 @@ jobs:
             win.destroy();
             app.exit(0);
           }).catch(e=>{console.error(e);clearTimeout(watchdog);app.exit(1)});
-          '@ | Set-Content beta522_render_preview.js -Encoding utf8
+          '@ | Set-Content src\beta522_render_preview.js -Encoding utf8
           $electron=Resolve-Path .\src\node_modules\electron\dist\electron.exe
-          $proc=Start-Process -FilePath $electron -ArgumentList '.\beta522_render_preview.js' -PassThru -NoNewWindow
+          $proc=Start-Process -FilePath $electron -ArgumentList '.\src\beta522_render_preview.js' -PassThru -NoNewWindow
           if(-not $proc.WaitForExit(25000)){
             try{$proc.Kill($true)}catch{}
             throw 'Rendered preview process timed out'
