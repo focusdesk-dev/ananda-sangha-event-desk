@@ -153,7 +153,8 @@
 </style>
 
     <script src="qrcode-client.js"></script>
-    <script src="jsqr-client.js"></script>
+    <script src="omr-scanner.js"></script>
+<script src="jsqr-client.js"></script>
 </head>
 <body>
 <div class="app">
@@ -5221,25 +5222,21 @@ function p2v58BindPhoneListener(){
       return
     }
 
-    // IMPORTANT ORDER: establish the frozen sheet BEFORE touching the selectors/UI.
-    // This prevents p2v58Render() from loading the full current class or old statuses.
+    // BETA527: Analyse the photographed page before changing UI or attendance.
+    // A failed scan must never blank, replace or overwrite an existing review.
+    const det=p2v521Detect(prep,mapped.out.length);
+    if(!det.ok){
+      if(status)status.innerHTML='<span class="bad">'+esc(det.reason||'Unable to align this photo; previous attendance was kept.')+'</span>';
+      return
+    }
+
+    // Commit only a successful analysed scan into a fresh Unmarked/Present draft.
     p2v518ActiveSnapshot=snap;
     p2v518ActiveRows=mapped.out;
     p2v524ScanSession={snapshot:snap,rows:mapped.out,data};
     p2v524SyncSelectors(b,String(data.date));
-
-    // Every scan starts with a completely clean sheet draft. No previous green
-    // ticks or red absences can leak into machine detection.
     p2v58Draft={};
     p2v518ActiveRows.forEach(r=>p2v58Draft[r.en.id]=null);
-
-    const det=p2v521Detect(prep,p2v518ActiveRows.length);
-    if(!det.ok){
-      p2v58RenderRoster();
-      p2v511ShowReview(0,Number(data.sheet||1),Number(data.totalSheets||1),det.reason);
-      if(status)status.innerHTML='<span class="bad">'+esc(det.reason)+'</span>';
-      return
-    }
 
     let present=0;const detected=[];
     p2v518ActiveRows.forEach((r,i)=>{
@@ -5271,6 +5268,12 @@ function p2v58BindPhoneListener(){
     }
   };
 
+
+    // BETA527: use tested A4 30-name alignment and pen-ink recognition engine.
+    p2v521Detect=function(prep,count){
+      if(!window.AnandaOMR)return{ok:false,reason:'OMR scanner library is missing. No attendance was changed.'};
+      return window.AnandaOMR.detect(prep.img.data,prep.w,prep.h,count);
+    };
 
     updateBackButton();
   resetQuickCounter(true);
@@ -5836,7 +5839,7 @@ function p2v58BindPhoneListener(){
 
       document.querySelectorAll('form button[type="submit"]').forEach(button=>button.title='Save • Alt+S');
       ['addVolunteer','addAttendeeMaster','addKriyaban','addVip','v48AddVolunteer','v36NewRegistration'].forEach(id=>{const button=$(id);if(button)button.title=(button.title?button.title+' • ':'')+'Keyboard: +'});
-      document.title='ANANDA SANGHA GURGAON Event Desk — Phase 2 • 2.0.0-beta.4c';
+      document.title='ANANDA SANGHA GURGAON Event Desk — Phase 2 • 2.0.0-beta.5.27';
     })();
   </script>
 </body>
