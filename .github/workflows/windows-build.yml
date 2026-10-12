@@ -11,7 +11,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check source files
+      - name: Generate app logo and icon
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          $bmp = New-Object System.Drawing.Bitmap(128,128)
+          $g=[System.Drawing.Graphics]::FromImage($bmp)
+          $g.SmoothingMode=[System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+          $g.Clear([System.Drawing.Color]::White)
+          $gold=New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255,195,41))
+          $navy=New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(23,58,120))
+          $g.FillEllipse($gold,4,4,120,120)
+          $g.FillEllipse($navy,16,16,96,96)
+          $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::White,7)
+          $g.DrawArc($pen,32,31,65,67,205,260)
+          $bmp.Save("logo-128.png",[System.Drawing.Imaging.ImageFormat]::Png)
+          $ico=[System.Drawing.Icon]::FromHandle($bmp.GetHicon())
+          $out=[System.IO.File]::Create("ananda-icon.ico")
+          $ico.Save($out)
+          $out.Dispose()
+          $ico.Dispose()
+          $pen.Dispose()
+          $gold.Dispose()
+          $navy.Dispose()
+          $g.Dispose()
+          $bmp.Dispose()
+      - name: Validate source files
         shell: pwsh
         run: |
           foreach ($file in @("package.json","index.html","main.js","preload.js","logo-128.png","ananda-icon.ico","scripts/prepare-assets.js")) {
