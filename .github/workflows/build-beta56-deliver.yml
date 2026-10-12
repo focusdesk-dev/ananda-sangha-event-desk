@@ -605,6 +605,7 @@ jobs:
           const {app,BrowserWindow}=require('./src/node_modules/electron');
           const fs=require('fs'),path=require('path');
           app.disableHardwareAcceleration();
+          const watchdog=setTimeout(()=>{console.error('RENDER_TIMEOUT');app.exit(2)},15000);
           app.whenReady().then(async()=>{
             const win=new BrowserWindow({show:false,width:1100,height:860,webPreferences:{offscreen:true,contextIsolation:true,nodeIntegration:false}});
             await win.loadFile(path.resolve('beta522-preview.html'));
@@ -616,14 +617,19 @@ jobs:
             if(state.display==='none'||state.w<700||state.h<450||state.titleW<150)throw new Error('Preview sheet rendered blank/hidden/too small');
             const img=await win.webContents.capturePage();
             fs.writeFileSync('beta522-preview.png',img.toPNG());
-            win.close();app.quit();
-          }).catch(e=>{console.error(e);app.exit(1)});
+            clearTimeout(watchdog);
+            win.destroy();
+            app.exit(0);
+          }).catch(e=>{console.error(e);clearTimeout(watchdog);app.exit(1)});
           '@ | Set-Content beta522_render_preview.js -Encoding utf8
-          Push-Location src
-          npx electron ..\beta522_render_preview.js
-          $code=$LASTEXITCODE
-          Pop-Location
-          if($code -ne 0){throw 'Rendered preview screenshot check failed'}
+          $electron=Resolve-Path .\src\node_modules\electron\dist\electron.exe
+          $proc=Start-Process -FilePath $electron -ArgumentList '.\beta522_render_preview.js' -PassThru -NoNewWindow
+          if(-not $proc.WaitForExit(25000)){
+            try{$proc.Kill($true)}catch{}
+            throw 'Rendered preview process timed out'
+          }
+          $code=$proc.ExitCode
+          if($code -ne 0){throw "Rendered preview screenshot check failed with exit code $code"}
           if(-not (Test-Path beta522-preview.png)){throw 'Rendered preview screenshot was not produced'}
           $pngSize=(Get-Item beta522-preview.png).Length
           if($pngSize -lt 20000){throw "Rendered preview screenshot suspiciously small: $pngSize"}
