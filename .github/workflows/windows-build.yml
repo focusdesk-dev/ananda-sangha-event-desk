@@ -15,16 +15,16 @@ jobs:
         shell: pwsh
         run: |
           Add-Type -AssemblyName System.Drawing
-          $bmp = New-Object System.Drawing.Bitmap(128,128)
+          $bmp = New-Object System.Drawing.Bitmap(256,256)
           $g=[System.Drawing.Graphics]::FromImage($bmp)
           $g.SmoothingMode=[System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
           $g.Clear([System.Drawing.Color]::White)
           $gold=New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255,195,41))
           $navy=New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(23,58,120))
-          $g.FillEllipse($gold,4,4,120,120)
-          $g.FillEllipse($navy,16,16,96,96)
-          $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::White,7)
-          $g.DrawArc($pen,32,31,65,67,205,260)
+          $g.FillEllipse($gold,8,8,240,240)
+          $g.FillEllipse($navy,32,32,192,192)
+          $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::White,14)
+          $g.DrawArc($pen,64,62,130,134,205,260)
           $bmp.Save("logo-128.png",[System.Drawing.Imaging.ImageFormat]::Png)
           $ico=[System.Drawing.Icon]::FromHandle($bmp.GetHicon())
           $out=[System.IO.File]::Create("ananda-icon.ico")
