@@ -406,7 +406,11 @@ jobs:
           if($html -notmatch 'PHASE2 BETA524 EXACT SCAN REVIEW'){throw 'Beta 5.24 exact scan review missing'}
           if($html -notmatch 'PRINTED SHEET ·'){throw 'Printed-sheet review header missing'}
           if($html -notmatch "scheduled\.includes\(String\(date\)\)\?scheduled:\[String\(date\),\.\.\.scheduled\]"){throw 'Frozen printed date fallback missing'}
-          if($html -match "p2v511ApplyPhotoBlob=async function[\s\S]{0,4500}p2v58ApplyQrRaw\(raw,name\)"){throw 'Final scanner must not render/load current roster through p2v58ApplyQrRaw'}
+          $b524Start=$html.IndexOf('PHASE2 BETA524 EXACT SCAN REVIEW')
+          $b524End=$html.IndexOf('updateBackButton();',$b524Start)
+          if($b524Start -lt 0 -or $b524End -lt 0){throw 'Could not isolate Beta 5.24 final scanner block'}
+          $b524=$html.Substring($b524Start,$b524End-$b524Start)
+          if($b524 -match "p2v58ApplyQrRaw\(raw,name\)"){throw 'Final Beta 5.24 scanner still renders/loads current roster through p2v58ApplyQrRaw'}
           if($main -notmatch "shell, dialog \} = require\('electron'\)"){throw 'Save PDF dialog import missing'}
           if($main -notmatch "anandaPrint'\)\.onclick=.*ananda-preview://print"){throw 'Print button route missing'}
           if($main -notmatch "anandaSave'\)\.onclick=.*ananda-preview://save"){throw 'Save PDF button route missing'}
