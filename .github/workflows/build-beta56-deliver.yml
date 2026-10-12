@@ -631,10 +631,10 @@ jobs:
             "p2v518ActiveRows.forEach(r=>p2v58Draft[r.en.id]=null)",
             "only the '+p2v518ActiveRows.length+' names actually printed on this sheet",
             "scheduled.includes(String(date))?scheduled:[String(date),...scheduled]",
-            "PRINTED SHEET",
-            "left:198mm;top:9mm;width:25mm"
+            "PRINTED SHEET"
           ];
           for(const x of must)if(!b.includes(x))throw new Error('Missing exact-scan safeguard: '+x);
+          if(!h.includes("left:198mm;top:9mm;width:25mm"))throw new Error('Larger 25mm printed QR geometry missing');
           if(b.includes('await p2v58ApplyQrRaw(raw,name)'))throw new Error('Final scanner still loads current roster before frozen snapshot');
           // The user's marked test sheet: 01,05,09,15 on left and 22,26,30 on right.
           const pos=n=>n<=15?['L',n]:['R',n-15];
