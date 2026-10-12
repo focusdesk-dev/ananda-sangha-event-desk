@@ -322,6 +322,10 @@ jobs:
           $main=Get-Content src\main.js -Raw
           if($main -notmatch 'BETA524 PREVIEW ACTION BRIDGE'){throw 'Beta 5.24 preview action marker missing'}
           if(-not (Test-Path src\preview-preload.js)){throw 'Beta 5.24 preview preload missing'}
+          python src/build-beta524-clean-preview.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.24 clean preview decorator patch failed'}
+          $main=Get-Content src\main.js -Raw
+          if($main -notmatch 'BETA524 CLEAN PREVIEW DECORATOR'){throw 'Beta 5.24 clean preview decorator marker missing'}
 
       - name: Restore Beta 5.24 version after final patches
         shell: powershell
@@ -397,6 +401,8 @@ jobs:
           if($main -notmatch 'BETA522 PREVIEW FAILSAFE'){throw 'Beta 5.22 preview failsafe marker missing'}
           if($main -notmatch 'BETA523 TRUE PAGE BY PAGE PREVIEW'){throw 'Beta 5.23 page-by-page marker missing'}
           if($main -notmatch 'BETA524 PREVIEW ACTION BRIDGE'){throw 'Beta 5.24 action bridge missing'}
+          if($main -notmatch 'BETA524 CLEAN PREVIEW DECORATOR'){throw 'Clean preview decorator missing'}
+          if($main -match "location\.href='ananda-preview://"){throw 'Legacy custom-scheme preview actions must not remain'}
           if($main -notmatch "preload:path\.join\(__dirname,'preview-preload\.js'\)"){throw 'Preview BrowserWindow preload missing'}
           if($main -notmatch "ipcMain\.handle\('ananda-preview-action'"){throw 'Preview action IPC handler missing'}
           $previewPre=Get-Content src\preview-preload.js -Raw
@@ -601,6 +607,28 @@ jobs:
           node beta521_exact_test.js
           if($LASTEXITCODE -ne 0){throw 'Beta 5.21 exact approved sheet check failed'}
           Remove-Item beta521_exact_test.js -Force
+
+      - name: Beta 5.24 generated preview script syntax check
+        shell: powershell
+        run: |
+          @'
+          const fs=require('fs');
+          const main=fs.readFileSync('src/main.js','utf8');
+          const a=main.indexOf('function anandaDecoratePrintPreview');
+          const b=main.indexOf('// BETA524 PREVIEW ACTION BRIDGE',a);
+          if(a<0||b<0)throw new Error('Clean preview decorator bounds missing');
+          eval(main.slice(a,b));
+          const source='<!doctype html><html><head><style>@page{size:297mm 210mm;margin:0}.sheet{width:297mm;height:210mm}</style></head><body><section class="sheet">TEST</section></body></html>';
+          const out=anandaDecoratePrintPreview(source);
+          const scripts=[...out.matchAll(/<script>([\s\S]*?)<\/script>/gi)].map(x=>x[1]);
+          if(scripts.length!==1)throw new Error('Expected exactly one generated preview script, got '+scripts.length);
+          fs.writeFileSync('beta524_generated_preview_script.js',scripts[0],'utf8');
+          '@ | Set-Content beta524_extract_preview.js -Encoding utf8
+          node beta524_extract_preview.js
+          if($LASTEXITCODE -ne 0){throw 'Could not generate preview script for syntax test'}
+          node --check beta524_generated_preview_script.js
+          if($LASTEXITCODE -ne 0){throw 'Generated preview inline JavaScript has syntax errors'}
+          Write-Host 'BETA 5.24 GENERATED PREVIEW SCRIPT SYNTAX PASS'
 
       - name: Beta 5.23 actual two-page preview check
         shell: powershell
