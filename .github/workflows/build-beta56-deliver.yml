@@ -399,6 +399,11 @@ jobs:
           if($main -notmatch 'BETA521 APPROVED LANDSCAPE PREVIEW'){throw 'Beta 5.21 preview calibration marker missing'}
           if($main -notmatch 'BETA522 PREVIEW FAILSAFE'){throw 'Beta 5.22 preview failsafe marker missing'}
           if($main -notmatch 'BETA523 TRUE PAGE BY PAGE PREVIEW'){throw 'Beta 5.23 page-by-page marker missing'}
+          if($main -notmatch "shell, dialog \} = require\('electron'\)"){throw 'Save PDF dialog import missing'}
+          if($main -notmatch "anandaPrint'\)\.onclick=.*ananda-preview://print"){throw 'Print button route missing'}
+          if($main -notmatch "anandaSave'\)\.onclick=.*ananda-preview://save"){throw 'Save PDF button route missing'}
+          if($main -notmatch "anandaClose'\)\.onclick=.*ananda-preview://close"){throw 'Close button route missing'}
+          if($main -match "fitCurrent\)\)document\.getElementById"){throw 'Preview toolbar script separator missing'}
           if($main -notmatch 'ananda-preview-page-active'){throw 'Active preview page wrapper missing'}
           if($main -notmatch "pages\.forEach\(\(p,i\)=>p\.classList\.toggle\('ananda-preview-page-active'"){throw 'Page-by-page toggle logic missing'}
           if($main -match 'display:none!important;background:#fff;margin:0 auto 22px'){throw 'Fragile hidden-sheet preview CSS must not remain'}
@@ -634,6 +639,8 @@ jobs:
             const state1=await win.webContents.executeJavaScript("(()=>{const p=[...document.querySelectorAll('.ananda-preview-page')],m=document.querySelector('.sheetmeta b'),mark=document.querySelector('.mark');return{pages:p.length,p1:getComputedStyle(p[0]).display,p2:getComputedStyle(p[1]).display,metaW:m.getBoundingClientRect().width,metaText:m.textContent,markRight:getComputedStyle(mark).borderRightWidth,counter:document.getElementById('anandaCounter').textContent}})()");
             console.log('PAGE1',JSON.stringify(state1));
             if(state1.pages!==2||state1.p1==='none'||state1.p2!=='none')throw new Error('Preview must show page 1 only');
+            const controls=await win.webContents.executeJavaScript("(()=>['anandaPrev','anandaNext','anandaSave','anandaPrint','anandaClose'].map(id=>({id,ok:!!document.getElementById(id),bound:typeof document.getElementById(id)?.onclick==='function'})))()");
+            if(controls.some(x=>!x.ok||!x.bound))throw new Error('Toolbar controls are not bound: '+JSON.stringify(controls));
             if(state1.counter.trim()!=='1 / 2')throw new Error('Page counter must start at 1 / 2');
             if(state1.metaW<80||!state1.metaText.includes('AS-2026'))throw new Error('Sheet metadata is clipped');
             if(parseFloat(state1.markRight)<=0)throw new Error('Attendance block is open on the right');
