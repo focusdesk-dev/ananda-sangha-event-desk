@@ -387,7 +387,7 @@ jobs:
           if($main -notmatch "transform='scale\('"){throw 'Preview transform scaling missing'}
           if($main -match 'max-width:210mm'){throw 'Portrait 210mm preview clamp must not remain'}
           if($main -notmatch 'width:297mm!important;height:210mm!important'){throw 'Landscape preview physical dimensions missing'}
-          if($main -notmatch 'requestAnimationFrame\(fit\)'){throw 'Landscape preview fit-to-window logic missing'}
+          if($main -notmatch 'requestAnimationFrame\(fitAll\)'){throw 'Landscape preview fit-to-window logic missing'}
           if($main -notmatch 'landscape:true'){throw 'Native landscape print option missing'}
           if($main -match "printToPDF\(\{printBackground:true,preferCSSPageSize:true,pageSize:'A4'\}\)"){throw 'PDF pageSize portrait override must be removed'}
           if($main -notmatch "searchParams\.get\('l'\)"){throw 'A4 landscape layout code missing from compact QR parser'}
