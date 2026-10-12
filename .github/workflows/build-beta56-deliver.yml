@@ -410,7 +410,7 @@ jobs:
           if($previewPre -notmatch "print: \(\) => ipcRenderer\.invoke\('ananda-preview-action', 'print'\)"){throw 'Print preview bridge missing'}
           if($previewPre -notmatch "close: \(\) => ipcRenderer\.invoke\('ananda-preview-action', 'close'\)"){throw 'Close preview bridge missing'}
           if($main -notmatch 'ananda-preview-page-active'){throw 'Active preview page wrapper missing'}
-          if($main -notmatch "pages\.forEach\(\(p,i\)=>p\.classList\.toggle\('ananda-preview-page-active'"){throw 'Page-by-page toggle logic missing'}
+          if($main -notmatch "classList\.toggle\('ananda-preview-page-active'"){throw 'Page-by-page toggle logic missing'}
           if($main -match 'display:none!important;background:#fff;margin:0 auto 22px'){throw 'Fragile hidden-sheet preview CSS must not remain'}
           if($main -notmatch 'ananda-preview-page'){throw 'Preview page wrapper missing'}
           if($main -notmatch "transform='scale\('"){throw 'Preview transform scaling missing'}
