@@ -1,12 +1,12 @@
-name: Build Phase 2 Windows Beta 5.23 Page Preview Fixed
+name: Build Phase 2 Windows Beta 5.24 Preview Actions Fixed
 
 on:
   workflow_dispatch:
   push:
-    branches: [phase2-beta523-preview-meta-borders]
+    branches: [phase2-beta524-preview-actions]
 
 jobs:
-  build-windows-beta523:
+  build-windows-beta524:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -211,18 +211,18 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Approved artwork generation failed'}
           Remove-Item make_approved_art.py -Force
 
-      - name: Set Beta 5.23 version
+      - name: Set Beta 5.24 version
         shell: powershell
         run: |
           @'
           import json,pathlib,re
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.23'
+          d['version']='2.0.0-beta.5.24'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.23';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.24';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
@@ -317,26 +317,31 @@ jobs:
           $main=Get-Content src\main.js -Raw
           if($html -notmatch 'PHASE2 BETA523 PAGE BY PAGE PREVIEW'){throw 'Beta 5.23 renderer marker missing'}
           if($main -notmatch 'BETA523 TRUE PAGE BY PAGE PREVIEW'){throw 'Beta 5.23 preview marker missing'}
+          python src/build-beta524-preview-actions.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.24 preview actions patch failed'}
+          $main=Get-Content src\main.js -Raw
+          if($main -notmatch 'BETA524 PREVIEW ACTION BRIDGE'){throw 'Beta 5.24 preview action marker missing'}
+          if(-not (Test-Path src\preview-preload.js)){throw 'Beta 5.24 preview preload missing'}
 
-      - name: Restore Beta 5.23 version after final patches
+      - name: Restore Beta 5.24 version after final patches
         shell: powershell
         run: |
           @'
           import json,pathlib,re
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.23'
+          d['version']='2.0.0-beta.5.24'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.23';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.24';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
-          '@ | Set-Content restore_beta523_version.py -Encoding utf8
-          python restore_beta523_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not restore Beta 5.23 version after final patches'}
-          Remove-Item restore_beta523_version.py -Force
+          '@ | Set-Content restore_beta524_version.py -Encoding utf8
+          python restore_beta524_version.py
+          if($LASTEXITCODE -ne 0){throw 'Could not restore Beta 5.24 version after final patches'}
+          Remove-Item restore_beta524_version.py -Force
 
-      - name: Validate Beta 5.23 source and corrections
+      - name: Validate Beta 5.24 source and corrections
         shell: powershell
         run: |
           @'
@@ -356,24 +361,26 @@ jobs:
             'SCAN TO UPLOAD','prepareSheetLink','BATCH WISE','STUDENT WISE'
           ]
           missing=[x for x in required if x not in html]
-          if missing: raise SystemExit('Missing Beta 5.23 markers: '+repr(missing))
+          if missing: raise SystemExit('Missing Beta 5.24 markers: '+repr(missing))
           scripts=re.findall(r'<script>(.*?)</script>',html,re.S|re.I)
           if not scripts: raise SystemExit('No app scripts found')
           Path('beta513-check.js').write_text('\n'.join(scripts),encoding='utf-8')
           pkg=json.loads(Path('src/package.json').read_text(encoding='utf-8'))
           nsis=pkg['build']['nsis']
-          if pkg['version']!='2.0.0-beta.5.23': raise SystemExit('Wrong package version')
+          if pkg['version']!='2.0.0-beta.5.24': raise SystemExit('Wrong package version')
           if nsis.get('oneClick') is not False or nsis.get('perMachine') is not True:
               raise SystemExit('Installer must be assisted all-users mode')
           '@ | Set-Content validate_beta513.py -Encoding utf8
           python validate_beta513.py
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.23 source marker validation failed'}
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.24 source marker validation failed'}
           node --check beta513-check.js
           if($LASTEXITCODE -ne 0){throw 'Beta 5.13 renderer JavaScript syntax failed'}
           node --check src/main.js
           if($LASTEXITCODE -ne 0){throw 'main.js syntax failed'}
           node --check src/preload.js
           if($LASTEXITCODE -ne 0){throw 'preload.js syntax failed'}
+          node --check src/preview-preload.js
+          if($LASTEXITCODE -ne 0){throw 'preview-preload.js syntax failed'}
           $html=Get-Content src\index.html -Raw
           $main=Get-Content src\main.js -Raw
           $pre=Get-Content src\preload.js -Raw
@@ -389,6 +396,13 @@ jobs:
           if($main -notmatch 'BETA521 APPROVED LANDSCAPE PREVIEW'){throw 'Beta 5.21 preview calibration marker missing'}
           if($main -notmatch 'BETA522 PREVIEW FAILSAFE'){throw 'Beta 5.22 preview failsafe marker missing'}
           if($main -notmatch 'BETA523 TRUE PAGE BY PAGE PREVIEW'){throw 'Beta 5.23 page-by-page marker missing'}
+          if($main -notmatch 'BETA524 PREVIEW ACTION BRIDGE'){throw 'Beta 5.24 action bridge missing'}
+          if($main -notmatch "preload:path\.join\(__dirname,'preview-preload\.js'\)"){throw 'Preview BrowserWindow preload missing'}
+          if($main -notmatch "ipcMain\.handle\('ananda-preview-action'"){throw 'Preview action IPC handler missing'}
+          $previewPre=Get-Content src\preview-preload.js -Raw
+          if($previewPre -notmatch "savePdf: \(\) => ipcRenderer\.invoke\('ananda-preview-action', 'save'\)"){throw 'Save PDF preview bridge missing'}
+          if($previewPre -notmatch "print: \(\) => ipcRenderer\.invoke\('ananda-preview-action', 'print'\)"){throw 'Print preview bridge missing'}
+          if($previewPre -notmatch "close: \(\) => ipcRenderer\.invoke\('ananda-preview-action', 'close'\)"){throw 'Close preview bridge missing'}
           if($main -notmatch 'ananda-preview-page-active'){throw 'Active preview page wrapper missing'}
           if($main -notmatch "pages\.forEach\(\(p,i\)=>p\.classList\.toggle\('ananda-preview-page-active'"){throw 'Page-by-page toggle logic missing'}
           if($main -match 'display:none!important;background:#fff;margin:0 auto 22px'){throw 'Fragile hidden-sheet preview CSS must not remain'}
@@ -396,7 +410,7 @@ jobs:
           if($main -notmatch "transform='scale\('"){throw 'Preview transform scaling missing'}
           if($main -match 'max-width:210mm'){throw 'Portrait 210mm preview clamp must not remain'}
           if($main -notmatch 'width:297mm!important;height:210mm!important'){throw 'Landscape preview physical dimensions missing'}
-          if($main -notmatch 'requestAnimationFrame\(fitAll\)'){throw 'Landscape preview fit-to-window logic missing'}
+          if($main -notmatch 'requestAnimationFrame\(fitCurrent\)'){throw 'Landscape preview fit-to-window logic missing'}
           if($main -notmatch 'landscape:true'){throw 'Native landscape print option missing'}
           if($main -match "printToPDF\(\{printBackground:true,preferCSSPageSize:true,pageSize:'A4'\}\)"){throw 'PDF pageSize portrait override must be removed'}
           if($main -notmatch "searchParams\.get\('l'\)"){throw 'A4 landscape layout code missing from compact QR parser'}
@@ -655,6 +669,34 @@ jobs:
             beta523-page2.png
           if-no-files-found: error
 
+      - name: Beta 5.24 preview buttons IPC check
+        shell: powershell
+        run: |
+          @'
+          const {app,BrowserWindow,ipcMain}=require('electron');
+          const fs=require('fs'),path=require('path');
+          app.disableHardwareAcceleration();
+          const watchdog=setTimeout(()=>app.exit(2),15000);
+          const actions=[];
+          ipcMain.handle('ananda-preview-action',async(_event,action)=>{actions.push(action);return{ok:true}});
+          app.whenReady().then(async()=>{
+            const win=new BrowserWindow({show:false,width:1100,height:850,webPreferences:{preload:path.resolve('src/preview-preload.js'),contextIsolation:true,nodeIntegration:false}});
+            await win.loadFile(path.resolve('beta523-preview.html'));
+            await new Promise(r=>setTimeout(r,900));
+            const bridge=await win.webContents.executeJavaScript("({has:!!window.anandaPreview,print:typeof window.anandaPreview?.print,save:typeof window.anandaPreview?.savePdf,close:typeof window.anandaPreview?.close})");
+            if(!bridge.has||bridge.print!=='function'||bridge.save!=='function'||bridge.close!=='function')throw new Error('Preview preload bridge is not exposed');
+            await win.webContents.executeJavaScript("document.getElementById('anandaSave').click();document.getElementById('anandaPrint').click();document.getElementById('anandaClose').click();");
+            await new Promise(r=>setTimeout(r,600));
+            console.log('PREVIEW_ACTIONS',JSON.stringify(actions));
+            if(actions.join('|')!=='save|print|close')throw new Error('Preview buttons did not invoke Save, Print, Close in order');
+            clearTimeout(watchdog);win.destroy();app.exit(0);
+          }).catch(e=>{console.error(e);clearTimeout(watchdog);app.exit(1)});
+          '@ | Set-Content src\beta524_preview_buttons.js -Encoding utf8
+          $electron=Resolve-Path .\src\node_modules\electron\dist\electron.exe
+          $proc=Start-Process -FilePath $electron -ArgumentList '.\src\beta524_preview_buttons.js' -PassThru -NoNewWindow
+          if(-not $proc.WaitForExit(25000)){try{$proc.Kill($true)}catch{};throw 'Preview button IPC test timed out'}
+          Write-Host 'BETA 5.24 PREVIEW BUTTONS PASS'
+
       - name: Beta 5.19 phone close check
         shell: powershell
         run: |
@@ -890,7 +932,7 @@ jobs:
           npm run dist
           if($LASTEXITCODE -ne 0){throw 'electron-builder inner engine failed'}
           Pop-Location
-          $inner='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.23.exe'
+          $inner='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.24.exe'
           if(!(Test-Path $inner)){throw 'Beta 5.17 inner installer missing'}
           if((Get-Item $inner).Length -lt 50000000){throw 'Inner installer unexpectedly small'}
 
@@ -911,12 +953,12 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force installer-modern\Payload | Out-Null
-          Copy-Item 'src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.23.exe' 'installer-modern\Payload\InnerInstaller.exe' -Force
+          Copy-Item 'src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.24.exe' 'installer-modern\Payload\InnerInstaller.exe' -Force
           Remove-Item installer-modern\publish -Recurse -Force -ErrorAction SilentlyContinue
           dotnet publish installer-modern\AnandaModernInstaller.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o installer-modern\publish
           if($LASTEXITCODE -ne 0){throw 'Modern WPF installer build failed'}
-          $modern='installer-modern\publish\Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.23.exe'
-          if(!(Test-Path $modern)){throw 'Modern Beta 5.23 installer missing'}
+          $modern='installer-modern\publish\Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.24.exe'
+          if(!(Test-Path $modern)){throw 'Modern Beta 5.24 installer missing'}
           $size=(Get-Item $modern).Length
           if($size -lt 100000000){throw "Modern installer unexpectedly small: $size"}
           Write-Host "MODERN INSTALLER PASS - $size bytes"
@@ -931,12 +973,13 @@ jobs:
           if(-not ($files -contains '\jsqr-client.js')){throw 'Packaged jsqr-client.js missing from app.asar'}
           if(-not ($files -contains '\index.html')){throw 'Packaged index.html missing from app.asar'}
           if(-not ($files -contains '\logo-128.png')){throw 'Packaged approved renderer logo missing from app.asar'}
+          if(-not ($files -contains '\preview-preload.js')){throw 'Packaged preview-preload.js missing from app.asar'}
           Remove-Item asar-files.txt -Force
           Pop-Location
 
-      - name: Upload Beta 5.23 modern installer
+      - name: Upload Beta 5.24 modern installer
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.23-Page-Preview-Fixed-Modern-Installer
-          path: installer-modern/publish/Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.23.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.24-Preview-Actions-Fixed-Modern-Installer
+          path: installer-modern/publish/Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.24.exe
           if-no-files-found: error
