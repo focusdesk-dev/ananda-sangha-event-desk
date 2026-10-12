@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.26 Setup
+name: Build Ananda Event Desk beta 5.27 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-26-windows-installer]
+    branches: [beta-5-27-omr-attendance]
 jobs:
   windows-installer:
     runs-on: windows-latest
@@ -11,41 +11,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Generate app logo and icon
+      - name: Restore original Ananda logo and build Windows icon
         shell: pwsh
         run: |
           Add-Type -AssemblyName System.Drawing
-          $bmp = New-Object System.Drawing.Bitmap(256,256)
-          $g=[System.Drawing.Graphics]::FromImage($bmp)
-          $g.SmoothingMode=[System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-          $g.Clear([System.Drawing.Color]::White)
-          $gold=New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255,195,41))
-          $navy=New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(23,58,120))
-          $g.FillEllipse($gold,8,8,240,240)
-          $g.FillEllipse($navy,32,32,192,192)
-          $pen=New-Object System.Drawing.Pen([System.Drawing.Color]::White,14)
-          $g.DrawArc($pen,64,62,130,134,205,260)
-          $bmp.Save("logo-128.png",[System.Drawing.Imaging.ImageFormat]::Png)
-          $ico=[System.Drawing.Icon]::FromHandle($bmp.GetHicon())
-          $out=[System.IO.File]::Create("ananda-icon.ico")
-          $ico.Save($out)
+          $text = [IO.File]::ReadAllText("assets/original-ananda-logo.png.base64").Trim()
+          [IO.File]::WriteAllBytes("logo-128.png", [Convert]::FromBase64String($text))
+          $image = [Drawing.Image]::FromFile((Resolve-Path "logo-128.png").Path)
+          $bitmap = New-Object System.Drawing.Bitmap(256, 256)
+          $graphics = [Drawing.Graphics]::FromImage($bitmap)
+          $graphics.Clear([Drawing.Color]::Transparent)
+          $graphics.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+          $graphics.DrawImage($image, 0, 0, 256, 256)
+          $icon = [Drawing.Icon]::FromHandle($bitmap.GetHicon())
+          $out = [IO.File]::Create("ananda-icon.ico")
+          $icon.Save($out)
           $out.Dispose()
-          $ico.Dispose()
-          $pen.Dispose()
-          $gold.Dispose()
-          $navy.Dispose()
-          $g.Dispose()
-          $bmp.Dispose()
+          $icon.Dispose()
+          $graphics.Dispose()
+          $bitmap.Dispose()
+          $image.Dispose()
       - name: Validate source files
         shell: pwsh
         run: |
-          foreach ($file in @("package.json","index.html","main.js","preload.js","logo-128.png","ananda-icon.ico","scripts/prepare-assets.js")) {
+          foreach ($file in @("package.json","index.html","main.js","preload.js","omr-scanner.js","logo-128.png","ananda-icon.ico","scripts/prepare-assets.js")) {
             if (!(Test-Path $file)) { throw "Missing source file: $file" }
           }
       - run: npm install
       - run: npm run dist:win
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.26-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.27-Setup
           path: dist/*.exe
           if-no-files-found: error
