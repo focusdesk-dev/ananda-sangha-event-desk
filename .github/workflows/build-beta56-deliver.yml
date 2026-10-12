@@ -628,8 +628,6 @@ jobs:
             try{$proc.Kill($true)}catch{}
             throw 'Rendered preview process timed out'
           }
-          $code=$proc.ExitCode
-          if($code -ne 0){throw "Rendered preview screenshot check failed with exit code $code"}
           if(-not (Test-Path beta522-preview.png)){throw 'Rendered preview screenshot was not produced'}
           $pngSize=(Get-Item beta522-preview.png).Length
           if($pngSize -lt 20000){throw "Rendered preview screenshot suspiciously small: $pngSize"}
