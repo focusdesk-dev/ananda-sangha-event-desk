@@ -1,12 +1,12 @@
-name: Build Phase 2 Windows Beta 5.21 Approved A4 30
+name: Build Phase 2 Windows Beta 5.22 Preview Verified
 
 on:
   workflow_dispatch:
   push:
-    branches: [phase2-beta521-approved-a4-30]
+    branches: [phase2-beta522-preview-verified]
 
 jobs:
-  build-windows-beta521:
+  build-windows-beta522:
     runs-on: windows-latest
     permissions:
       contents: read
@@ -211,18 +211,18 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Approved artwork generation failed'}
           Remove-Item make_approved_art.py -Force
 
-      - name: Set Beta 5.21 version
+      - name: Set Beta 5.22 version
         shell: powershell
         run: |
           @'
           import json,pathlib,re
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.21'
+          d['version']='2.0.0-beta.5.22'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.21';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.22';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
           '@ | Set-Content set_version.py -Encoding utf8
           python set_version.py
@@ -307,26 +307,30 @@ jobs:
           $main=Get-Content src\main.js -Raw
           if($html -notmatch 'PHASE2 BETA521 APPROVED A4 30'){throw 'Beta 5.21 approved sheet marker missing'}
           if($main -notmatch 'BETA521 APPROVED LANDSCAPE PREVIEW'){throw 'Beta 5.21 preview calibration marker missing'}
+          python src/build-beta522-preview-failsafe.py
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.22 preview failsafe patch failed'}
+          $main=Get-Content src\main.js -Raw
+          if($main -notmatch 'BETA522 PREVIEW FAILSAFE'){throw 'Beta 5.22 preview marker missing'}
 
-      - name: Restore Beta 5.21 version after final patches
+      - name: Restore Beta 5.22 version after final patches
         shell: powershell
         run: |
           @'
           import json,pathlib,re
           p=pathlib.Path('src/package.json')
           d=json.loads(p.read_text(encoding='utf-8'))
-          d['version']='2.0.0-beta.5.21'
+          d['version']='2.0.0-beta.5.22'
           p.write_text(json.dumps(d,indent=2)+'\n',encoding='utf-8')
           m=pathlib.Path('src/main.js')
           ms=m.read_text(encoding='utf-8')
-          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.21';",ms,count=1)
+          ms=re.sub(r"const APP_VERSION = '[^']+';","const APP_VERSION = '2.0.0-beta.5.22';",ms,count=1)
           m.write_text(ms,encoding='utf-8')
-          '@ | Set-Content restore_beta521_version.py -Encoding utf8
-          python restore_beta521_version.py
-          if($LASTEXITCODE -ne 0){throw 'Could not restore Beta 5.21 version after final patches'}
-          Remove-Item restore_beta521_version.py -Force
+          '@ | Set-Content restore_beta522_version.py -Encoding utf8
+          python restore_beta522_version.py
+          if($LASTEXITCODE -ne 0){throw 'Could not restore Beta 5.22 version after final patches'}
+          Remove-Item restore_beta522_version.py -Force
 
-      - name: Validate Beta 5.21 source and corrections
+      - name: Validate Beta 5.22 source and corrections
         shell: powershell
         run: |
           @'
@@ -346,18 +350,18 @@ jobs:
             'SCAN TO UPLOAD','prepareSheetLink','BATCH WISE','STUDENT WISE'
           ]
           missing=[x for x in required if x not in html]
-          if missing: raise SystemExit('Missing Beta 5.21 markers: '+repr(missing))
+          if missing: raise SystemExit('Missing Beta 5.22 markers: '+repr(missing))
           scripts=re.findall(r'<script>(.*?)</script>',html,re.S|re.I)
           if not scripts: raise SystemExit('No app scripts found')
           Path('beta513-check.js').write_text('\n'.join(scripts),encoding='utf-8')
           pkg=json.loads(Path('src/package.json').read_text(encoding='utf-8'))
           nsis=pkg['build']['nsis']
-          if pkg['version']!='2.0.0-beta.5.21': raise SystemExit('Wrong package version')
+          if pkg['version']!='2.0.0-beta.5.22': raise SystemExit('Wrong package version')
           if nsis.get('oneClick') is not False or nsis.get('perMachine') is not True:
               raise SystemExit('Installer must be assisted all-users mode')
           '@ | Set-Content validate_beta513.py -Encoding utf8
           python validate_beta513.py
-          if($LASTEXITCODE -ne 0){throw 'Beta 5.21 source marker validation failed'}
+          if($LASTEXITCODE -ne 0){throw 'Beta 5.22 source marker validation failed'}
           node --check beta513-check.js
           if($LASTEXITCODE -ne 0){throw 'Beta 5.13 renderer JavaScript syntax failed'}
           node --check src/main.js
@@ -377,6 +381,10 @@ jobs:
           if($main -notmatch 'BETA519 LANDSCAPE SHEET LINK'){throw 'Beta 5.19 phone/link marker missing'}
           if($main -notmatch 'BETA520 A4L40 SHEET LINK'){throw 'Beta 5.20 phone/link marker missing'}
           if($main -notmatch 'BETA521 APPROVED LANDSCAPE PREVIEW'){throw 'Beta 5.21 preview calibration marker missing'}
+          if($main -notmatch 'BETA522 PREVIEW FAILSAFE'){throw 'Beta 5.22 preview failsafe marker missing'}
+          if($main -match 'display:none!important;background:#fff;margin:0 auto 22px'){throw 'Fragile hidden-sheet preview CSS must not remain'}
+          if($main -notmatch 'ananda-preview-page'){throw 'Preview page wrapper missing'}
+          if($main -notmatch "transform='scale\('"){throw 'Preview transform scaling missing'}
           if($main -match 'max-width:210mm'){throw 'Portrait 210mm preview clamp must not remain'}
           if($main -notmatch 'width:297mm!important;height:210mm!important'){throw 'Landscape preview physical dimensions missing'}
           if($main -notmatch 'requestAnimationFrame\(fit\)'){throw 'Landscape preview fit-to-window logic missing'}
@@ -570,6 +578,63 @@ jobs:
           node beta521_exact_test.js
           if($LASTEXITCODE -ne 0){throw 'Beta 5.21 exact approved sheet check failed'}
           Remove-Item beta521_exact_test.js -Force
+
+      - name: Beta 5.22 rendered preview screenshot check
+        shell: powershell
+        run: |
+          @'
+          const fs=require('fs');
+          const main=fs.readFileSync('src/main.js','utf8');
+          const a=main.indexOf('function anandaDecoratePrintPreview');
+          const b=main.indexOf("ipcMain.handle('ananda-native-print-html'",a);
+          if(a<0||b<0)throw new Error('Preview decorator function not found');
+          const fn=main.slice(a,b);
+          eval(fn);
+          const rows=Array.from({length:30},(_,i)=>{
+            const n=String(i+1).padStart(2,'0');
+            const left=i<15?9:152,row=i<15?i:i-15,top=48+row*9.4;
+            return '<div class="att-row" style="left:'+left+'mm;top:'+top+'mm;height:9.4mm"><span class="num">'+n+'</span><span class="nm">Student '+n+'</span><span class="mark"></span></div>';
+          }).join('');
+          const source='<!doctype html><html><head><meta charset="utf-8"><style>@page{size:297mm 210mm;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial}.sheet{position:relative;width:297mm;height:210mm;background:#fff;overflow:hidden}.fid{position:absolute;width:6mm;height:6mm;border:1mm solid #123f7d}.tl{left:8mm;top:8mm}.tr{right:8mm;top:8mm}.bl{left:8mm;bottom:8mm}.br{right:8mm;bottom:8mm}.brand{position:absolute;left:18mm;top:14mm;font-weight:700;font-size:20px;color:#073a88}.title{position:absolute;left:105mm;top:18mm;font-size:28px;font-weight:800;color:#073a88}.qr{position:absolute;left:202mm;top:11mm;width:21mm;height:21mm;background:repeating-conic-gradient(#000 0 25%,#fff 0 50%) 50%/4mm 4mm}.meta{position:absolute;left:228mm;top:14mm;color:#073a88;font-size:12px}.head{position:absolute;top:39mm;width:136mm;height:9mm;background:#00519b;color:#fff;display:grid;grid-template-columns:13mm 47mm 76mm;align-items:center;font-weight:700}.head.left{left:9mm}.head.right{left:152mm}.att-row{position:absolute;width:136mm;display:grid;grid-template-columns:13mm 47mm 76mm;border-bottom:1px solid #9cc7ed;border-left:1px solid #9cc7ed;border-right:1px solid #9cc7ed}.num,.nm{display:flex;align-items:center}.num{justify-content:center}.nm{padding-left:4mm;background:#f0f8ff}.mark{background:#fff;border-left:1px solid #9cc7ed}</style></head><body><section class="sheet"><i class="fid tl"></i><i class="fid tr"></i><i class="fid bl"></i><i class="fid br"></i><div class="brand">ANANDA SANGHA</div><div class="title">CLASS ATTENDANCE</div><div class="qr"></div><div class="meta">Sheet ID : TEST<br>Level : 1<br>Batch : 1<br>Date : 19 Jul 2026</div><div class="head left"><span>#</span><span>NAME</span><span>ATTENDANCE</span></div><div class="head right"><span>#</span><span>NAME</span><span>ATTENDANCE</span></div>'+rows+'</section></body></html>';
+          fs.writeFileSync('beta522-preview.html',anandaDecoratePrintPreview(source),'utf8');
+          '@ | Set-Content beta522_make_preview.js -Encoding utf8
+          node beta522_make_preview.js
+          if($LASTEXITCODE -ne 0){throw 'Could not generate decorated preview fixture'}
+
+          @'
+          const {app,BrowserWindow}=require('./src/node_modules/electron');
+          const fs=require('fs'),path=require('path');
+          app.disableHardwareAcceleration();
+          app.whenReady().then(async()=>{
+            const win=new BrowserWindow({show:false,width:1100,height:860,webPreferences:{offscreen:true,contextIsolation:true,nodeIntegration:false}});
+            await win.loadFile(path.resolve('beta522-preview.html'));
+            await new Promise(r=>setTimeout(r,900));
+            const js="(()=>{const s=document.querySelector('.sheet'),t=document.querySelector('.title'),rows=document.querySelectorAll('.att-row'),r=s&&s.getBoundingClientRect(),tr=t&&t.getBoundingClientRect();return{sheet:!!s,title:!!t,rows:rows.length,w:r?r.width:0,h:r?r.height:0,titleW:tr?tr.width:0,display:s?getComputedStyle(s).display:'',transform:s?getComputedStyle(s).transform:''}})()";
+            const state=await win.webContents.executeJavaScript(js);
+            console.log('RENDER_STATE',JSON.stringify(state));
+            if(!state.sheet||!state.title||state.rows!==30)throw new Error('Preview DOM content missing');
+            if(state.display==='none'||state.w<700||state.h<450||state.titleW<150)throw new Error('Preview sheet rendered blank/hidden/too small');
+            const img=await win.webContents.capturePage();
+            fs.writeFileSync('beta522-preview.png',img.toPNG());
+            win.close();app.quit();
+          }).catch(e=>{console.error(e);app.exit(1)});
+          '@ | Set-Content beta522_render_preview.js -Encoding utf8
+          Push-Location src
+          npx electron ..\beta522_render_preview.js
+          $code=$LASTEXITCODE
+          Pop-Location
+          if($code -ne 0){throw 'Rendered preview screenshot check failed'}
+          if(-not (Test-Path beta522-preview.png)){throw 'Rendered preview screenshot was not produced'}
+          $pngSize=(Get-Item beta522-preview.png).Length
+          if($pngSize -lt 20000){throw "Rendered preview screenshot suspiciously small: $pngSize"}
+          Write-Host "BETA 5.22 RENDERED PREVIEW PASS - $pngSize bytes"
+
+      - name: Upload Beta 5.22 preview proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: Beta-5.22-Rendered-Preview-Proof
+          path: beta522-preview.png
+          if-no-files-found: error
 
       - name: Beta 5.19 phone close check
         shell: powershell
@@ -806,7 +871,7 @@ jobs:
           npm run dist
           if($LASTEXITCODE -ne 0){throw 'electron-builder inner engine failed'}
           Pop-Location
-          $inner='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.21.exe'
+          $inner='src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.22.exe'
           if(!(Test-Path $inner)){throw 'Beta 5.17 inner installer missing'}
           if((Get-Item $inner).Length -lt 50000000){throw 'Inner installer unexpectedly small'}
 
@@ -827,12 +892,12 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force installer-modern\Payload | Out-Null
-          Copy-Item 'src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.21.exe' 'installer-modern\Payload\InnerInstaller.exe' -Force
+          Copy-Item 'src\dist\Ananda_Sangha_Event_Desk_Phase2_Setup_v2.0.0-beta.5.22.exe' 'installer-modern\Payload\InnerInstaller.exe' -Force
           Remove-Item installer-modern\publish -Recurse -Force -ErrorAction SilentlyContinue
           dotnet publish installer-modern\AnandaModernInstaller.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o installer-modern\publish
           if($LASTEXITCODE -ne 0){throw 'Modern WPF installer build failed'}
-          $modern='installer-modern\publish\Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.21.exe'
-          if(!(Test-Path $modern)){throw 'Modern Beta 5.21 installer missing'}
+          $modern='installer-modern\publish\Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.22.exe'
+          if(!(Test-Path $modern)){throw 'Modern Beta 5.22 installer missing'}
           $size=(Get-Item $modern).Length
           if($size -lt 100000000){throw "Modern installer unexpectedly small: $size"}
           Write-Host "MODERN INSTALLER PASS - $size bytes"
@@ -850,9 +915,9 @@ jobs:
           Remove-Item asar-files.txt -Force
           Pop-Location
 
-      - name: Upload Beta 5.21 modern installer
+      - name: Upload Beta 5.22 modern installer
         uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-Beta-5.21-Approved-A4-30-Modern-Installer
-          path: installer-modern/publish/Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.21.exe
+          name: Ananda-Sangha-Event-Desk-Beta-5.22-Preview-Verified-Modern-Installer
+          path: installer-modern/publish/Ananda_Sangha_Event_Desk_Modern_Setup_v2.0.0-beta.5.22.exe
           if-no-files-found: error
