@@ -1,0 +1,26 @@
+name: Build Ananda Event Desk beta 5.26 Setup
+on:
+  workflow_dispatch:
+  push:
+    branches: [beta-5-26-windows-installer]
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check source files
+        shell: pwsh
+        run: |
+          foreach ($file in @("package.json","index.html","main.js","preload.js","logo-128.png","ananda-icon.ico","scripts/prepare-assets.js")) {
+            if (!(Test-Path $file)) { throw "Missing source file: $file" }
+          }
+      - run: npm install
+      - run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Sangha-Event-Desk-beta-5.26-Setup
+          path: dist/*.exe
+          if-no-files-found: error
