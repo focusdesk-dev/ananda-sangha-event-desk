@@ -5275,6 +5275,94 @@ function p2v58BindPhoneListener(){
       return window.AnandaOMR.detect(prep.img.data,prep.w,prep.h,count);
     };
 
+    // BETA528: separate previously SAVED class attendance from CURRENT SCAN REVIEW.
+    // A scan that has not yet succeeded must never show old present/absent badges.
+    let p2v528AwaitingPhoto=false;
+    let p2v528MarkedRemainingAbsent=false;
+    function p2v528ModeNotice(mode){
+      const host=$('p2v58Roster');if(!host)return;
+      let note=$('p2v528ModeNotice');
+      if(!note){note=document.createElement('div');note.id='p2v528ModeNotice';host.insertAdjacentElement('beforebegin',note)}
+      note.style.cssText='margin:10px 0 8px;border:1px solid #a9c7df;background:#f2f8ff;color:#163f7e;border-radius:10px;padding:10px 13px;font-size:13px;font-weight:700';
+      if(mode==='scan'){
+        const sc=p2v524ScanSession;
+        note.textContent='NEW SCAN REVIEW · PRINTED SHEET '+String(sc?.snapshot?.sheetId||'')+' · '+(sc?.rows?.length||0)+' printed names only · No saved absences inherited';
+      } else if(mode==='waiting'){
+        note.textContent='AWAITING NEW SCAN · Upload the marked sheet. Previously saved Present/Absent entries are hidden, not deleted.';
+      } else if(p2v510AttendanceSaved()){
+        note.textContent='PREVIOUSLY SAVED CLASS ATTENDANCE · These are existing records, NOT results from a new QR scan. Select SCAN / UPLOAD to analyse a new sheet.';
+      } else {
+        note.textContent='MANUAL ATTENDANCE · No new QR scan result is being displayed.';
+      }
+    }
+    const p2v528RenderRosterBase=p2v58RenderRoster;
+    p2v58RenderRoster=function(){
+      if(p2v528AwaitingPhoto&&!p2v524ScanSession){
+        const host=$('p2v58Roster');
+        if(host)host.innerHTML='<div class="p2-empty" style="padding:28px 14px">Waiting for the marked attendance photo. No saved attendance is being treated as a new scan result.</div>';
+        const totals=$('p2v58Totals');if(totals)totals.textContent='New scan not yet analysed';
+        p2v528ModeNotice('waiting');return
+      }
+      p2v528RenderRosterBase();
+      const bar=$('p2v58Roster')?.querySelector('.p2v58-namebar');
+      if(bar&&!p2v524ScanSession)bar.textContent=p2v510AttendanceSaved()?'PREVIOUSLY SAVED CLASS ATTENDANCE':'MANUAL CLASS ROSTER';
+      p2v528ModeNotice(p2v524ScanSession?'scan':'manual');
+    };
+    function p2v528LeaveScan(){
+      p2v528AwaitingPhoto=false;
+      p2v528MarkedRemainingAbsent=false;
+      p2v524ClearSession();
+      p2v58ResetDraft(); // Restore actual saved statuses; never reuse a scan draft.
+      $('p2v511Review')?.classList.add('hidden');
+      p2v58RenderRoster();
+    }
+    $('p2v58Upload')?.addEventListener('click',()=>{
+      if(!$('p2v58UploadPanel')?.classList.contains('hidden')&&!p2v524ScanSession){
+        p2v528AwaitingPhoto=true;
+        p2v528MarkedRemainingAbsent=false;
+        $('p2v511Review')?.classList.add('hidden');
+        p2v58RenderRoster();
+      }
+    });
+    ['p2v58Manual','p2v58Edit','p2v58Unlock'].forEach(id=>$(id)?.addEventListener('click',p2v528LeaveScan));
+    ['p2v58Course','p2v58Batch','p2v58Date'].forEach(id=>$(id)?.addEventListener('change',()=>{
+      p2v528AwaitingPhoto=false;
+      p2v528MarkedRemainingAbsent=false;
+      $('p2v511Review')?.classList.add('hidden');
+    }));
+    const p2v528AnalyzePhotoBase=p2v511ApplyPhotoBlob;
+    p2v511ApplyPhotoBlob=async function(...args){
+      await p2v528AnalyzePhotoBase(...args);
+      if(p2v524ScanSession){
+        p2v528AwaitingPhoto=false;
+        p2v528MarkedRemainingAbsent=false;
+        p2v58RenderRoster();
+      }else if(p2v528AwaitingPhoto){
+        p2v58RenderRoster();
+      }
+    };
+    $('p2v58All')?.addEventListener('click',()=>{
+      if(p2v524ScanSession)p2v528MarkedRemainingAbsent=true;
+    });
+    const p2v528SaveAttendanceBase=p2v58SaveAttendance;
+    p2v58SaveAttendance=function(...args){
+      if(p2v528AwaitingPhoto&&!p2v524ScanSession){
+        toast('Upload and review the new attendance sheet first. Existing attendance was not changed.');return;
+      }
+      if(p2v524ScanSession){
+        const rows=p2v524ScanSession.rows||[];
+        if(rows.length>30||!rows.length||new Set(rows.map(r=>String(r.en.id))).size!==rows.length){
+          toast('Sheet roster failed validation. Attendance was not saved.');return;
+        }
+        const anyAbsent=rows.some(r=>p2v58Draft[r.en.id]===false);
+        if(anyAbsent&&!p2v528MarkedRemainingAbsent){
+          toast('Only MARK REMAINING ABSENT may assign absences during a scan review.');return;
+        }
+      }
+      return p2v528SaveAttendanceBase(...args);
+    };
+    p2v58RenderRoster();
+
     updateBackButton();
   resetQuickCounter(true);
   window.addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop'))e.target.classList.remove('open')});
