@@ -1,12 +1,13 @@
 {
   "name": "ananda-sangha-event-desk",
-  "version": "2.0.0-beta.5.27",
+  "version": "2.0.0-beta.5.28",
   "private": true,
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "prepare:assets": "node scripts/prepare-assets.js",
-    "dist:win": "npm run prepare:assets && electron-builder --win nsis --x64 --publish never"
+    "dist:win": "npm run prepare:assets && electron-builder --win nsis --x64 --publish never",
+    "test:attendance": "node scripts/verify-attendance.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4",
