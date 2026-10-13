@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.27 Setup
+name: Build Ananda Event Desk beta 5.28 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-27-omr-attendance]
+    branches: [beta-5-28-attendance-review-guard]
 jobs:
   windows-installer:
     runs-on: windows-latest
@@ -38,9 +38,10 @@ jobs:
             if (!(Test-Path $file)) { throw "Missing source file: $file" }
           }
       - run: npm install
+      - run: npm run test:attendance
       - run: npm run dist:win
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.27-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.28-Setup
           path: dist/*.exe
           if-no-files-found: error
