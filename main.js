@@ -5,7 +5,7 @@ const http = require('http');
 const os = require('os');
 
 const APP_ID = 'org.anandasangha.gurgaon.eventdesk';
-const APP_VERSION = '2.0.0-beta.5.32';
+const APP_VERSION = '2.0.0-beta.5.33';
 const ROOT_DIR = path.join(app.getPath('documents'), 'ANANDA SANGHA EVENT DESK');
 const DATA_ROOT = path.join(ROOT_DIR, 'Data');
 const SYSTEM_ROOT = path.join(ROOT_DIR, 'System');
@@ -294,9 +294,11 @@ async function anandaEnsureAttendanceServer(){
           const verify=String(u.searchParams.get('v')||'');
           const received=String(u.searchParams.get('k')||'');
           const expected=sheetId&&verify?anandaAiQrToken(sheetId,verify):'';
-          if(!expected||received.length!==expected.length||!anandaQrCrypto.timingSafeEqual(Buffer.from(received),Buffer.from(expected))||!anandaReadAiKey()){
-            res.writeHead(403,{'Content-Type':'text/plain'});return res.end('This AI attendance QR cannot be verified or the OpenAI API key is not configured.');
+          if(!expected||received.length!==expected.length||!anandaQrCrypto.timingSafeEqual(Buffer.from(received),Buffer.from(expected))){
+            res.writeHead(403,{'Content-Type':'text/plain'});return res.end('This AI attendance QR could not be verified.');
           }
+          // Allow signed QR photo uploads before an API key is purchased.
+          // The desktop queues the photo. No paid AI request is made without a key.
         }
         const chunks=[];let size=0,tooBig=false;req.on('data',c=>{size+=c.length;if(size>25*1024*1024){tooBig=true;req.destroy()}else chunks.push(c)});req.on('end',()=>{if(tooBig)return;const file=anandaMultipartFile(Buffer.concat(chunks),req.headers['content-type']);if(!file){res.writeHead(400);return res.end('No image received')}if(!/^image\/(jpeg|png|webp)$/i.test(file.mime) || !file.data.length){res.writeHead(415);return res.end('Only JPG, PNG and WebP attendance photos are supported.')}
         const dataUrl='data:'+file.mime+';base64,'+file.data.toString('base64');if(mainWindow&&!mainWindow.isDestroyed()){mainWindow.webContents.send('ananda-attendance-phone-status',{status:'received'});mainWindow.webContents.send('ananda-attendance-phone-upload',{name:file.name,mime:file.mime,dataUrl,attendancePayload:meta?.payload||'',sheet:meta?.sheet||1,total:meta?.total||1,mode:aiMode?'ai':'offline',sheetId:meta?.sheetId||u.searchParams.get('x')||''})}res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}))});return}
@@ -314,7 +316,8 @@ ipcMain.handle('ananda-attendance-prepare-sheet-link',async(_event,meta)=>{
     if(b&&/^\d{8}$/.test(d8)&&verify){
       const key=[b,d8,sheet,total,verify,sheetId,layout].join('|');anandaAttendanceSheetMeta.set(key,meta||{});
       const mode=meta?.mode==='ai'?'ai':'offline';
-      if(mode==='ai'&&!anandaReadAiKey())return{ok:false,error:'Set up your OpenAI API key before printing an AI attendance sheet.'};
+      // Printing a signed phone QR does not require a paid API key.
+      // The key is required only when the desktop submits the photo for analysis.
       if(mode==='ai'&&!sheetId)return{ok:false,error:'AI attendance needs a valid Sheet ID.'};
       const token=mode==='ai'?anandaAiQrToken(sheetId,verify):'';
       const q=new URLSearchParams({b,d:d8,s:String(sheet),t:String(total),v:verify,...(sheetId?{x:sheetId}:{}),...(layout?{l:layout}:{}),...(mode==='ai'?{m:'ai',k:token}:{})}).toString();
