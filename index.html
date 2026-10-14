@@ -5580,6 +5580,11 @@ function p2v58BindPhoneListener(){
       }
     });
 
+    // Keep all four attendance options in a single row on desktop.
+    const p2v531Style=document.createElement('style');
+    p2v531Style.id='p2v531ButtonGrid';
+    p2v531Style.textContent='#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}@media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}@media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}';
+    document.head.appendChild(p2v531Style);
     // BETA531 QR-FIRST AI MODE. Prints a phone-scannable QR, then automatically
     // analyses the photo on the desktop; volunteer reviews/marks absent/saves.
     let p2v531Active=false,p2v531LastConfirmedSheetId='',p2v531PendingPhone=null;
