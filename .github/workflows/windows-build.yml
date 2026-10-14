@@ -40,6 +40,7 @@ jobs:
       - run: npm install
       - run: npm run test:attendance
       - run: npm run test:ai
+      - run: node scripts/verify-phone-ai-route.js
       - run: npm run dist:win
       - uses: actions/upload-artifact@v4
         with:
