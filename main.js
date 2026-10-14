@@ -5,7 +5,7 @@ const http = require('http');
 const os = require('os');
 
 const APP_ID = 'org.anandasangha.gurgaon.eventdesk';
-const APP_VERSION = '2.0.0-beta.5.29';
+const APP_VERSION = '2.0.0-beta.5.30';
 const ROOT_DIR = path.join(app.getPath('documents'), 'ANANDA SANGHA EVENT DESK');
 const DATA_ROOT = path.join(ROOT_DIR, 'Data');
 const SYSTEM_ROOT = path.join(ROOT_DIR, 'System');
@@ -295,6 +295,99 @@ ipcMain.handle('ananda-attendance-prepare-sheet-link',async(_event,meta)=>{
   const encoded=anandaB64UrlEncode(meta||{});return{ok:true,ip:s.ip,port:s.port,url:s.baseUrl+'?a='+encodeURIComponent(encoded)}
 });
 ipcMain.handle('ananda-attendance-stop-upload-server',async()=>({ok:true,persistent:true}));
+
+
+// BETA530: AI attendance integration. API credentials never enter web/localStorage
+// or the packaged source. Windows safeStorage encrypts the per-machine key.
+const { safeStorage } = require('electron');
+const AI_CREDENTIAL_PATH = path.join(SYSTEM_ROOT, 'ai-api-key.bin');
+function anandaReadAiKey() {
+  try {
+    if (!safeStorage.isEncryptionAvailable() || !fs.existsSync(AI_CREDENTIAL_PATH)) return '';
+    return safeStorage.decryptString(fs.readFileSync(AI_CREDENTIAL_PATH));
+  } catch { return ''; }
+}
+ipcMain.handle('ananda-ai-status', async () => ({
+  ok: true,
+  configured: Boolean(anandaReadAiKey()),
+  secureStorage: safeStorage.isEncryptionAvailable()
+}));
+ipcMain.handle('ananda-ai-set-key', async (_event, key) => {
+  try {
+    if (!safeStorage.isEncryptionAvailable()) throw new Error('Protected credential storage is unavailable on this PC.');
+    const value = String(key || '').trim();
+    if (!/^sk-[a-zA-Z0-9_-]{15,250}$/.test(value)) throw new Error('Enter a valid OpenAI API key (beginning sk-).');
+    const encrypted = safeStorage.encryptString(value);
+    fs.mkdirSync(SYSTEM_ROOT, { recursive: true });
+    const tmp = AI_CREDENTIAL_PATH + '.tmp';
+    fs.writeFileSync(tmp, encrypted, { mode: 0o600 });
+    fs.renameSync(tmp, AI_CREDENTIAL_PATH);
+    return { ok: true, configured: true };
+  } catch (err) {
+    return { ok: false, error: err.message || 'Unable to save your API key.' };
+  }
+});
+ipcMain.handle('ananda-ai-analyze-attendance', async (_event, body) => {
+  try {
+    const key = anandaReadAiKey();
+    if (!key) throw new Error('Please set your OpenAI API key first.');
+    const image = String(body?.imageDataUrl || '');
+    const allowed = body?.printedNumbers;
+    if (!/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(image) || image.length > 12_000_000)
+      throw new Error('Choose a PNG or JPEG attendance photo smaller than approximately 9 MB.');
+    if (!Array.isArray(allowed) || !allowed.length || allowed.length > 30
+        || allowed.some(n => !Number.isInteger(n) || n < 1 || n > 9999)
+        || new Set(allowed).size !== allowed.length)
+      throw new Error('The printed attendance row numbers are invalid.');
+    const prompt = [
+      'You are a cautious optical mark reader for a PRINTED CLASS ATTENDANCE FORM.',
+      'Return ONLY numbers for rows containing clearly visible additional HANDWRITTEN black or dark blue pen strokes in the white ATTENDANCE column.',
+      'Ignore names, QR codes, typed content, logos, colored borders, the printed attendance header, and the empty rectangular cell outlines.',
+      'Read the visible printed row NUMBER beside each student. Do not predict or assume attendance.',
+      'Use uncertain_rows if an ink mark may be present but cannot be distinguished reliably.',
+      'Blank attendance cells must never be called Present. The software handles absences separately.',
+      'The only valid row numbers on this sheet are: ' + allowed.join(', ') + '.',
+      'Respond with present_rows and uncertain_rows arrays of distinct integers; never add a number not in the allowed set.',
+      'The sheet may contain two columns, with right-column numbering continuing from the left.'
+    ].join('\n');
+    const request = {
+      model: 'gpt-4.1',
+      store: false,
+      max_output_tokens: 350,
+      input: [{ role: 'user', content: [
+        { type: 'input_text', text: prompt },
+        { type: 'input_image', image_url: image, detail: 'high' }
+      ]}],
+      text: {format:{type:'json_schema',name:'attendance_marks',strict:true,schema:{
+        type:'object',additionalProperties:false,required:['present_rows','uncertain_rows'],
+        properties:{present_rows:{type:'array',items:{type:'integer'}},uncertain_rows:{type:'array',items:{type:'integer'}}}
+      }}}
+    };
+    const resp = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {'Authorization': 'Bearer '+key,'Content-Type':'application/json'},
+      body: JSON.stringify(request),
+      signal: AbortSignal.timeout(100000)
+    });
+    const json = await resp.json();
+    if (!resp.ok) throw new Error('OpenAI API: '+String(json?.error?.message||('HTTP '+resp.status)).slice(0,300));
+    const output = (json.output || []).filter(x => x.type === 'message')
+      .flatMap(x => x.content || []).filter(x => x.type === 'output_text').map(x => x.text).join('\n');
+    if (!output) throw new Error('AI did not return usable attendance results.');
+    const parsed = JSON.parse(output);
+    if (!Array.isArray(parsed.present_rows) || !Array.isArray(parsed.uncertain_rows))
+      throw new Error('AI returned an unexpected attendance format.');
+    const valid = new Set(allowed);
+    const p = parsed.present_rows, u = parsed.uncertain_rows;
+    if ([...p,...u].some(x => !Number.isInteger(x)||!valid.has(x))
+        || new Set(p).size !== p.length || new Set(u).size !== u.length
+        || p.some(x=>u.includes(x)))
+      throw new Error('AI returned inconsistent row numbers. No attendance was changed.');
+    return {ok:true,presentRows:p,uncertainRows:u};
+  } catch (err) {
+    return {ok:false,error:err?.name === 'TimeoutError' ? 'AI request timed out. Try a smaller photo.' : String(err.message||err)};
+  }
+});
 
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
