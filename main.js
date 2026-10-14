@@ -5,7 +5,7 @@ const http = require('http');
 const os = require('os');
 
 const APP_ID = 'org.anandasangha.gurgaon.eventdesk';
-const APP_VERSION = '2.0.0-beta.5.33';
+const APP_VERSION = '2.0.0-beta.5.34';
 const ROOT_DIR = path.join(app.getPath('documents'), 'ANANDA SANGHA EVENT DESK');
 const DATA_ROOT = path.join(ROOT_DIR, 'Data');
 const SYSTEM_ROOT = path.join(ROOT_DIR, 'System');
@@ -236,8 +236,65 @@ function anandaAiQrToken(sheetId,verify) {
   return anandaQrCrypto.createHmac('sha256',key).update(String(sheetId)+'|'+String(verify)).digest('hex');
 }
 
+// BETA534: Short, human-camera-readable AI QRs.
+// Each QR holds a sheet ID + a 128-bit HMAC, never the entire class metadata.
+// Metadata is persisted so a previously printed sheet still works after restart.
+const ANANDA_SHORT_QR_PATH=path.join(SYSTEM_ROOT,'attendance-qr-sheet-links.json');
+function anandaShortQrRecords(){
+  try {
+    const p=JSON.parse(fs.readFileSync(ANANDA_SHORT_QR_PATH,'utf8'));
+    return p&&typeof p==='object'&&!Array.isArray(p)?p:{};
+  }catch{return{}}
+}
+function anandaRegisterShortQr(meta){
+  const p=JSON.parse(String(meta?.payload||'{}'));
+  const id=String(p.sheetId||'');
+  if(!/^[A-Za-z0-9_-]{8,64}$/.test(id)||!p.verify||!p.batchId||!p.date||meta.mode!=='ai')
+    throw new Error('Cannot register an incomplete signed AI attendance sheet.');
+  const records=anandaShortQrRecords();
+  records[id]={
+    payload:String(meta.payload),sheetId:id,mode:'ai',
+    course:String(meta.course||'').slice(0,120),batch:String(meta.batch||'').slice(0,120),
+    date:String(meta.date||'').slice(0,80),sheet:Number(p.sheet||1),total:Number(p.totalSheets||1),
+    createdAt:new Date().toISOString()
+  };
+  const keys=Object.keys(records);
+  // Keep the latest 3,000 QR links on this computer.
+  if(keys.length>3000)keys.sort((a,b)=>String(records[a]?.createdAt||'').localeCompare(String(records[b]?.createdAt||'')))
+    .slice(0,keys.length-3000).forEach(x=>delete records[x]);
+  fs.mkdirSync(SYSTEM_ROOT,{recursive:true});
+  const tmp=ANANDA_SHORT_QR_PATH+'.tmp';
+  fs.writeFileSync(tmp,JSON.stringify(records),'utf8');
+  fs.renameSync(tmp,ANANDA_SHORT_QR_PATH);
+  return id;
+}
+function anandaResolveShortQr(u){
+  const id=u.searchParams.get('x')||'';
+  const code=u.searchParams.get('k')||'';
+  if(!/^[A-Za-z0-9_-]{8,64}$/.test(id)||!code)return null;
+  const meta=anandaShortQrRecords()[id];
+  if(!meta||meta.mode!=='ai'||String(meta.sheetId)!==id)return null;
+  return anandaCheckQrSignature(u,meta)?meta:null;
+}
+function anandaCheckQrSignature(u,meta){
+  if(!meta)return false;
+  const aiMode=meta?.mode==='ai'||u.searchParams.get('m')==='ai';
+  if(!aiMode)return true;
+  try {
+    const p=JSON.parse(meta.payload||'{}');
+    const id=String(meta.sheetId||u.searchParams.get('x')||'');
+    const verify=String(p.verify||u.searchParams.get('v')||'');
+    const received=String(u.searchParams.get('k')||'');
+    if(!id||!verify||![32,64].includes(received.length)||!/^[a-f0-9]+$/i.test(received))return false;
+    const expected=anandaAiQrToken(id,verify).slice(0,received.length);
+    return anandaQrCrypto.timingSafeEqual(Buffer.from(received.toLowerCase()),Buffer.from(expected));
+  }catch{return false}
+}
 function anandaCompactAttendanceMeta(u){
   try{
+    // QR with only Sheet ID and signature. Persistent mapping makes this
+    // printable without API credits and valid across app restarts.
+    if(u.searchParams.get('x')&&!u.searchParams.get('b'))return anandaResolveShortQr(u);
     const b=u.searchParams.get('b')||'',d8=u.searchParams.get('d')||'',sheet=Number(u.searchParams.get('s')||1),total=Number(u.searchParams.get('t')||1),verify=u.searchParams.get('v')||'',sheetId=u.searchParams.get('x')||'',layout=u.searchParams.get('l')||'';
     if(!b||!/^\d{8}$/.test(d8)||!verify)return null;
     const date=d8.slice(0,4)+'-'+d8.slice(4,6)+'-'+d8.slice(6,8),key=[b,d8,sheet,total,verify,sheetId,layout].join('|');
@@ -286,15 +343,14 @@ async function anandaEnsureAttendanceServer(){
   if(anandaAttendanceServer&&anandaAttendanceServerInfo){anandaAttendanceServerInfo.ip=ip;anandaAttendanceServerInfo.baseUrl='http://'+ip+':'+anandaAttendanceServerInfo.port+'/';return anandaAttendanceServerInfo}
   try{
     anandaAttendanceServer=http.createServer((req,res)=>{try{const u=new URL(req.url,'http://local/'),encoded=u.searchParams.get('a')||'';let meta=anandaB64UrlDecode(encoded);if(!meta)meta=anandaCompactAttendanceMeta(u);
+      if(u.searchParams.has('k')&&!anandaCheckQrSignature(u,meta)){
+        res.writeHead(403,{'Content-Type':'text/plain; charset=utf-8'});return res.end('This AI attendance QR is invalid or was printed by a different computer.');
+      }
       if(req.method==='GET'){if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('ananda-attendance-phone-status',{status:'connected',remoteAddress:req.socket?.remoteAddress||''});res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});return res.end(anandaMobilePage(meta,encoded))}
       if(req.method==='POST'&&u.pathname==='/upload'){
         const aiMode=(meta?.mode==='ai'||u.searchParams.get('m')==='ai');
         if(aiMode){
-          const sheetId=String(meta?.sheetId||u.searchParams.get('x')||'');
-          const verify=String(u.searchParams.get('v')||'');
-          const received=String(u.searchParams.get('k')||'');
-          const expected=sheetId&&verify?anandaAiQrToken(sheetId,verify):'';
-          if(!expected||received.length!==expected.length||!anandaQrCrypto.timingSafeEqual(Buffer.from(received),Buffer.from(expected))){
+          if(!anandaCheckQrSignature(u,meta)){
             res.writeHead(403,{'Content-Type':'text/plain'});return res.end('This AI attendance QR could not be verified.');
           }
           // Allow signed QR photo uploads before an API key is purchased.
@@ -319,8 +375,14 @@ ipcMain.handle('ananda-attendance-prepare-sheet-link',async(_event,meta)=>{
       // Printing a signed phone QR does not require a paid API key.
       // The key is required only when the desktop submits the photo for analysis.
       if(mode==='ai'&&!sheetId)return{ok:false,error:'AI attendance needs a valid Sheet ID.'};
-      const token=mode==='ai'?anandaAiQrToken(sheetId,verify):'';
-      const q=new URLSearchParams({b,d:d8,s:String(sheet),t:String(total),v:verify,...(sheetId?{x:sheetId}:{}),...(layout?{l:layout}:{}),...(mode==='ai'?{m:'ai',k:token}:{})}).toString();
+      if(mode==='ai'){
+        anandaRegisterShortQr(meta);
+        // 128-bit HMAC is sufficient against forgery, 32 characters instead of 64.
+        const tag=anandaAiQrToken(sheetId,verify).slice(0,32);
+        const q=new URLSearchParams({x:sheetId,k:tag}).toString();
+        return{ok:true,ip:s.ip,port:s.port,url:s.baseUrl+'?'+q};
+      }
+      const q=new URLSearchParams({b,d:d8,s:String(sheet),t:String(total),v:verify,...(sheetId?{x:sheetId}:{}),...(layout?{l:layout}:{})}).toString();
       return{ok:true,ip:s.ip,port:s.port,url:s.baseUrl+'?'+q}
     }
   }catch{}
