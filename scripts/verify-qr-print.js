@@ -34,7 +34,7 @@ const context={
  window:{anandaAttendanceBridge:{prepareSheetLink:async meta=>{
    captured.links.push(meta);
    if(!wifi)return{ok:false,error:'Connect computer to Wi-Fi or phone hotspot first'};
-   const url='http://192.168.1.10:45000/?b=BATCH1&x='+meta.sheetId+'&m='+meta.mode+(meta.mode==='ai'?'&k=SIGNEDTOKEN':'');
+   const url=meta.mode==='ai'?'http://192.168.1.10:45000/?x='+meta.sheetId+'&k=123456789abcdef0123456789abcdef0':'http://192.168.1.10:45000/?b=BATCH1&x='+meta.sheetId+'&m=offline';
    return{ok:true,url}
  }},anandaDesktop:{printHtml:async source=>{captured.print.push(source);return failPreview?{ok:false,error:'Preview unavailable'}:{ok:true}}}},
  p2v58MakeQr:async raw=>{captured.qr.push(raw);return 'data:image/png;base64,AAA'},
@@ -48,8 +48,8 @@ vm.runInNewContext(section+'\n;globalThis.runPrint=p2v58PrintSheet;',context,{ti
 let result=await context.runPrint(true);
 assert(result.ok&&result.pages===2&&result.mode==='ai','AI printing must produce two full sheets');
 assert(captured.links.length===2&&captured.links.every(x=>x.mode==='ai'));
-assert(captured.qr.every(x=>x.includes('&m=ai&k=SIGNEDTOKEN')),'AI sheets must have signed phone QR URLs');
-assert(captured.print.length===1&&captured.print[0].includes('SCAN FOR AI PHOTO'),'AI print preview must show AI QR');
+assert(captured.qr.every(x=>x.includes('?x=')&&x.includes('&k=')&&!x.includes('&b=')),'AI sheets must have signed phone QR URLs');
+assert(captured.print.length===1&&captured.print[0].includes('width:33mm;height:33mm')&&captured.print[0].includes('SCAN FOR AI PHOTO'),'AI print preview must show AI QR');
 assert(Object.keys(context.state.attendanceSheetSnapshots).length===2,'Print snapshots must persist');
 assert(context.state.attendanceSheetSnapshots.S1.rows.length===30&&context.state.attendanceSheetSnapshots.S2.rows.length===10);
 assert(context.state.attendanceSheetSnapshots.S2.rows.slice(0,5).every(x=>x.scanSlot<15));
