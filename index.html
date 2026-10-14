@@ -155,6 +155,16 @@
     <script src="qrcode-client.js"></script>
     <script src="omr-scanner.js"></script>
 <script src="jsqr-client.js"></script>
+<style id="p2v530Style">
+  #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
+  #classAttendanceHub #p2v530AI small{color:#e8f2ff}
+  #classAttendanceHub #p2v530Panel.hidden{display:none!important}
+  #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
+  #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
+  @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+  @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -3370,6 +3380,7 @@
         <button id="p2v58Manual" class="btn" type="button">MARK ATTENDANCE<br><small>Manual Entry</small></button>
         <button id="p2v58Print" class="btn secondary" type="button">PRINT QR ATTENDANCE SHEET</button>
         <button id="p2v58Upload" class="btn secondary" type="button">SCAN / UPLOAD ATTENDANCE SHEET</button>
+        <button id="p2v530AI" class="btn secondary" type="button">AI ATTENDANCE<br><small>Photo Recognition</small></button>
         <button id="p2v58Edit" class="btn secondary" type="button">VIEW / EDIT ATTENDANCE<br><small>Already Saved</small></button>
       </div>
       <div id="p2v58QrDetected" class="p2v58-detected hidden"><strong>QR detected.</strong> Course, batch and date were selected automatically. <button id="p2v58Unlock" type="button">Change manually</button></div>
@@ -3379,6 +3390,35 @@
         <div id="p2v58PhoneConnect" class="p2v58-phone hidden"><img id="p2v58PhoneQr" alt="Phone connection QR"><div><strong>Scan with phone</strong><p id="p2v58PhoneText"></p><small>Phone and this computer must be on the same Wi-Fi or hotspot. Internet is not required.</small></div></div>
         <div id="p2v58UploadStatus" class="p2v58-upload-status"></div>
       </div>
+
+      <section id="p2v530Panel" class="p2v58-upload-panel hidden" aria-label="AI Attendance">
+        <div><h3>AI ATTENDANCE — PHOTO ANALYSIS</h3>
+          <p>AI reads black/blue handwritten marks beside the numbered students on the exact printed sheet. It prepares Present/Unmarked results for your review, without automatically saving.</p>
+        </div>
+        <div class="p2v58-upload-buttons" style="flex-wrap:wrap">
+          <button id="p2v530Choose" class="btn secondary" type="button">CHOOSE / TAKE PHOTO</button>
+          <button id="p2v530Phone" class="btn secondary" type="button">CONNECT PHONE</button>
+          <button id="p2v530Analyze" class="btn" type="button">ANALYZE WITH AI</button>
+          <input id="p2v530File" type="file" accept="image/png,image/jpeg,image/webp,image/*" hidden>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0">
+          <img id="p2v530Preview" alt="Photo selected for analysis" style="display:none;width:130px;max-height:95px;object-fit:contain;border:1px solid #bdd1e2;border-radius:8px">
+          <span id="p2v530Filename" style="font-size:12px;color:#45647c">No photo selected</span>
+        </div>
+        <details id="p2v530Settings">
+          <summary style="cursor:pointer;font-weight:bold;color:#16457e">AI API setup (one time per Windows computer)</summary>
+          <p style="margin:8px 0;font-size:12px">Enter a separately billed OpenAI API key. It is encrypted on this Windows PC, never stored in the student database or included in the installer.</p>
+          <div style="display:flex;gap:9px;flex-wrap:wrap">
+            <input id="p2v530Key" type="password" autocomplete="off" placeholder="Paste OpenAI API key (sk-...)" style="min-width:260px;flex:1;padding:10px;border:1px solid #b9cbdc;border-radius:8px">
+            <button id="p2v530SaveKey" class="btn secondary" type="button">SAVE API KEY</button>
+          </div>
+        </details>
+        <label style="display:flex;align-items:flex-start;gap:9px;margin:12px 0;font-size:12px;color:#173f7d">
+          <input id="p2v530Consent" type="checkbox" style="margin-top:3px">
+          <span>I have permission to send this attendance photograph, including any visible student names, to OpenAI for AI analysis. Requires internet and separate API charges.</span>
+        </label>
+        <div id="p2v530Status" role="status" style="font-size:12px;padding:10px;border:1px solid #d7e5f0;border-radius:8px;color:#173f7d">Choose a photo, then click Analyze with AI.</div>
+      </section>
       <div class="p2v58-list-head"><div><button class="p2v58-tab active" type="button">ATTENDANCE LIST</button></div><input id="p2v58Search" class="search" placeholder="Search by name or mobile..."></div>
       <div id="p2v58Roster"></div>
       <div class="p2v58-footer"><div class="p2v58-left-actions"><button id="p2v58Clear" class="btn secondary" type="button">Clear All</button><button id="p2v58All" class="btn secondary" type="button">Mark Remaining Absent</button></div><div id="p2v58Totals" class="p2v58-totals"></div><div><button id="p2v58Save" class="btn secondary" type="button">Save Attendance</button><button id="p2v58Confirm" class="btn" type="button">Confirm Attendance</button></div></div>
