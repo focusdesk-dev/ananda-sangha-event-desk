@@ -6,6 +6,10 @@ const src = fs.readFileSync('index.html','utf8');
 const inline = [...src.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script\s*>/gi)];
 for (let i=0;i<inline.length;i++) if(inline[i][1].trim()) new vm.Script(inline[i][1],{filename:'inline-script-'+i+'.js'});
 assert(src.includes('BETA528: separate previously SAVED class attendance'));
+assert(src.includes('BETA529: Always provide a 40-student'));
+assert(src.includes('scanSlot:p2v521Pos(i,chunk.length).scanSlot'));
+assert(src.includes('const leftCount=Math.min(P2V521_DOC.rowsPerColumn,Math.ceil(count/2))'));
+assert(src.includes('FULL CLASS OVERVIEW'));
 assert(src.includes('NEW SCAN REVIEW'));
 assert(src.includes('PREVIOUSLY SAVED CLASS ATTENDANCE'));
 assert(src.includes('p2v528MarkedRemainingAbsent'));
@@ -23,6 +27,9 @@ for(const [cx,cy] of omr.DOC.anchor){
   rect(cx-.6,cy-.6,cx+.6,cy+.6,24);
 }
 function line(x0,y0,x1,y1){const steps=60;for(let i=0;i<=steps;i++){const t=i/steps,x=x0+(x1-x0)*t,y=y0+(y1-y0)*t;for(let dx=-.34;dx<=.34;dx+=.17)for(let dy=-.34;dy<=.34;dy+=.17)pt(x+dx,y+dy,24,30,40)}}
+const unmarked = omr.detect(img,W,H,30);
+assert(unmarked.ok, 'The completely unmarked sheet must be readable');
+assert.strictEqual(unmarked.present,0,'Printed corners may never become Present');
 const selected=[0,2,7,13,15,23,26];
 for(const i of selected){const row=i%15,side=i>=15?152:9,y=48+(row+.5)*((189-48)/15),x=side+86;line(x-9,y+1,x,y-1);line(x,y-1,x+9,y-2);}
 const det=omr.detect(img,W,H,30);
@@ -31,3 +38,12 @@ const actual=det.marks.map((m,i)=>m.present?i:null).filter(v=>v!==null);
 assert.deepStrictEqual(actual,selected,'Synthetic OMR result does not match seven known ink positions');
 assert(det.marks.every(m=>m.present===true||m.present===false),'Scanner must only emit Present/Unmarked');
 console.log('PASS: inline JavaScript syntax and OMR seven-mark mapping. Present='+actual.length+', Unmarked='+(30-actual.length));
+
+const slots=[0,1,2,3,4,15,16,17,18,19];
+const partial=omr.detect(img,W,H,10,slots);
+assert(partial.ok,'Expected valid balanced 10-name final-page scan');
+const presentSlots=partial.marks.map((m,i)=>m.present?i:null).filter(x=>x!==null);
+assert.deepStrictEqual(presentSlots,[0,2,5],'Ten-name final page must use 5 left and 5 right row positions');
+assert.strictEqual(partial.marks.filter(m=>m.present).length,3);
+assert.strictEqual(omr.detect(img,W,H,10,[0,1,2,3,4,5,6,7,8,8]).ok,false,'Duplicate printed slots must be rejected');
+console.log('PASS: blank form, full 30-name sheet, and balanced 5+5 final page');
