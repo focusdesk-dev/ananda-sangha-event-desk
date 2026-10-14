@@ -23,8 +23,8 @@ const assert=require('assert'),fs=require('fs'),vm=require('vm'),path=require('p
   };
   const safeStorage={
     isEncryptionAvailable:()=>true,
-    encryptString:value=>Buffer.from('encrypted#'+value),
-    decryptString:b=>{const val=b.toString();assert(val.startsWith('encrypted#'));return val.substring(10)}
+    encryptString:value=>Buffer.from(Buffer.from(value).reverse().toString('base64')),
+    decryptString:b=>Buffer.from(b.toString(),'base64').reverse().toString()
   };
   const routes=[];
   let response={ok:true,json:async()=>({output:[{type:'message',content:[{type:'output_text',text:JSON.stringify({present_rows:[1,4,9],uncertain_rows:[7]})}]}]})};
@@ -45,7 +45,7 @@ const assert=require('assert'),fs=require('fs'),vm=require('vm'),path=require('p
   assert(mem.has(credpath)&&!mem.get(credpath).equals(Buffer.from(key)),'Key must be encrypted');
   const second='sk-'+'B'.repeat(40);
   saved=await handler('ananda-ai-set-key')(null,second);
-  assert(saved.ok&&mem.get(credpath).toString().includes(second)&&!mem.get(credpath).toString().includes(key));
+  assert(saved.ok&&safeStorage.decryptString(mem.get(credpath))===second&&!mem.get(credpath).toString().includes(key));
   const imageDataUrl='data:image/jpeg;base64,'+Buffer.from('fake photo').toString('base64');
   const allowed=Array.from({length:30},(_,i)=>i+1);
   let result=await handler('ananda-ai-analyze-attendance')(null,{imageDataUrl,printedNumbers:allowed});
