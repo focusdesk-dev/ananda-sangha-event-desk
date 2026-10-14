@@ -4910,10 +4910,12 @@ function p2v58BindPhoneListener(){
   };
   const P2V521_ROW_HEIGHT=(P2V521_DOC.dataBottom-P2V521_DOC.dataTop)/P2V521_DOC.rowsPerColumn;
 
-  function p2v521Pos(i){
-    return i<P2V521_DOC.rowsPerColumn
-      ?{col:0,row:i,left:P2V521_DOC.left}
-      :{col:1,row:i-P2V521_DOC.rowsPerColumn,left:P2V521_DOC.right}
+  function p2v521Pos(i,count=30){
+    // Split the final partial page evenly across both columns (10 => 5+5).
+    const leftCount=Math.min(P2V521_DOC.rowsPerColumn,Math.ceil(count/2));
+    return i<leftCount
+      ?{col:0,row:i,left:P2V521_DOC.left,scanSlot:i}
+      :{col:1,row:i-leftCount,left:P2V521_DOC.right,scanSlot:15+i-leftCount}
   }
   function p2v521Payload(b,date,sheet,total,sheetId){
     const core=[String(b.id),String(date),String(sheet),String(total),String(sheetId),P2V521_LAYOUT].join('|');
@@ -5043,7 +5045,7 @@ function p2v58BindPhoneListener(){
         layout:P2V521_LAYOUT,sheetId,batchId:String(b.id),date:String(p2v58Date),
         sheet:pi+1,totalSheets:chunks.length,course:p2CourseName(b),batch:b.name,createdAt:new Date().toISOString(),
         rows:chunk.map((r,i)=>({
-          position:i+1,enrollmentId:String(r.en.id),studentId:String(r.en.studentId||''),
+          position:i+1,scanSlot:p2v521Pos(i,chunk.length).scanSlot,enrollmentId:String(r.en.id),studentId:String(r.en.studentId||''),
           name:String(r.p.name||''),mobile:String(r.p.mobile||'')
         }))
       };
@@ -5059,7 +5061,7 @@ function p2v58BindPhoneListener(){
       if(!qr){toast('Could not create attendance QR');return}
 
       const rowHtml=chunk.map((r,i)=>{
-        const pos=p2v521Pos(i),top=P2V521_DOC.dataTop+pos.row*P2V521_ROW_HEIGHT;
+        const pos=p2v521Pos(i,chunk.length),top=P2V521_DOC.dataTop+pos.row*P2V521_ROW_HEIGHT;
         return '<div class="att-row '+(pos.row%2?'even':'odd')+'" style="left:'+pos.left+'mm;top:'+top+'mm;height:'+P2V521_ROW_HEIGHT+'mm">'+
           '<span class="num">'+String(pi*30+i+1).padStart(2,'0')+'</span>'+
           '<span class="nm">'+esc(r.p.name||'Unnamed')+'</span>'+
@@ -5133,7 +5135,8 @@ function p2v58BindPhoneListener(){
     const rows=p2v524ScanSession.rows||[],left=[],right=[];
     rows.forEach((r,i)=>{
       const pos=p2v524LocalPosition(r,i);
-      (pos<=15?left:right).push({r,i,pos})
+      const slot=Number.isInteger(r?.sheetRow?.scanSlot)?r.sheetRow.scanSlot:i;
+      (slot<15?left:right).push({r,i,pos})
     });
     const rowHtml=item=>{
       const {r,i}=item,v=p2v58Draft[r.en.id],
@@ -5146,7 +5149,7 @@ function p2v58BindPhoneListener(){
         '<span class="p2v58-box"></span></label>'
     };
     host.innerHTML=rows.length
-      ?'<div class="p2v58-namebar">PRINTED SHEET · '+esc(String(p2v524ScanSession.snapshot?.sheetId||''))+'</div>'+
+      ?'<div class="p2v58-namebar">PRINTED SHEET '+esc(String(p2v524ScanSession.snapshot?.sheet||1))+' OF '+esc(String(p2v524ScanSession.snapshot?.totalSheets||1))+' · '+esc(String(p2v524ScanSession.snapshot?.sheetId||''))+'</div>'+
        '<div class="p2v58-two"><div>'+left.map(rowHtml).join('')+'</div><div>'+right.map(rowHtml).join('')+'</div></div>'
       :'<div class="p2-empty">No students were stored in this printed sheet.</div>';
     host.querySelectorAll('.p2v58-check').forEach(x=>x.onchange=()=>{
@@ -5224,7 +5227,8 @@ function p2v58BindPhoneListener(){
 
     // BETA527: Analyse the photographed page before changing UI or attendance.
     // A failed scan must never blank, replace or overwrite an existing review.
-    const det=p2v521Detect(prep,mapped.out.length);
+    const slots=mapped.out.map((r,i)=>Number.isInteger(r.sheetRow?.scanSlot)?r.sheetRow.scanSlot:i);
+    const det=p2v521Detect(prep,mapped.out.length,slots);
     if(!det.ok){
       if(status)status.innerHTML='<span class="bad">'+esc(det.reason||'Unable to align this photo; previous attendance was kept.')+'</span>';
       return
@@ -5270,9 +5274,9 @@ function p2v58BindPhoneListener(){
 
 
     // BETA527: use tested A4 30-name alignment and pen-ink recognition engine.
-    p2v521Detect=function(prep,count){
+    p2v521Detect=function(prep,count,slots){
       if(!window.AnandaOMR)return{ok:false,reason:'OMR scanner library is missing. No attendance was changed.'};
-      return window.AnandaOMR.detect(prep.img.data,prep.w,prep.h,count);
+      return window.AnandaOMR.detect(prep.img.data,prep.w,prep.h,count,slots);
     };
 
     // BETA528: separate previously SAVED class attendance from CURRENT SCAN REVIEW.
