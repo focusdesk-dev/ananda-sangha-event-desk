@@ -5444,6 +5444,124 @@ function p2v58BindPhoneListener(){
         '<div>'+right.map((r,i)=>row(r,i+left.length)).join('')+'</div></div>';
     };
 
+
+    // BETA530: Fourth Class Attendance button — optional AI-assisted photo review.
+    // AI never writes to student records; human confirmation is mandatory.
+    let p2v530PhotoBlob=null,p2v530PhotoPayload='',p2v530AiBusy=false;
+    function p2v530SetStatus(message,isError=false){
+      const el=$('p2v530Status');
+      if(el){el.textContent=message;el.style.color=isError?'#a22828':'#16457e';}
+    }
+    function p2v530SetPhoto(blob,name='',payload=''){
+      p2v530PhotoBlob=blob;p2v530PhotoPayload=payload;
+      const img=$('p2v530Preview'),label=$('p2v530Filename');
+      if(img){if(img.dataset.currentUrl)URL.revokeObjectURL(img.dataset.currentUrl);const url=URL.createObjectURL(blob);img.src=url;img.dataset.currentUrl=url;img.style.display='block';}
+      if(label)label.textContent=name||'Attendance photo selected';
+      p2v530SetStatus('Photo ready. Confirm consent and choose ANALYZE WITH AI. No attendance has been changed.');
+    }
+    function p2v530Begin(){
+      if(p2v524ScanSession&&!window.confirm('Switching to AI will replace the current unsaved scan review. Continue?'))return;
+      p2v524ClearSession();p2v58ResetDraft();
+      p2v528AwaitingPhoto=true;p2v528MarkedRemainingAbsent=false;
+      $('p2v58UploadPanel')?.classList.add('hidden');
+      $('p2v530Panel')?.classList.remove('hidden');
+      $('p2v511Review')?.classList.add('hidden');
+      p2v58RenderRoster();
+      p2v530SetStatus('AI Attendance is ready. Select a marked-sheet photograph or connect the phone.');
+      window.anandaDesktop?.aiStatus?.().then(r=>{
+        if(!r?.configured){
+          p2v530SetStatus(r?.secureStorage===false
+            ?'Secure key storage is unavailable on this computer. AI attendance is disabled.'
+            :'First expand AI API setup and save your OpenAI API key. ChatGPT subscriptions do not automatically include API usage.');
+          $('p2v530Settings').open=true;
+        }
+      }).catch(()=>{p2v530SetStatus('AI settings could not be loaded.');});
+    }
+    async function p2v530Analyse(){
+      if(p2v530AiBusy)return;
+      const api=window.anandaDesktop;
+      if(!api?.analyzeAiAttendance){p2v530SetStatus('This installation does not contain the AI integration.',true);return;}
+      if(!$('p2v530Consent')?.checked){p2v530SetStatus('Please confirm that you have permission to send the attendance photo to OpenAI.',true);return;}
+      if(!p2v530PhotoBlob){p2v530SetStatus('Choose or take an attendance photo first.',true);return;}
+      p2v530AiBusy=true;if($('p2v530Analyze'))$('p2v530Analyze').disabled=true;
+      try{
+        p2v530SetStatus('Checking printed Sheet ID and the exact student list...');
+        const prep=await p2v518Prepare(p2v530PhotoBlob);
+        const raw=p2v530PhotoPayload||prep.raw||'';
+        const data=p2v58ParsePayload(raw);
+        if(!data||Number(data.v)!==5||data.layout!==P2V521_LAYOUT||!data.sheetId)
+          throw Error('This photo does not contain a recognised current printed-sheet QR. Retake the full sheet with the QR visible.');
+        const b=state.classBatches.find(x=>String(x.id)===String(data.batchId));
+        const snap=state.attendanceSheetSnapshots?.[String(data.sheetId)];
+        if(!b||!snap||snap.layout!==P2V521_LAYOUT||String(snap.batchId)!==String(data.batchId)||String(snap.date)!==String(data.date))
+          throw Error('The original printed-sheet roster cannot be found. AI did not guess students or change records.');
+        const mapped=p2v518RowsForSnapshot(snap);
+        if(mapped.missing.length||!mapped.out.length||mapped.out.length>30)
+          throw Error('One or more printed students cannot be matched to their saved enrolment. No attendance was changed.');
+        const numbers=mapped.out.map((r,i)=> (Number(data.sheet)-1)*30 + Number(r.sheetRow?.position||i+1));
+        if(new Set(numbers).size!==numbers.length)throw Error('Printed row numbers are duplicated.');
+        const img=prep.canvas.toDataURL('image/jpeg',.86);
+        p2v530SetStatus('AI is reading handwritten strokes; the photograph is being sent to OpenAI. Please wait...');
+        const result=await api.analyzeAiAttendance({imageDataUrl:img,printedNumbers:numbers});
+        if(!result?.ok)throw Error(result?.error||'AI analysis failed');
+        // Commit the review only after the sheet, roster and AI result are valid.
+        const present=new Set(result.presentRows),uncertain=new Set(result.uncertainRows);
+        if([...present,...uncertain].some(n=>!numbers.includes(n))||[...present].some(n=>uncertain.has(n)))
+          throw Error('AI gave inconsistent student numbers. No attendance was changed.');
+        p2v518ActiveSnapshot=snap;p2v518ActiveRows=mapped.out;
+        p2v524ScanSession={snapshot:snap,rows:mapped.out,data};
+        p2v524SyncSelectors(b,String(data.date));
+        p2v58Draft={};
+        mapped.out.forEach((r,i)=>{p2v58Draft[r.en.id]=present.has(numbers[i])?true:null;});
+        p2v528AwaitingPhoto=false;p2v528MarkedRemainingAbsent=false;
+        p2v58RenderRoster();
+        const uncertainText=[...uncertain].sort((a,b)=>a-b).join(', ');
+        const review='AI detected '+present.size+' marked rows on Sheet '+data.sheet+'. '+(uncertain.size?'Needs manual review: row(s) '+uncertainText+'. ':'')+
+          'All other students remain Unmarked. Review every mark, then use MARK REMAINING ABSENT, followed by confirmation.';
+        p2v511ShowReview(present.size,Number(data.sheet||1),Number(data.totalSheets||1),review);
+        p2v530SetStatus(review);
+        $('p2v58Roster')?.scrollIntoView({behavior:'smooth',block:'start'});
+      }catch(err){p2v530SetStatus(err?.message||'AI analysis failed. Existing attendance was not changed.',true);}
+      finally{p2v530AiBusy=false;if($('p2v530Analyze'))$('p2v530Analyze').disabled=false;}
+    }
+    // Existing same-Wi-Fi phone upload works for AI; do not run the offline
+    // detector when AI mode is open. Instead queue the received photo for review.
+    const p2v530OldPhoneHandler=p2v58HandleDataUrl;
+    p2v58HandleDataUrl=async function(dataUrl,name='Phone photo',payload=''){
+      if($('p2v530Panel')&&!$('p2v530Panel').classList.contains('hidden')){
+        try{const blob=await(await fetch(dataUrl)).blob();p2v530SetPhoto(blob,name,payload);}
+        catch(err){p2v530SetStatus('Phone photo could not be loaded: '+(err?.message||'unknown error'),true);}
+        return;
+      }
+      return p2v530OldPhoneHandler(dataUrl,name,payload);
+    };
+    document.addEventListener('click',async event=>{
+      const id=event.target.closest('button')?.id;
+      if(id==='p2v530AI'){p2v530Begin();}
+      if(id==='p2v530Choose')$('p2v530File')?.click();
+      if(id==='p2v530Phone'){
+        $('p2v58UploadPanel')?.classList.remove('hidden');
+        $('p2v58ConnectPhone')?.click();
+        p2v530SetStatus('Use the phone connection QR in Scan / Upload. The photo will be queued for AI review instead of offline scanning.');
+      }
+      if(id==='p2v530SaveKey'){
+        const input=$('p2v530Key');
+        const result=await window.anandaDesktop?.setAiKey?.(input?.value||'');
+        if(input)input.value='';
+        p2v530SetStatus(result?.ok?'OpenAI API key saved securely. You can now analyze a photo.':result?.error||'Unable to configure AI.',!result?.ok);
+      }
+      if(id==='p2v530Analyze')await p2v530Analyse();
+      if(['p2v58Manual','p2v58Edit'].includes(id))$('p2v530Panel')?.classList.add('hidden');
+      if(id==='p2v58Upload')$('p2v530Panel')?.classList.add('hidden');
+    });
+    document.addEventListener('change',event=>{
+      if(event.target.id==='p2v530File'){
+        const f=event.target.files?.[0];
+        if(f){p2v530SetPhoto(f,f.name,'');}
+        event.target.value='';
+      }
+    });
+
     updateBackButton();
   resetQuickCounter(true);
   window.addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop'))e.target.classList.remove('open')});
