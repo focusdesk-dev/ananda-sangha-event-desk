@@ -243,6 +243,9 @@ window.addEventListener('DOMContentLoaded', () => {
 contextBridge.exposeInMainWorld('anandaDesktop', {
   aiStatus: () => ipcRenderer.invoke('ananda-ai-status'),
   setAiKey: key => ipcRenderer.invoke('ananda-ai-set-key', key),
+  removeAiKey: () => ipcRenderer.invoke('ananda-ai-remove-key'),
+  freeAiPreflight: () => ipcRenderer.invoke('ananda-ai-free-preflight'),
+  testAiConnection: () => ipcRenderer.invoke('ananda-ai-test-connection'),
   analyzeAiAttendance: payload => ipcRenderer.invoke('ananda-ai-analyze-attendance', payload),
 
   printHtml: (html) => ipcRenderer.invoke('ananda-native-print-html', { html }),
