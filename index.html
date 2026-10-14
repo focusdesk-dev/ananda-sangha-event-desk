@@ -5642,7 +5642,8 @@ function p2v58BindPhoneListener(){
     const p2v531ShowPanel=()=>{
       p2v531Active=true;
       p2v530Begin();
-      p2v531Active=true;p2v531MoveReview();
+      p2v58Draft={};p2v518CurrentRowsBase().forEach(r=>p2v58Draft[r.en.id]=null);
+      p2v531Active=true;p2v58RenderRoster();p2v531MoveReview();
       p2v530SetStatus('AI mode ready: select course/batch/date, then PRINT AI ATTENDANCE SHEETS. Scan the printed QR on the phone to take a picture.');
     };
     $('p2v531Print')?.addEventListener('click',async ()=>{
@@ -5686,7 +5687,7 @@ function p2v58BindPhoneListener(){
     }
     document.addEventListener('click',e=>{
       const id=e.target.closest('button')?.id;
-      if(id==='p2v530AI')setTimeout(()=>{p2v531Active=true;p2v531MoveReview();p2v530SetStatus('Ready to print AI Attendance sheets; after QR scanning, phone upload automatically triggers AI analysis.');},0);
+      if(id==='p2v530AI')setTimeout(()=>{p2v531Active=true;p2v58Draft={};p2v518CurrentRowsBase().forEach(r=>p2v58Draft[r.en.id]=null);p2v58RenderRoster();p2v531MoveReview();p2v530SetStatus('Ready to print AI Attendance sheets; after QR scanning, phone upload automatically triggers AI analysis.');},0);
       if(id==='p2v58Manual'||id==='p2v58Edit'||id==='p2v58Upload'){p2v531Active=false;p2v531MoveReview();}
     });
     p2v531MoveReview();
