@@ -41,7 +41,7 @@ const assert=require('assert'),fs=require('fs'),vm=require('vm'),path=require('p
   assert.strictEqual(routes.length,0,'Free preflight must not call or bill OpenAI');
   const key='sk-'+'N'.repeat(40);
   let saved=await handler('ananda-ai-set-key')(null,key);assert(saved.ok);
-  const credpath='/test/system/ai-api-key.bin';
+  const credpath=path.join('/test/system','ai-api-key.bin');
   assert(mem.has(credpath)&&!mem.get(credpath).equals(Buffer.from(key)),'Key must be encrypted');
   const second='sk-'+'B'.repeat(40);
   saved=await handler('ananda-ai-set-key')(null,second);
