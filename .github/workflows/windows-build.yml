@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.32 Setup
+name: Build Ananda Event Desk beta 5.33 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-32-ai-settings-preflight]
+    branches: [beta-5-33-qr-print-fix]
 jobs:
   windows-installer:
     runs-on: windows-latest
@@ -42,9 +42,10 @@ jobs:
       - run: npm run test:ai
       - run: node scripts/verify-phone-ai-route.js
       - run: npm run test:ai-settings
+      - run: npm run test:qr-print
       - run: npm run dist:win
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.32-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.33-Setup
           path: dist/*.exe
           if-no-files-found: error
