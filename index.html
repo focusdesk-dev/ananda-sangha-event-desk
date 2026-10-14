@@ -5576,6 +5576,121 @@ function p2v58BindPhoneListener(){
       }
     });
 
+    // BETA531 QR-FIRST AI MODE. Prints a phone-scannable QR, then automatically
+    // analyses the photo on the desktop; volunteer reviews/marks absent/saves.
+    let p2v531Active=false,p2v531LastConfirmedSheetId='',p2v531PendingPhone=null;
+    const p2v531ClassRoot=$('classAttendanceHub')?.querySelector('.p2v58-page');
+    function p2v531Consent(){return !!$('p2v530Consent')?.checked;}
+    if($('p2v530Consent')){
+      $('p2v530Consent').checked=localStorage.getItem('anandaAIPhotoPermission')==='true';
+      $('p2v530Consent').onchange=()=>{
+        localStorage.setItem('anandaAIPhotoPermission',$('p2v530Consent').checked?'true':'false');
+        p2v530SetStatus($('p2v530Consent').checked?'AI processing authorised on this computer. Print an AI attendance sheet to begin.':'AI processing disabled until you authorise it.');
+      };
+    }
+    function p2v531MoveReview(){
+      const panel=$('p2v531ReviewInside');if(!panel||!p2v531ClassRoot)return;
+      const ids=['p2v511Review','p2v58Roster','p2v529FullClassOverview'];
+      if(p2v531Active){
+        const header=p2v531ClassRoot.querySelector('.p2v58-list-head')||$('p2v530Panel')?.querySelector('.p2v58-list-head');
+        if(header&&header.parentElement!==panel)panel.appendChild(header);
+        ids.forEach(id=>{const el=$(id);if(el&&el.parentElement!==panel)panel.appendChild(el);});
+        const footer=p2v531ClassRoot.querySelector('.p2v58-footer')||$('p2v530Panel')?.querySelector('.p2v58-footer');
+        if(footer&&footer.parentElement!==panel)panel.appendChild(footer);
+      }else{
+        const anchor=$('p2v530Panel');let prev=anchor;
+        for(const el of [panel.querySelector('.p2v58-list-head'),$('p2v511Review'),$('p2v58Roster'),$('p2v529FullClassOverview'),panel.querySelector('.p2v58-footer')]){
+          if(el&&el.parentElement===panel){prev.insertAdjacentElement('afterend',el);prev=el;}
+        }
+      }
+    }
+    const p2v531RosterBase=p2v58RenderRoster;
+    p2v58RenderRoster=function(){
+      if(p2v531Active&&p2v528AwaitingPhoto&&!p2v524ScanSession){
+        // Show a clearly unmarked class checklist until a photo arrives.
+        p2v528AwaitingPhoto=false;
+        try{p2v531RosterBase();}
+        finally{p2v528AwaitingPhoto=true;}
+        const note=$('p2v528ModeNotice');if(note)note.textContent='AI ATTENDANCE · AWAITING PHONE PHOTO · All students Unmarked; old attendance is not being treated as a new scan';
+        const host=$('p2v58Roster');
+        if(host)host.querySelectorAll('.p2v58-row').forEach(row=>{
+          row.classList.remove('present','absent');row.classList.add('pending');
+          const checkbox=row.querySelector('input[type=checkbox]');if(checkbox)checkbox.checked=false;
+        });
+      }else p2v531RosterBase();
+      p2v531MoveReview();
+    };
+    const p2v531ShowReviewBase=p2v511ShowReview;
+    p2v511ShowReview=function(...args){const result=p2v531ShowReviewBase(...args);p2v531MoveReview();return result;};
+    const p2v531SavedBase=p2v58SaveAttendance;
+    p2v58SaveAttendance=function(...args){
+      const sc=p2v524ScanSession;
+      const ready=sc&&sc.rows.every(r=>p2v58Draft[r.en.id]!==null&&p2v58Draft[r.en.id]!==undefined);
+      const absent=sc&&sc.rows.some(r=>p2v58Draft[r.en.id]===false);
+      const canSave=ready&&(!absent||p2v528MarkedRemainingAbsent);
+      const result=p2v531SavedBase(...args);
+      if(sc&&canSave){
+        p2v531LastConfirmedSheetId=String(sc.snapshot?.sheetId||'');
+        p2v530SetStatus('Attendance saved for Sheet '+String(sc.snapshot?.sheet||1)+'. Scan the QR on the next marked page, if any.');
+        if(p2v531PendingPhone){
+          const next=p2v531PendingPhone;p2v531PendingPhone=null;
+          setTimeout(()=>p2v531HandlePhone(next),250);
+        }
+      }
+      return result;
+    };
+    const p2v531ShowPanel=()=>{
+      p2v531Active=true;
+      p2v530Begin();
+      p2v531Active=true;p2v531MoveReview();
+      p2v530SetStatus('AI mode ready: select course/batch/date, then PRINT AI ATTENDANCE SHEETS. Scan the printed QR on the phone to take a picture.');
+    };
+    $('p2v531Print')?.addEventListener('click',async ()=>{
+      if(!p2v531Consent()){p2v530SetStatus('Authorise AI processing first by ticking the permission checkbox.',true);return;}
+      const config=await window.anandaDesktop?.aiStatus?.();
+      if(!config?.configured){$('p2v530Settings').open=true;p2v530SetStatus('Save an OpenAI API key before printing AI QR sheets.',true);return;}
+      p2v530SetStatus('Preparing the AI QR links and printing the complete batch...');
+      try{await p2v58PrintSheet(true);}
+      catch(err){p2v530SetStatus('AI printing failed: '+String(err?.message||err),true);}
+    });
+    async function p2v531HandlePhone(payload){
+      if(!payload?.dataUrl)return;
+      if(payload.mode!=='ai'){
+        if(p2v531Active){p2v531Active=false;$('p2v530Panel')?.classList.add('hidden');p2v531MoveReview();}
+        switchPage('classAttendanceHub');$('p2v58UploadPanel')?.classList.remove('hidden');
+        return p2v530OldPhoneHandler(payload.dataUrl,payload.name||'Phone photo',payload.attendancePayload||'');
+      }
+      if(p2v530AiBusy){p2v531PendingPhone=payload;p2v530SetStatus('Another AI sheet arrived while analysis was running; it is queued until this result is reviewed.');return;}
+      if(p2v524ScanSession&&String(p2v524ScanSession.snapshot?.sheetId||'')!==p2v531LastConfirmedSheetId){
+        p2v531PendingPhone=payload;
+        p2v530SetStatus('Another sheet arrived. Review and SAVE the current sheet before processing the next one.',true);
+        return;
+      }
+      if(!p2v531Consent()){p2v530SetStatus('AI photo received, but desktop AI permission is not enabled. Tick the authorisation checkbox; no data was sent to OpenAI.',true);p2v531PendingPhone=payload;return;}
+      const config=await window.anandaDesktop?.aiStatus?.();
+      if(!config?.configured){p2v530SetStatus('AI photo received, but OpenAI API is not configured. No data was sent to OpenAI.',true);p2v531PendingPhone=payload;return;}
+      switchPage('classAttendanceHub');
+      if(p2v524ScanSession&&String(p2v524ScanSession.snapshot?.sheetId||'')===p2v531LastConfirmedSheetId)p2v524ClearSession();
+      p2v531ShowPanel();
+      try{
+        const blob=await(await fetch(payload.dataUrl)).blob();
+        p2v530SetPhoto(blob,payload.name||'Phone attendance photo',payload.attendancePayload||'');
+        p2v530SetStatus('Phone photo received. Checking the QR batch, date and Sheet ID; AI analysis starts automatically...');
+        await p2v530Analyse(); // Auto-start after the phone volunteer clicked USE PHOTO.
+      }catch(err){p2v530SetStatus('Phone photo could not be processed: '+String(err?.message||err),true);}
+    }
+    // Rebind once: the Electron preload bridge removes any earlier listener.
+    // Crucially, route AI-tagged printed QRs directly to AI, not the old OMR engine.
+    if(window.anandaAttendanceBridge?.onPhoneUpload){
+      window.anandaAttendanceBridge.onPhoneUpload(payload=>{p2v531HandlePhone(payload).catch(err=>p2v530SetStatus(String(err?.message||err),true));});
+    }
+    document.addEventListener('click',e=>{
+      const id=e.target.closest('button')?.id;
+      if(id==='p2v530AI')setTimeout(()=>{p2v531Active=true;p2v531MoveReview();p2v530SetStatus('Ready to print AI Attendance sheets; after QR scanning, phone upload automatically triggers AI analysis.');},0);
+      if(id==='p2v58Manual'||id==='p2v58Edit'||id==='p2v58Upload'){p2v531Active=false;p2v531MoveReview();}
+    });
+    p2v531MoveReview();
+
     updateBackButton();
   resetQuickCounter(true);
   window.addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop'))e.target.classList.remove('open')});
