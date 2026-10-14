@@ -24,26 +24,54 @@ for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(a[r][c])>Math.abs
 [a[p],a[c]]=[a[c],a[p]];const d=a[c][c];for(let j=c;j<=n;j++)a[c][j]/=d;for(let r=0;r<n;r++){if(r===c)continue;const f=a[r][c];for(let j=c;j<=n;j++)a[r][j]-=f*a[c][j];}}return a.map(r=>r[n]);}
 function homography(src,dst){const M=[],v=[];for(let i=0;i<4;i++){const[x,y]=src[i],{x:u,y:z}=dst[i];M.push([x,y,1,0,0,0,-u*x,-u*y]);v.push(u);M.push([0,0,0,x,y,1,-z*x,-z*y]);v.push(z)}const h=solve8(M,v);return h&&[...h,1]}
 function map(H,x,y){const d=H[6]*x+H[7]*y+1;if(!Number.isFinite(d)||Math.abs(d)<1e-9)return null;return{x:(H[0]*x+H[1]*y+H[2])/d,y:(H[3]*x+H[4]*y+H[5])/d}}
-function rowMark(a,w,h,H,index){
-const col=index>=DOC.rows?1:0,row=index%DOC.rows,left=DOC.left[col],pitch=(DOC.bottom-DOC.top)/DOC.rows,x0=left+DOC.nameAndSerial+2,x1=left+DOC.markEnd-2,y0=DOC.top+row*pitch+1.6,y1=DOC.top+(row+1)*pitch-1.6;
-const pw=300,ph=44,size=pw*ph,lum=new Uint8Array(size),rr=new Uint8Array(size),gg=new Uint8Array(size),bb=new Uint8Array(size),hist=new Uint32Array(256);
-for(let y=0;y<ph;y++)for(let x=0;x<pw;x++){const p=map(H,x0+(x+.5)*(x1-x0)/pw,y0+(y+.5)*(y1-y0)/ph),i=y*pw+x;
-if(!p||p.x<0||p.y<0||p.x>=w||p.y>=h){lum[i]=255;hist[255]++;continue}
-const k=(Math.round(Math.min(h-1,p.y))*w+Math.round(Math.min(w-1,p.x)))*4,r=a[k],g=a[k+1],b=a[k+2];
-rr[i]=r;gg[i]=g;bb[i]=b;const L=Math.max(0,Math.min(255,Math.round(.299*r+.587*g+.114*b)));lum[i]=L;hist[L]++}
-let sum=0,bg=245;for(let i=0;i<256;i++){sum+=hist[i];if(sum>=size*.6){bg=i;break}}
-const lim=Math.min(181,Math.max(65,bg-36)),ink=new Uint8Array(size);
-for(let y=2;y<ph-2;y++)for(let x=3;x<pw-3;x++){const i=y*pw+x,L=lum[i],blue=bb[i]>rr[i]+18&&bb[i]>gg[i]+7&&L<Math.min(206,bg-17);if(L<lim||blue)ink[i]=1}
-const seen=new Uint8Array(size),stack=new Int32Array(size);let total=0,best=0,span=0;
-for(let i=0;i<size;i++){if(!ink[i]||seen[i])continue;seen[i]=1;let n=0,minx=pw,maxx=0,miny=ph,maxy=0,sp=0;stack[sp++]=i;
-while(sp){const k=stack[--sp],y=(k/pw)|0,x=k%pw;n++;total++;minx=Math.min(minx,x);maxx=Math.max(maxx,x);miny=Math.min(miny,y);maxy=Math.max(maxy,y);
-for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;const nx=x+dx,ny=y+dy;if(nx<0||nx>=pw||ny<0||ny>=ph)continue;const j=ny*pw+nx;if(ink[j]&&!seen[j]){seen[j]=1;stack[sp++]=j}}}
-if(n>best){best=n;span=Math.max(maxx-minx+1,maxy-miny+1)}}
-const present=total>=20&&best>=13&&span>=5;return{present,total,component:best,confidence:!present?'unmarked':best>=35?'high':'review'};}
-function detect(img,w,h,count){if(!img||!w||!h||!Number.isInteger(count)||count<0||count>30)return{ok:false,reason:'Invalid attendance image or row count.'};
-const anchors=[0,1,2,3].map(q=>findMarker(img,w,h,q));if(anchors.some(x=>!x))return{ok:false,reason:'Unable to locate all four printed corner squares. Retake the entire page; no attendance was changed.',anchorsFound:anchors.filter(Boolean).length};
-if(anchors[0].x>=anchors[1].x||anchors[2].x>=anchors[3].x||anchors[0].y>=anchors[2].y||anchors[1].y>=anchors[3].y)return{ok:false,reason:'Page alignment is inconsistent; no attendance was changed.'};
-const H=homography(DOC.anchor,anchors);if(!H)return{ok:false,reason:'Unable to straighten the sheet; no attendance was changed.'};
-const marks=[];for(let i=0;i<count;i++)marks.push(rowMark(img,w,h,H,i));return{ok:true,marks,present:marks.filter(x=>x.present).length,needsReview:marks.filter(x=>x.confidence==='review').length}}
+
+function penInk(a,k){
+ const r=a[k],g=a[k+1],b=a[k+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b);
+ // Isolate real dark pen strokes; do not treat printed blue borders as handwriting.
+ return (mx<146&&r+g+b<395&&mx-mn<42)||(r<110&&g<160&&b>r+40&&b<223);
+}
+function rowMark(a,w,h,H,slot){
+ const col=slot>=DOC.rows?1:0,row=slot%DOC.rows,left=DOC.left[col],pitch=(DOC.bottom-DOC.top)/DOC.rows;
+ const x0=left+DOC.nameAndSerial+3.3,x1=left+DOC.markEnd-4.0,y0=DOC.top+row*pitch+2.0,y1=DOC.top+(row+1)*pitch-2.0;
+ const pw=280,ph=46,size=pw*ph,ink=new Uint8Array(size),seen=new Uint8Array(size),stack=new Int32Array(size);let readable=0,total=0;
+ for(let y=2;y<ph-2;y++)for(let x=3;x<pw-3;x++){
+  const p=map(H,x0+(x+.5)*(x1-x0)/pw,y0+(y+.5)*(y1-y0)/ph);
+  if(!p||p.x<0||p.y<0||p.x>=w||p.y>=h)continue;
+  readable++;const k=(Math.round(p.y)*w+Math.round(p.x))*4,i=y*pw+x;
+  if(penInk(a,k)){ink[i]=1;total++;}
+ }
+ if(readable<size*.60)return{present:false,confidence:'invalid',total,largest:0};
+ let best=0,bestSpanX=0,bestSpanY=0;
+ for(let i=0;i<size;i++){
+  if(!ink[i]||seen[i])continue;seen[i]=1;
+  let n=0,minx=pw,maxx=0,miny=ph,maxy=0,sp=0;stack[sp++]=i;
+  while(sp){
+   const k=stack[--sp],y=Math.floor(k/pw),x=k%pw;n++;minx=Math.min(minx,x);maxx=Math.max(maxx,x);miny=Math.min(miny,y);maxy=Math.max(maxy,y);
+   for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    if(!dx&&!dy)continue;const nx=x+dx,ny=y+dy;if(nx<0||nx>=pw||ny<0||ny>=ph)continue;
+    const j=ny*pw+nx;if(ink[j]&&!seen[j]){seen[j]=1;stack[sp++]=j;}
+   }
+  }
+  if(n>best){best=n;bestSpanX=maxx-minx+1;bestSpanY=maxy-miny+1;}
+ }
+ const present=total>=19&&best>=13&&(bestSpanX>=7||bestSpanY>=6)&&bestSpanX>=3&&bestSpanY>=2;
+ const confidence=present?(best>=45?'high':'review'):(total>=14?'review':'unmarked');
+ return{present,total,largest:best,spanX:bestSpanX,spanY:bestSpanY,confidence};
+}
+function detect(img,w,h,count,slots){
+ if(!img||!w||!h||!Number.isInteger(count)||count<0||count>30)return{ok:false,reason:'Invalid attendance photo/row count'};
+ if(slots&&(!Array.isArray(slots)||slots.length!==count||slots.some(s=>!Number.isInteger(s)||s<0||s>=30)||new Set(slots).size!==slots.length))
+  return{ok:false,reason:'Printed row positions do not match this sheet'};
+ const anchors=[0,1,2,3].map(q=>findMarker(img,w,h,q));
+ if(anchors.some(a=>!a))return{ok:false,reason:'One or more page corner markers were not found. No attendance was changed.',anchorsFound:anchors.filter(Boolean).length};
+ if(anchors[0].x>=anchors[1].x||anchors[2].x>=anchors[3].x||anchors[0].y>=anchors[2].y||anchors[1].y>=anchors[3].y)
+  return{ok:false,reason:'Page corners are in the wrong order. No attendance was changed.'};
+ const H=homography(DOC.anchor,anchors);if(!H)return{ok:false,reason:'Could not align this sheet. No attendance was changed.'};
+ const marks=Array.from({length:count},(_,i)=>rowMark(img,w,h,H,slots?slots[i]:i));
+ if(marks.some(x=>x.confidence==='invalid'))return{ok:false,reason:'The photo is too cropped to read safely. No attendance was changed.'};
+ const present=marks.filter(m=>m.present).length;
+ if(count>=8&&present>=count*.85)return{ok:false,reason:'Unreliable scan: almost all rows appear marked. No attendance was changed. Retake the photo or review manually.',diagnostics:{present,count}};
+ return{ok:true,marks,present,needsReview:marks.filter(x=>x.confidence==='review').length,anchors};
+}
 const API={detect,findMarker,rowMark,homography,map,DOC};if(typeof module!=='undefined'&&module.exports)module.exports=API;if(root)root.AnandaOMR=API;
 })(typeof window!=='undefined'?window:null);
