@@ -5439,11 +5439,15 @@ function p2v58BindPhoneListener(){
       const left=all.slice(0,Math.ceil(all.length/2)),right=all.slice(Math.ceil(all.length/2));
       const present=all.filter(r=>current.has(String(r.en.id))&&p2v58Draft[r.en.id]===true).length;
       const unmarked=all.filter(r=>current.has(String(r.en.id))&&p2v58Draft[r.en.id]!==true).length;
-      const awaiting=all.length-current.size;
+      const prior=r=>p2v58AttendanceValue(r.en,String(sc.data?.date||p2v58Date));
+      const savedPresent=all.filter(r=>!current.has(String(r.en.id))&&prior(r)===true).length;
+      const savedAbsent=all.filter(r=>!current.has(String(r.en.id))&&prior(r)===false).length;
+      const awaiting=all.length-current.size-savedPresent-savedAbsent;
       const row=(r,i)=>{
         const here=current.has(String(r.en.id));
-        const status=!here?'Awaiting other sheet':p2v58Draft[r.en.id]===true?'Present ✓':'Unmarked';
-        const bg=!here?'#f2f4f7':p2v58Draft[r.en.id]===true?'#e4f4e9':'#fff';
+        const old=here?null:prior(r);
+        const status=here?(p2v58Draft[r.en.id]===true?'New Present ✓':p2v58Draft[r.en.id]===false?'New Absent':'Unmarked'):(old===true?'Saved Present ✓':old===false?'Saved Absent':'Awaiting other sheet');
+        const bg=here?(p2v58Draft[r.en.id]===true?'#e4f4e9':'#fff'):(old===true?'#e4f4e9':old===false?'#fff4f4':'#f2f4f7');
         return '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 12px;background:'+bg+';border-bottom:1px solid #e0e8f0">'+
           '<span style="color:#123d80;font-size:12px;font-weight:700">'+String(i+1).padStart(2,'0')+' · '+esc(r.p.name||'Unnamed')+'</span>'+
           '<span style="white-space:nowrap;font-size:11px;color:#596c82">'+status+'</span></div>';
@@ -5451,7 +5455,7 @@ function p2v58BindPhoneListener(){
       overview.style.cssText='margin-top:17px;margin-bottom:14px;border:1px solid #c6d9e7;border-radius:10px;background:white;overflow:hidden';
       overview.innerHTML='<div style="padding:13px 16px;background:#f1f7fd;color:#123d80">'+
         '<strong>FULL CLASS OVERVIEW · '+all.length+' STUDENTS</strong>'+
-        '<p style="font-size:12px;margin:5px 0 0">This printed sheet: '+sc.rows.length+' students · '+present+' Present · '+unmarked+' Unmarked. Other sheets: '+awaiting+' not scanned. No absent status is assigned automatically.</p>'+
+        '<p style="font-size:12px;margin:5px 0 0">This printed sheet: '+sc.rows.length+' students · '+present+' Present · '+unmarked+' Unmarked. Previously saved other sheets: '+savedPresent+' Present, '+savedAbsent+' Absent. Awaiting: '+awaiting+'. No absent status is assigned by scanning.</p>'+
         (awaiting?'<p style="font-size:12px;margin:5px 0 0">Review and save the current sheet, then upload the remaining printed page.</p>':'')+'</div>'+
         '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">'+
         '<div>'+left.map((r,i)=>row(r,i)).join('')+'</div>'+
