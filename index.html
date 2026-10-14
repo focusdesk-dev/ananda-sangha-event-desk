@@ -5619,6 +5619,14 @@ function p2v58BindPhoneListener(){
         });
       }else p2v531RosterBase();
       p2v531MoveReview();
+      // Hide old saved-status banner during AI review. Save controls are locked
+      // until a new photo has actually been analysed.
+      const savedBanner=$('p2v510AttendanceNotice');
+      if(savedBanner)savedBanner.style.display=p2v531Active?'none':'';
+      const waiting=p2v531Active&&p2v528AwaitingPhoto&&!p2v524ScanSession;
+      for(const id of ['p2v58All','p2v58Confirm','p2v58Save','p2v58Clear']){
+        const button=$(id);if(button)button.disabled=!!waiting;
+      }
     };
     const p2v531ShowReviewBase=p2v511ShowReview;
     p2v511ShowReview=function(...args){const result=p2v531ShowReviewBase(...args);p2v531MoveReview();return result;};
