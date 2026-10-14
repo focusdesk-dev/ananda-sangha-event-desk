@@ -165,7 +165,7 @@
   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
 </style>
-</head>
+<style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{background:#164e94;color:#fff}#p2v531ReviewInside .p2v58-list-head{margin-top:10px}@media(max-width:700px){#classAttendanceHub .p2v531-step{min-height:74px}}@media(max-width:550px){#p2v530Panel .p2v531-step small{font-size:9px}}</style></head>
 <body>
 <div class="app">
   <aside>
@@ -3391,33 +3391,45 @@
         <div id="p2v58UploadStatus" class="p2v58-upload-status"></div>
       </div>
 
-      <section id="p2v530Panel" class="p2v58-upload-panel hidden" aria-label="AI Attendance">
-        <div><h3>AI ATTENDANCE — PHOTO ANALYSIS</h3>
-          <p>AI reads black/blue handwritten marks beside the numbered students on the exact printed sheet. It prepares Present/Unmarked results for your review, without automatically saving.</p>
+      <section id="p2v530Panel" class="p2v58-upload-panel hidden" aria-label="AI Attendance workflow">
+        <h3>AI ATTENDANCE · COMPLETE CLASS WORKFLOW</h3>
+        <p>Course, batch and date are selected above. Each printed page has its own Sheet ID and phone QR. Photos are assessed automatically and sent back for volunteer review. Nothing is saved until you confirm.</p>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0">
+          <div class="p2v531-step"><b>1. PRINT</b><small>AI attendance sheets</small></div>
+          <div class="p2v531-step"><b>2. MARK</b><small>Tick students on paper</small></div>
+          <div class="p2v531-step"><b>3. SCAN QR</b><small>Open on phone</small></div>
+          <div class="p2v531-step"><b>4. TAKE PHOTO</b><small>AI sends result to review</small></div>
         </div>
-        <div class="p2v58-upload-buttons" style="flex-wrap:wrap">
-          <button id="p2v530Choose" class="btn secondary" type="button">CHOOSE / TAKE PHOTO</button>
-          <button id="p2v530Phone" class="btn secondary" type="button">CONNECT PHONE</button>
-          <button id="p2v530Analyze" class="btn" type="button">ANALYZE WITH AI</button>
-          <input id="p2v530File" type="file" accept="image/png,image/jpeg,image/webp,image/*" hidden>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0">
-          <img id="p2v530Preview" alt="Photo selected for analysis" style="display:none;width:130px;max-height:95px;object-fit:contain;border:1px solid #bdd1e2;border-radius:8px">
-          <span id="p2v530Filename" style="font-size:12px;color:#45647c">No photo selected</span>
+        <div class="p2v58-upload-buttons" style="flex-wrap:wrap;align-items:center">
+          <button id="p2v531Print" class="btn" type="button">PRINT AI ATTENDANCE SHEETS</button>
+          <span style="font-size:12px;color:#43698c">Print 30 students on page 1, then remaining students in balanced columns on subsequent pages.</span>
         </div>
         <details id="p2v530Settings">
-          <summary style="cursor:pointer;font-weight:bold;color:#16457e">AI API setup (one time per Windows computer)</summary>
-          <p style="margin:8px 0;font-size:12px">Enter a separately billed OpenAI API key. It is encrypted on this Windows PC, never stored in the student database or included in the installer.</p>
+          <summary style="cursor:pointer;font-weight:bold;color:#16457e">ONE-TIME AI API SETUP</summary>
+          <p style="margin:8px 0;font-size:12px">An OpenAI API key is needed for paid photo assessment. The key is encrypted on this Windows computer, not saved inside the student database or installer.</p>
           <div style="display:flex;gap:9px;flex-wrap:wrap">
-            <input id="p2v530Key" type="password" autocomplete="off" placeholder="Paste OpenAI API key (sk-...)" style="min-width:260px;flex:1;padding:10px;border:1px solid #b9cbdc;border-radius:8px">
+            <input id="p2v530Key" type="password" autocomplete="off" placeholder="OpenAI API key (sk-...)" style="min-width:260px;flex:1;padding:10px;border:1px solid #b9cbdc;border-radius:8px">
             <button id="p2v530SaveKey" class="btn secondary" type="button">SAVE API KEY</button>
           </div>
         </details>
         <label style="display:flex;align-items:flex-start;gap:9px;margin:12px 0;font-size:12px;color:#173f7d">
           <input id="p2v530Consent" type="checkbox" style="margin-top:3px">
-          <span>I have permission to send this attendance photograph, including any visible student names, to OpenAI for AI analysis. Requires internet and separate API charges.</span>
+          <span>I authorise AI attendance processing for this NGO. Volunteers must also confirm photo-upload permission on the phone. API charges apply.</span>
         </label>
-        <div id="p2v530Status" role="status" style="font-size:12px;padding:10px;border:1px solid #d7e5f0;border-radius:8px;color:#173f7d">Choose a photo, then click Analyze with AI.</div>
+        <div id="p2v530Status" role="status" style="font-size:12px;padding:10px;border:1px solid #d7e5f0;border-radius:8px;color:#173f7d">Set up AI once, then print the AI attendance sheets to start.</div>
+        <details style="margin-top:12px">
+          <summary style="cursor:pointer;color:#315f93;font-size:12px">Alternative: analyse a photo already on this laptop</summary>
+          <div class="p2v58-upload-buttons" style="flex-wrap:wrap">
+            <button id="p2v530Choose" class="btn secondary" type="button">CHOOSE PHOTO</button>
+            <button id="p2v530Analyze" class="btn secondary" type="button">ANALYZE WITH AI</button>
+            <input id="p2v530File" type="file" accept="image/png,image/jpeg,image/webp,image/*" hidden>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;margin:8px 0">
+            <img id="p2v530Preview" alt="Selected attendance photo" style="display:none;width:120px;max-height:90px;object-fit:contain;border:1px solid #bdd1e2;border-radius:8px">
+            <span id="p2v530Filename" style="font-size:12px;color:#45647c">No photo selected</span>
+          </div>
+        </details>
+        <div id="p2v531ReviewInside" style="margin-top:12px"></div>
       </section>
       <div class="p2v58-list-head"><div><button class="p2v58-tab active" type="button">ATTENDANCE LIST</button></div><input id="p2v58Search" class="search" placeholder="Search by name or mobile..."></div>
       <div id="p2v58Roster"></div>
@@ -4613,7 +4625,7 @@ function p2v58BindPhoneListener(){
     catch(e){const status=$('p2v58UploadStatus');if(status)status.innerHTML='<span class="bad">'+esc(e.message||'Attendance photo could not be analysed')+'</span>'}
   };
 
-  p2v58PrintSheet=async function(){
+  p2v58PrintSheet=async function(aiMode=false){
     p2v518ClearScanScope();
     const b=p2v58CurrentBatch();if(!b||!p2v58Date){toast('Choose a batch and date first');return}
     const rows=p2v518CurrentRowsBase();if(!rows.length){toast('No students enrolled in this batch');return}
@@ -4913,7 +4925,7 @@ function p2v58BindPhoneListener(){
         '<span class="fid tl"><i></i></span><span class="fid tr"><i></i></span><span class="fid bl"><i></i></span><span class="fid br"><i></i></span>'+
         '<div class="brand">'+(logo?'<img src="'+logo+'">':'')+'<b>ANANDA SANGHA</b></div>'+
         '<h1>CLASS ATTENDANCE</h1>'+
-        '<div class="scanqr"><img src="'+qr+'"><small>SCAN TO UPLOAD</small></div>'+
+        '<div class="scanqr"><img src="'+qr+'"><small>'+(aiMode?'SCAN FOR AI PHOTO':'SCAN TO UPLOAD')+'</small></div>'+
         '<div class="sheetmeta"><div><span>Sheet ID</span><b>'+esc(sheetId)+'</b></div><div><span>Level</span><b>'+esc(p2CourseName(b).replace(/^Level\s*/i,'')||p2CourseName(b))+'</b></div><div><span>Batch</span><b>'+esc(String(b.name).replace(/^Batch\s*/i,'')||String(b.name))+'</b></div><div><span>Date</span><b>'+esc(fmt(p2v58Date))+'</b></div></div>'+
         '<div class="head left"><span>#</span><b>NAME</b><b>ATTENDANCE</b></div>'+
         '<div class="head right"><span>#</span><b>NAME</b><b>ATTENDANCE</b></div>'+
@@ -5093,10 +5105,12 @@ function p2v58BindPhoneListener(){
 
       const meta={
         payload,sheetId,layout:P2V521_LAYOUT,course:p2CourseName(b),batch:b.name,
-        date:fmt(p2v58Date),dateIso:p2v58Date,sheet:pi+1,total:chunks.length
+        date:fmt(p2v58Date),dateIso:p2v58Date,sheet:pi+1,total:chunks.length,
+        mode:aiMode?'ai':'offline'
       };
-      const link=await window.anandaAttendanceBridge?.prepareSheetLink?.(meta),
-        qrText=link?.ok&&link.url?link.url:payload,
+      const link=await window.anandaAttendanceBridge?.prepareSheetLink?.(meta);
+      if(aiMode&&(!link?.ok||!link?.url)){toast(link?.error||'AI requires a configured API key and active Wi-Fi connection. No AI QR could be printed.');return;}
+      const qrText=link?.ok&&link.url?link.url:payload,
         qr=await p2v58MakeQr(qrText,300);
       if(!qr){toast('Could not create attendance QR');return}
 
