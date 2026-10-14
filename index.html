@@ -5105,7 +5105,7 @@ function p2v58BindPhoneListener(){
     catch(e){const status=$('p2v58UploadStatus');if(status)status.innerHTML='<span class="bad">'+esc(e.message||'Attendance photo could not be analysed')+'</span>'}
   };
 
-  p2v58PrintSheet=async function(){
+  p2v58PrintSheet=async function(aiMode=false){
     p2v518ClearScanScope();
     const b=p2v58CurrentBatch();if(!b||!p2v58Date){toast('Choose a batch and date first');return}
     const rows=p2v518CurrentRowsBase();if(!rows.length){toast('No students enrolled in this batch');return}
@@ -5132,7 +5132,12 @@ function p2v58BindPhoneListener(){
         mode:aiMode?'ai':'offline'
       };
       const link=await window.anandaAttendanceBridge?.prepareSheetLink?.(meta);
-      if(aiMode&&(!link?.ok||!link?.url)){toast(link?.error||'AI requires a configured API key and active Wi-Fi connection. No AI QR could be printed.');return;}
+      if(!link?.ok||!link?.url){
+        throw new Error(link?.error||'Phone QR cannot be printed until this computer is connected to Wi-Fi or a phone hotspot.');
+      }
+      if(aiMode&&!new URL(link.url).searchParams.has('k')){
+        throw new Error('AI QR was missing its verification signature; print cancelled.');
+      }
       const qrText=link?.ok&&link.url?link.url:payload,
         qr=await p2v58MakeQr(qrText,300);
       if(!qr){toast('Could not create attendance QR');return}
@@ -5150,7 +5155,7 @@ function p2v58BindPhoneListener(){
         '<span class="fid tl"><i></i></span><span class="fid tr"><i></i></span><span class="fid bl"><i></i></span><span class="fid br"><i></i></span>'+
         '<div class="brand">'+(logo?'<img src="'+logo+'">':'')+'<b>ANANDA SANGHA</b></div>'+
         '<h1>CLASS ATTENDANCE</h1>'+
-        '<div class="scanqr"><img src="'+qr+'"><small>SCAN TO UPLOAD</small></div>'+
+        '<div class="scanqr"><img src="'+qr+'"><small>'+(aiMode?'SCAN FOR AI PHOTO':'SCAN TO UPLOAD')+'</small></div>'+
         '<div class="sheetmeta">'+
           '<div><span>Sheet ID</span><b>'+esc(sheetId)+'</b></div>'+
           '<div><span>Level</span><b>'+esc(p2CourseName(b).replace(/^Level\s*/i,'')||p2CourseName(b))+'</b></div>'+
@@ -5177,7 +5182,19 @@ function p2v58BindPhoneListener(){
       '</style></head><body>'+pages.join('')+'</body></html>';
 
     const r=await window.anandaDesktop?.printHtml(printHtml);
-    if(r&&!r.ok)toast(r.error||'Printing failed')
+    if(!r?.ok)throw new Error(r?.error||'Print preview could not be opened.');
+    if(aiMode&&$('p2v530Status'))p2v530SetStatus('AI attendance print preview ready: '+chunks.length+' page(s). Save PDF or Print. Scan the QR using a phone on the same Wi-Fi/hotspot. No API credits required for this step.');
+    return {ok:true,pages:chunks.length,mode:aiMode?'ai':'offline'};
+  };
+  // One consistent error surface for the normal and AI print actions.
+  const p2v533PrintCore=p2v58PrintSheet;
+  p2v58PrintSheet=async function(aiMode=false){
+    try{return await p2v533PrintCore(aiMode);}
+    catch(err){
+      const msg='QR print could not start: '+String(err?.message||err);
+      toast(msg);if(aiMode&&$('p2v530Status'))p2v530SetStatus(msg,true);
+      return {ok:false,error:msg};
+    }
   };
 
   // PHASE2 BETA523 PAGE BY PAGE PREVIEW
@@ -5687,12 +5704,11 @@ function p2v58BindPhoneListener(){
       p2v530SetStatus('AI mode ready: select course/batch/date, then PRINT AI ATTENDANCE SHEETS. Scan the printed QR on the phone to take a picture.');
     };
     $('p2v531Print')?.addEventListener('click',async ()=>{
-      if(!p2v531Consent()){p2v530SetStatus('Authorise AI processing first by ticking the permission checkbox.',true);return;}
-      const config=await window.anandaDesktop?.aiStatus?.();
-      if(!config?.configured){$('p2v530Settings').open=true;p2v530SetStatus('Save an OpenAI API key before printing AI QR sheets.',true);return;}
-      p2v530SetStatus('Preparing the AI QR links and printing the complete batch...');
-      try{await p2v58PrintSheet(true);}
-      catch(err){p2v530SetStatus('AI printing failed: '+String(err?.message||err),true);}
+      // Printing a signed sheet is FREE and does not send student details to OpenAI.
+      // Consent + API key are checked before actual AI analysis, not before printing.
+      p2v530SetStatus('Preparing signed AI phone QRs and opening print preview. Keep this PC on Wi-Fi or phone hotspot.');
+      const result=await p2v58PrintSheet(true);
+      if(!result?.ok)p2v530SetStatus(result?.error||'QR print failed. Check Wi-Fi and class selection.',true);
     });
     async function p2v531HandlePhone(payload){
       if(!payload?.dataUrl)return;
