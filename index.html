@@ -289,6 +289,29 @@
           <div class="security-warning" style="margin-top:16px"><strong>Important:</strong> The password cannot be recovered from this offline app. Keep it in a safe place.</div>
         </div>
       </div>
+
+      <div id="p2v532AiSettings" class="card" style="margin-top:18px">
+        <div class="card-head">
+          <div><h3>AI Attendance — API Settings</h3>
+          <div class="card-sub">Set up, change, test or remove the OpenAI API key without affecting volunteer or student records.</div></div>
+        </div>
+        <div class="note" style="margin-bottom:13px">
+          <strong>API status:</strong> <span id="p2v532KeyStatus" aria-live="polite">Checking this computer...</span>
+          <div class="hint" style="margin-top:5px">Each Windows computer uses its own encrypted key. Handover installers do not contain your key. Ananda may later use its own API project.</div>
+        </div>
+        <div class="field full">
+          <label for="p2v532NewKey">NEW / REPLACEMENT OPENAI API KEY</label>
+          <input id="p2v532NewKey" type="password" autocomplete="new-password" placeholder="Paste a new sk-... key (never share it in chat)">
+        </div>
+        <div class="actions" style="margin-top:13px;display:flex;gap:9px;flex-wrap:wrap">
+          <button id="p2v532ReplaceKey" class="btn" type="button">Save / Replace API Key</button>
+          <button id="p2v532RemoveKey" class="btn secondary" type="button">Remove API Key</button>
+          <button id="p2v532FreeTest" class="btn secondary" type="button">Run Free Precheck</button>
+          <button id="p2v532ConnectionTest" class="btn ghost" type="button">Test API Connection</button>
+        </div>
+        <div id="p2v532KeyMessage" role="status" style="font-size:12px;margin-top:12px;color:#244d79"></div>
+        <div class="security-warning" style="margin-top:12px"><b>Before you buy credits:</b> Free Precheck checks the installed application without contacting OpenAI. Connection Test checks the saved API key without analyzing an image. Neither proves AI can read a real marked sheet. Review every AI attendance result before saving; API credits are required for a live photo test.</div>
+      </div>
       <div id="v123DataCard" class="card" style="margin-top:18px">
         <div class="card-head"><div><h3>Data, backup & updates</h3><div class="card-sub">Program updates no longer replace or move your permanent records</div></div><span class="pill green">PRODUCTION 1.0.126</span></div>
         <div class="note" style="margin-bottom:16px"><strong>Permanent data location</strong><div id="v123DataLocation" class="hint" style="margin-top:6px;word-break:break-all">ANANDA SANGHA EVENT DESK\Data</div><div class="hint" style="margin-top:6px">The complete NGO handover folder contains Application, Data and Backup. Move or submit the whole folder together.</div></div>
@@ -5708,6 +5731,52 @@ function p2v58BindPhoneListener(){
       if(id==='p2v58Manual'||id==='p2v58Edit'||id==='p2v58Upload'){p2v531Active=false;p2v531MoveReview();}
     });
     p2v531MoveReview();
+
+    // BETA532: API key can be rotated or removed from ordinary application Settings.
+    // Existing students, course history, and attendance are never modified by these actions.
+    async function p2v532RefreshKeyStatus(){
+      const el=$('p2v532KeyStatus');if(!el)return;
+      try{
+        const state=await window.anandaDesktop?.aiStatus?.();
+        if(!state?.secureStorage)el.textContent='Protected Windows key storage unavailable';
+        else el.textContent=state.configured?'Configured on this computer':'Not configured';
+      }catch{el.textContent='Unable to read key status';}
+    }
+    function p2v532Message(t,error=false){
+      const el=$('p2v532KeyMessage');if(!el)return;
+      el.textContent=t;el.style.color=error?'#a32020':'#164f83';
+    }
+    async function p2v532SafeClick(fn,button){
+      if(button)button.disabled=true;
+      try{await fn();}
+      catch(err){p2v532Message(err?.message||'Could not complete this action.',true);}
+      finally{if(button)button.disabled=false;await p2v532RefreshKeyStatus();}
+    }
+    $('p2v532ReplaceKey')?.addEventListener('click',e=>p2v532SafeClick(async()=>{
+      const entry=$('p2v532NewKey');
+      const value=entry?.value?.trim()||'';
+      if(!value){p2v532Message('Enter a new OpenAI API key first.',true);return;}
+      const result=await window.anandaDesktop?.setAiKey?.(value);
+      if(entry)entry.value='';
+      p2v532Message(result?.ok?'New key saved securely. The old key is no longer used.':'Unable to save: '+(result?.error||'Unknown error'),!result?.ok);
+    },e.target));
+    $('p2v532RemoveKey')?.addEventListener('click',e=>p2v532SafeClick(async()=>{
+      if(!window.confirm('Remove the OpenAI API key from this computer? AI attendance will be unavailable until you enter a new key. Student records are unaffected.'))return;
+      const result=await window.anandaDesktop?.removeAiKey?.();
+      $('p2v532NewKey').value='';
+      p2v532Message(result?.ok?'API key removed from this computer. All NGO records are unchanged.':'Removal failed: '+(result?.error||'Unknown error'),!result?.ok);
+    },e.target));
+    $('p2v532FreeTest')?.addEventListener('click',e=>p2v532SafeClick(async()=>{
+      const result=await window.anandaDesktop?.freeAiPreflight?.();
+      p2v532Message((result?.ok?'Free local check passed. ':'Free local check failed. ')+(result?.message||result?.error||'No response')+
+        ' API image recognition has NOT been tested.',!result?.ok);
+    },e.target));
+    $('p2v532ConnectionTest')?.addEventListener('click',e=>p2v532SafeClick(async()=>{
+      const result=await window.anandaDesktop?.testAiConnection?.();
+      p2v532Message(result?.ok?'Connection test passed. No image analysed.':'Connection test failed: '+(result?.error||'Unknown error'),!result?.ok);
+    },e.target));
+    document.querySelector('[data-page="settings"]')?.addEventListener('click',()=>{p2v532RefreshKeyStatus();});
+    p2v532RefreshKeyStatus();
 
     updateBackButton();
   resetQuickCounter(true);
