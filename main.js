@@ -5,7 +5,7 @@ const http = require('http');
 const os = require('os');
 
 const APP_ID = 'org.anandasangha.gurgaon.eventdesk';
-const APP_VERSION = '2.0.0-beta.5.31';
+const APP_VERSION = '2.0.0-beta.5.32';
 const ROOT_DIR = path.join(app.getPath('documents'), 'ANANDA SANGHA EVENT DESK');
 const DATA_ROOT = path.join(ROOT_DIR, 'Data');
 const SYSTEM_ROOT = path.join(ROOT_DIR, 'System');
@@ -354,6 +354,45 @@ ipcMain.handle('ananda-ai-set-key', async (_event, key) => {
     return { ok: true, configured: true };
   } catch (err) {
     return { ok: false, error: err.message || 'Unable to save your API key.' };
+  }
+});
+
+// Settings -> AI configuration: change is handled by ananda-ai-set-key, which
+// overwrites the previous encrypted credential without touching NGO records.
+ipcMain.handle('ananda-ai-remove-key', async () => {
+  try {
+    if (fs.existsSync(AI_CREDENTIAL_PATH)) fs.unlinkSync(AI_CREDENTIAL_PATH);
+    return {ok:true,configured:false};
+  } catch(err){return {ok:false,error:err?.message||'Could not remove the AI key.'};}
+});
+ipcMain.handle('ananda-ai-free-preflight', async () => {
+  // Local dry-run only. No network request and no API credit consumption.
+  try {
+    const keyStorage = safeStorage.isEncryptionAvailable();
+    const storage = fs.existsSync(SYSTEM_ROOT) && fs.statSync(SYSTEM_ROOT).isDirectory();
+    const demoRows = [1,4,6,9,15,16,20,24,26,30], allowed = Array.from({length:30},(_,i)=>i+1);
+    const detected = new Set(demoRows);
+    const good = demoRows.every(x=>allowed.includes(x)) && detected.size===demoRows.length
+       && allowed.filter(x=>!detected.has(x)).length===20;
+    return {ok:keyStorage&&storage&&good,keyStorage,storage,offlineMappingTest:good,
+      message:'This is a free local check. It does NOT contact OpenAI or prove photo-recognition accuracy.'};
+  }catch(err){return{ok:false,error:err?.message||'Preflight failed.'};}
+});
+ipcMain.handle('ananda-ai-test-connection',async()=>{
+  try {
+    const key=anandaReadAiKey();
+    if(!key)throw new Error('No API key is saved on this PC.');
+    const response=await fetch('https://api.openai.com/v1/models/gpt-4.1',{
+      headers:{Authorization:'Bearer '+key},signal:AbortSignal.timeout(15000)
+    });
+    if(!response.ok){
+      let details='HTTP '+response.status;
+      try{const b=await response.json();details=String(b?.error?.message||details).slice(0,300);}catch{}
+      throw new Error(details);
+    }
+    return {ok:true,message:'API key authenticated and model endpoint reachable. No photo was analysed; image-processing accuracy is not tested.'};
+  }catch(err){
+    return {ok:false,error:err?.name==='TimeoutError'?'Connection timed out. Check internet access.':String(err?.message||err)};
   }
 });
 ipcMain.handle('ananda-ai-analyze-attendance', async (_event, body) => {
