@@ -5,7 +5,7 @@ const http = require('http');
 const os = require('os');
 
 const APP_ID = 'org.anandasangha.gurgaon.eventdesk';
-const APP_VERSION = '2.0.0-beta.5.30';
+const APP_VERSION = '2.0.0-beta.5.31';
 const ROOT_DIR = path.join(app.getPath('documents'), 'ANANDA SANGHA EVENT DESK');
 const DATA_ROOT = path.join(ROOT_DIR, 'Data');
 const SYSTEM_ROOT = path.join(ROOT_DIR, 'System');
@@ -224,6 +224,18 @@ let anandaAttendanceServer=null;
 let anandaAttendanceServerInfo=null;
 // BETA516 COMPACT PRINTED QR
 const anandaAttendanceSheetMeta=new Map();
+const anandaQrCrypto=require('crypto');
+const anandaAiQrSecretPath=path.join(SYSTEM_ROOT,'ai-sheet-qr-secret.bin');
+function anandaAiQrToken(sheetId,verify) {
+  if(!fs.existsSync(anandaAiQrSecretPath)) {
+    const tmp=anandaAiQrSecretPath+'.tmp';
+    fs.writeFileSync(tmp,anandaQrCrypto.randomBytes(32),{mode:0o600});
+    fs.renameSync(tmp,anandaAiQrSecretPath);
+  }
+  const key=fs.readFileSync(anandaAiQrSecretPath);
+  return anandaQrCrypto.createHmac('sha256',key).update(String(sheetId)+'|'+String(verify)).digest('hex');
+}
+
 function anandaCompactAttendanceMeta(u){
   try{
     const b=u.searchParams.get('b')||'',d8=u.searchParams.get('d')||'',sheet=Number(u.searchParams.get('s')||1),total=Number(u.searchParams.get('t')||1),verify=u.searchParams.get('v')||'',sheetId=u.searchParams.get('x')||'',layout=u.searchParams.get('l')||'';
@@ -231,7 +243,7 @@ function anandaCompactAttendanceMeta(u){
     const date=d8.slice(0,4)+'-'+d8.slice(4,6)+'-'+d8.slice(6,8),key=[b,d8,sheet,total,verify,sheetId,layout].join('|');
     const remembered=anandaAttendanceSheetMeta.get(key);if(remembered)return remembered;
     const payload=JSON.stringify({v:layout==='A4L30V2'?5:(layout==='A4L40'?4:(layout==='A4L30'?3:(sheetId?2:1))),kind:'ANANDA_ATTENDANCE',layout:layout||undefined,batchId:b,date,sheet,totalSheets:total,sheetId:sheetId||undefined,sessionId:b+':'+date,verify});
-    return{payload,date,sheet,total}
+    return{payload,date,sheet,total,sheetId,mode:u.searchParams.get('m')==='ai'?'ai':'offline'}
   }catch{return null}
 }
 function anandaAttendanceIp(){
@@ -254,13 +266,14 @@ function anandaMobilePage(meta,encoded){
   let logoData='';try{logoData='data:image/png;base64,'+fs.readFileSync(path.join(__dirname,'logo-128.png')).toString('base64')}catch{}
   const safe=x=>String(x||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const has=!!(meta&&meta.payload),course=safe(meta?.course||''),batch=safe(meta?.batch||''),date=safe(meta?.date||'');
+  const aiMode=meta?.mode==='ai';
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Ananda Attendance Sheet</title><style>
   *{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#0d3979;background:radial-gradient(circle at 50% 22%,rgba(255,226,81,.30) 0 14%,rgba(255,226,81,.10) 15% 27%,transparent 28%),radial-gradient(circle at 50% 45%,#fff 0 40%,#f3f8fd 72%,#e8f2fb 100%);overflow-x:hidden}.halo{position:fixed;left:50%;top:-18vw;width:130vw;height:130vw;transform:translateX(-50%);border-radius:50%;border:13vw solid rgba(255,211,36,.10);box-shadow:0 0 80px rgba(255,205,38,.12);pointer-events:none}.mountains{position:fixed;left:0;right:0;bottom:0;height:19vh;background:linear-gradient(155deg,transparent 0 28%,rgba(165,198,230,.16) 29% 47%,transparent 48%),linear-gradient(205deg,transparent 0 31%,rgba(106,158,208,.12) 32% 55%,transparent 56%);pointer-events:none}.wrap{position:relative;z-index:1;width:min(92vw,520px);margin:0 auto;padding:calc(24px + env(safe-area-inset-top)) 0 28px}.brand{text-align:center;margin:12px 0 22px}.logo{width:92px;height:92px;border-radius:50%;margin:0 auto 14px;box-shadow:0 0 28px rgba(255,204,35,.42);overflow:hidden}.logo img{width:100%;height:100%;display:block;object-fit:cover}.brand h1{margin:0;font-size:21px;letter-spacing:1.5px}.card{background:rgba(255,255,255,.90);border:1px solid rgba(203,221,238,.85);border-radius:24px;padding:22px;box-shadow:0 18px 50px rgba(20,61,112,.10);backdrop-filter:blur(8px)}h2{font-size:26px;margin:0 0 17px;text-align:center}.details{background:linear-gradient(135deg,#fff9e8,#f6fbff);border:1px solid #f0e3b6;border-radius:16px;padding:14px 16px;margin-bottom:18px;display:${has?'block':'none'}}.details b{display:block;font-size:16px;margin:4px 0}.details span{font-size:13px;color:#62778d}.btn{width:100%;min-height:58px;border-radius:14px;border:1px solid #b9cee3;background:#fff;color:#103f80;font-size:16px;font-weight:800;margin-top:12px}.btn.primary{border-color:#0d55a7;background:linear-gradient(135deg,#0e4a91,#0b63ba);color:#fff;box-shadow:0 8px 18px rgba(15,77,145,.16)}.or{display:flex;align-items:center;gap:10px;color:#687d92;font-size:13px;margin:14px 0 0}.or:before,.or:after{content:'';height:1px;background:#cbd9e6;flex:1}.hidden{display:none!important}.preview img{width:100%;max-height:52vh;object-fit:contain;border-radius:15px;border:1px solid #d9e5ef;background:#eef3f7}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.status{text-align:center;padding:34px 8px}.check{width:78px;height:78px;border-radius:50%;display:grid;place-items:center;margin:0 auto 18px;background:#e4f6e9;color:#168541;font-size:46px;font-weight:900}.spinner{width:54px;height:54px;border-radius:50%;border:6px solid #d6e4f1;border-top-color:#0d55a7;margin:15px auto;animation:spin .9s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.bar{height:9px;border-radius:999px;background:#dce8f3;overflow:hidden;margin-top:20px}.bar:after{content:'';display:block;width:45%;height:100%;background:#0d55a7;border-radius:inherit;animation:load 1.2s ease-in-out infinite alternate}@keyframes load{to{transform:translateX(120%)}}small.note{display:block;text-align:center;color:#6a7f93;margin-top:12px;line-height:1.4}
-  </style></head><body><div class="halo"></div><div class="mountains"></div><main class="wrap"><div class="brand"><div class="logo"><img src="${logoData}" alt="Ananda Sangha"></div><h1>ANANDA SANGHA</h1></div><section id="pick" class="card"><h2>Attendance Sheet</h2><div class="details"><b>${course}${course&&batch?' · ':''}${batch}</b><span>${date}${meta?.sheet?' · Sheet '+safe(meta.sheet)+' of '+safe(meta.total||1):''}</span></div><button id="take" class="btn primary">TAKE PHOTO</button><div class="or">or</div><button id="choose" class="btn">CHOOSE FROM PHOTOS</button><input id="camera" class="hidden" type="file" accept="image/*" capture="environment"><input id="gallery" class="hidden" type="file" accept="image/*"></section><section id="preview" class="card preview hidden"><h2>Preview Photo</h2><img id="photo"><div class="row"><button id="retake" class="btn">RETAKE</button><button id="use" class="btn primary">USE PHOTO</button></div></section><section id="uploading" class="card status hidden"><div class="spinner"></div><h2>Uploading Attendance Sheet…</h2><div class="bar"></div><small class="note">Keep this phone and the laptop on the same Wi-Fi or hotspot.</small></section><section id="done" class="card status hidden"><div class="check">✓</div><h2>Uploaded Successfully</h2><p>Attendance sheet has been sent to Ananda Event Desk.</p><div class="details" style="display:${has?'block':'none'}"><b>${course}${course&&batch?' · ':''}${batch}</b><span>${date}</span></div><button id="another" class="btn primary">UPLOAD ANOTHER SHEET</button><button id="close" class="btn">CLOSE</button></section></main><script>
+  </style></head><body><div class="halo"></div><div class="mountains"></div><main class="wrap"><div class="brand"><div class="logo"><img src="${logoData}" alt="Ananda Sangha"></div><h1>ANANDA SANGHA</h1></div><section id="pick" class="card"><h2>${aiMode?"AI Attendance Sheet":"Attendance Sheet"}</h2><div class="details"><b>${course}${course&&batch?' · ':''}${batch}</b><span>${date}${meta?.sheet?' · Sheet '+safe(meta.sheet)+' of '+safe(meta.total||1):''}</span></div><p style="font-size:13px;text-align:center;color:#37618b">${aiMode?'AI analysis will start automatically on the laptop after upload. A volunteer must review the marks before saving.':'Take a clear full-page photo of the marked attendance sheet.'}</p><button id="take" class="btn primary">TAKE PHOTO</button><div class="or">or</div><button id="choose" class="btn">CHOOSE FROM PHOTOS</button><input id="camera" class="hidden" type="file" accept="image/*" capture="environment"><input id="gallery" class="hidden" type="file" accept="image/*"></section><section id="preview" class="card preview hidden"><h2>Preview Photo</h2><img id="photo"><label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.4;margin-top:12px"><input type="checkbox" id="aiConsent" style="width:20px;height:20px;flex:none"><span>I have permission to send this attendance photo to the NGO computer${aiMode?' and OpenAI for AI analysis':''}. A volunteer will verify the result.</span></label><div class="row"><button id="retake" class="btn">RETAKE</button><button id="use" class="btn primary">USE PHOTO</button></div></section><section id="uploading" class="card status hidden"><div class="spinner"></div><h2>Uploading Attendance Sheet…</h2><div class="bar"></div><small class="note">Keep this phone and the laptop on the same Wi-Fi or hotspot.</small></section><section id="done" class="card status hidden"><div class="check">✓</div><h2>Photo Received</h2><p>${aiMode?'AI analysis has been requested on the NGO computer. The volunteer will check and save attendance.':'The photo has been received for review on the NGO computer.'}</p><div class="details" style="display:${has?'block':'none'}"><b>${course}${course&&batch?' · ':''}${batch}</b><span>${date}</span></div><button id="another" class="btn primary">UPLOAD ANOTHER SHEET</button><button id="close" class="btn">CLOSE</button></section></main><script>
   const a=${JSON.stringify(encoded||'')};let selected=null;const $=id=>document.getElementById(id),show=id=>['pick','preview','uploading','done'].forEach(x=>$(x).classList.toggle('hidden',x!==id));
   $('take').onclick=()=>$('camera').click();$('choose').onclick=()=>$('gallery').click();
   function selectedFile(f){if(!f)return;selected=f;$('photo').src=URL.createObjectURL(f);show('preview')}$('camera').onchange=e=>selectedFile(e.target.files?.[0]);$('gallery').onchange=e=>selectedFile(e.target.files?.[0]);$('retake').onclick=()=>{$('camera').value='';$('camera').click()};
-  $('use').onclick=async()=>{if(!selected)return;show('uploading');try{const fd=new FormData();fd.append('sheet',selected,selected.name||'attendance.jpg');const res=await fetch('/upload'+window.location.search,{method:'POST',body:fd});if(!res.ok)throw Error(await res.text());show('done')}catch(e){alert('Upload failed. Keep the phone and laptop on the same Wi-Fi or hotspot.');show('preview')}};
+  $('use').onclick=async()=>{if(!selected)return;if(!$('aiConsent').checked){alert('Please confirm permission before uploading the photo.');return;}show('uploading');try{const fd=new FormData();fd.append('sheet',selected,selected.name||'attendance.jpg');const res=await fetch('/upload'+window.location.search,{method:'POST',body:fd});if(!res.ok)throw Error(await res.text());show('done')}catch(e){alert('Upload failed. Keep the phone and laptop on the same Wi-Fi or hotspot.');show('preview')}};
   $('another').onclick=()=>{selected=null;$('camera').value='';$('gallery').value='';show('pick')};$('close').onclick=()=>{try{window.open('','_self');window.close()}catch{}setTimeout(()=>{if(document.hidden)return;try{if(history.length>1){history.back();return}}catch{}try{location.replace('about:blank')}catch{}},250)};
   </script></body></html>`
 }
@@ -274,7 +287,19 @@ async function anandaEnsureAttendanceServer(){
   try{
     anandaAttendanceServer=http.createServer((req,res)=>{try{const u=new URL(req.url,'http://local/'),encoded=u.searchParams.get('a')||'';let meta=anandaB64UrlDecode(encoded);if(!meta)meta=anandaCompactAttendanceMeta(u);
       if(req.method==='GET'){if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('ananda-attendance-phone-status',{status:'connected',remoteAddress:req.socket?.remoteAddress||''});res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});return res.end(anandaMobilePage(meta,encoded))}
-      if(req.method==='POST'&&u.pathname==='/upload'){const chunks=[];let size=0,tooBig=false;req.on('data',c=>{size+=c.length;if(size>25*1024*1024){tooBig=true;req.destroy()}else chunks.push(c)});req.on('end',()=>{if(tooBig)return;const file=anandaMultipartFile(Buffer.concat(chunks),req.headers['content-type']);if(!file){res.writeHead(400);return res.end('No image received')}const dataUrl='data:'+file.mime+';base64,'+file.data.toString('base64');if(mainWindow&&!mainWindow.isDestroyed()){mainWindow.webContents.send('ananda-attendance-phone-status',{status:'received'});mainWindow.webContents.send('ananda-attendance-phone-upload',{name:file.name,mime:file.mime,dataUrl,attendancePayload:meta?.payload||'',sheet:meta?.sheet||1,total:meta?.total||1})}res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}))});return}
+      if(req.method==='POST'&&u.pathname==='/upload'){
+        const aiMode=(meta?.mode==='ai'||u.searchParams.get('m')==='ai');
+        if(aiMode){
+          const sheetId=String(meta?.sheetId||u.searchParams.get('x')||'');
+          const verify=String(u.searchParams.get('v')||'');
+          const received=String(u.searchParams.get('k')||'');
+          const expected=sheetId&&verify?anandaAiQrToken(sheetId,verify):'';
+          if(!expected||received.length!==expected.length||!anandaQrCrypto.timingSafeEqual(Buffer.from(received),Buffer.from(expected))||!anandaReadAiKey()){
+            res.writeHead(403,{'Content-Type':'text/plain'});return res.end('This AI attendance QR cannot be verified or the OpenAI API key is not configured.');
+          }
+        }
+        const chunks=[];let size=0,tooBig=false;req.on('data',c=>{size+=c.length;if(size>25*1024*1024){tooBig=true;req.destroy()}else chunks.push(c)});req.on('end',()=>{if(tooBig)return;const file=anandaMultipartFile(Buffer.concat(chunks),req.headers['content-type']);if(!file){res.writeHead(400);return res.end('No image received')}if(!/^image\/(jpeg|png|webp)$/i.test(file.mime) || !file.data.length){res.writeHead(415);return res.end('Only JPG, PNG and WebP attendance photos are supported.')}
+        const dataUrl='data:'+file.mime+';base64,'+file.data.toString('base64');if(mainWindow&&!mainWindow.isDestroyed()){mainWindow.webContents.send('ananda-attendance-phone-status',{status:'received'});mainWindow.webContents.send('ananda-attendance-phone-upload',{name:file.name,mime:file.mime,dataUrl,attendancePayload:meta?.payload||'',sheet:meta?.sheet||1,total:meta?.total||1,mode:aiMode?'ai':'offline',sheetId:meta?.sheetId||u.searchParams.get('x')||''})}res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true}))});return}
       res.writeHead(404);res.end('Not found')
     }catch(e){res.writeHead(500);res.end('Upload error')}});
     await new Promise((resolve,reject)=>{anandaAttendanceServer.once('error',reject);anandaAttendanceServer.listen(8787,resolve)}).catch(async()=>{await new Promise((resolve,reject)=>{anandaAttendanceServer.once('error',reject);anandaAttendanceServer.listen(0,resolve)})});
@@ -288,7 +313,11 @@ ipcMain.handle('ananda-attendance-prepare-sheet-link',async(_event,meta)=>{
     const p=JSON.parse(meta?.payload||'{}'),b=String(p.batchId||''),date=String(p.date||''),d8=date.replace(/-/g,''),sheet=Number(p.sheet||1),total=Number(p.totalSheets||1),verify=String(p.verify||''),sheetId=String(p.sheetId||''),layout=String(p.layout||'');
     if(b&&/^\d{8}$/.test(d8)&&verify){
       const key=[b,d8,sheet,total,verify,sheetId,layout].join('|');anandaAttendanceSheetMeta.set(key,meta||{});
-      const q=new URLSearchParams({b,d:d8,s:String(sheet),t:String(total),v:verify,...(sheetId?{x:sheetId}:{}),...(layout?{l:layout}:{})}).toString();
+      const mode=meta?.mode==='ai'?'ai':'offline';
+      if(mode==='ai'&&!anandaReadAiKey())return{ok:false,error:'Set up your OpenAI API key before printing an AI attendance sheet.'};
+      if(mode==='ai'&&!sheetId)return{ok:false,error:'AI attendance needs a valid Sheet ID.'};
+      const token=mode==='ai'?anandaAiQrToken(sheetId,verify):'';
+      const q=new URLSearchParams({b,d:d8,s:String(sheet),t:String(total),v:verify,...(sheetId?{x:sheetId}:{}),...(layout?{l:layout}:{}),...(mode==='ai'?{m:'ai',k:token}:{})}).toString();
       return{ok:true,ip:s.ip,port:s.port,url:s.baseUrl+'?'+q}
     }
   }catch{}
