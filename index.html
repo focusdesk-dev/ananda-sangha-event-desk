@@ -3440,6 +3440,7 @@
           <span>I authorise AI attendance processing for this NGO. Volunteers must also confirm photo-upload permission on the phone. API charges apply.</span>
         </label>
         <div id="p2v530Status" role="status" style="font-size:12px;padding:10px;border:1px solid #d7e5f0;border-radius:8px;color:#173f7d">Set up AI once, then print the AI attendance sheets to start.</div>
+        <button id="p2v535RetryQueued" class="btn secondary" type="button" style="display:none;margin-top:8px">RETRY RECEIVED AI PHOTO</button>
         <details style="margin-top:12px">
           <summary style="cursor:pointer;color:#315f93;font-size:12px">Alternative: analyse a photo already on this laptop</summary>
           <div class="p2v58-upload-buttons" style="flex-wrap:wrap">
@@ -5628,6 +5629,21 @@ function p2v58BindPhoneListener(){
     // BETA531 QR-FIRST AI MODE. Prints a phone-scannable QR, then automatically
     // analyses the photo on the desktop; volunteer reviews/marks absent/saves.
     let p2v531Active=false,p2v531LastConfirmedSheetId='',p2v531PendingPhone=null;
+    // BETA535: A queued AI photo must be recoverable without saving an incorrect
+    // attendance sheet. Only the unsaved review is discarded after confirmation.
+    function p2v535RefreshQueuedPhoto(){
+      const button=$('p2v535RetryQueued');if(!button)return;
+      button.style.display=p2v531PendingPhone?'inline-flex':'none';
+      button.disabled=p2v530AiBusy;
+      button.textContent=p2v524ScanSession
+        ?'DISCARD UNSAVED REVIEW & PROCESS RECEIVED PHOTO'
+        :'RETRY RECEIVED AI PHOTO';
+    }
+    function p2v535QueuePhoto(payload,message){
+      p2v531PendingPhone=payload;
+      p2v530SetStatus(message,true);
+      p2v535RefreshQueuedPhoto();
+    }
     const p2v531ClassRoot=$('classAttendanceHub')?.querySelector('.p2v58-page');
     function p2v531Consent(){return !!$('p2v530Consent')?.checked;}
     if($('p2v530Consent')){
@@ -5691,6 +5707,7 @@ function p2v58BindPhoneListener(){
         p2v530SetStatus('Attendance saved for Sheet '+String(sc.snapshot?.sheet||1)+'. Scan the QR on the next marked page, if any.');
         if(p2v531PendingPhone){
           const next=p2v531PendingPhone;p2v531PendingPhone=null;
+          p2v535RefreshQueuedPhoto();
           setTimeout(()=>p2v531HandlePhone(next),250);
         }
       }
@@ -5713,19 +5730,34 @@ function p2v58BindPhoneListener(){
     async function p2v531HandlePhone(payload){
       if(!payload?.dataUrl)return;
       if(payload.mode!=='ai'){
-        if(p2v531Active){p2v531Active=false;$('p2v530Panel')?.classList.add('hidden');p2v531MoveReview();}
+        // Ordinary QR sheets must not silently enter the AI workflow or create
+        // an unrelated scan review that blocks the next AI photo.
+        if(p2v531Active||!$('p2v530Panel')?.classList.contains('hidden')){
+          p2v530SetStatus('This is a standard QR upload, not an AI attendance sheet. Print using PRINT AI ATTENDANCE SHEETS, then scan that QR and upload the marked page.',true);
+          return;
+        }
         switchPage('classAttendanceHub');$('p2v58UploadPanel')?.classList.remove('hidden');
         return p2v530OldPhoneHandler(payload.dataUrl,payload.name||'Phone photo',payload.attendancePayload||'');
       }
-      if(p2v530AiBusy){p2v531PendingPhone=payload;p2v530SetStatus('Another AI sheet arrived while analysis was running; it is queued until this result is reviewed.');return;}
-      if(p2v524ScanSession&&String(p2v524ScanSession.snapshot?.sheetId||'')!==p2v531LastConfirmedSheetId){
-        p2v531PendingPhone=payload;
-        p2v530SetStatus('Another sheet arrived. Review and SAVE the current sheet before processing the next one.',true);
+      if(p2v530AiBusy){
+        p2v535QueuePhoto(payload,'AI is still analysing another sheet. The newly received photo is queued for review.');
         return;
       }
-      if(!p2v531Consent()){p2v530SetStatus('AI photo received, but desktop AI permission is not enabled. Tick the authorisation checkbox; no data was sent to OpenAI.',true);p2v531PendingPhone=payload;return;}
+      if(p2v524ScanSession&&String(p2v524ScanSession.snapshot?.sheetId||'')!==p2v531LastConfirmedSheetId){
+        const current=String(p2v524ScanSession.snapshot?.sheetId||'');
+        const incoming=String(payload.sheetId||'');
+        p2v535QueuePhoto(payload,'Photo received for Sheet '+incoming+'. An UNSAVED review for Sheet '+current+' is blocking it. Review and save only if correct, or click DISCARD UNSAVED REVIEW & PROCESS RECEIVED PHOTO. Saved attendance is untouched.');
+        return;
+      }
+      if(!p2v531Consent()){
+        p2v535QueuePhoto(payload,'AI photo received. Tick the desktop authorisation checkbox, then click RETRY RECEIVED AI PHOTO. No data was sent to OpenAI.');
+        return;
+      }
       const config=await window.anandaDesktop?.aiStatus?.();
-      if(!config?.configured){p2v530SetStatus('AI photo received, but OpenAI API is not configured. No data was sent to OpenAI.',true);p2v531PendingPhone=payload;return;}
+      if(!config?.configured){
+        p2v535QueuePhoto(payload,'AI photo received, but the API key is missing. Save your key and click RETRY RECEIVED AI PHOTO.');
+        return;
+      }
       switchPage('classAttendanceHub');
       if(p2v524ScanSession&&String(p2v524ScanSession.snapshot?.sheetId||'')===p2v531LastConfirmedSheetId)p2v524ClearSession();
       p2v531ShowPanel();
@@ -5736,6 +5768,24 @@ function p2v58BindPhoneListener(){
         await p2v530Analyse(); // Auto-start after the phone volunteer clicked USE PHOTO.
       }catch(err){p2v530SetStatus('Phone photo could not be processed: '+String(err?.message||err),true);}
     }
+    $('p2v535RetryQueued')?.addEventListener('click',()=>{
+      if(!p2v531PendingPhone||p2v530AiBusy)return;
+      if(!p2v531Consent()){
+        p2v530SetStatus('Tick the AI processing permission checkbox before retrying the photo.',true);return;
+      }
+      if(p2v524ScanSession&&!window.confirm(
+        'Discard the CURRENT UNSAVED attendance review and process the received AI photo? Previously SAVED attendance will not be changed.')){
+        return;
+      }
+      const next=p2v531PendingPhone;
+      p2v531PendingPhone=null;
+      // Do not save, assign absences, or overwrite permanent student records.
+      p2v524ClearSession();p2v58Draft={};
+      p2v528AwaitingPhoto=true;p2v528MarkedRemainingAbsent=false;
+      $('p2v511Review')?.classList.add('hidden');
+      p2v535RefreshQueuedPhoto();
+      p2v531HandlePhone(next).catch(err=>p2v530SetStatus('Queued AI photo could not be processed: '+String(err?.message||err),true));
+    });
     // Rebind once: the Electron preload bridge removes any earlier listener.
     // Crucially, route AI-tagged printed QRs directly to AI, not the old OMR engine.
     if(window.anandaAttendanceBridge?.onPhoneUpload){
