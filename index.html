@@ -3319,6 +3319,63 @@
     if(!ended){card.querySelectorAll('.p2v5-date-edit').forEach(x=>x.onclick=()=>p2v5Fix2OpenDateDialog(b,x.dataset.date));card.querySelectorAll('.p2v5-date-remove').forEach(x=>x.onclick=()=>{const d=x.dataset.date;if(!confirm(`Remove class ${fmt(d)}? Attendance for this date will also be removed.`))return;b.sessionDates=p2v5ValidDates(b).filter(v=>v!==d);state.classEnrollments.filter(e=>e.batchId===b.id).forEach(e=>{if(e.attendance)delete e.attendance[d]});save();toast('Class date removed')})}
   };
 
+
+  // CORRECTION 1 — Keep the existing Class Dates workspace compatible with
+  // numbered sessions. Removing a date must NEVER erase attendance.
+  const p2v537EditDateBase=p2v5Fix2EditClassDate;
+  p2v5Fix2EditClassDate=function(b,oldDate,newDate){
+    if(!b||!p2v537IsDate(newDate))return p2v537EditDateBase(b,oldDate,newDate);
+    const planned=Array.isArray(b.plannedSessions)?b.plannedSessions.map(x=>({...x})):null;
+    const result=p2v537EditDateBase(b,oldDate,newDate);
+    if(result&&planned){
+      const session=planned.find(x=>x.date===oldDate);
+      if(session)session.date=newDate;
+      b.plannedSessions=planned;
+      b.numberOfClasses=planned.length;
+      save();
+    }
+    return result;
+  };
+  const p2v537AddDateBase=p2v5AddNewClass;
+  p2v5AddNewClass=function(b,date){
+    if(!b||!p2v537IsDate(date)||(b.sessionDates||[]).includes(date))return p2v537AddDateBase(b,date);
+    const planned=Array.isArray(b.plannedSessions)?b.plannedSessions.map(x=>({...x})):null;
+    const before=new Set(b.sessionDates||[]);
+    const result=p2v537AddDateBase(b,date);
+    if(!(b.sessionDates||[]).includes(date)||before.has(date))return result;
+    if(planned){
+      let slot=planned.find(x=>!x.date);
+      if(slot)slot.date=date;
+      else planned.push({id:uid('cls'),number:planned.length+1,date});
+      b.plannedSessions=planned.map((x,i)=>({...x,number:i+1}));
+      b.numberOfClasses=planned.length;
+      save();
+    }else{
+      b.plannedSessions=p2v537Rows(b);
+      b.numberOfClasses=b.plannedSessions.length;
+      save();
+    }
+    return result;
+  };
+  // Capture the legacy date removal button before its old handler can delete
+  // enrollment.attendance. Numbered session remains with an unassigned date.
+  document.addEventListener('click',event=>{
+    const button=event.target?.closest?.('#p2v5ScheduleCard .p2v5-date-remove');
+    if(!button||page!=='classWorkspace')return;
+    event.preventDefault();event.stopImmediatePropagation();
+    const b=p2ActiveBatch(),date=button.dataset.date;
+    if(!b||!p2v537IsDate(date))return;
+    const hasMark=state.classEnrollments.some(en=>en.batchId===b.id&&
+      Object.prototype.hasOwnProperty.call(en.attendance||{},date)&&
+      (en.attendance[date]===true||en.attendance[date]===false));
+    if(hasMark){toast('Class date cannot be removed: attendance is saved. Use Edit Class Date to reschedule it safely.');return}
+    if(!window.confirm('Clear the date for this planned class? The class number will be kept and no attendance will be deleted.'))return;
+    b.plannedSessions=p2v537Rows(b).map(x=>x.date===date?{...x,date:''}:x);
+    b.numberOfClasses=b.plannedSessions.length;
+    b.sessionDates=(b.sessionDates||[]).filter(d=>d!==date);
+    save();toast('Class date cleared. Class number retained.');
+  },true);
+
   // Batch Report: real All Courses / All Batches / All Years combinations, with export matching the screen.
   function p2v56ReportBatches(){
     let list=state.classBatches.slice().sort((a,z)=>String(z.start||'').localeCompare(String(a.start||'')));
