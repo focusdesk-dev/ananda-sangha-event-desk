@@ -1,6 +1,6 @@
 {
   "name": "ananda-sangha-event-desk",
-  "version": "2.0.0-beta.5.35",
+  "version": "2.0.0-beta.5.36",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -12,7 +12,8 @@
     "test:ai-settings": "node scripts/verify-ai-settings.js",
     "test:qr-print": "node scripts/verify-qr-print.js",
     "test:ai-recovery": "node scripts/verify-ai-recovery.js",
-    "test:ai-performance": "node scripts/verify-ai-performance.js"
+    "test:ai-performance": "node scripts/verify-ai-performance.js",
+    "test:unified": "node scripts/verify-unified-attendance.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4",
