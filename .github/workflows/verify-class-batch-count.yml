@@ -1,0 +1,31 @@
+name: Verify Correction 1 - Number of Classes (no installer)
+on:
+  push:
+    branches: [correction-1-batch-class-count]
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check class batch creation/editing and existing functionality, three passes
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check main.js
+          node --check scripts/verify-batch-class-count.js
+          for pass in 1 2 3; do
+            echo "=== CORRECTION 1 VALIDATION PASS $pass ==="
+            node scripts/verify-batch-class-count.js
+            node scripts/verify-attendance.js
+            node scripts/verify-ai-attendance.js
+            node scripts/verify-phone-ai-route.js
+            node scripts/verify-ai-settings.js
+            node scripts/verify-qr-print.js
+            node scripts/verify-ai-recovery.js
+            node scripts/verify-ai-performance.js
+            node scripts/verify-unified-attendance.js
+          done
