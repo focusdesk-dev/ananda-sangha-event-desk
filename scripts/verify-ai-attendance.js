@@ -8,7 +8,8 @@ assert(order.every(x=>x>0)&&order.every((p,i)=>i===0||p>order[i-1]),'AI Attendan
 const requiredUi=['p2v531Print','p2v531ReviewInside','p2v530Status','p2v530Key','p2v530SaveKey','p2v530Panel','p2v530Analyze'];
 for(const id of requiredUi)assert(html.includes('id="'+id+'"'),'Missing workflow control: '+id);
 assert(!html.includes('id="p2v530Consent"'),'Desktop authorisation checkbox has moved to Admin Settings');
-assert(html.includes('id="p2v537PermissionCard"'),'Administrator permission settings missing');
+assert(!html.includes('id="p2v537PermissionCard"'),'Redundant administrator permission settings must be removed');
+assert(html.includes('id="p2v537ApiUsage"'),'Local API usage summary retained');
 assert(html.includes("p2v58PrintSheet(true)"),'Print AI button must generate AI QR');
 assert(html.includes("mode:aiMode?'ai':'offline'"),'Printed QR must identify AI mode');
 assert(html.includes('const det=p2v521Detect(prep,mapped.out.length,slots);'),'Offline reader remains available');
