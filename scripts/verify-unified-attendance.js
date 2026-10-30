@@ -10,7 +10,9 @@ const bch={id:'B1',name:'Batch 1'};
 let date='2026-11-05',saved=0,confirmations=0;
 const toasts=[];
 const ui={p2v58Roster:{innerHTML:'',querySelectorAll:()=>[]},p2v58Totals:{innerHTML:''},p2v536Progress:{textContent:''},p2v511Review:{classList:{add:()=>{}}}};
-const ctx={p2v58CurrentBatch:()=>bch,p2v58Date:date,p2v518CurrentRowsBase:()=>students,
+const ctx={p2v58CurrentBatch:()=>bch,p2v58Date:date,p2v518CurrentRowsBase:()=>students.slice(30),
+ state:{classEnrollments:students.map(x=>({...x.en,batchId:'B1'}))},
+ p2v5Person:en=>students.find(x=>x.en.id===en.id)?.p||{name:'Unknown'},
  p2v58AttendanceValue:(en,d)=>en.attendance[d]===undefined?null:en.attendance[d],
  p2v58Draft:{},p2v531Active:false,document:{},p2v531MoveReview:()=>{},p2v530SetStatus:()=>{},
  $:id=>ui[id]||null,p2v58ApplySearch:()=>{},esc:s=>String(s),
@@ -27,6 +29,7 @@ t.merge(s1.data,s1.rows,s1.nums,new Set([1,4,16,30]));
 assert.strictEqual(t.scanned().length,1);
 t.render();
 assert(ui.p2v58Roster.innerHTML.includes('Student 37'),'Full class must show before second page');
+assert(ui.p2v58Roster.innerHTML.includes('Student 01'),'Sheet 1 must show even if legacy active rows only include Sheet 2');
 assert(ui.p2v58Roster.innerHTML.includes('37</span>'),'37th student must appear with continuous numbering');
 t.mark();
 assert(toasts.some(x=>/More printed pages/.test(x)),'Cannot mark unscanned page absent');
@@ -38,6 +41,8 @@ assert.strictEqual(t.draft().EN32,null,'Blank last-page rows must remain Unmarke
 assert.strictEqual(students[0].en.attendance[date],undefined,'Scans cannot save records automatically');
 t.mark();
 assert.strictEqual(t.draft().EN32,false,'Only explicit mark-remaining-absent applies absence');
+assert.strictEqual(t.draft().EN2,false,'All remaining unmarked students on Sheet 1 must become Absent');
+assert.strictEqual(t.draft().EN29,false,'Sheet 1 end must become Absent despite active Sheet 2 scope');
 t.confirm();
 assert.strictEqual(saved,1,'One final confirmation saves once');
 assert.strictEqual(confirmations,1);
