@@ -43,8 +43,8 @@ assert(html.includes('if(typeof p2v510AttendanceNotice===\'function\')p2v510Atte
 'Full-class renderer must refresh the visible saved-status banner');
 assert(html.includes('const zeroDetected=present.size===0&&uncertain.size===0'),
 'Zero-detection warning required for printed sheets');
-assert(html.includes('if(!await p2v537PermissionReady())'),
-'Permission must be checked before photo recognition');
+assert(!html.includes('p2v537PermissionReady()'),
+'AI scan must not require an extra administrator grant');
 assert(html.includes('No students enrolled. Nothing was saved.'),
 'Empty batch must not be confirmable');
 console.log('PASS: 37-person missing/partial/all-absent attendance, unsaved changes, date switch, render refresh, safe AI detection and empty-batch safeguards');
