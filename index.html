@@ -2506,7 +2506,7 @@
     return''
   }
   function p2v5FixEnsureDates(b){
-    if(!b)return false;let changed=false;const currentYear=Number(today().slice(0,4));
+    if(!b)return false;if(Array.isArray(b.plannedSessions))return false;let changed=false;const currentYear=Number(today().slice(0,4));
     const start=p2v5FixIso(b.start,currentYear),year=Number((start||today()).slice(0,4)),end=p2v5FixIso(b.end,year);
     if(start&&b.start!==start){b.start=start;changed=true}if(end&&b.end!==end){b.end=end;changed=true}
     const raw=Array.isArray(b.sessionDates)?b.sessionDates:[],normal=[...new Set(raw.map(d=>p2v5FixIso(d,year)).filter(Boolean))].sort();
@@ -2851,7 +2851,7 @@
     const now=p2v55LocalToday(),start=String(b?.start||''),end=String(b?.end||'');
     if(start&&now<start)return'Upcoming';
     if(start&&now>=start&&(!end||now<=end))return'Current';
-    if(end&&now>end)return'Completed';
+    if(end&&now>end)return'Current';
     return start?'Current':'Upcoming'
   }
   function p2v55SyncBatchStatuses(){let changed=false;state.classBatches.forEach(b=>{const s=p2v55AutoStatus(b);if(b.status!==s){b.status=s;changed=true}});if(changed)localStorage.setItem(KEY,JSON.stringify(state))}
@@ -2910,6 +2910,249 @@
     const oldDates=Array.isArray(b.sessionDates)?[...b.sessionDates]:[];
     Object.assign(b,{courseId:course.id,level:course.name,name:$('p2BatchName').value.trim(),start,end,year:Number(start.slice(0,4)),scheduleType:$('p2BatchScheduleType').value,usualDay:Number($('p2BatchDay').value),defaultClassDay:Number($('p2BatchDay').value),courseFee:String($('p2BatchFee')?.value||'').trim(),sessionDates:oldDates,acharyaIds:[...p2EditingAcharyaIds],acharyas:p2EditingAcharyaIds.map(aid=>state.acharyas.find(a=>a.id===aid)?.name).filter(Boolean),volunteerIds:[...p2EditingVolunteerIds],notes:$('p2BatchNotes').value.trim()});
     b.status=p2v55AutoStatus(b);if(!id)state.classBatches.push(b);state.activeClassBatchId=b.id;$('p2BatchModal').classList.remove('open');save();toast(id?'Class batch updated':'Class batch created');switchPage('classWorkspace')
+  };
+
+
+  // CORRECTION 1 — Batch class-count planning, separately numbered from dates.
+  // Stable IDs are stored on the batch. Existing attendance remains keyed by date
+  // for compatibility with the approved attendance/printing modules.
+  let p2v537Plan=[],p2v537Original=[],p2v537CountTouched=false,p2v537DatesTouched=false;
+  function p2v537IsDate(d){return /^\d{4}-\d{2}-\d{2}$/.test(String(d||''))&&!Number.isNaN(new Date(d+'T12:00:00').getTime())}
+  function p2v537Rows(b){
+    let list=Array.isArray(b?.plannedSessions)?b.plannedSessions.map((r,i)=>({
+      id:String(r.id||uid('cls')),number:i+1,date:p2v537IsDate(r.date)?r.date:''
+    })):[];
+    const known=new Set(list.map(r=>r.date).filter(Boolean));
+    const dateSet=new Set((b?.sessionDates||[]).filter(p2v537IsDate));
+    if(b){
+      state.classEnrollments.filter(e=>e.batchId===b.id).forEach(en=>
+        Object.keys(en.attendance||{}).filter(p2v537IsDate).forEach(d=>dateSet.add(d)));
+    }
+    for(const date of [...dateSet].sort())if(!known.has(date)){list.push({id:uid('cls'),number:list.length+1,date});known.add(date)}
+    const minimum=Math.max(1,list.length,Number(b?.numberOfClasses)||0);
+    while(list.length<minimum)list.push({id:uid('cls'),number:list.length+1,date:''});
+    return list;
+  }
+  function p2v537Recurrence(start,count,type,day){
+    const out=Array(count).fill('');
+    if(!p2v537IsDate(start)||!['weekly','monthly','single'].includes(type))return out;
+    if(type==='single'){out[0]=start;return out}
+    const wanted=Number(day),first=new Date(start+'T12:00:00');
+    if(!Number.isInteger(wanted)||wanted<0||wanted>6)return out;
+    if(type==='weekly'){
+      const shift=(wanted-first.getDay()+7)%7;
+      first.setDate(first.getDate()+shift);
+      for(let i=0;i<count;i++){const d=new Date(first);d.setDate(first.getDate()+7*i);out[i]=d.toISOString().slice(0,10)}
+    }else{
+      let y=first.getFullYear(),m=first.getMonth(),index=0;
+      while(index<count){
+        const d=new Date(y,m,1,12);
+        d.setDate(1+(wanted-d.getDay()+7)%7);
+        if(d>=first)out[index++]=d.toISOString().slice(0,10);
+        m++;if(m>11){m=0;y++}
+      }
+    }
+    return out;
+  }
+  function p2v537RangeCount(start,end,type,day){
+    if(!p2v537IsDate(start)||!p2v537IsDate(end)||end<start||!['weekly','monthly','single'].includes(type))return null;
+    if(type==='single')return 1;
+    return p2v537Recurrence(start,600,type,day).filter(d=>d&&d<=end).length;
+  }
+  function p2v537Inputs(){
+    return {start:$('p2BatchStart').value,end:$('p2BatchEnd').value,
+      type:$('p2BatchScheduleType').value,day:$('p2BatchDay').value,
+      count:Number($('p2v537ClassCount').value)};
+  }
+  function p2v537Warnings(){
+    const f=p2v537Inputs(),warnings=[],range=p2v537RangeCount(f.start,f.end,f.type,f.day);
+    if(range!==null&&range!==f.count)warnings.push('Date range suggests '+range+' class'+(range===1?'':'es')+
+      ', but '+f.count+' planned classes will be kept.');
+    if(f.start&&f.end&&f.end<f.start)warnings.push('End Date precedes Start Date. The dates are only planning estimates.');
+    const valid=p2v537Plan.slice(0,Math.max(0,f.count)).map(r=>r.date).filter(Boolean);
+    if(valid.length!==new Set(valid).size)warnings.push('Two sessions have the same date; choose unique dates.');
+    if(f.end&&valid.some(d=>d>f.end))warnings.push('Some planned classes fall after the entered End Date.');
+    if(f.start&&valid.some(d=>d<f.start))warnings.push('Some planned classes fall before the entered Start Date.');
+    if(!f.start)warnings.push('No Start Date: classes can be scheduled individually later.');
+    if(f.type==='single'&&f.count>1)warnings.push('Single-date schedule: additional classes need their own dates.');
+    const suggested=p2v537Recurrence(f.start,Math.max(1,Math.min(1000,f.count||1)),f.type,f.day);
+    if(f.start&&suggested.at(-1)&&!f.end)warnings.push('Suggested End Date: '+suggested.at(-1)+' (not final).');
+    const text=warnings.join(' ');
+    const el=$('p2v537Warning');if(el)el.textContent=text;
+    return warnings;
+  }
+  function p2v537FitCount(count){
+    while(p2v537Plan.length<count)p2v537Plan.push({id:uid('cls'),number:p2v537Plan.length+1,date:''});
+    p2v537Plan.forEach((r,i)=>r.number=i+1);
+  }
+  function p2v537RenderPlan(){
+    const inp=$('p2v537ClassCount'),count=Number(inp?.value),host=$('p2v537SessionRows');
+    if(!host)return;
+    if(!Number.isSafeInteger(count)||count<1||count>1000){
+      host.textContent='Enter a positive whole number of classes (maximum 1000).';p2v537Warnings();return;
+    }
+    p2v537FitCount(count);
+    host.innerHTML=p2v537Plan.slice(0,count).map((r,i)=>
+      '<label class="p2v537-session" style="display:flex;align-items:center;gap:12px;padding:5px 0">'+
+      '<strong style="min-width:76px">Class '+(i+1)+'</strong>'+
+      '<input type="date" data-index="'+i+'" value="'+r.date+'" style="min-width:160px;max-width:210px" aria-label="Class '+(i+1)+' date">'+
+      '<span style="font-size:12px;color:#6c7f90">'+(r.date?'Scheduled':'Date to be decided')+'</span></label>'
+    ).join('');
+    host.querySelectorAll('input[type=date]').forEach(input=>input.onchange=()=>{
+      p2v537DatesTouched=true;p2v537Plan[Number(input.dataset.index)].date=input.value;
+      p2v537Warnings();
+      const note=input.nextElementSibling;if(note)note.textContent=input.value?'Scheduled':'Date to be decided';
+    });
+    p2v537Warnings();
+  }
+  function p2v537SuggestDates(allowOverwrite){
+    const f=p2v537Inputs();
+    if(!Number.isSafeInteger(f.count)||f.count<1||f.count>1000)return;
+    const dates=p2v537Recurrence(f.start,f.count,f.type,f.day);
+    p2v537FitCount(f.count);
+    dates.forEach((d,i)=>{
+      const previous=p2v537Original.find(x=>x.id===p2v537Plan[i].id);
+      if(allowOverwrite||(!p2v537Plan[i].date&&!previous))p2v537Plan[i].date=d;
+    });
+    p2v537RenderPlan();
+  }
+  function p2v537ScheduleChanged(){
+    const f=p2v537Inputs(),range=p2v537RangeCount(f.start,f.end,f.type,f.day);
+    if(!p2v537CountTouched&&range!==null&&range>=1){
+      $('p2v537ClassCount').value=String(range);
+    }
+    if(!p2v537DatesTouched)p2v537SuggestDates(false);
+    else p2v537RenderPlan();
+  }
+  function p2v537EnsureForm(){
+    if(!$('p2v537ClassCount')){
+      const day=$('p2BatchDay').closest('.field');
+      day.insertAdjacentHTML('afterend',
+        '<div class="field" id="p2v537CountField"><label for="p2v537ClassCount">NUMBER OF CLASSES *</label>'+
+        '<input id="p2v537ClassCount" type="number" min="1" max="1000" step="1" required value="1">'+
+        '<small style="color:#617b92">Planned sessions, even when dates are not yet decided.</small></div>');
+    }
+    if(!$('p2v537SessionField')){
+      const fee=$('p2v55FeeField')||$('p2v537CountField');
+      fee.insertAdjacentHTML('afterend',
+        '<div class="field full" id="p2v537SessionField"><label>PLANNED CLASS SESSIONS</label>'+
+        '<div id="p2v537SessionRows" style="max-height:240px;overflow-y:auto"></div>'+
+        '<button type="button" class="btn secondary small" id="p2v537Suggest" style="margin-top:8px">SUGGEST CLASS DATES</button>'+
+        '<p id="p2v537Warning" role="status" style="font-size:12px;color:#956420;margin:9px 0"></p></div>');
+    }
+    $('p2BatchStart').required=false;
+  }
+  p2v537EnsureForm();
+  const p2v537OpenBase=p2OpenBatch;
+  p2OpenBatch=function(id=''){
+    p2v537EnsureForm();p2v537OpenBase(id);
+    const b=state.classBatches.find(x=>x.id===id);
+    if(!b)$('p2BatchStart').value='';
+    if(b&&!b.start)$('p2BatchStart').value='';
+    p2v537Original=b?p2v537Rows(b):[];
+    p2v537Plan=p2v537Original.map(x=>({...x}));
+    p2v537CountTouched=!!b;p2v537DatesTouched=!!b;
+    const count=b?Math.max(p2v537Plan.length,Number(b.numberOfClasses)||0):1;
+    $('p2v537ClassCount').value=String(Math.max(1,count));
+    p2v537FitCount(Math.max(1,count));p2v537RenderPlan();
+  };
+  $('p2v537ClassCount').oninput=()=>{
+    p2v537CountTouched=true;p2v537RenderPlan();
+    if(!p2v537DatesTouched)p2v537SuggestDates(false);
+  };
+  ['p2BatchStart','p2BatchEnd','p2BatchScheduleType','p2BatchDay'].forEach(id=>
+    $(id).addEventListener('change',p2v537ScheduleChanged));
+  $('p2v537Suggest').onclick=()=>{
+    if(p2v537DatesTouched&&!window.confirm('Replace manually entered class dates with suggested dates? Existing saved attendance will be retained when saving.'))return;
+    p2v537DatesTouched=true;
+    p2v537SuggestDates(true);
+  };
+  // Keep the existing course, fee, instructor and volunteer save semantics.
+  $('p2BatchForm').onsubmit=e=>{
+    e.preventDefault();
+    const id=$('p2BatchId').value,start=$('p2BatchStart').value,end=$('p2BatchEnd').value,
+      selected=$('p2BatchCourse').value,f=p2v537Inputs(),raw=$('p2v537ClassCount').value;
+    if(!/^[1-9]\d*$/.test(raw)||!Number.isSafeInteger(f.count)||f.count>1000){
+      toast('NUMBER OF CLASSES must be a positive whole number from 1 to 1000.');return;
+    }
+    if(!String($('p2BatchName').value||'').trim()){toast('Enter a Batch Name / Number.');return}
+    const b=id?state.classBatches.find(x=>x.id===id):null;
+    if(id&&!b){toast('This batch could not be found. No data was changed.');return}
+    p2v537FitCount(f.count);
+    const next=p2v537Plan.slice(0,f.count).map((r,i)=>({...r,number:i+1,date:r.date||''}));
+    const valid=next.map(r=>r.date).filter(Boolean);
+    if(valid.some(d=>!p2v537IsDate(d))||new Set(valid).size!==valid.length){
+      toast('Each dated Class must have a unique valid date. No data was changed.');return;
+    }
+    const before=b?p2v537Rows(b):[];
+    const kept=new Set(next.map(r=>r.id)),removed=before.filter(r=>!kept.has(r.id));
+    const enrollment=state.classEnrollments.filter(en=>en.batchId===id);
+    const hasAttendance=d=>!!d&&enrollment.some(en=>
+      Object.prototype.hasOwnProperty.call(en.attendance||{},d)&&
+        (en.attendance[d]===true||en.attendance[d]===false));
+    const affected=removed.filter(r=>hasAttendance(r.date));
+    if(affected.length){
+      toast('Cannot reduce classes: '+affected.map(r=>'Class '+r.number).join(', ')+
+        ' contain saved attendance. Keep these sessions or resolve them individually first.');return;
+    }
+    if(removed.length&&!window.confirm('Reduce to '+f.count+' classes? '+removed.length+
+      ' planned session(s) without attendance will be removed. Continue?'))return;
+    const original=new Map(before.map(r=>[r.id,r]));
+    const moves=next.filter(r=>original.has(r.id)&&original.get(r.id).date!==r.date)
+      .map(r=>({from:original.get(r.id).date,to:r.date,number:r.number}));
+    if(moves.some(m=>m.from&&hasAttendance(m.from)&&!m.to)){
+      toast('Cannot clear a session date with saved attendance. Reschedule it to a new date instead.');return;
+    }
+    const movedFrom=new Set(moves.map(m=>m.from).filter(Boolean));
+    for(const en of enrollment){
+      const att=en.attendance||{};
+      for(const m of moves){
+        if(m.to&&Object.prototype.hasOwnProperty.call(att,m.to)&&
+           !movedFrom.has(m.to)&&Object.prototype.hasOwnProperty.call(att,m.from)){
+          toast('A rescheduled class would overwrite existing attendance on '+m.to+'. No data was changed.');return;
+        }
+      }
+    }
+    const movingAttendance=moves.some(m=>hasAttendance(m.from));
+    if(movingAttendance&&!window.confirm('Reschedule classes with existing attendance? All present/absent records will move with their classes; none will be deleted.'))return;
+    const range=p2v537RangeCount(start,end,f.type,f.day);
+    if(range!==null&&range!==f.count&&!window.confirm('Date range suggests '+range+
+      ' classes, but NUMBER OF CLASSES is '+f.count+'. Keep your selected count and date range?'))return;
+    let course=selected==='__custom__'?null:p2Course(selected);
+    if(selected==='__custom__'){
+      const name=$('p2v55CustomCourseName')?.value.trim()||'';
+      if(!name){toast('Enter the custom class name');return}
+      course=state.courseTypes.find(c=>normName(c.name)===normName(name));
+      if(!course){
+        course={id:uid('course'),name,category:'Other',progressionOrder:null,
+          defaultSchedule:f.type||'custom',defaultDay:Number(f.day),notes:'Created from Custom Class',active:true,locked:false};
+        state.courseTypes.push(course);
+      }
+    }
+    if(!course){toast('Choose a course');return}
+    const updated=b||{id:uid('batch'),createdAt:new Date().toISOString()};
+    const newDates=valid.slice().sort(),year=Number(String(start||newDates[0]||updated.year||today()).slice(0,4));
+    // Prepare each student's new attendance map transactionally before mutating.
+    const updates=enrollment.map(en=>{
+      const old={...(en.attendance||{})},now={...old};
+      moves.forEach(m=>{if(m.from)delete now[m.from]});
+      moves.forEach(m=>{if(m.from&&m.to&&Object.prototype.hasOwnProperty.call(old,m.from))now[m.to]=old[m.from]});
+      return{en,attendance:now};
+    });
+    Object.assign(updated,{courseId:course.id,level:course.name,
+      name:$('p2BatchName').value.trim(),start,end,year,scheduleType:f.type,
+      usualDay:Number(f.day),defaultClassDay:Number(f.day),
+      courseFee:String($('p2BatchFee')?.value||'').trim(),
+      numberOfClasses:f.count,plannedSessions:next,sessionDates:newDates,
+      acharyaIds:[...p2EditingAcharyaIds],
+      acharyas:p2EditingAcharyaIds.map(aid=>state.acharyas.find(a=>a.id===aid)?.name).filter(Boolean),
+      volunteerIds:[...p2EditingVolunteerIds],notes:$('p2BatchNotes').value.trim()});
+    updated.status=p2v55AutoStatus(updated);
+    updates.forEach(x=>x.en.attendance=x.attendance);
+    if(!b)state.classBatches.push(updated);
+    state.activeClassBatchId=updated.id;
+    $('p2BatchModal').classList.remove('open');
+    save();toast(b?'Class batch updated':'Class batch created');switchPage('classWorkspace');
   };
 
   function p2v55InstallSuggestionKeys(inputId,boxId,itemSelector,kind){
