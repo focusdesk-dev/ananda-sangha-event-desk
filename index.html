@@ -5951,7 +5951,7 @@ function p2v58BindPhoneListener(){
         if(!resolved?.ok)throw Error(resolved?.error||'The signed Sheet ID could not be verified.');
         return p2v58ParsePayload(resolved.payload);
       }catch(error){
-        if(error?.message&&/signature|Sheet ID|QR|invalid/i.test(error.message))throw error;
+        if(error?.message&&/signature|Sheet ID|signed QR/i.test(error.message))throw error;
         return null;
       }
     }
