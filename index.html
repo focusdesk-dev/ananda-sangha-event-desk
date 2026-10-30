@@ -4018,7 +4018,7 @@ function p2v58BindPhoneListener(){
   // Only persisted true/false entries count. A fully recorded all-absent
   // session is valid, while unmarked/null rows and unsaved edits are not.
   function p2v510AttendanceSummary(){
-    const rows=p2v58CurrentRows(),total=rows.length;
+    const rows=p2v538FullClassRows(),total=rows.length;
     let present=0,absent=0,changed=false;
     const draftReady=total>0&&rows.every(({en})=>Object.prototype.hasOwnProperty.call(p2v58Draft,en.id));
     rows.forEach(({en})=>{
@@ -6138,7 +6138,8 @@ function p2v58BindPhoneListener(){
       if(!await p2v537PermissionReady()){
         p2v530SetStatus('Sheets ready. Photo recognition is disabled until an administrator grants permission in Settings → Attendance Processing. You may print now; no photo will be analysed yet.',true);
       }else{
-        const config=await window.anandaDesktop?.aiStatus?.().catch(()=>null);
+        let config=null;
+        try{config=await window.anandaDesktop?.aiStatus?.()}catch{}
         if(!config?.configured)p2v530SetStatus('Sheets ready. Add the API key in Settings before submitting marked photos for recognition.',true);
       }
     });
@@ -6363,7 +6364,7 @@ function p2v58BindPhoneListener(){
       if(typeof p2v537RefreshStatus==='function')p2v537RefreshStatus();
       // The full-class roster replaces older renderers: refresh its saved
       // indicator every time a date, batch or checkbox changes.
-      p2v510AttendanceNotice();
+      if(typeof p2v510AttendanceNotice==='function')p2v510AttendanceNotice();
       for(const id of ['p2v58Confirm','p2v58All']){
         const btn=$(id);if(btn)btn.disabled=false;
       }
