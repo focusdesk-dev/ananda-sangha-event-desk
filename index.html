@@ -3435,11 +3435,7 @@
             <button id="p2v530SaveKey" class="btn secondary" type="button">SAVE API KEY</button>
           </div>
         </details>
-        <label style="display:flex;align-items:flex-start;gap:9px;margin:12px 0;font-size:12px;color:#173f7d">
-          <input id="p2v530Consent" type="checkbox" style="margin-top:3px">
-          <span>I authorise AI attendance processing for this NGO. Volunteers must also confirm photo-upload permission on the phone. API charges apply.</span>
-        </label>
-        <div id="p2v530Status" role="status" style="font-size:12px;padding:10px;border:1px solid #d7e5f0;border-radius:8px;color:#173f7d">Set up AI once, then print the AI attendance sheets to start.</div>
+        <div id="p2v530Status" role="status" aria-live="polite" class="p2v537-status">Process attendance</div>
         <button id="p2v535RetryQueued" class="btn secondary" type="button" style="display:none;margin-top:8px">RETRY RECEIVED AI PHOTO</button>
         <details style="margin-top:12px">
           <summary style="cursor:pointer;color:#315f93;font-size:12px">Alternative: analyse a photo already on this laptop</summary>
@@ -5564,7 +5560,7 @@ function p2v58BindPhoneListener(){
       if(p2v530AiBusy)return;
       const api=window.anandaDesktop;
       if(!api?.analyzeAiAttendance){p2v530SetStatus('This installation does not contain the AI integration.',true);return;}
-      if(!$('p2v530Consent')?.checked){p2v530SetStatus('Please confirm that you have permission to send the attendance photo to OpenAI.',true);return;}
+      if(!await p2v537PermissionReady()){p2v530SetStatus('Attendance processing is not authorised. An administrator can enable it in Settings → Attendance Processing.',true);return;}
       if(!p2v530PhotoBlob){p2v530SetStatus('Choose or take an attendance photo first.',true);return;}
       p2v530AiBusy=true;if($('p2v530Analyze'))$('p2v530Analyze').disabled=true;
       try{
@@ -5600,10 +5596,9 @@ function p2v58BindPhoneListener(){
         p2v58LockSelectors(false);
         p2v58RenderRoster();
         const uncertainText=[...uncertain].sort((a,b)=>a-b).join(', ');
-        const review='AI recognised '+present.size+' marked students from the latest photo. '+(uncertain.size?'Check unclear row(s): '+uncertainText+'. ':'')+
-          'The complete class list remains editable. '+p2v536ScannedSheets.size+' of '+p2v536ExpectedPages+' printed pages received.';
+        const review=uncertain.size?'Review unclear marks at row(s): '+uncertainText+'. Remaining students stay unmarked.':'';
         $('p2v511Review')?.classList.add('hidden');
-        p2v530SetStatus(review);
+        p2v530SetStatus(review,!!uncertain.size);
         $('p2v58Roster')?.scrollIntoView({behavior:'smooth',block:'start'});
       }catch(err){p2v530SetStatus(err?.message||'AI analysis failed. Existing attendance was not changed.',true);}
       finally{p2v530AiBusy=false;if($('p2v530Analyze'))$('p2v530Analyze').disabled=false;}
@@ -5670,13 +5665,11 @@ function p2v58BindPhoneListener(){
       p2v535RefreshQueuedPhoto();
     }
     const p2v531ClassRoot=$('classAttendanceHub')?.querySelector('.p2v58-page');
-    function p2v531Consent(){return !!$('p2v530Consent')?.checked;}
-    if($('p2v530Consent')){
-      $('p2v530Consent').checked=localStorage.getItem('anandaAIPhotoPermission')==='true';
-      $('p2v530Consent').onchange=()=>{
-        localStorage.setItem('anandaAIPhotoPermission',$('p2v530Consent').checked?'true':'false');
-        p2v530SetStatus($('p2v530Consent').checked?'AI processing authorised on this computer. Print an AI attendance sheet to begin.':'AI processing disabled until you authorise it.');
-      };
+    async function p2v537PermissionReady(){
+      try{
+        const status=await window.anandaDesktop?.attendancePermissionStatus?.();
+        return status?.ok===true&&status.allowed===true;
+      }catch{return false}
     }
     function p2v531MoveReview(){
       const panel=$('p2v531ReviewInside');if(!panel||!p2v531ClassRoot)return;
@@ -5769,8 +5762,8 @@ function p2v58BindPhoneListener(){
         return;
       }
       // Beta 5.36: Preserve the single class-wide unsaved review between sheets.
-      if(!p2v531Consent()){
-        p2v535QueuePhoto(payload,'AI photo received. Tick the desktop authorisation checkbox, then click RETRY RECEIVED AI PHOTO. No data was sent to OpenAI.');
+      if(!await p2v537PermissionReady()){
+        p2v535QueuePhoto(payload,'Attendance processing is not authorised. Ask an administrator to enable it in Settings → Attendance Processing. The received photo is held locally.');
         return;
       }
       const config=await window.anandaDesktop?.aiStatus?.();
@@ -5794,10 +5787,10 @@ function p2v58BindPhoneListener(){
         }
       }
     }
-    $('p2v535RetryQueued')?.addEventListener('click',()=>{
+    $('p2v535RetryQueued')?.addEventListener('click',async()=>{
       if(!p2v531PendingPhone||p2v530AiBusy)return;
-      if(!p2v531Consent()){
-        p2v530SetStatus('Tick the AI processing permission checkbox before retrying the photo.',true);return;
+      if(!await p2v537PermissionReady()){
+        p2v530SetStatus('Attendance processing is not authorised. Ask an administrator to enable it in Settings → Attendance Processing.',true);return;
       }
       if(p2v524ScanSession&&!window.confirm(
         'Discard the CURRENT UNSAVED attendance review and process the received AI photo? Previously SAVED attendance will not be changed.')){
@@ -5954,10 +5947,8 @@ function p2v58BindPhoneListener(){
         '</b></span><span class="red">Absent: <b>'+absent+'</b></span><span class="pending">Unmarked: <b>'+
         (rows.length-present-absent)+'</b></span>';
       const info=$('p2v536Progress');
-      if(info)info.textContent=p2v536ScannedSheets.size
-        ?'AI photos received: '+p2v536ScannedSheets.size+' of '+p2v536ExpectedPages+
-           '. Correct any marks directly below. Unscanned students remain Unmarked.'
-        :'Tick students below directly, or print QR sheets and use the phone camera for AI recognition.';
+      if(info)info.remove();
+      if(typeof p2v537RefreshStatus==='function')p2v537RefreshStatus();
       for(const id of ['p2v58Confirm','p2v58All']){
         const btn=$(id);if(btn)btn.disabled=false;
       }
@@ -5984,7 +5975,7 @@ function p2v58BindPhoneListener(){
       if(!window.confirm('Confirm attendance for all '+rows.length+' students? This will save the entire class for the selected date.'))return;
       rows.forEach(r=>{r.en.attendance=r.en.attendance||{};r.en.attendance[p2v58Date]=p2v536Draft[r.en.id]===true});
       save();p2v536Confirmed=true;
-      p2v530SetStatus('Class attendance confirmed and saved for all '+rows.length+' students.');
+      p2v530SetStatus('');
       toast('Complete class attendance saved.');
       p2v536RenderFullRoster();
     }
