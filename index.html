@@ -5113,10 +5113,10 @@ function p2v58BindPhoneListener(){
 
     // EXACT APPROVED CAPACITY: 30 names per A4 sheet, 15 + 15.
     const chunks=[];for(let i=0;i<rows.length;i+=30)chunks.push(rows.slice(i,i+30));
-    const logo=await p2v58LogoData(),pages=[];
+    const logo=await p2v58LogoData(),pages=[],printRunId=p2v518Id();
 
     for(let pi=0;pi<chunks.length;pi++){
-      const chunk=chunks[pi],sheetId=p2v518Id(),payload=p2v521Payload(b,p2v58Date,pi+1,chunks.length,sheetId);
+      const chunk=chunks[pi],sheetId=p2v518Id(),payload=JSON.stringify({...JSON.parse(p2v521Payload(b,p2v58Date,pi+1,chunks.length,sheetId)),printRunId});
       const snap={
         layout:P2V521_LAYOUT,sheetId,batchId:String(b.id),date:String(p2v58Date),
         sheet:pi+1,totalSheets:chunks.length,course:p2CourseName(b),batch:b.name,createdAt:new Date().toISOString(),
@@ -5128,7 +5128,7 @@ function p2v58BindPhoneListener(){
       state.attendanceSheetSnapshots[sheetId]=snap;
 
       const meta={
-        payload,sheetId,layout:P2V521_LAYOUT,course:p2CourseName(b),batch:b.name,
+        payload,sheetId,printRunId,layout:P2V521_LAYOUT,course:p2CourseName(b),batch:b.name,
         date:fmt(p2v58Date),dateIso:p2v58Date,sheet:pi+1,total:chunks.length,
         mode:aiMode?'ai':'offline'
       };
@@ -5185,6 +5185,7 @@ function p2v58BindPhoneListener(){
     const r=await window.anandaDesktop?.printHtml(printHtml);
     if(!r?.ok)throw new Error(r?.error||'Print preview could not be opened.');
     if(aiMode&&$('p2v530Status'))p2v530SetStatus('AI attendance print preview ready: '+chunks.length+' page(s). Save PDF or Print. Scan the QR using a phone on the same Wi-Fi/hotspot. No API credits required for this step.');
+    if(aiMode&&typeof p2v536OnPrint==='function')p2v536OnPrint(chunks.length,printRunId);
     return {ok:true,pages:chunks.length,mode:aiMode?'ai':'offline'};
   };
   // One consistent error surface for the normal and AI print actions.
@@ -5594,9 +5595,9 @@ function p2v58BindPhoneListener(){
         p2v518ActiveSnapshot=snap;p2v518ActiveRows=mapped.out;
         p2v524ScanSession={snapshot:snap,rows:mapped.out,data};
         p2v524SyncSelectors(b,String(data.date));
-        p2v58Draft={};
-        mapped.out.forEach((r,i)=>{p2v58Draft[r.en.id]=present.has(numbers[i])?true:null;});
+        p2v536MergeAiSheet(data,mapped.out,numbers,present);
         p2v528AwaitingPhoto=false;p2v528MarkedRemainingAbsent=false;
+        p2v58LockSelectors(false);
         p2v58RenderRoster();
         const uncertainText=[...uncertain].sort((a,b)=>a-b).join(', ');
         const review='AI detected '+present.size+' marked rows on Sheet '+data.sheet+'. '+(uncertain.size?'Needs manual review: row(s) '+uncertainText+'. ':'')+
@@ -5767,12 +5768,7 @@ function p2v58BindPhoneListener(){
         p2v535QueuePhoto(payload,'AI is still analysing another sheet. The newly received photo is queued for review.');
         return;
       }
-      if(p2v524ScanSession&&String(p2v524ScanSession.snapshot?.sheetId||'')!==p2v531LastConfirmedSheetId){
-        const current=String(p2v524ScanSession.snapshot?.sheetId||'');
-        const incoming=String(payload.sheetId||'');
-        p2v535QueuePhoto(payload,'Photo received for Sheet '+incoming+'. An UNSAVED review for Sheet '+current+' is blocking it. Review and save only if correct, or click DISCARD UNSAVED REVIEW & PROCESS RECEIVED PHOTO. Saved attendance is untouched.');
-        return;
-      }
+      // Beta 5.36: Preserve the single class-wide unsaved review between sheets.
       if(!p2v531Consent()){
         p2v535QueuePhoto(payload,'AI photo received. Tick the desktop authorisation checkbox, then click RETRY RECEIVED AI PHOTO. No data was sent to OpenAI.');
         return;
@@ -5783,8 +5779,7 @@ function p2v58BindPhoneListener(){
         return;
       }
       switchPage('classAttendanceHub');
-      if(p2v524ScanSession&&String(p2v524ScanSession.snapshot?.sheetId||'')===p2v531LastConfirmedSheetId)p2v524ClearSession();
-      p2v531ShowPanel();
+      p2v536KeepUnifiedPanel();
       try{
         const blob=await(await fetch(payload.dataUrl)).blob();
         p2v530SetPhoto(blob,payload.name||'Phone attendance photo',payload.attendancePayload||'');
