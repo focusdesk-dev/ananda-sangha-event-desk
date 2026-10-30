@@ -4,6 +4,15 @@ const fs=require('fs'),assert=require('assert'),vm=require('vm');
   const main=fs.readFileSync('main.js','utf8'),html=fs.readFileSync('index.html','utf8');
   assert(main.includes("const optimised=await anandaOptimiseUploadPhoto(selected)"),'Phone must resize before upload');
   assert(main.includes("fd.append('sheet',optimised,'attendance.jpg')"),'Phone must send JPEG');
+  const mobileStart=main.indexOf('function anandaMobilePage(');
+  const mobileEnd=main.indexOf('function anandaMultipartFile(',mobileStart);
+  assert(mobileStart>0&&mobileEnd>mobileStart,'Phone page generator missing');
+  const phoneHtml=vm.runInNewContext(main.slice(mobileStart,mobileEnd)+
+    '\n'+'anandaMobilePage({mode:"ai",payload:"test",sheet:1,total:1},"");',
+    {fs:{readFileSync:()=>Buffer.from([137,80,78,71])},path:require('path'),__dirname:'.'});
+  const scriptStart=phoneHtml.indexOf('<script>'),scriptEnd=phoneHtml.indexOf('</script>',scriptStart);
+  assert(scriptStart>0&&scriptEnd>scriptStart,'Phone page inline script missing');
+  new vm.Script(phoneHtml.slice(scriptStart+8,scriptEnd),{filename:'phone-attendance.html'});
   const start=main.indexOf('  async function anandaOptimiseUploadPhoto(f){');
   const end=main.indexOf("  $('camera').onchange",start);
   assert(start>0&&end>start,'Mobile compression helper missing');
