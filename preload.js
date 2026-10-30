@@ -242,6 +242,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
 contextBridge.exposeInMainWorld('anandaDesktop', {
   aiStatus: () => ipcRenderer.invoke('ananda-ai-status'),
+  attendancePermissionStatus: () => ipcRenderer.invoke('ananda-attendance-permission-status'),
+  setAttendancePermission: body => ipcRenderer.invoke('ananda-attendance-permission-set', body),
+  attendanceApiUsage: () => ipcRenderer.invoke('ananda-ai-usage'),
   setAiKey: key => ipcRenderer.invoke('ananda-ai-set-key', key),
   removeAiKey: () => ipcRenderer.invoke('ananda-ai-remove-key'),
   freeAiPreflight: () => ipcRenderer.invoke('ananda-ai-free-preflight'),
