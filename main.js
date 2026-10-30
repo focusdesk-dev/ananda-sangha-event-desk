@@ -306,6 +306,19 @@ function anandaCheckQrSignature(u,meta){
     return anandaQrCrypto.timingSafeEqual(Buffer.from(received.toLowerCase()),Buffer.from(expected));
   }catch{return false}
 }
+function anandaCompactAttendanceMeta(u){
+  try{
+    // QR with only Sheet ID and signature. Persistent mapping makes this
+    // printable without API credits and valid across app restarts.
+    if(u.searchParams.get('x')&&!u.searchParams.get('b'))return anandaResolveShortQr(u);
+    const b=u.searchParams.get('b')||'',d8=u.searchParams.get('d')||'',sheet=Number(u.searchParams.get('s')||1),total=Number(u.searchParams.get('t')||1),verify=u.searchParams.get('v')||'',sheetId=u.searchParams.get('x')||'',layout=u.searchParams.get('l')||'';
+    if(!b||!/^\d{8}$/.test(d8)||!verify)return null;
+    const date=d8.slice(0,4)+'-'+d8.slice(4,6)+'-'+d8.slice(6,8),key=[b,d8,sheet,total,verify,sheetId,layout].join('|');
+    const remembered=anandaAttendanceSheetMeta.get(key);if(remembered)return remembered;
+    const payload=JSON.stringify({v:layout==='A4L30V2'?5:(layout==='A4L40'?4:(layout==='A4L30'?3:(sheetId?2:1))),kind:'ANANDA_ATTENDANCE',layout:layout||undefined,batchId:b,date,sheet,totalSheets:total,sheetId:sheetId||undefined,sessionId:b+':'+date,verify});
+    return{payload,date,sheet,total,sheetId,mode:u.searchParams.get('m')==='ai'?'ai':'offline'}
+  }catch{return null}
+}
 // v5.40: Manual laptop uploads may contain only the compact sheet ID and
 // signed HMAC. Recover the original frozen roster through the same trusted
 // verifier used by the phone server. Never guess a sheet from its date.
@@ -320,19 +333,6 @@ ipcMain.handle('ananda-ai-resolve-sheet-link',async(_event,raw)=>{
       sheet:Number(p.sheet),totalSheets:Number(p.totalSheets)};
   }catch(e){return{ok:false,error:String(e?.message||e)}}
 });
-function anandaCompactAttendanceMeta(u){
-  try{
-    // QR with only Sheet ID and signature. Persistent mapping makes this
-    // printable without API credits and valid across app restarts.
-    if(u.searchParams.get('x')&&!u.searchParams.get('b'))return anandaResolveShortQr(u);
-    const b=u.searchParams.get('b')||'',d8=u.searchParams.get('d')||'',sheet=Number(u.searchParams.get('s')||1),total=Number(u.searchParams.get('t')||1),verify=u.searchParams.get('v')||'',sheetId=u.searchParams.get('x')||'',layout=u.searchParams.get('l')||'';
-    if(!b||!/^\d{8}$/.test(d8)||!verify)return null;
-    const date=d8.slice(0,4)+'-'+d8.slice(4,6)+'-'+d8.slice(6,8),key=[b,d8,sheet,total,verify,sheetId,layout].join('|');
-    const remembered=anandaAttendanceSheetMeta.get(key);if(remembered)return remembered;
-    const payload=JSON.stringify({v:layout==='A4L30V2'?5:(layout==='A4L40'?4:(layout==='A4L30'?3:(sheetId?2:1))),kind:'ANANDA_ATTENDANCE',layout:layout||undefined,batchId:b,date,sheet,totalSheets:total,sheetId:sheetId||undefined,sessionId:b+':'+date,verify});
-    return{payload,date,sheet,total,sheetId,mode:u.searchParams.get('m')==='ai'?'ai':'offline'}
-  }catch{return null}
-}
 function anandaAttendanceIp(){
   const nets=os.networkInterfaces(),candidates=[];
   for(const group of Object.values(nets))for(const n of group||[]){
