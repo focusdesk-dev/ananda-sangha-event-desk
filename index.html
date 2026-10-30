@@ -502,7 +502,7 @@
     <section id="classWorkspace" class="page">
       <div id="p2ClassHeader" class="event-banner"></div>
       <div id="p2ClassStats" class="p2-kpis"></div>
-      <div class="grid two"><div class="card"><div class="card-head"><div><h3>Batch roster & attendance</h3><div class="card-sub">Each student keeps a separate attempt and per-session attendance.</div></div><button id="p2EnrollStudent" class="btn small">+ Enrol student</button></div><div id="p2ClassRoster"></div></div><div class="card"><div class="card-head"><div><h3>Sessions</h3><div class="card-sub">Attendance dates for this batch.</div></div></div><div id="p2SessionList"></div><div class="p2-note" style="margin-top:14px">Batch year is based on the start date, even when classes continue into the next calendar year.</div></div></div>
+      <div class="grid two"><div class="card"><div class="card-head"><div><h3>Batch roster & attendance</h3><div class="card-sub">Each student keeps a separate attempt and per-session attendance.</div></div><button id="p2EnrollStudent" class="btn small">Enrol student</button></div><div id="p2ClassRoster"></div></div><div class="card"><div class="card-head"><div><h3>Sessions</h3><div class="card-sub">Attendance dates for this batch.</div></div></div><div id="p2SessionList"></div><div class="p2-note" style="margin-top:14px">Batch year is based on the start date, even when classes continue into the next calendar year.</div></div></div>
       <div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Next-stage outreach</h3><div class="card-sub">Students disappear automatically once they enrol in the next level.</div></div></div><div id="p2BatchOutreach"></div></div>
     </section>
 
@@ -2418,7 +2418,7 @@
     const page=$('classWorkspace');if(!page||$('p2v5WorkspaceGrid'))return;
     const oldGrid=page.querySelector('.grid.two');
     if(oldGrid){
-      oldGrid.outerHTML=`<div id="p2v5WorkspaceGrid"><div class="card" id="p2v5AttendanceCard"><div class="card-head"><div><h3>Batch Roster &amp; Attendance</h3></div><button id="p2EnrollStudent" class="btn small" type="button">+ Enrol Student</button></div><div id="p2ClassRoster"></div></div><div class="card" id="p2v5StudentCard"><div id="p2v5StudentDetails"></div></div></div>`;
+      oldGrid.outerHTML=`<div id="p2v5WorkspaceGrid"><div class="card" id="p2v5AttendanceCard"><div class="card-head"><div><h3>Batch Roster &amp; Attendance</h3></div><button id="p2EnrollStudent" class="btn small" type="button">Enrol student</button></div><div id="p2ClassRoster"></div></div><div class="card" id="p2v5StudentCard"><div id="p2v5StudentDetails"></div></div></div>`;
     }
     const outreach=page.querySelector('#p2BatchOutreach')?.closest('.card');if(outreach)outreach.remove();
     if(!$('p2SessionList'))page.insertAdjacentHTML('beforeend','<div id="p2SessionList" style="display:none"></div>');
@@ -2519,7 +2519,21 @@
     p2v5RenderHeader(b);p2v5RenderSchedule(b);p2v5RenderStats(b);p2v5RenderAttendance(b)
   };
 
-  document.addEventListener('keydown',event=>{if(event.defaultPrevented||event.isComposing||page!=='classWorkspace'||p2v5IsEnded(p2ActiveBatch()))return;const plus=!event.altKey&&!event.ctrlKey&&!event.metaKey&&(event.key==='+'||event.code==='NumpadAdd'||((event.code==='Equal'||event.key==='=')&&event.shiftKey));if(!plus)return;event.preventDefault();event.stopImmediatePropagation();$('p2v5NewClass')?.click()},true);
+  // Correction 2: Class Batch "+" always opens the EXISTING enrolment form,
+  // never the New Class Date form. Other modules keep their shortcuts.
+  document.addEventListener('keydown',event=>{
+    if(event.defaultPrevented||event.isComposing||page!=='classWorkspace')return;
+    const plus=!event.altKey&&!event.ctrlKey&&!event.metaKey&&(
+      event.key==='+'||event.code==='NumpadAdd'||((event.code==='Equal'||event.key==='=')&&event.shiftKey));
+    if(!plus)return;
+    const focus=event.target||document.activeElement;
+    if(focus?.closest?.('input,textarea,select,[contenteditable],[role="textbox"]')||focus?.isContentEditable)return;
+    if(document.querySelector('.modal-backdrop.open'))return;
+    const batch=p2ActiveBatch(),button=$('p2EnrollStudent');
+    if(!batch||!button||button.disabled)return;
+    event.preventDefault();event.stopImmediatePropagation();
+    button.click();
+  },true);
   // PHASE2 BETA5 FIX1 — issues 1-6 only: alignment, dates, per-date absent buttons, smooth search, simple payment.
   function p2v5FixIso(value,fallbackYear){
     const v=String(value||'').trim();if(!v)return'';
