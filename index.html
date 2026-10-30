@@ -5982,7 +5982,7 @@ function p2v58BindPhoneListener(){
         '</b></span><span class="red">Absent: <b>'+absent+'</b></span><span class="pending">Unmarked: <b>'+
         (rows.length-present-absent)+'</b></span>';
       const info=$('p2v536Progress');
-      if(info)info.remove();
+      if(info&&typeof info.remove==='function')info.remove();
       if(typeof p2v537RefreshStatus==='function')p2v537RefreshStatus();
       for(const id of ['p2v58Confirm','p2v58All']){
         const btn=$(id);if(btn)btn.disabled=false;
