@@ -1,0 +1,31 @@
+name: Verify Ananda v5.36 (three passes, no installer)
+on:
+  push:
+    branches: [beta-5-36-staging]
+  workflow_dispatch:
+jobs:
+  verify-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Static checks + all attendance tests, three complete passes
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check main.js
+          node --check preload.js
+          for pass in 1 2 3; do
+            echo "======== VERIFICATION PASS $pass OF 3 ========"
+            node scripts/verify-attendance.js
+            node scripts/verify-ai-attendance.js
+            node scripts/verify-phone-ai-route.js
+            node scripts/verify-ai-settings.js
+            node scripts/verify-qr-print.js
+            node scripts/verify-ai-recovery.js
+            node scripts/verify-ai-performance.js
+            node scripts/verify-unified-attendance.js
+          done
+          echo "TRIPLE CHECK PASSED: no installer was built"
