@@ -6,7 +6,7 @@ const os = require('os');
 const nodeCrypto = require('crypto');
 
 const APP_ID = 'org.anandasangha.gurgaon.eventdesk';
-const APP_VERSION = '2.0.0-beta.5.43';
+const APP_VERSION = '2.0.0-beta.5.44';
 const ROOT_DIR = path.join(app.getPath('documents'), 'ANANDA SANGHA EVENT DESK');
 const DATA_ROOT = path.join(ROOT_DIR, 'Data');
 const SYSTEM_ROOT = path.join(ROOT_DIR, 'System');
@@ -442,10 +442,8 @@ ipcMain.handle('ananda-attendance-stop-upload-server',async()=>({ok:true,persist
 
 
 
-// Attendance-processing permission is device-local, survives application restarts,
-// and may be changed only after verifying the EXISTING administrator password.
-const ANANDA_PROCESSING_PERMISSION_VERSION = 1;
-const ANANDA_PROCESSING_PERMISSION_FILE = path.join(SYSTEM_ROOT,'attendance-processing-permission.json');
+// AI processing needs a configured API key, but no second administrator
+// permission grant. Keep device-local API usage accounting for cost review.
 const ANANDA_AI_USAGE_FILE = path.join(SYSTEM_ROOT,'attendance-api-usage.json');
 function anandaReadJson(file){
   try{return JSON.parse(fs.readFileSync(file,'utf8'))}catch{return null}
@@ -454,13 +452,6 @@ function anandaAtomicJson(file,value){
   const temp=file+'.tmp';
   fs.writeFileSync(temp,JSON.stringify(value,null,2),{encoding:'utf8',mode:0o600});
   fs.renameSync(temp,file);
-}
-function anandaAttendancePermission(){
-  const record=anandaReadJson(ANANDA_PROCESSING_PERMISSION_FILE);
-  return record&&record.permissionVersion===ANANDA_PROCESSING_PERMISSION_VERSION&&record.allowed===true
-    ?{...record,allowed:true}
-    :{allowed:false,permissionVersion:ANANDA_PROCESSING_PERMISSION_VERSION,
-      updatedAt:record?.updatedAt||'',administrator:record?.administrator||'',revision:record?.revision||0};
 }
 function anandaAiUsage(){
   const data=anandaReadJson(ANANDA_AI_USAGE_FILE)||{};
@@ -473,41 +464,12 @@ function anandaRecordApiUsage(response){
   const input=Number(usage.input_tokens)||0,output=Number(usage.output_tokens)||0;
   const prior=anandaAiUsage();
   prior.requests+=1;prior.inputTokens+=input;prior.outputTokens+=output;
-  // GPT-4.1 standard listed pricing: $2/M input, $8/M output.
-  // An estimate; billing may differ for cached tokens, discounts, or price changes.
+  // Estimate only, not an authoritative billing rate.
   prior.estimatedUsd=Math.round((prior.estimatedUsd+(2*input+8*output)/1000000)*1000000)/1000000;
   prior.lastAt=new Date().toISOString();
   anandaAtomicJson(ANANDA_AI_USAGE_FILE,prior);
 }
-ipcMain.handle('ananda-attendance-permission-status',async()=>({ok:true,...anandaAttendancePermission()}));
 ipcMain.handle('ananda-ai-usage',async()=>({ok:true,...anandaAiUsage()}));
-ipcMain.handle('ananda-attendance-permission-set',async(_event,body)=>{
-  try{
-    if(!mainWindow||mainWindow.isDestroyed())throw Error('Administrator window unavailable.');
-    const administrator=String(body?.administrator||'').trim();
-    const password=String(body?.password||'');
-    if(!administrator||administrator.length>100)throw Error('Enter the administrator name.');
-    if(!password)throw Error('Enter the administrator password.');
-    // Read the actual application verifier, rather than accepting a verifier
-    // supplied through IPC. Never persist or log the entered password.
-    const text=await mainWindow.webContents.executeJavaScript(
-      'localStorage.getItem("annualEventRegistration.security.v1")',true);
-    const record=JSON.parse(text||'null');
-    if(!record||!/^[0-9a-f]{32}$/i.test(record.salt||'')||!/^[0-9a-f]{64}$/i.test(record.hash||'')){
-      throw Error('Set up the administrator password in Settings first.');
-    }
-    const derived=await new Promise((resolve,reject)=>nodeCrypto.pbkdf2(password,
-      Buffer.from(String(record.salt),'utf8'),150000,32,'sha256',
-      (err,value)=>err?reject(err):resolve(value)));
-    const valid=nodeCrypto.timingSafeEqual(derived,Buffer.from(record.hash,'hex'));
-    if(!valid)throw Error('Incorrect administrator password. Permission was not changed.');
-    const prev=anandaAttendancePermission();
-    const next={permissionVersion:ANANDA_PROCESSING_PERMISSION_VERSION,allowed:body?.allowed===true,
-      administrator,updatedAt:new Date().toISOString(),revision:(prev.revision||0)+1};
-    anandaAtomicJson(ANANDA_PROCESSING_PERMISSION_FILE,next);
-    return{ok:true,...next};
-  }catch(err){return{ok:false,error:String(err?.message||err)}}
-});
 
 // BETA530: AI attendance integration. API credentials never enter web/localStorage
 // or the packaged source. Windows safeStorage encrypts the per-machine key.
@@ -580,7 +542,6 @@ ipcMain.handle('ananda-ai-test-connection',async()=>{
 });
 ipcMain.handle('ananda-ai-analyze-attendance', async (_event, body) => {
   try {
-    if (!anandaAttendancePermission().allowed) throw new Error('Attendance processing is not authorised. Ask an administrator to enable it in Settings → Attendance Processing.');
     const key = anandaReadAiKey();
     if (!key) throw new Error('Processing is not configured. Ask an administrator to check Attendance Processing in Settings.');
     const image = String(body?.imageDataUrl || '');
