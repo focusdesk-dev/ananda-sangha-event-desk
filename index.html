@@ -6332,7 +6332,7 @@ function p2v58BindPhoneListener(){
       p2v536ExpectedPages=Number(total||0);
       p2v536PrintRunId=String(runId||'');
       p2v536Confirmed=false;p2v58Draft=p2v536Draft;
-      p2v524ClearSession();
+      if(typeof p2v524ClearSession==='function')p2v524ClearSession();
       p2v536RenderFullRoster();
     }
     function p2v536KeepUnifiedPanel(){
