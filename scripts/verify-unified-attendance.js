@@ -8,6 +8,7 @@ const fragment=html.slice(a,b);
 const students=Array.from({length:37},(_,i)=>({en:{id:'EN'+(i+1),attendance:{}},p:{name:'Student '+String(i+1).padStart(2,'0'),mobile:''}}));
 const bch={id:'B1',name:'Batch 1'};
 let date='2026-11-05',saved=0,confirmations=0;
+students[30].en.attendance[date]=true; // Previously saved: must NOT precheck new scan.
 const toasts=[];
 const ui={p2v58Roster:{innerHTML:'',querySelectorAll:()=>[]},p2v58Totals:{innerHTML:''},p2v536Progress:{textContent:''},p2v511Review:{classList:{add:()=>{}}}};
 const ctx={p2v58CurrentBatch:()=>bch,p2v58Date:date,p2v518CurrentRowsBase:()=>students.slice(30),
@@ -19,6 +20,8 @@ const ctx={p2v58CurrentBatch:()=>bch,p2v58Date:date,p2v518CurrentRowsBase:()=>st
  toast:s=>toasts.push(String(s)),save:()=>{saved++},window:{confirm:()=>{confirmations++;return true}},setTimeout,console};
 vm.runInNewContext(fragment+'\n;globalThis.test={print:p2v536OnPrint,merge:p2v536MergeAiSheet,mark:p2v536MarkRemainingAbsent,confirm:p2v536ConfirmAttendance,render:p2v536RenderFullRoster,draft:()=>p2v536Draft,scanned:()=>Array.from(p2v536ScannedSheets),expected:()=>p2v536ExpectedPages};',ctx,{timeout:1000});
 const t=ctx.test;
+t.render();
+assert.strictEqual(t.draft().EN31,null,'Reopened page 2 must never preload previous saved marks');
 function sheet(number,first,last){
  const rows=students.slice(first-1,last),nums=rows.map((_,i)=>first+i);
  return{data:{batchId:'B1',date,sheet:number,totalSheets:2,printRunId:'ONE-RUN'},rows,nums};
