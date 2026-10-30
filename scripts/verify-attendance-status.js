@@ -14,8 +14,9 @@ const ctx={document,$:id=>nodes[id]||null,p2v538FullClassRows:()=>rows,
 p2v58Date:'2026-09-06',p2v58Draft:{},
 p2v58AttendanceValue:(en,date)=>Object.prototype.hasOwnProperty.call(en.attendance,date)?
 (en.attendance[date]===true?true:en.attendance[date]===false?false:null):null};
-vm.runInNewContext(html.slice(start,end)+';globalThis.audit={summary:p2v510AttendanceSummary,saved:p2v510AttendanceSaved,notice:p2v510AttendanceNotice};',ctx);
+vm.runInNewContext(html.slice(start,end)+';globalThis.audit={summary:p2v510AttendanceSummary,saved:p2v510AttendanceSaved,notice:p2v510AttendanceNotice,setReview:value=>{p2v541SavedReview=value}};',ctx);
 const t=ctx.audit;
+t.setReview(true); // Explicitly editing already saved attendance.
 const redraw=()=>{t.notice();return nodes.p2v510AttendanceNotice};
 const resetDraft=()=>{ctx.p2v58Draft={};for(const {en} of rows)ctx.p2v58Draft[en.id]=ctx.p2v58AttendanceValue(en,ctx.p2v58Date)};
 resetDraft();
