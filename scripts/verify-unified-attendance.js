@@ -37,7 +37,11 @@ assert(ui.p2v58Roster.innerHTML.includes('37</span>'),'37th student must appear 
 t.mark();
 assert(toasts.some(x=>/More printed pages/.test(x)),'Cannot mark unscanned page absent');
 assert.strictEqual(saved,0);
-t.merge(s2.data,s2.rows,s2.nums,new Set([31,37]));
+const invalidPage2={...s2,rows:[...s2.rows].reverse()};
+assert.throws(()=>t.merge({...s2.data,printRunId:'DIFFERENT-RUN'},invalidPage2.rows,s2.nums,new Set([31])),
+ /different student roster/i,'Mismatched frozen page 2 must be refused without touching page 1');
+assert.strictEqual(t.scanned().length,1,'Invalid second page cannot count as received');
+t.merge({...s2.data,printRunId:'DIFFERENT-RUN'},s2.rows,s2.nums,new Set([31,37]));
 assert.strictEqual(t.scanned().length,2);
 assert([1,4,16,30,31,37].every(x=>t.draft()['EN'+x]===true),'All scanned-page detections must survive');
 assert.strictEqual(t.draft().EN32,null,'Blank last-page rows must remain Unmarked');
@@ -59,4 +63,9 @@ t.merge(s2.data,s2.rows,s2.nums,new Set([32]));
 assert.strictEqual(saved,before,'A rescan is not a save');
 assert.strictEqual(t.draft().EN1,true,'Rescan of page 2 cannot overwrite page 1');
 assert.strictEqual(t.draft().EN32,true,'A later photo can update its student');
-console.log('PASS: 37 students; 30+7 QR photos; no premature absences; first-page retention; one final save; safe rescan');
+t.print(2,'FRESH-PRINT');
+assert.strictEqual(t.scanned().length,0,'Printing a new set must start a clean scan');
+assert.strictEqual(t.draft().EN31,null,'New scan must clear old page-2 checkmarks');
+assert.strictEqual(t.draft().EN1,null,'New scan must clear old page-1 checkmarks');
+assert.strictEqual(students[0].en.attendance[date],true,'Previously confirmed attendance remains stored');
+console.log('PASS: 37 students; clean reopening; mixed-run page 2 with identical roster; reject changed roster; 30+7 QR photos; safe rescan and restart; final save preserved');
