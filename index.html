@@ -6056,22 +6056,19 @@ function p2v58BindPhoneListener(){
     p2v536RenderFullRoster();
 
 
-    // Correction 3: one status surface; processed photos and SAVED attendance
-    // are intentionally separate. No duplicate technical panels.
+
+    // Correction 3: one volunteer status. Save confirmation is separate.
     async function p2v537PhotoFingerprint(blob){
-      const bytes=await blob.arrayBuffer();
-      const hash=await crypto.subtle.digest('SHA-256',bytes);
-      return Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
+      const hash=await crypto.subtle.digest('SHA-256',await blob.arrayBuffer());
+      return Array.from(new Uint8Array(hash),x=>x.toString(16).padStart(2,'0')).join('');
     }
     function p2v537RefreshStatus(){
-      const el=$('p2v530Status');if(!el)return;
-      const received=p2v536ScannedSheets.size;
-      const recognised=p2v537RecognisedEnrollments.size;
-      const title=p2v537LastError?'Attention needed':p2v536Confirmed?'Attendance saved':received?'Attendance processed':'Process attendance';
-      const details=received?received+' of '+(p2v536ExpectedPages||received)+' photos received · '+recognised+
-        ' student'+(recognised===1?'':'s')+' recognised':
-        'Print attendance sheets, scan the QR code and review the class list.';
-      el.innerHTML='<strong>'+esc(title)+'</strong><span>'+esc(details)+'</span>'+
+      const node=$('p2v530Status');if(!node)return;
+      const photos=p2v536ScannedSheets.size,count=p2v537RecognisedEnrollments.size;
+      const header=p2v537LastError?'Attention needed':p2v536Confirmed?'Attendance saved':photos?'Attendance processed':'Process attendance';
+      const summary=photos?photos+' of '+(p2v536ExpectedPages||photos)+' photos received · '+count+' student'+(count===1?'':'s')+' recognised':
+        'Print attendance sheets, scan their QR codes and review the class list.';
+      node.innerHTML='<strong>'+esc(header)+'</strong><span>'+esc(summary)+'</span>'+
         (p2v537LastMessage?'<small class="'+(p2v537LastError?'p2v537-error':'')+'">'+esc(p2v537LastMessage)+'</small>':'');
     }
     p2v530SetStatus=function(message,isError=false){
@@ -6079,27 +6076,82 @@ function p2v58BindPhoneListener(){
       if(/API key|API charges|OpenAI|credits/i.test(detail))
         detail='Processing needs administrator attention. See Settings → Attendance Processing.';
       else detail=detail.replace(/\bAI\b/g,'attendance');
-      // Ongoing processing replaces transient guidance. Completed scans use
-      // the concise data-driven summary, not multiple repeated announcements.
-      p2v537LastMessage=detail;
-      p2v537LastError=Boolean(isError);
+      p2v537LastMessage=detail;p2v537LastError=!!isError;
       p2v537RefreshStatus();
     };
     async function p2v537RefreshAdminSettings(){
-      const el=$('p2v537PermissionState'),audit=$('p2v537PermissionAudit'),usage=$('p2v537ApiUsage');
+      const node=$('p2v537PermissionState'),audit=$('p2v537PermissionAudit'),usage=$('p2v537ApiUsage');
       try{
         const status=await window.anandaDesktop?.attendancePermissionStatus?.();
-        if(el)el.textContent=status?.allowed?'Granted':'Not granted / Revoked';
+        if(node)node.textContent=status?.allowed?'Granted':'Not granted / Revoked';
         if(audit)audit.textContent=status?.updatedAt
           ?'Last changed by '+(status.administrator||'Administrator')+' on '+new Date(status.updatedAt).toLocaleString()+
-            ' · Permission version '+status.permissionVersion+' · Revision '+(status.revision||1)
-          :'Permission version 1 · No administrator approval recorded.';
-      }catch{if(el)el.textContent='Permission status unavailable';}
+            ' · Version '+status.permissionVersion+' · Revision '+status.revision
+          :'No administrator approval recorded · Permission version 1';
+      }catch{if(node)node.textContent='Permission status unavailable'}
       try{
         const data=await window.anandaDesktop?.attendanceApiUsage?.();
         if(usage)usage.textContent=data?.ok
           ?Number(data.requests||0)+' processed requests · '+Number(data.inputTokens||0).toLocaleString()+
-            ' input tokens · '+Number(data.outputTokens||0).toLocaleString()+' output tokens · Estimated 
+          ' input tokens · '+Number(data.outputTokens||0).toLocaleString()+
+          ' output tokens · Estimated USD '+Number(data.estimatedUsd||0).toFixed(4)+
+          (data.lastAt?' · Last '+new Date(data.lastAt).toLocaleString():'')
+          :'Usage data unavailable';
+      }catch{if(usage)usage.textContent='Usage data unavailable'}
+    }
+    async function p2v537ChangePermission(allowed){
+      const name=$('p2v537AdminName').value.trim(),password=$('p2v537AdminPassword').value;
+      const msg=$('p2v537PermissionMessage');
+      if(!name||!password){msg.textContent='Administrator name and password are required.';return}
+      const button=$(allowed?'p2v537Grant':'p2v537Revoke');
+      button.disabled=true;
+      try{
+        const result=await window.anandaDesktop?.setAttendancePermission?.({administrator:name,password,allowed});
+        msg.textContent=result?.ok
+          ?'Permission '+(allowed?'granted':'revoked')+'. Saved on this computer.'
+          :result?.error||'Unable to update permission.';
+        msg.style.color=result?.ok?'#164f83':'#a22828';
+      }catch(err){msg.textContent=String(err?.message||err)}
+      finally{
+        $('p2v537AdminPassword').value='';button.disabled=false;
+        await p2v537RefreshAdminSettings();
+      }
+    }
+    $('p2v537Grant')?.addEventListener('click',()=>p2v537ChangePermission(true));
+    $('p2v537Revoke')?.addEventListener('click',()=>p2v537ChangePermission(false));
+    document.querySelector('[data-page="settings"]')?.addEventListener('click',p2v537RefreshAdminSettings);
+    p2v537RefreshAdminSettings();
+    const style=document.createElement('style');style.id='p2v537AttendancePolish';
+    style.textContent=
+      '#classAttendanceHub .p2v58-page{max-width:1300px;margin:auto;line-height:1.5}'+
+      '#classAttendanceHub .p2v58-title-row{padding-bottom:14px;border-bottom:1px solid #e5edf4;margin-bottom:16px}'+
+      '#classAttendanceHub .p2v58-title-row h2{font-size:24px;font-weight:650;letter-spacing:-.02em;text-transform:none}'+
+      '#classAttendanceHub .p2v58-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:end;margin-bottom:14px}'+
+      '#classAttendanceHub .p2v58-filters .p2v58-date-only{display:none}'+
+      '#classAttendanceHub .p2v58-filters select{width:100%;min-width:0}'+
+      '#classAttendanceHub #p2v530Panel{margin:8px 0 16px;padding:0!important;border:0!important;box-shadow:none!important;background:transparent!important}'+
+      '#classAttendanceHub #p2v531Print{min-height:42px;width:auto;padding:10px 18px;font-size:13px;font-weight:600;text-transform:none;border-radius:8px}'+
+      '#classAttendanceHub .p2v58-upload-buttons{margin:0 0 12px;gap:12px}'+
+      '#classAttendanceHub .p2v537-status{display:flex;flex-direction:column;gap:3px;border:0!important;border-left:3px solid #1b5a9c!important;border-radius:0!important;padding:8px 14px!important;background:#f8fbfe;color:#244970!important}'+
+      '#classAttendanceHub .p2v537-status strong{font-size:13px;font-weight:700}'+
+      '#classAttendanceHub .p2v537-status span{color:#596e83;font-size:12px}'+
+      '#classAttendanceHub .p2v537-status small{margin-top:5px;font-size:12px}'+
+      '#classAttendanceHub .p2v537-status .p2v537-error{color:#a22828}'+
+      '#classAttendanceHub .p2v58-list-head{margin-top:12px;border-top:1px solid #e9eff5!important}'+
+      '#classAttendanceHub .p2v58-footer{border-top:1px solid #e8eef4}'+
+      '@media(max-width:700px){#classAttendanceHub .p2v58-filters{grid-template-columns:1fr;gap:10px}}';
+    document.head.appendChild(style);
+    $('p2v531Print').textContent='Print attendance sheets';
+    const head=$('classAttendanceHub')?.querySelector('.p2v58-title-row h2');
+    if(head)head.textContent='Class attendance';
+    const tab=$('classAttendanceHub')?.querySelector('.p2v58-tab');
+    if(tab)tab.textContent='Attendance list';
+    $('p2v58All').textContent='Mark remaining absent';
+    $('p2v58Confirm').textContent='Confirm attendance';
+    const hint=$('p2v531Print')?.parentElement?.querySelector('span');
+    if(hint)hint.textContent='Scan the QR code on each printed sheet to upload its photo.';
+    p2v537RefreshStatus();
+
   window.addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop'))e.target.classList.remove('open')});
   resetEventForm();
   renderAll();
