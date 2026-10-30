@@ -348,7 +348,8 @@ function anandaMobilePage(meta,encoded){
       canvas.width=0;canvas.height=0;
       return result;
     }finally{image?.close?.();if(url)URL.revokeObjectURL(url)}
-  }$('camera').onchange=e=>selectedFile(e.target.files?.[0]);$('gallery').onchange=e=>selectedFile(e.target.files?.[0]);$('retake').onclick=()=>{$('camera').value='';$('camera').click()};
+  }
+  $('camera').onchange=e=>selectedFile(e.target.files?.[0]);$('gallery').onchange=e=>selectedFile(e.target.files?.[0]);$('retake').onclick=()=>{$('camera').value='';$('camera').click()};
   $('use').onclick=async()=>{if(!selected)return;if(!$('aiConsent').checked){alert('Please confirm permission before uploading the photo.');return;}show('uploading');try{const optimised=await anandaOptimiseUploadPhoto(selected);const fd=new FormData();fd.append('sheet',optimised,'attendance.jpg');const res=await fetch('/upload'+window.location.search,{method:'POST',body:fd});if(!res.ok)throw Error(await res.text());show('done')}catch(e){alert('Upload failed. Keep the phone and laptop on the same Wi-Fi or hotspot.');show('preview')}};
   $('another').onclick=()=>{selected=null;$('camera').value='';$('gallery').value='';show('pick')};$('close').onclick=()=>{try{window.open('','_self');window.close()}catch{}setTimeout(()=>{if(document.hidden)return;try{if(history.length>1){history.back();return}}catch{}try{location.replace('about:blank')}catch{}},250)};
   </script></body></html>`
