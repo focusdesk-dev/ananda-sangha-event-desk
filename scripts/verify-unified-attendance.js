@@ -35,7 +35,7 @@ assert(ui.p2v58Roster.innerHTML.includes('Student 37'),'Full class must show bef
 assert(ui.p2v58Roster.innerHTML.includes('Student 01'),'Sheet 1 must show even if legacy active rows only include Sheet 2');
 assert(ui.p2v58Roster.innerHTML.includes('37</span>'),'37th student must appear with continuous numbering');
 t.mark();
-assert(toasts.some(x=>/More printed pages/.test(x)),'Cannot mark unscanned page absent');
+assert(toasts.some(x=>/Scan every printed page/.test(x)),'Cannot mark unscanned page absent');
 assert.strictEqual(saved,0);
 const invalidPage2={...s2,rows:[...s2.rows].reverse()};
 assert.throws(()=>t.merge({...s2.data,printRunId:'DIFFERENT-RUN'},invalidPage2.rows,s2.nums,new Set([31])),
@@ -50,6 +50,10 @@ t.mark();
 assert.strictEqual(t.draft().EN32,false,'Only explicit mark-remaining-absent applies absence');
 assert.strictEqual(t.draft().EN2,false,'All remaining unmarked students on Sheet 1 must become Absent');
 assert.strictEqual(t.draft().EN29,false,'Sheet 1 end must become Absent despite active Sheet 2 scope');
+assert.strictEqual(Object.values(t.draft()).filter(v=>v===false).length,31,'All 31 unrecognised students must be absent, not just 5 from sheet 2');
+assert.strictEqual(Object.values(t.draft()).filter(v=>v===true).length,6,'Six recognised students across both pages must remain present');
+assert(toasts.some(x=>/31 remaining students marked absent across all 37 class students/.test(x)),
+  'Show clear all-class absence result');
 t.confirm();
 assert.strictEqual(saved,1,'One final confirmation saves once');
 assert.strictEqual(confirmations,1);
@@ -59,6 +63,13 @@ assert.strictEqual(students[31].en.attendance[date],false);
 assert.strictEqual(students[36].en.attendance[date],true);
 assert(ui.p2v58Roster.innerHTML.includes('Student 37'),'Full class remains visible after saving');
 const before=saved;
+// Reopening a fully confirmed class must load editable saved attendance
+// directly, with no separate View saved attendance button.
+ctx.p2v58Date='2026-11-06';t.render();
+ctx.p2v58Date=date;t.render();
+assert.strictEqual(t.draft().EN1,true,'Full saved class should reopen editable');
+assert.strictEqual(t.draft().EN32,false,'Saved absence should reopen as absent');
+assert(!html.includes('id="p2v541ViewSaved"'),'Remove confusing View saved attendance button');
 t.merge(s2.data,s2.rows,s2.nums,new Set([32]));
 assert.strictEqual(saved,before,'A rescan is not a save');
 assert.strictEqual(t.draft().EN1,true,'Rescan of page 2 cannot overwrite page 1');
