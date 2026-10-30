@@ -312,27 +312,10 @@
         <div id="p2v532KeyMessage" role="status" style="font-size:12px;margin-top:12px;color:#244d79"></div>
         <div class="security-warning" style="margin-top:12px"><b>Before you buy credits:</b> Free Precheck checks the installed application without contacting OpenAI. Connection Test checks the saved API key without analyzing an image. Neither proves AI can read a real marked sheet. Review every AI attendance result before saving; API credits are required for a live photo test.</div>
       </div>
-      <div id="p2v537PermissionCard" class="card" style="margin-top:18px">
-        <div class="card-head"><div><h3>Attendance Processing</h3>
-          <div class="card-sub">Administrator permission and processing usage. Volunteers cannot change these settings.</div></div></div>
-        <div class="note" style="margin-bottom:13px">
-          <strong>Permission:</strong> <span id="p2v537PermissionState">Checking...</span>
-          <div id="p2v537PermissionAudit" class="hint" style="margin-top:5px"></div>
-        </div>
-        <div class="form-grid">
-          <div class="field"><label for="p2v537AdminName">ADMINISTRATOR NAME</label><input id="p2v537AdminName" autocomplete="off" placeholder="Administrator name"></div>
-          <div class="field"><label for="p2v537AdminPassword">ADMINISTRATOR PASSWORD</label><input id="p2v537AdminPassword" type="password" autocomplete="current-password" placeholder="Required for each change"></div>
-        </div>
-        <div class="actions" style="margin-top:14px">
-          <button id="p2v537Grant" class="btn" type="button">Grant permission</button>
-          <button id="p2v537Revoke" class="btn secondary" type="button">Revoke permission</button>
-        </div>
-        <div id="p2v537PermissionMessage" role="status" style="font-size:12px;margin-top:10px"></div>
-        <div class="note" style="margin-top:16px">
-          <strong>API usage and estimated cost</strong>
-          <div id="p2v537ApiUsage" class="hint" style="margin-top:7px">Checking this computer...</div>
-          <div class="hint" style="margin-top:6px">Estimated at GPT-4.1 standard rates ($2 per million input tokens and $8 per million output tokens). Actual charges may differ. OpenAI billing is authoritative; no student names or photographs are stored in this usage summary.</div>
-        </div>
+      <div id="p2v537UsageCard" class="card" style="margin-top:18px">
+        <div class="card-head"><div><h3>Attendance processing usage</h3><div class="card-sub">Local request counts and estimated API cost</div></div></div>
+        <div id="p2v537ApiUsage" class="hint" style="margin-top:10px">Checking this computer...</div>
+        <div class="hint" style="margin-top:6px">This is an estimate. Actual API billing may differ.</div>
       </div>
       <div id="v123DataCard" class="card" style="margin-top:18px">
         <div class="card-head"><div><h3>Data, backup & updates</h3><div class="card-sub">Program updates no longer replace or move your permanent records</div></div><span class="pill green">PRODUCTION 1.0.126</span></div>
@@ -5962,7 +5945,6 @@ function p2v58BindPhoneListener(){
       if(p2v530AiBusy)return;
       const api=window.anandaDesktop;
       if(!api?.analyzeAiAttendance){p2v530SetStatus('This installation does not contain the AI integration.',true);return;}
-      if(!await p2v537PermissionReady()){p2v530SetStatus('Attendance processing is not authorised. An administrator can enable it in Settings → Attendance Processing.',true);return;}
       if(!p2v530PhotoBlob){p2v530SetStatus('Choose or take an attendance photo first.',true);return;}
       p2v530AiBusy=true;if($('p2v530Analyze'))$('p2v530Analyze').disabled=true;
       try{
@@ -6088,12 +6070,6 @@ function p2v58BindPhoneListener(){
       p2v535RefreshQueuedPhoto();
     }
     const p2v531ClassRoot=$('classAttendanceHub')?.querySelector('.p2v58-page');
-    async function p2v537PermissionReady(){
-      try{
-        const status=await window.anandaDesktop?.attendancePermissionStatus?.();
-        return status?.ok===true&&status.allowed===true;
-      }catch{return false}
-    }
     function p2v531MoveReview(){
       const panel=$('p2v531ReviewInside');if(!panel||!p2v531ClassRoot)return;
       const ids=['p2v511Review','p2v58Roster','p2v529FullClassOverview'];
@@ -6170,13 +6146,9 @@ function p2v58BindPhoneListener(){
       if(!result?.ok){p2v530SetStatus(result?.error||'QR print failed. Check Wi-Fi and class selection.',true);return}
       // Printing stays available offline. Warn BEFORE a volunteer spends time
       // photographing a sheet that cannot currently be analysed.
-      if(!await p2v537PermissionReady()){
-        p2v530SetStatus('Sheets ready. Photo recognition is disabled until an administrator grants permission in Settings → Attendance Processing. You may print now; no photo will be analysed yet.',true);
-      }else{
-        let config=null;
-        try{config=await window.anandaDesktop?.aiStatus?.()}catch{}
-        if(!config?.configured)p2v530SetStatus('Sheets ready. Add the API key in Settings before submitting marked photos for recognition.',true);
-      }
+      let config=null;
+      try{config=await window.anandaDesktop?.aiStatus?.()}catch{}
+      if(!config?.configured)p2v530SetStatus('Sheets ready. Set the API key in Settings before uploading marked photos.',true);
     });
     async function p2v531HandlePhone(payload){
       if(!payload?.dataUrl)return;
@@ -6194,11 +6166,7 @@ function p2v58BindPhoneListener(){
         p2v535QueuePhoto(payload,'AI is still analysing another sheet. The newly received photo is queued for review.');
         return;
       }
-      // Beta 5.36: Preserve the single class-wide unsaved review between sheets.
-      if(!await p2v537PermissionReady()){
-        p2v535QueuePhoto(payload,'Photo received but not analysed. The administrator must enable Settings → Attendance Processing. Then select Retry received photo. No attendance was changed.');
-        return;
-      }
+      // Keep prior pages in the unsaved review; no separate administrator permission step.
       const config=await window.anandaDesktop?.aiStatus?.();
       if(!config?.configured){
         p2v535QueuePhoto(payload,'AI photo received, but the API key is missing. Save your key and click RETRY RECEIVED AI PHOTO.');
@@ -6222,9 +6190,6 @@ function p2v58BindPhoneListener(){
     }
     $('p2v535RetryQueued')?.addEventListener('click',async()=>{
       if(!p2v531PendingPhone||p2v530AiBusy)return;
-      if(!await p2v537PermissionReady()){
-        p2v530SetStatus('Attendance processing is not authorised. Ask an administrator to enable it in Settings → Attendance Processing.',true);return;
-      }
       if(p2v524ScanSession&&!window.confirm(
         'Discard the CURRENT UNSAVED attendance review and process the received AI photo? Previously SAVED attendance will not be changed.')){
         return;
@@ -6545,51 +6510,23 @@ function p2v58BindPhoneListener(){
     p2v530SetStatus=function(message,isError=false){
       let detail=String(message||'').trim();
       if(/API key|API charges|OpenAI|credits/i.test(detail))
-        detail='Processing needs administrator attention. See Settings → Attendance Processing.';
+        detail='Processing needs a configured API key. Check Settings.';
       else detail=detail.replace(/\bAI\b/g,'attendance');
       p2v537LastMessage=detail;p2v537LastError=!!isError;
       p2v537RefreshStatus();
     };
     async function p2v537RefreshAdminSettings(){
-      const node=$('p2v537PermissionState'),audit=$('p2v537PermissionAudit'),usage=$('p2v537ApiUsage');
-      try{
-        const status=await window.anandaDesktop?.attendancePermissionStatus?.();
-        if(node)node.textContent=status?.allowed?'Granted':'Not granted / Revoked';
-        if(audit)audit.textContent=status?.updatedAt
-          ?'Last changed by '+(status.administrator||'Administrator')+' on '+new Date(status.updatedAt).toLocaleString()+
-            ' · Version '+status.permissionVersion+' · Revision '+status.revision
-          :'No administrator approval recorded · Permission version 1';
-      }catch{if(node)node.textContent='Permission status unavailable'}
+      const usage=$('p2v537ApiUsage');
       try{
         const data=await window.anandaDesktop?.attendanceApiUsage?.();
         if(usage)usage.textContent=data?.ok
           ?Number(data.requests||0)+' processed requests · '+Number(data.inputTokens||0).toLocaleString()+
-          ' input tokens · '+Number(data.outputTokens||0).toLocaleString()+
-          ' output tokens · Estimated USD '+Number(data.estimatedUsd||0).toFixed(4)+
-          (data.lastAt?' · Last '+new Date(data.lastAt).toLocaleString():'')
+            ' input tokens · '+Number(data.outputTokens||0).toLocaleString()+
+            ' output tokens · Estimated USD '+Number(data.estimatedUsd||0).toFixed(4)+
+            (data.lastAt?' · Last '+new Date(data.lastAt).toLocaleString():'')
           :'Usage data unavailable';
       }catch{if(usage)usage.textContent='Usage data unavailable'}
     }
-    async function p2v537ChangePermission(allowed){
-      const name=$('p2v537AdminName').value.trim(),password=$('p2v537AdminPassword').value;
-      const msg=$('p2v537PermissionMessage');
-      if(!name||!password){msg.textContent='Administrator name and password are required.';return}
-      const button=$(allowed?'p2v537Grant':'p2v537Revoke');
-      button.disabled=true;
-      try{
-        const result=await window.anandaDesktop?.setAttendancePermission?.({administrator:name,password,allowed});
-        msg.textContent=result?.ok
-          ?'Permission '+(allowed?'granted':'revoked')+'. Saved on this computer.'
-          :result?.error||'Unable to update permission.';
-        msg.style.color=result?.ok?'#164f83':'#a22828';
-      }catch(err){msg.textContent=String(err?.message||err)}
-      finally{
-        $('p2v537AdminPassword').value='';button.disabled=false;
-        await p2v537RefreshAdminSettings();
-      }
-    }
-    $('p2v537Grant')?.addEventListener('click',()=>p2v537ChangePermission(true));
-    $('p2v537Revoke')?.addEventListener('click',()=>p2v537ChangePermission(false));
     document.querySelector('[data-page="settings"]')?.addEventListener('click',p2v537RefreshAdminSettings);
     p2v537RefreshAdminSettings();
     const style=document.createElement('style');style.id='p2v537AttendancePolish';
