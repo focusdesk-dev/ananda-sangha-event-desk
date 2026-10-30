@@ -29,6 +29,7 @@ const assert=require('assert'),fs=require('fs'),vm=require('vm'),path=require('p
   const routes=[];
   let response={ok:true,json:async()=>({output:[{type:'message',content:[{type:'output_text',text:JSON.stringify({present_rows:[1,4,9],uncertain_rows:[7]})}]}]})};
   const ctx={ipcMain:{handle:(name,fn)=>handlers.set(name,fn)},safeStorage,fs:vfs,path,SYSTEM_ROOT:'/test/system',Buffer,URLSearchParams,
+    anandaAttendancePermission:()=>({allowed:true}),anandaRecordApiUsage:()=>{},
     AbortSignal,fetch:async(url,opts)=>{routes.push({url,opts});return response;}};
   const a=main.indexOf('const AI_CREDENTIAL_PATH'),b=main.indexOf('app.whenReady().then',a);
   assert(a>=0&&b>a,'Could not isolate AI desktop handlers');
