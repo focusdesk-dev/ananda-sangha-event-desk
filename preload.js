@@ -253,6 +253,7 @@ contextBridge.exposeInMainWorld('anandaDesktop', {
   freeAiPreflight: () => ipcRenderer.invoke('ananda-ai-free-preflight'),
   testAiConnection: () => ipcRenderer.invoke('ananda-ai-test-connection'),
   analyzeAiAttendance: payload => ipcRenderer.invoke('ananda-ai-analyze-attendance', payload),
+  resolveAiSheetLink: url => ipcRenderer.invoke('ananda-ai-resolve-sheet-link', url),
 
   printHtml: (html) => ipcRenderer.invoke('ananda-native-print-html', { html }),
   openDataFolder: () => ipcRenderer.invoke('ananda-open-data-folder'),
