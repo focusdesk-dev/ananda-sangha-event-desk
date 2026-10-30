@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.41 Setup
+name: Build Ananda Event Desk beta 5.42 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-41-two-page-roster-validation]
+    branches: [beta-5-42-single-confirm-full-class]
 jobs:
   windows-installer:
     runs-on: windows-latest
@@ -46,6 +46,7 @@ jobs:
       - run: npm run test:ai-recovery
       - run: npm run test:ai-performance
       - run: npm run test:unified
+      - run: npm run test:absent-button
       - run: npm run test:attendance-permission
       - run: npm run test:attendance-ui
       - run: npm run test:batch-count
@@ -76,6 +77,6 @@ jobs:
           }
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.41-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.42-Setup
           path: dist/*.exe
           if-no-files-found: error
