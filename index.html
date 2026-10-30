@@ -5600,9 +5600,9 @@ function p2v58BindPhoneListener(){
         p2v58LockSelectors(false);
         p2v58RenderRoster();
         const uncertainText=[...uncertain].sort((a,b)=>a-b).join(', ');
-        const review='AI detected '+present.size+' marked rows on Sheet '+data.sheet+'. '+(uncertain.size?'Needs manual review: row(s) '+uncertainText+'. ':'')+
-          'All other students remain Unmarked. Review every mark, then use MARK REMAINING ABSENT, followed by confirmation.';
-        p2v511ShowReview(present.size,Number(data.sheet||1),Number(data.totalSheets||1),review);
+        const review='AI recognised '+present.size+' marked students from the latest photo. '+(uncertain.size?'Check unclear row(s): '+uncertainText+'. ':'')+
+          'The complete class list remains editable. '+p2v536ScannedSheets.size+' of '+p2v536ExpectedPages+' printed pages received.';
+        $('p2v511Review')?.classList.add('hidden');
         p2v530SetStatus(review);
         $('p2v58Roster')?.scrollIntoView({behavior:'smooth',block:'start'});
       }catch(err){p2v530SetStatus(err?.message||'AI analysis failed. Existing attendance was not changed.',true);}
@@ -5786,6 +5786,13 @@ function p2v58BindPhoneListener(){
         p2v530SetStatus('Phone photo received. Checking the QR batch, date and Sheet ID; AI analysis starts automatically...');
         await p2v530Analyse(); // Auto-start after the phone volunteer clicked USE PHOTO.
       }catch(err){p2v530SetStatus('Phone photo could not be processed: '+String(err?.message||err),true);}
+      finally{
+        if(p2v531PendingPhone&&!p2v530AiBusy){
+          const next=p2v531PendingPhone;p2v531PendingPhone=null;
+          p2v535RefreshQueuedPhoto();
+          setTimeout(()=>p2v531HandlePhone(next),100);
+        }
+      }
     }
     $('p2v535RetryQueued')?.addEventListener('click',()=>{
       if(!p2v531PendingPhone||p2v530AiBusy)return;
@@ -5862,6 +5869,167 @@ function p2v58BindPhoneListener(){
     },e.target));
     document.querySelector('[data-page="settings"]')?.addEventListener('click',()=>{p2v532RefreshKeyStatus();});
     p2v532RefreshKeyStatus();
+
+
+    // BETA536: One class-wide attendance list. Paper sheet divisions are print-only.
+    let p2v536SessionKey='',p2v536Draft={},p2v536ScannedSheets=new Set();
+    let p2v536ExpectedPages=0,p2v536PrintRunId='',p2v536Confirmed=false;
+
+    function p2v536EnsureSession(){
+      const b=p2v58CurrentBatch();
+      const key=String(b?.id||'')+'|'+String(p2v58Date||'');
+      if(p2v536SessionKey===key)return;
+      p2v536SessionKey=key;p2v536Draft={};
+      for(const r of p2v518CurrentRowsBase()){
+        p2v536Draft[r.en.id]=p2v58AttendanceValue(r.en,p2v58Date);
+      }
+      p2v536ScannedSheets=new Set();p2v536ExpectedPages=0;
+      p2v536PrintRunId='';p2v536Confirmed=false;
+    }
+    function p2v536OnPrint(total,runId){
+      p2v536EnsureSession();
+      if(p2v536ScannedSheets.size){
+        p2v530SetStatus('New attendance pages were printed. Do not mix their QR codes with an earlier unfinished scan; review or confirm the current class first.',true);
+        return;
+      }
+      p2v536ExpectedPages=Number(total||0);
+      p2v536PrintRunId=String(runId||'');
+    }
+    function p2v536KeepUnifiedPanel(){
+      // Never discard earlier AI results when another photo arrives.
+      p2v531Active=false;
+      $('p2v530Panel')?.classList.remove('hidden');
+      $('p2v58UploadPanel')?.classList.add('hidden');
+      p2v531MoveReview();
+    }
+    function p2v536MergeAiSheet(data,rows,numbers,present){
+      p2v536EnsureSession();
+      const runId=String(data.printRunId||'');
+      if(p2v536ScannedSheets.size&&p2v536PrintRunId&&runId&&p2v536PrintRunId!==runId){
+        throw Error('This photograph belongs to a different printing session. Keep the same set of printed QR pages.');
+      }
+      if(!p2v536ScannedSheets.size&&runId)p2v536PrintRunId=runId;
+      p2v536ExpectedPages=Math.max(p2v536ExpectedPages,Number(data.totalSheets||1));
+      // Replace only the photographed students. Other scanned pages and manual
+      // corrections are preserved in the class-wide draft.
+      rows.forEach((r,i)=>{p2v536Draft[r.en.id]=present.has(numbers[i])?true:null});
+      p2v536ScannedSheets.add(Number(data.sheet));
+      p2v536Confirmed=false;
+      p2v58Draft=p2v536Draft;
+    }
+    function p2v536RenderFullRoster(){
+      const host=$('p2v58Roster');if(!host)return;
+      p2v536EnsureSession();
+      p2v58Draft=p2v536Draft;
+      // A scan can still hold a specific snapshot internally for validation.
+      // It must never restrict the visible class list.
+      const rows=p2v518CurrentRowsBase();
+      const half=Math.ceil(rows.length/2),left=rows.slice(0,half),right=rows.slice(half);
+      const makeRow=(r,i)=>{
+        const v=p2v536Draft[r.en.id],cls=v===true?' present':v===false?' absent':' pending';
+        return '<label class="p2v58-row'+cls+'" data-search="'+esc(((r.p.name||'')+' '+(r.p.mobile||'')).toLowerCase())+'">'+
+          '<span class="p2v58-no">'+String(i+1).padStart(2,'0')+'</span>'+
+          '<span class="p2v58-name">'+esc(r.p.name||'Unnamed')+'</span>'+
+          '<input class="p2v58-check" type="checkbox" data-en="'+esc(String(r.en.id))+'" '+(v===true?'checked':'')+'>'+
+          '<span class="p2v58-box"></span></label>';
+      };
+      host.innerHTML=rows.length
+        ?'<div class="p2v58-namebar">ALL STUDENTS · '+rows.length+'</div>'+
+          '<div class="p2v58-two"><div>'+left.map((r,i)=>makeRow(r,i)).join('')+'</div>'+
+          '<div>'+right.map((r,i)=>makeRow(r,i+half)).join('')+'</div></div>'
+        :'<div class="p2-empty">No students are enrolled in this batch.</div>';
+      host.querySelectorAll('.p2v58-check').forEach(input=>input.onchange=()=>{
+        p2v536Draft[input.dataset.en]=input.checked?true:null;
+        p2v536Confirmed=false;
+        p2v536RenderFullRoster();
+      });
+      $('p2v529FullClassOverview')?.remove();
+      $('p2v528ModeNotice')?.remove();
+      $('p2v511Review')?.classList.add('hidden');
+      p2v58ApplySearch();
+      const present=rows.filter(r=>p2v536Draft[r.en.id]===true).length;
+      const absent=rows.filter(r=>p2v536Draft[r.en.id]===false).length;
+      const x=$('p2v58Totals');
+      if(x)x.innerHTML='<span>Total: <b>'+rows.length+'</b></span><span class="green">Present: <b>'+present+
+        '</b></span><span class="red">Absent: <b>'+absent+'</b></span><span class="pending">Unmarked: <b>'+
+        (rows.length-present-absent)+'</b></span>';
+      const info=$('p2v536Progress');
+      if(info)info.textContent=p2v536ScannedSheets.size
+        ?'AI photos received: '+p2v536ScannedSheets.size+' of '+p2v536ExpectedPages+
+           '. Correct any marks directly below. Unscanned students remain Unmarked.'
+        :'Tick students below directly, or print QR sheets and use the phone camera for AI recognition.';
+      for(const id of ['p2v58Confirm','p2v58All']){
+        const btn=$(id);if(btn)btn.disabled=false;
+      }
+    }
+    p2v58RenderRoster=p2v536RenderFullRoster;
+    function p2v536MarkRemainingAbsent(){
+      p2v536EnsureSession();
+      if(p2v536ScannedSheets.size&&p2v536ScannedSheets.size<p2v536ExpectedPages){
+        toast('More printed pages are outstanding. Scan all pages before marking remaining students absent.');return;
+      }
+      const rows=p2v518CurrentRowsBase();
+      rows.forEach(r=>{if(p2v536Draft[r.en.id]!==true&&p2v536Draft[r.en.id]!==false)p2v536Draft[r.en.id]=false});
+      p2v536RenderFullRoster();
+    }
+    function p2v536ConfirmAttendance(){
+      p2v536EnsureSession();
+      const b=p2v58CurrentBatch();if(!b||!p2v58Date){toast('Choose a batch and class date.');return}
+      const rows=p2v518CurrentRowsBase();
+      const pending=rows.filter(r=>p2v536Draft[r.en.id]!==true&&p2v536Draft[r.en.id]!==false);
+      if(pending.length){toast('Review every student or click MARK REMAINING ABSENT before confirming. '+pending.length+' students are Unmarked.');return}
+      if(p2v536ScannedSheets.size&&p2v536ScannedSheets.size<p2v536ExpectedPages){
+        toast('Some printed sheets are still outstanding. Attendance was not changed.');return;
+      }
+      if(!window.confirm('Confirm attendance for all '+rows.length+' students? This will save the entire class for the selected date.'))return;
+      rows.forEach(r=>{r.en.attendance=r.en.attendance||{};r.en.attendance[p2v58Date]=p2v536Draft[r.en.id]===true});
+      save();p2v536Confirmed=true;
+      p2v530SetStatus('Class attendance confirmed and saved for all '+rows.length+' students.');
+      toast('Complete class attendance saved.');
+      p2v536RenderFullRoster();
+    }
+
+    // Simplify visible UI without breaking QR photo receipt or settings.
+    const p2v536Style=document.createElement('style');
+    p2v536Style.id='p2v536Style';
+    p2v536Style.textContent=
+      '#classAttendanceHub .p2v58-title-row{display:flex!important;align-items:center;justify-content:space-between}'+
+      '#classAttendanceHub .p2v58-title-row p,#classAttendanceHub .p2v58-actions,'+
+      '#classAttendanceHub #p2v58UploadPanel,#classAttendanceHub #p2v58QrDetected,'+
+      '#classAttendanceHub #p2v529FullClassOverview,#classAttendanceHub #p2v528ModeNotice,'+
+      '#classAttendanceHub #p2v511Review,#classAttendanceHub #p2v531ReviewInside,'+
+      '#classAttendanceHub #p2v58Save{display:none!important}'+
+      '#classAttendanceHub #p2v530Panel{display:block!important;padding:12px 14px;margin:12px 0}'+
+      '#classAttendanceHub #p2v531Print{min-height:44px}'+
+      '#classAttendanceHub .p2v58-list-head{border-top:1px solid #e6edf3}'+
+      '#classAttendanceHub .p2v58-row{cursor:pointer}';
+    document.head.appendChild(p2v536Style);
+    const aiPanel=$('p2v530Panel');
+    if(aiPanel){
+      aiPanel.querySelectorAll('details').forEach(el=>el.remove());
+      aiPanel.querySelector('h3')?.remove();
+      aiPanel.querySelector('p')?.remove();
+      const steps=aiPanel.querySelector('.p2v531-step')?.parentElement;
+      steps?.remove();
+      $('p2v531Print').textContent='PRINT ATTENDANCE SHEETS';
+      $('p2v530Status').textContent='Print attendance sheets, scan each sheet QR with your phone and review the complete class list.';
+      const progress=document.createElement('div');progress.id='p2v536Progress';
+      progress.style.cssText='font-size:12px;color:#345c82;padding:8px 0';
+      $('p2v530Status').insertAdjacentElement('beforebegin',progress);
+    }
+    $('p2v58All').onclick=p2v536MarkRemainingAbsent;
+    $('p2v58Confirm').onclick=p2v536ConfirmAttendance;
+    const p2v536OriginalSwitch=switchPage;
+    switchPage=function(id){
+      const result=p2v536OriginalSwitch.apply(this,arguments);
+      if(id==='classAttendanceHub'){
+        p2v536KeepUnifiedPanel();
+        p2v536RenderFullRoster();
+      }
+      return result;
+    };
+    p2v536KeepUnifiedPanel();
+    p2v536RenderFullRoster();
 
     updateBackButton();
   resetQuickCounter(true);
