@@ -329,8 +329,27 @@ function anandaMobilePage(meta,encoded){
   </style></head><body><div class="halo"></div><div class="mountains"></div><main class="wrap"><div class="brand"><div class="logo"><img src="${logoData}" alt="Ananda Sangha"></div><h1>ANANDA SANGHA</h1></div><section id="pick" class="card"><h2>${aiMode?"AI Attendance Sheet":"Attendance Sheet"}</h2><div class="details"><b>${course}${course&&batch?' · ':''}${batch}</b><span>${date}${meta?.sheet?' · Sheet '+safe(meta.sheet)+' of '+safe(meta.total||1):''}</span></div><p style="font-size:13px;text-align:center;color:#37618b">${aiMode?'AI analysis will start automatically on the laptop after upload. A volunteer must review the marks before saving.':'Take a clear full-page photo of the marked attendance sheet.'}</p><button id="take" class="btn primary">TAKE PHOTO</button><div class="or">or</div><button id="choose" class="btn">CHOOSE FROM PHOTOS</button><input id="camera" class="hidden" type="file" accept="image/*" capture="environment"><input id="gallery" class="hidden" type="file" accept="image/*"></section><section id="preview" class="card preview hidden"><h2>Preview Photo</h2><img id="photo"><label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.4;margin-top:12px"><input type="checkbox" id="aiConsent" style="width:20px;height:20px;flex:none"><span>I have permission to send this attendance photo to the NGO computer${aiMode?' and OpenAI for AI analysis':''}. A volunteer will verify the result.</span></label><div class="row"><button id="retake" class="btn">RETAKE</button><button id="use" class="btn primary">USE PHOTO</button></div></section><section id="uploading" class="card status hidden"><div class="spinner"></div><h2>Uploading Attendance Sheet…</h2><div class="bar"></div><small class="note">Keep this phone and the laptop on the same Wi-Fi or hotspot.</small></section><section id="done" class="card status hidden"><div class="check">✓</div><h2>Photo Received</h2><p>${aiMode?'AI analysis has been requested on the NGO computer. The volunteer will check and save attendance.':'The photo has been received for review on the NGO computer.'}</p><div class="details" style="display:${has?'block':'none'}"><b>${course}${course&&batch?' · ':''}${batch}</b><span>${date}</span></div><button id="another" class="btn primary">UPLOAD ANOTHER SHEET</button><button id="close" class="btn">CLOSE</button></section></main><script>
   const a=${JSON.stringify(encoded||'')};let selected=null;const $=id=>document.getElementById(id),show=id=>['pick','preview','uploading','done'].forEach(x=>$(x).classList.toggle('hidden',x!==id));
   $('take').onclick=()=>$('camera').click();$('choose').onclick=()=>$('gallery').click();
-  function selectedFile(f){if(!f)return;selected=f;$('photo').src=URL.createObjectURL(f);show('preview')}$('camera').onchange=e=>selectedFile(e.target.files?.[0]);$('gallery').onchange=e=>selectedFile(e.target.files?.[0]);$('retake').onclick=()=>{$('camera').value='';$('camera').click()};
-  $('use').onclick=async()=>{if(!selected)return;if(!$('aiConsent').checked){alert('Please confirm permission before uploading the photo.');return;}show('uploading');try{const fd=new FormData();fd.append('sheet',selected,selected.name||'attendance.jpg');const res=await fetch('/upload'+window.location.search,{method:'POST',body:fd});if(!res.ok)throw Error(await res.text());show('done')}catch(e){alert('Upload failed. Keep the phone and laptop on the same Wi-Fi or hotspot.');show('preview')}};
+  function selectedFile(f){if(!f)return;selected=f;$('photo').src=URL.createObjectURL(f);show('preview')}
+  // BETA535: Resize large camera photos before IPC transfer to keep desktop responsive.
+  async function anandaOptimiseUploadPhoto(f){
+    let image=null,url='';
+    try{
+      if(typeof createImageBitmap==='function')image=await createImageBitmap(f);
+      else{
+        url=URL.createObjectURL(f);
+        image=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Cannot open the photo'));img.src=url});
+      }
+      const width=image.width||image.naturalWidth,height=image.height||image.naturalHeight;
+      const ratio=Math.min(1,2200/Math.max(width,height));
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.round(width*ratio));canvas.height=Math.max(1,Math.round(height*ratio));
+      canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+      const result=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(Error('Photo compression failed')),'image/jpeg',0.85));
+      canvas.width=0;canvas.height=0;
+      return result;
+    }finally{image?.close?.();if(url)URL.revokeObjectURL(url)}
+  }$('camera').onchange=e=>selectedFile(e.target.files?.[0]);$('gallery').onchange=e=>selectedFile(e.target.files?.[0]);$('retake').onclick=()=>{$('camera').value='';$('camera').click()};
+  $('use').onclick=async()=>{if(!selected)return;if(!$('aiConsent').checked){alert('Please confirm permission before uploading the photo.');return;}show('uploading');try{const optimised=await anandaOptimiseUploadPhoto(selected);const fd=new FormData();fd.append('sheet',optimised,'attendance.jpg');const res=await fetch('/upload'+window.location.search,{method:'POST',body:fd});if(!res.ok)throw Error(await res.text());show('done')}catch(e){alert('Upload failed. Keep the phone and laptop on the same Wi-Fi or hotspot.');show('preview')}};
   $('another').onclick=()=>{selected=null;$('camera').value='';$('gallery').value='';show('pick')};$('close').onclick=()=>{try{window.open('','_self');window.close()}catch{}setTimeout(()=>{if(document.hidden)return;try{if(history.length>1){history.back();return}}catch{}try{location.replace('about:blank')}catch{}},250)};
   </script></body></html>`
 }
