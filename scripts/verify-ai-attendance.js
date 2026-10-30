@@ -13,7 +13,7 @@ assert(html.includes('const det=p2v521Detect(prep,mapped.out.length,slots);'),'O
 assert(html.includes('p2v531HandlePhone(payload)'), 'Phone auto-route must be wired');
 assert(html.includes("if(payload.mode!=='ai')"), 'Offline and AI phone uploads must be separated');
 assert(html.includes("await p2v530Analyse()"), 'AI must automatically run after phone upload');
-assert(html.includes("p2v58Draft[r.en.id]=present.has(numbers[i])?true:null"),'AI must only prepare Present/Unmarked results');
+assert(html.includes('p2v536MergeAiSheet(data,mapped.out,numbers,present)'),'AI must merge recognized marks into the complete class list');
 assert(html.includes('p2v531LastConfirmedSheetId'), 'Second page must not overwrite unsaved review');
 assert(html.includes('p2v531MoveReview'), 'AI Attendance must contain the review list');
 assert(html.includes('p2v528MarkedRemainingAbsent'), 'Absent button confirmation rule must be retained');
