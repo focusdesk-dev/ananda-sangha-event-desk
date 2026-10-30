@@ -1,6 +1,6 @@
 {
   "name": "ananda-sangha-event-desk",
-  "version": "2.0.0-beta.5.38",
+  "version": "2.0.0-beta.5.39",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -17,7 +17,8 @@
     "test:attendance-ui": "node scripts/verify-attendance-ui-state.js",
     "test:unified": "node scripts/verify-unified-attendance.js",
     "test:batch-count": "node scripts/verify-batch-class-count.js",
-    "test:enrol-shortcut": "node scripts/verify-enrol-shortcut.js"
+    "test:enrol-shortcut": "node scripts/verify-enrol-shortcut.js",
+    "test:attendance-status": "node scripts/verify-attendance-status.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4",
