@@ -6229,12 +6229,21 @@ function p2v58BindPhoneListener(){
     let p2v537ProcessedFingerprints=new Set(),p2v537RecognisedEnrollments=new Set(),p2v537LastMessage='',p2v537LastError=false;
     let p2v536ExpectedPages=0,p2v536PrintRunId='',p2v536Confirmed=false;
 
+    // v5.38: use the complete enrolled batch independently of the legacy
+    // sheet-scoped row provider. Sheet 2 must not limit absent marking.
+    function p2v538FullClassRows(){
+      const b=p2v58CurrentBatch();
+      if(!b)return[];
+      return state.classEnrollments.filter(en=>String(en.batchId)===String(b.id))
+        .map(en=>({en,p:p2v5Person(en)}))
+        .sort((a,z)=>String(a.p?.name||'').localeCompare(String(z.p?.name||''),undefined,{sensitivity:'base',numeric:true}));
+    }
     function p2v536EnsureSession(){
       const b=p2v58CurrentBatch();
       const key=String(b?.id||'')+'|'+String(p2v58Date||'');
       if(p2v536SessionKey===key)return;
       p2v536SessionKey=key;p2v536Draft={};
-      for(const r of p2v518CurrentRowsBase()){
+      for(const r of p2v538FullClassRows()){
         p2v536Draft[r.en.id]=p2v58AttendanceValue(r.en,p2v58Date);
       }
       p2v536ScannedSheets=new Set();p2v537ProcessedFingerprints=new Set();p2v537RecognisedEnrollments=new Set();p2v536ExpectedPages=0;
@@ -6282,7 +6291,7 @@ function p2v58BindPhoneListener(){
       p2v58Draft=p2v536Draft;
       // A scan can still hold a specific snapshot internally for validation.
       // It must never restrict the visible class list.
-      const rows=p2v518CurrentRowsBase();
+      const rows=p2v538FullClassRows();
       const half=Math.ceil(rows.length/2),left=rows.slice(0,half),right=rows.slice(half);
       const makeRow=(r,i)=>{
         const v=p2v536Draft[r.en.id],cls=v===true?' present':v===false?' absent':' pending';
@@ -6325,14 +6334,14 @@ function p2v58BindPhoneListener(){
       if(p2v536ScannedSheets.size&&p2v536ScannedSheets.size<p2v536ExpectedPages){
         toast('More printed pages are outstanding. Scan all pages before marking remaining students absent.');return;
       }
-      const rows=p2v518CurrentRowsBase();
+      const rows=p2v538FullClassRows();
       rows.forEach(r=>{if(p2v536Draft[r.en.id]!==true&&p2v536Draft[r.en.id]!==false)p2v536Draft[r.en.id]=false});
       p2v536RenderFullRoster();
     }
     function p2v536ConfirmAttendance(){
       p2v536EnsureSession();
       const b=p2v58CurrentBatch();if(!b||!p2v58Date){toast('Choose a batch and class date.');return}
-      const rows=p2v518CurrentRowsBase();
+      const rows=p2v538FullClassRows();
       const pending=rows.filter(r=>p2v536Draft[r.en.id]!==true&&p2v536Draft[r.en.id]!==false);
       if(pending.length){toast('Review every student or click MARK REMAINING ABSENT before confirming. '+pending.length+' students are Unmarked.');return}
       if(p2v536ScannedSheets.size&&p2v536ScannedSheets.size<p2v536ExpectedPages){
