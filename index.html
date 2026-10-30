@@ -3789,7 +3789,7 @@
           </div>
         </details>
         <div id="p2v530Status" role="status" aria-live="polite" class="p2v537-status">Process attendance</div>
-        <button id="p2v535RetryQueued" class="btn secondary" type="button" style="display:none;margin-top:8px">RETRY RECEIVED AI PHOTO</button>
+        <button id="p2v535RetryQueued" class="btn secondary" type="button" style="display:none;margin-top:8px">Retry received photo</button>
         <details style="margin-top:12px">
           <summary style="cursor:pointer;color:#315f93;font-size:12px">Alternative: analyse a photo already on this laptop</summary>
           <div class="p2v58-upload-buttons" style="flex-wrap:wrap">
@@ -4014,12 +4014,39 @@ function p2v58BindPhoneListener(){
   };
   if($('p2ClassBatches'))$('p2ClassBatches').onclick=()=>{p2v510ClassYear='';p2RenderClasses();$('p2BatchListCard')?.scrollIntoView({behavior:'smooth'})};
 
-  function p2v510AttendanceSaved(){return p2v58CurrentRows().some(({en})=>en.attendance&&Object.prototype.hasOwnProperty.call(en.attendance,p2v58Date))}
+  // v5.39: A saved entry for ONE student does not mean that the class is saved.
+  // Only persisted true/false entries count. A fully recorded all-absent
+  // session is valid, while unmarked/null rows and unsaved edits are not.
+  function p2v510AttendanceSummary(){
+    const rows=p2v58CurrentRows(),total=rows.length;
+    let present=0,absent=0,changed=false;
+    const draftReady=total>0&&rows.every(({en})=>Object.prototype.hasOwnProperty.call(p2v58Draft,en.id));
+    rows.forEach(({en})=>{
+      const v=p2v58AttendanceValue(en,p2v58Date);
+      if(v===true)present++;else if(v===false)absent++;
+      if(draftReady&&p2v58Draft[en.id]!==v)changed=true;
+    });
+    return{total,present,absent,recorded:present+absent,changed};
+  }
+  function p2v510AttendanceSaved(){
+    const s=p2v510AttendanceSummary();
+    return s.total>0&&s.recorded===s.total;
+  }
   function p2v510AttendanceNotice(){
     let n=$('p2v510AttendanceNotice');const actions=$('p2v58Manual')?.closest('.p2v58-actions');if(!actions)return;
     if(!n){n=document.createElement('div');n.id='p2v510AttendanceNotice';n.className='p2v510-att-saved';actions.insertAdjacentElement('afterend',n)}
-    const saved=p2v510AttendanceSaved();n.classList.toggle('hidden',!saved);n.innerHTML=saved?'<b>✓ Attendance already saved</b> — editing enabled.':'';
-    if($('p2v58Confirm'))$('p2v58Confirm').textContent=saved?'UPDATE ATTENDANCE':'CONFIRM ATTENDANCE'
+    const s=p2v510AttendanceSummary(),complete=s.total>0&&s.recorded===s.total;
+    const visible=s.recorded>0||s.changed;
+    n.classList.toggle('hidden',!visible);
+    n.style.background=(!complete||s.changed)?'#fff8ec':'#edf9f1';
+    n.style.borderColor=(!complete||s.changed)?'#edd7a8':'#cbead5';
+    n.style.color=(!complete||s.changed)?'#745219':'#16723f';
+    n.innerHTML=!visible?'':s.changed
+      ?'<b>Unsaved attendance changes</b> — Confirm attendance to update the class records.'
+      :complete
+        ?'<b>✓ Attendance saved</b> — '+s.present+' present · '+s.absent+' absent. Editing enabled.'
+        :'<b>Attendance incomplete</b> — '+s.recorded+' of '+s.total+' recorded. Review and confirm all students.';
+    if($('p2v58Confirm'))$('p2v58Confirm').textContent=complete?'Update attendance':'Confirm attendance';
   }
   p2v58RenderRoster=function(){
     const host=$('p2v58Roster');if(!host)return;const rows=p2v58CurrentRows(),half=Math.ceil(rows.length/2),left=rows.slice(0,half),right=rows.slice(half);
@@ -5956,9 +5983,11 @@ function p2v58BindPhoneListener(){
         p2v58LockSelectors(false);
         p2v58RenderRoster();
         const uncertainText=[...uncertain].sort((a,b)=>a-b).join(', ');
-        const review=uncertain.size?'Review unclear marks at row(s): '+uncertainText+'. Remaining students stay unmarked.':'';
+        const zeroDetected=present.size===0&&uncertain.size===0;
+        const review=uncertain.size?'Review unclear marks at row(s): '+uncertainText+'. Remaining students stay unmarked.':
+          zeroDetected?'No attendance marks were detected. If anyone was ticked on the printed sheet, retake a clear full-page photo and retry. Do not mark students absent from this scan.':'';
         $('p2v511Review')?.classList.add('hidden');
-        p2v530SetStatus(review,!!uncertain.size);
+        p2v530SetStatus(review,!!uncertain.size||zeroDetected);
         $('p2v58Roster')?.scrollIntoView({behavior:'smooth',block:'start'});
       }catch(err){p2v530SetStatus(err?.message||'AI analysis failed. Existing attendance was not changed.',true);}
       finally{p2v530AiBusy=false;if($('p2v530Analyze'))$('p2v530Analyze').disabled=false;}
@@ -6017,7 +6046,7 @@ function p2v58BindPhoneListener(){
       button.disabled=p2v530AiBusy;
       button.textContent=p2v524ScanSession
         ?'DISCARD UNSAVED REVIEW & PROCESS RECEIVED PHOTO'
-        :'RETRY RECEIVED AI PHOTO';
+        :'Retry received photo';
     }
     function p2v535QueuePhoto(payload,message){
       p2v531PendingPhone=payload;
@@ -6103,7 +6132,15 @@ function p2v58BindPhoneListener(){
       // Consent + API key are checked before actual AI analysis, not before printing.
       p2v530SetStatus('Preparing signed AI phone QRs and opening print preview. Keep this PC on Wi-Fi or phone hotspot.');
       const result=await p2v58PrintSheet(true);
-      if(!result?.ok)p2v530SetStatus(result?.error||'QR print failed. Check Wi-Fi and class selection.',true);
+      if(!result?.ok){p2v530SetStatus(result?.error||'QR print failed. Check Wi-Fi and class selection.',true);return}
+      // Printing stays available offline. Warn BEFORE a volunteer spends time
+      // photographing a sheet that cannot currently be analysed.
+      if(!await p2v537PermissionReady()){
+        p2v530SetStatus('Sheets ready. Photo recognition is disabled until an administrator grants permission in Settings → Attendance Processing. You may print now; no photo will be analysed yet.',true);
+      }else{
+        const config=await window.anandaDesktop?.aiStatus?.().catch(()=>null);
+        if(!config?.configured)p2v530SetStatus('Sheets ready. Add the API key in Settings before submitting marked photos for recognition.',true);
+      }
     });
     async function p2v531HandlePhone(payload){
       if(!payload?.dataUrl)return;
@@ -6123,7 +6160,7 @@ function p2v58BindPhoneListener(){
       }
       // Beta 5.36: Preserve the single class-wide unsaved review between sheets.
       if(!await p2v537PermissionReady()){
-        p2v535QueuePhoto(payload,'Attendance processing is not authorised. Ask an administrator to enable it in Settings → Attendance Processing. The received photo is held locally.');
+        p2v535QueuePhoto(payload,'Photo received but not analysed. The administrator must enable Settings → Attendance Processing. Then select Retry received photo. No attendance was changed.');
         return;
       }
       const config=await window.anandaDesktop?.aiStatus?.();
@@ -6324,6 +6361,9 @@ function p2v58BindPhoneListener(){
       const info=$('p2v536Progress');
       if(info&&typeof info.remove==='function')info.remove();
       if(typeof p2v537RefreshStatus==='function')p2v537RefreshStatus();
+      // The full-class roster replaces older renderers: refresh its saved
+      // indicator every time a date, batch or checkbox changes.
+      p2v510AttendanceNotice();
       for(const id of ['p2v58Confirm','p2v58All']){
         const btn=$(id);if(btn)btn.disabled=false;
       }
@@ -6342,6 +6382,7 @@ function p2v58BindPhoneListener(){
       p2v536EnsureSession();
       const b=p2v58CurrentBatch();if(!b||!p2v58Date){toast('Choose a batch and class date.');return}
       const rows=p2v538FullClassRows();
+      if(!rows.length){toast('No students enrolled. Nothing was saved.');return}
       const pending=rows.filter(r=>p2v536Draft[r.en.id]!==true&&p2v536Draft[r.en.id]!==false);
       if(pending.length){toast('Review every student or click MARK REMAINING ABSENT before confirming. '+pending.length+' students are Unmarked.');return}
       if(p2v536ScannedSheets.size&&p2v536ScannedSheets.size<p2v536ExpectedPages){
