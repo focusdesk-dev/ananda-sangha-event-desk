@@ -78,6 +78,6 @@ assert(JSON.parse(secondEvent.attendancePayload).sheet===2,'Page 2 photo cannot 
 assert(firstPage.includes('OPEN NEXT PRINTED SHEET'),'First phone page must offer Next Sheet');
 assert(firstPage.includes(new URL(secondUrl).search),'Next button must include next sheet own signed ID and HMAC');
 assert(!secondPage.includes('OPEN NEXT PRINTED SHEET'),'Final sheet must not loop to Sheet 1');
-assert(secondPage.includes('ALL SHEETS UPLOADED'),'Last sheet must be terminal');
+assert(secondPage.includes('FINISH PHOTO UPLOAD'),'Last sheet must be terminal');
 console.log('PASS: page 1 -> signed next page 2, separate verified QR, page-2 phone upload, manual laptop decoder, reject tampered HMAC; existing phone workflow intact.');
 })().then(async()=>{await ctx.testQr.close();fs.rmSync(root,{recursive:true,force:true});},async err=>{console.error(err);await ctx.testQr.close();fs.rmSync(root,{recursive:true,force:true});process.exitCode=1;});
