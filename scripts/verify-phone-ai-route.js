@@ -2,8 +2,9 @@
 const assert=require('assert'),fs=require('fs'),path=require('path'),os=require('os'),http=require('http'),vm=require('vm');
 const src=fs.readFileSync('main.js','utf8'),start=src.indexOf('let anandaAttendanceServer=null;'),end=src.indexOf("ipcMain.handle('ananda-attendance-start-upload-server'",start);
 assert(start>=0&&end>start);
-const root=fs.mkdtempSync(path.join(os.tmpdir(),'ananda-qr-ai-')),events=[];
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'ananda-qr-ai-')),events=[],handlers={};
 const ctx={fs,path,http,Buffer,URL,URLSearchParams,require,__dirname:process.cwd(),SYSTEM_ROOT:root,
+ ipcMain:{handle:(name,fn)=>{handlers[name]=fn}},
  mainWindow:{isDestroyed:()=>false,webContents:{send:(topic,data)=>events.push({topic,data})}},
  os:{networkInterfaces:()=>({mock:[{family:'IPv4',internal:false,address:'192.168.10.20'}]})},anandaReadAiKey:()=> 'sk-mock-test'};
 const exported="\nglobalThis.testQr={ensure:anandaEnsureAttendanceServer,token:anandaAiQrToken,meta:anandaAttendanceSheetMeta,registerShort:anandaRegisterShortQr,resolveShort:anandaResolveShortQr,close:()=>new Promise(resolve=>{if(anandaAttendanceServer)anandaAttendanceServer.close(resolve);else resolve()})};";
@@ -60,9 +61,23 @@ const firstUrl=base+'/?'+new URLSearchParams({x:'PRINT37-1',k:ctx.testQr.token('
 const secondUrl=base+'/?'+new URLSearchParams({x:'PRINT37-2',k:ctx.testQr.token('PRINT37-2',verify).slice(0,32)});
 const firstPage=await (await fetch(firstUrl)).text();
 const secondPage=await (await fetch(secondUrl)).text();
+const resolver=handlers['ananda-ai-resolve-sheet-link'];
+assert(resolver,'Manual laptop QR resolver must be registered');
+const recovered=await resolver(null,secondUrl);
+assert(recovered.ok&&recovered.sheet===2&&recovered.totalSheets===2,'Signed page 2 URL must resolve to page 2, not page 1');
+assert(JSON.parse(recovered.payload).sheet===2,'Manual photo decoder must recover exact page 2 payload');
+const corrupt=await resolver(null,secondUrl.replace(/k=[a-f0-9]+/i,'k='+('0'.repeat(32))));
+assert(!corrupt.ok,'A tampered page 2 QR must never be trusted');
+const secondUpload=new FormData();
+secondUpload.append('sheet',new Blob([Buffer.from([0xff,0xd8,0xff,0xe0,1,2,3])],{type:'image/jpeg'}),'page2.jpg');
+const secondPost=await fetch(secondUrl.replace('/?','/upload?'),{method:'POST',body:secondUpload});
+assert.strictEqual(secondPost.status,200,'Second QR upload must be accepted');
+const secondEvent=events.filter(e=>e.topic==='ananda-attendance-phone-upload').at(-1).data;
+assert(secondEvent.sheet===2&&secondEvent.sheetId==='PRINT37-2','Page 2 must arrive on desktop with its own Sheet ID');
+assert(JSON.parse(secondEvent.attendancePayload).sheet===2,'Page 2 photo cannot inherit page 1 metadata');
 assert(firstPage.includes('OPEN NEXT PRINTED SHEET'),'First phone page must offer Next Sheet');
 assert(firstPage.includes(new URL(secondUrl).search),'Next button must include next sheet own signed ID and HMAC');
 assert(!secondPage.includes('OPEN NEXT PRINTED SHEET'),'Final sheet must not loop to Sheet 1');
 assert(secondPage.includes('ALL SHEETS UPLOADED'),'Last sheet must be terminal');
-console.log('PASS: long and compact signed QR -> phone camera page -> upload -> exact student sheet; 32-char signature, persisted registration, invalid GET/POST rejected.');
+console.log('PASS: page 1 -> signed next page 2, separate verified QR, page-2 phone upload, manual laptop decoder, reject tampered HMAC; existing phone workflow intact.');
 })().then(async()=>{await ctx.testQr.close();fs.rmSync(root,{recursive:true,force:true});},async err=>{console.error(err);await ctx.testQr.close();fs.rmSync(root,{recursive:true,force:true});process.exitCode=1;});
