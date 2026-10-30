@@ -38,7 +38,7 @@ const first=new Blob([Buffer.from('same uploaded photograph')]),second=new Blob(
  assert.strictEqual(a,b);assert.notStrictEqual(a,c);
  const proc=html.indexOf('async function p2v530Analyse()');
  const dupe=html.indexOf('p2v537ProcessedFingerprints.has(seenKey)',proc);
- const external=html.indexOf('api.analyzeAiAttendance({imageDataUrl:img,printedNumbers:numbers})',proc);
+ const external=html.indexOf('api.analyzeAiAttendance({imageDataUrl:img,printedNumbers:numbers,sheetNumber:Number(data.sheet),totalSheets:Number(data.totalSheets)})',proc);
  const commit=html.indexOf('p2v537ProcessedFingerprints.add(seenKey)',proc);
  assert(proc>0&&dupe>proc&&external>dupe&&commit>external,'Dedup should happen before API call, register only after success');
  assert(html.includes("p2v536Draft[r.en.id]=recognised?true:null"),'Unrecognised mark remains unmarked');
