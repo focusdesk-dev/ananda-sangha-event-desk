@@ -5,7 +5,7 @@ const fs=require('fs'),assert=require('assert'),vm=require('vm');
   assert(main.includes("const optimised=await anandaOptimiseUploadPhoto(selected)"),'Phone must resize before upload');
   assert(main.includes("fd.append('sheet',optimised,'attendance.jpg')"),'Phone must send JPEG');
   const start=main.indexOf('  async function anandaOptimiseUploadPhoto(f){');
-  const end=main.indexOf("  $('take').onclick",start);
+  const end=main.indexOf("  $('camera').onchange",start);
   assert(start>0&&end>start,'Mobile compression helper missing');
   const phoneSize=[];let released=0;
   const canvas=()=>({width:0,height:0,getContext:()=>({drawImage:(img,x,y,w,h)=>phoneSize.push([w,h])}),
