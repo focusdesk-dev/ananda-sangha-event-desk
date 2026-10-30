@@ -3320,6 +3320,26 @@
   };
 
 
+
+  // Show the numbered plan on the existing batch Schedule card; dates are
+  // edited in Edit Batch, while the existing class-date controls stay intact.
+  const p2v537ScheduleBase=p2v5RenderSchedule;
+  p2v5RenderSchedule=function(b){
+    p2v537ScheduleBase(b);
+    const card=$('p2v5ScheduleCard');
+    if(!card||!b||!Array.isArray(b.plannedSessions))return;
+    const rows=b.plannedSessions.slice().sort((a,z)=>Number(a.number)-Number(z.number));
+    const scheduled=rows.filter(r=>p2v537IsDate(r.date)).length;
+    const el=document.createElement('div');el.id='p2v537PlanSummary';
+    el.style.cssText='font-size:12px;margin:10px 0;padding:10px 12px;border:1px solid #dce6ee;border-radius:8px;background:#f8fbfe';
+    el.innerHTML='<strong>PLANNED CLASSES: '+rows.length+'</strong> · '+scheduled+' dated, '+(rows.length-scheduled)+
+      ' awaiting a date<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;max-height:110px;overflow:auto">'+
+      rows.map((r,i)=>'<span style="padding:5px 7px;border:1px solid #dce6ee;border-radius:5px;background:#fff">'+
+        'Class '+(i+1)+' · '+(r.date?esc(r.date):'Date pending')+'</span>').join('')+'</div>';
+    const anchor=card.querySelector('.p2v56-months');
+    if(anchor)anchor.insertAdjacentElement('beforebegin',el);else card.appendChild(el);
+  };
+
   // CORRECTION 1 — Keep the existing Class Dates workspace compatible with
   // numbered sessions. Removing a date must NEVER erase attendance.
   const p2v537EditDateBase=p2v5Fix2EditClassDate;
