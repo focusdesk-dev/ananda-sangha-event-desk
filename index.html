@@ -5936,6 +5936,25 @@ function p2v58BindPhoneListener(){
       canvas.width=0;canvas.height=0;
       return{raw,imageDataUrl};
     }
+    // v5.40: Manual uploads see the compact ?x=SheetID&k=signature
+    // printed on each AI page. Resolve that signed link through Electron,
+    // not by guessing page 1 or relying on embedded JSON that is not there.
+    async function p2v540ResolveQr(raw){
+      const value=String(raw||'').trim();
+      if(!value)return null;
+      const direct=p2v58ParsePayload(value);
+      if(direct)return direct;
+      try{
+        const url=new URL(value);
+        if(!url.searchParams.has('x')||!url.searchParams.has('k'))return null;
+        const resolved=await window.anandaDesktop?.resolveAiSheetLink?.(value);
+        if(!resolved?.ok)throw Error(resolved?.error||'The signed Sheet ID could not be verified.');
+        return p2v58ParsePayload(resolved.payload);
+      }catch(error){
+        if(error?.message&&/signature|Sheet ID|QR|invalid/i.test(error.message))throw error;
+        return null;
+      }
+    }
     async function p2v530Analyse(){
       if(p2v530AiBusy)return;
       const api=window.anandaDesktop;
@@ -5946,15 +5965,24 @@ function p2v58BindPhoneListener(){
       try{
         p2v530SetStatus('Checking printed Sheet ID and the exact student list...');
         await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
-        const prep=await p2v535PrepareAiImage(p2v530PhotoBlob,!p2v530PhotoPayload);
+        const prep=await p2v535PrepareAiImage(p2v530PhotoBlob,true);
         const raw=p2v530PhotoPayload||prep.raw||'';
-        const data=p2v58ParsePayload(raw);
+        const data=await p2v540ResolveQr(raw);
         if(!data||Number(data.v)!==5||data.layout!==P2V521_LAYOUT||!data.sheetId)
-          throw Error('This photo does not contain a recognised current printed-sheet QR. Retake the full sheet with the QR visible.');
+          throw Error('Cannot identify the printed page. For manual photo upload, include the QR in the photo. Alternatively scan that sheet QR with your phone.');
+        if(p2v530PhotoPayload&&prep.raw){
+          // A signed phone QR identifies the expected page. When the photo also
+          // reveals a QR, verify both IDs agree; never attribute page 1 ticks
+          // to page 2 rows 31-37.
+          const seen=await p2v540ResolveQr(prep.raw);
+          if(seen&&String(seen.sheetId)!==String(data.sheetId))
+            throw Error('Wrong printed page photographed: the photo QR does not match Sheet '+data.sheet+'. No attendance was changed.');
+        }
         const b=state.classBatches.find(x=>String(x.id)===String(data.batchId));
         const snap=state.attendanceSheetSnapshots?.[String(data.sheetId)];
-        if(!b||!snap||snap.layout!==P2V521_LAYOUT||String(snap.batchId)!==String(data.batchId)||String(snap.date)!==String(data.date))
-          throw Error('The original printed-sheet roster cannot be found. AI did not guess students or change records.');
+        if(!b||!snap||snap.layout!==P2V521_LAYOUT||String(snap.batchId)!==String(data.batchId)||String(snap.date)!==String(data.date)
+          ||Number(snap.sheet)!==Number(data.sheet)||Number(snap.totalSheets)!==Number(data.totalSheets))
+          throw Error('The exact frozen roster for this printed page cannot be verified. No attendance was changed.');
         const mapped=p2v518RowsForSnapshot(snap);
         if(mapped.missing.length||!mapped.out.length||mapped.out.length>30)
           throw Error('One or more printed students cannot be matched to their saved enrolment. No attendance was changed.');
@@ -5968,12 +5996,15 @@ function p2v58BindPhoneListener(){
         }
         const img=prep.imageDataUrl;
         p2v530SetStatus('Processing photograph…');
-        const result=await api.analyzeAiAttendance({imageDataUrl:img,printedNumbers:numbers});
+        const result=await api.analyzeAiAttendance({imageDataUrl:img,printedNumbers:numbers,sheetNumber:Number(data.sheet),totalSheets:Number(data.totalSheets)});
         if(!result?.ok)throw Error(result?.error||'AI analysis failed');
         // Commit the review only after the sheet, roster and AI result are valid.
         const present=new Set(result.presentRows),uncertain=new Set(result.uncertainRows);
         if([...present,...uncertain].some(n=>!numbers.includes(n))||[...present].some(n=>uncertain.has(n)))
-          throw Error('AI gave inconsistent student numbers. No attendance was changed.');
+          throw Error('Recognition returned numbers outside Sheet '+data.sheet+' ('+numbers.join(', ')+'). No attendance was changed. Retake this page clearly.');
+        const zeroDetected=present.size===0&&uncertain.size===0;
+        if(zeroDetected&&!window.confirm('Sheet '+data.sheet+' of '+data.totalSheets+': no handwritten ticks were detected. If any student is ticked on the actual sheet, choose Cancel and retake a clear photo. Choose OK ONLY if you visually checked that all boxes on this sheet are blank. Attendance will still require final confirmation.'))
+          throw Error('Sheet '+data.sheet+' was not accepted: no marks detected. Retake its photo. Previously recognised pages are preserved.');
         p2v518ActiveSnapshot=snap;p2v518ActiveRows=mapped.out;
         p2v524ScanSession={snapshot:snap,rows:mapped.out,data};
         p2v524SyncSelectors(b,String(data.date));
@@ -5983,11 +6014,11 @@ function p2v58BindPhoneListener(){
         p2v58LockSelectors(false);
         p2v58RenderRoster();
         const uncertainText=[...uncertain].sort((a,b)=>a-b).join(', ');
-        const zeroDetected=present.size===0&&uncertain.size===0;
-        const review=uncertain.size?'Review unclear marks at row(s): '+uncertainText+'. Remaining students stay unmarked.':
-          zeroDetected?'No attendance marks were detected. If anyone was ticked on the printed sheet, retake a clear full-page photo and retry. Do not mark students absent from this scan.':'';
+        const review=uncertain.size?'Sheet '+data.sheet+' of '+data.totalSheets+': review unclear marks at row(s): '+uncertainText+'. Other unmarked students remain pending.':
+          zeroDetected?'Sheet '+data.sheet+' of '+data.totalSheets+' was accepted as containing no present ticks. Assign absences only after all pages are reviewed.':
+          'Sheet '+data.sheet+' of '+data.totalSheets+' processed: '+present.size+' present mark(s) recognised. '+p2v536ScannedSheets.size+' of '+p2v536ExpectedPages+' photos processed. Review the complete class before confirming.';
         $('p2v511Review')?.classList.add('hidden');
-        p2v530SetStatus(review,!!uncertain.size||zeroDetected);
+        p2v530SetStatus(review,!!uncertain.size);
         $('p2v58Roster')?.scrollIntoView({behavior:'smooth',block:'start'});
       }catch(err){p2v530SetStatus(err?.message||'AI analysis failed. Existing attendance was not changed.',true);}
       finally{p2v530AiBusy=false;if($('p2v530Analyze'))$('p2v530Analyze').disabled=false;}
