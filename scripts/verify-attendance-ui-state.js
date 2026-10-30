@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('assert'),fs=require('fs'),vm=require('vm'),crypto=require('crypto');
 const html=fs.readFileSync('index.html','utf8');
-const start=html.indexOf('    // Correction 3: one status surface;');
+const start=html.indexOf('    // Correction 3: one volunteer status.');
 const end=html.indexOf('    async function p2v537RefreshAdminSettings(){',start);
 assert(start>0&&end>start);
 const element={innerHTML:'',style:{}};
