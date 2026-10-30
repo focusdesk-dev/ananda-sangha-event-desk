@@ -16,8 +16,8 @@ function harness(opts={}){
    p2v524ScanSession:opts.session===undefined?{snapshot:{sheetId:'PREVIOUS-UNSAVED'}}:opts.session,
    p2v531LastConfirmedSheetId:'',p2v531Active:true,p2v528AwaitingPhoto:false,
    p2v528MarkedRemainingAbsent:false,p2v58Draft:{},
-   consent:opts.consent!==false,window:{confirm:()=>true,anandaDesktop:{aiStatus:async()=>({configured:true})}},
-   $:id=>ui[id]||null,p2v537PermissionReady:async()=>c.consent,
+   configured:opts.configured!==false,window:{confirm:()=>true,anandaDesktop:{aiStatus:async()=>({configured:c.configured})}},
+   $:id=>ui[id]||null,
    p2v530SetStatus:s=>statuses.push(String(s)),p2v530OldPhoneHandler:async()=>{legacy++},
    p2v531MoveReview:()=>{},switchPage:()=>{},p2v536KeepUnifiedPanel:()=>{shown++},
    p2v524ClearSession:()=>{c.p2v524ScanSession=null},p2v530SetPhoto:()=>{},
@@ -38,13 +38,13 @@ function harness(opts={}){
  assert.strictEqual(b.analysed(),0);
  assert.strictEqual(b.legacy(),0,'Ordinary QR must never start AI in unified flow');
  assert(b.statuses.some(x=>/standard QR/.test(x)));
- const c=harness({consent:false,session:null});await c.c.fire(photo);
+ const c=harness({configured:false,session:null});await c.c.fire(photo);
  assert.strictEqual(c.analysed(),0);assert(c.c.getPending());
- c.c.consent=true;c.ui.p2v535RetryQueued.click();
+ c.c.configured=true;c.ui.p2v535RetryQueued.click();
  await new Promise(resolve=>setTimeout(resolve,10));
- assert.strictEqual(c.analysed(),1,'Queued photo can be retried after consent');
+ assert.strictEqual(c.analysed(),1,'Queued photo can be retried after configuring API key');
  const d=harness({busy:true,session:null});
  await d.c.fire(photo);
  assert.strictEqual(d.analysed(),0);assert(d.c.getPending());
- console.log('PASS: previous unsaved sheet does not block next sheet; non-AI QR isolation; consent retry; busy queue');
+ console.log('PASS: previous unsaved sheet does not block next sheet; non-AI QR isolation; API-key retry; busy queue');
 })().catch(e=>{console.error(e);process.exitCode=1});
