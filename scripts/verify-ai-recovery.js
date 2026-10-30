@@ -17,7 +17,7 @@ function harness(opts={}){
    p2v531LastConfirmedSheetId:'',p2v531Active:true,p2v528AwaitingPhoto:false,
    p2v528MarkedRemainingAbsent:false,p2v58Draft:{},
    consent:opts.consent!==false,window:{confirm:()=>true,anandaDesktop:{aiStatus:async()=>({configured:true})}},
-   $:id=>ui[id]||null,p2v531Consent:()=>c.consent,
+   $:id=>ui[id]||null,p2v537PermissionReady:async()=>c.consent,
    p2v530SetStatus:s=>statuses.push(String(s)),p2v530OldPhoneHandler:async()=>{legacy++},
    p2v531MoveReview:()=>{},switchPage:()=>{},p2v536KeepUnifiedPanel:()=>{shown++},
    p2v524ClearSession:()=>{c.p2v524ScanSession=null},p2v530SetPhoto:()=>{},
