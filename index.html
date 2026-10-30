@@ -3778,7 +3778,6 @@
         </div>
         <div class="p2v58-upload-buttons" style="flex-wrap:wrap;align-items:center">
           <button id="p2v531Print" class="btn" type="button">PRINT AI ATTENDANCE SHEETS</button>
-          <button id="p2v541ViewSaved" class="btn secondary" type="button">View saved attendance</button>
           <span style="font-size:12px;color:#43698c">Print 30 students on page 1, then remaining students in balanced columns on subsequent pages.</span>
         </div>
         <details id="p2v530Settings">
@@ -6317,11 +6316,17 @@ function p2v58BindPhoneListener(){
       const key=String(b?.id||'')+'|'+String(p2v58Date||'');
       if(p2v536SessionKey===key)return;
       p2v536SessionKey=key;p2v536Draft={};
-      // Never treat historical Present/Absent as new photo-recognised marks.
-      for(const r of p2v538FullClassRows())p2v536Draft[r.en.id]=null;
-      p2v541SavedReview=false;
+      const rows=p2v538FullClassRows();
+      // Completed, confirmed attendance may be edited directly from this screen.
+      // Incomplete/partial legacy records never masquerade as a saved class.
+      const confirmed=rows.length>0&&rows.every(r=>{
+        const value=p2v58AttendanceValue(r.en,p2v58Date);
+        return value===true||value===false;
+      });
+      for(const r of rows)p2v536Draft[r.en.id]=confirmed?p2v58AttendanceValue(r.en,p2v58Date):null;
+      p2v541SavedReview=confirmed;
       p2v536ScannedSheets=new Set();p2v537ProcessedFingerprints=new Set();p2v537RecognisedEnrollments=new Set();p2v536ExpectedPages=0;
-      p2v536PrintRunId='';p2v536Confirmed=false;p2v541MixedPrintRuns=false;
+      p2v536PrintRunId='';p2v536Confirmed=confirmed;p2v541MixedPrintRuns=false;
     }
     function p2v536OnPrint(total,runId){
       p2v536EnsureSession();
@@ -6422,12 +6427,25 @@ function p2v58BindPhoneListener(){
     p2v58RenderRoster=p2v536RenderFullRoster;
     function p2v536MarkRemainingAbsent(){
       p2v536EnsureSession();
-      if(p2v536ScannedSheets.size&&p2v536ScannedSheets.size<p2v536ExpectedPages){
-        toast('More printed pages are outstanding. Scan all pages before marking remaining students absent.');return;
-      }
+      // The active scan may hold only the last printed sheet. Use the whole
+      // batch, NEVER p2v58CurrentRows()/p2v518ActiveRows (sheet-scoped).
       const rows=p2v538FullClassRows();
-      rows.forEach(r=>{if(p2v536Draft[r.en.id]!==true&&p2v536Draft[r.en.id]!==false)p2v536Draft[r.en.id]=false});
+      if(!rows.length){toast('No students in this class.');return}
+      if(p2v536ExpectedPages>0&&p2v536ScannedSheets.size<p2v536ExpectedPages){
+        toast('Scan every printed page before marking remaining students absent. '+p2v536ScannedSheets.size+' of '+p2v536ExpectedPages+' processed.');return;
+      }
+      let marked=0;
+      rows.forEach(({en})=>{
+        if(p2v536Draft[en.id]!==true&&p2v536Draft[en.id]!==false){
+          p2v536Draft[en.id]=false;marked++;
+        }
+      });
+      p2v536Confirmed=false;
+      p2v58Draft=p2v536Draft;
       p2v536RenderFullRoster();
+      const pending=rows.filter(({en})=>p2v536Draft[en.id]!==true&&p2v536Draft[en.id]!==false).length;
+      if(pending)throw Error('Attendance review is incomplete: '+pending+' students still unmarked.');
+      toast(marked+' remaining student'+(marked===1?'':'s')+' marked absent across all '+rows.length+' class students. Review and confirm to save.');
     }
     function p2v536ConfirmAttendance(){
       p2v536EnsureSession();
@@ -6473,18 +6491,17 @@ function p2v58BindPhoneListener(){
       $('p2v530Status').textContent='Print attendance sheets, scan each sheet QR with your phone and review the complete class list.';
 
     }
-    $('p2v541ViewSaved')?.addEventListener('click',()=>{
-      p2v536EnsureSession();
-      if(p2v536ScannedSheets.size&&!window.confirm('Discard the current UNSAVED scan review and view stored attendance? Previously saved records will not change.'))return;
-      p2v541SavedReview=true;p2v541MixedPrintRuns=false;
-      p2v536ScannedSheets=new Set();p2v537RecognisedEnrollments=new Set();
-      p2v536ExpectedPages=0;p2v536PrintRunId='';
-      p2v524ClearSession();
-      for(const r of p2v538FullClassRows())p2v536Draft[r.en.id]=p2v58AttendanceValue(r.en,p2v58Date);
-      p2v536RenderFullRoster();
-      p2v530SetStatus('Viewing previously saved attendance. To start a new scan, print a fresh set of sheets. This view did not process any photos.');
-    });
-    $('p2v58All').onclick=p2v536MarkRemainingAbsent;
+    // Override legacy sheet-scoped listeners in the CAPTURE phase so a single
+    // click cannot execute their older page-2-only absence logic as well.
+    const allBtn=$('p2v58All');
+    if(allBtn){
+      allBtn.onclick=null;
+      allBtn.addEventListener('click',event=>{
+        event.preventDefault();event.stopImmediatePropagation();
+        p2v536MarkRemainingAbsent();
+      },true);
+    }
+    
     $('p2v58Confirm').onclick=p2v536ConfirmAttendance;
     const p2v536OriginalSwitch=switchPage;
     switchPage=function(id){
@@ -6508,7 +6525,8 @@ function p2v58BindPhoneListener(){
     function p2v537RefreshStatus(){
       const node=$('p2v530Status');if(!node)return;
       const photos=p2v536ScannedSheets.size,count=p2v537RecognisedEnrollments.size;
-      const header=p2v537LastError?'Attention needed':p2v536Confirmed?'Attendance saved':photos?'Attendance processed':'Process attendance';
+      const edited=p2v541SavedReview&&!p2v536Confirmed;
+      const header=p2v537LastError?'Attention needed':p2v536Confirmed?'Attendance saved':edited?'Unsaved changes':photos?'Attendance processed':'Process attendance';
       const summary=photos?photos+' of '+(p2v536ExpectedPages||photos)+' photos received · '+count+' student'+(count===1?'':'s')+' recognised':
         'Print attendance sheets, scan their QR codes and review the class list.';
       node.innerHTML='<strong>'+esc(header)+'</strong><span>'+esc(summary)+'</span>'+
