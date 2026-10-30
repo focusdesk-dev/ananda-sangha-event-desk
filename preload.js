@@ -89,6 +89,7 @@ function showPermanentRecordChooser() {
 
 function handleAddShortcut() {
   if (isTypingTarget(document.activeElement)) return;
+  if (document.querySelector('.modal-backdrop.open')) return;
   const page = activePage();
   const pageId = page?.id || '';
 
@@ -116,7 +117,9 @@ function handleAddShortcut() {
     return;
   }
   if (pageId === 'classWorkspace') {
-    if (clickById('p2v56HeaderNewClass')) return;
+    // Correction 2: the existing Enrol student button owns validation,
+    // batch selection and search; never open a second enrolment form.
+    clickById('p2EnrollStudent');
     return;
   }
 
