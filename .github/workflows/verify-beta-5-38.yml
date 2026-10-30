@@ -1,0 +1,34 @@
+name: Verify all v5.38 corrections (3 complete rounds, no installer)
+on:
+  push:
+    branches: [beta-5-38-complete-staging]
+  workflow_dispatch:
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Triple check Corrections 1, 2, 3 and full-class absent marking
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check main.js
+          node --check preload.js
+          for pass in 1 2 3; do
+            echo "=== COMPLETE V5.38 VERIFICATION PASS $pass ==="
+            npm run test:attendance
+            npm run test:ai
+            node scripts/verify-phone-ai-route.js
+            npm run test:ai-settings
+            npm run test:qr-print
+            npm run test:ai-recovery
+            npm run test:ai-performance
+            npm run test:unified
+            npm run test:attendance-permission
+            npm run test:attendance-ui
+            npm run test:batch-count
+            npm run test:enrol-shortcut
+          done
