@@ -71,6 +71,6 @@ const assert=require('assert'),fs=require('fs'),vm=require('vm'),path=require('p
   assert(gone.ok&&!mem.has(credpath),'Remove must delete stored key');
   status=await handler('ananda-ai-status')();assert(!status.configured);
   result=await handler('ananda-ai-analyze-attendance')(null,{imageDataUrl,printedNumbers:allowed});
-  assert(!result.ok&&/set your OpenAI API key/i.test(result.error),'No-key cannot submit image');
+  assert(!result.ok&&/not configured/i.test(result.error),'No-key cannot submit image');
   console.log('PASS: Settings controls, encrypted key rotation/removal, no-credit preflight, mocked vision results, invalid numbers, overlap, auth errors, no-key rejection');
 })().catch(e=>{console.error(e);process.exitCode=1;});
