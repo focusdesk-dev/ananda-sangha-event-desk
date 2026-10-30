@@ -11,7 +11,8 @@
     "test:ai": "node scripts/verify-ai-attendance.js",
     "test:ai-settings": "node scripts/verify-ai-settings.js",
     "test:qr-print": "node scripts/verify-qr-print.js",
-    "test:ai-recovery": "node scripts/verify-ai-recovery.js"
+    "test:ai-recovery": "node scripts/verify-ai-recovery.js",
+    "test:ai-performance": "node scripts/verify-ai-performance.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4",
