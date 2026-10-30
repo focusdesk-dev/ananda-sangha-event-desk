@@ -48,5 +48,21 @@ assert.strictEqual(shortPosted.status,200);assert((await shortPosted.json()).ok)
 const sent=events.filter(e=>e.topic==='ananda-attendance-phone-upload');
 assert.strictEqual(sent.length,2);assert.strictEqual(sent[1].data.attendancePayload,shortPayload);
 assert.strictEqual(sent[1].data.sheetId,shortId);
+
+const runId='PRINT-RUN-37';
+const baseMeta={mode:'ai',course:'Level 1',batch:'Batch 1',date:'14 Oct 2026',total:2,printRunId:runId};
+for(let n=1;n<=2;n++){
+ const sid='PRINT37-'+n;
+ const body=JSON.stringify({v:5,kind:'ANANDA_ATTENDANCE',batchId:batch,date,sheet:n,totalSheets:2,sheetId:sid,layout,verify,printRunId:runId});
+ ctx.testQr.registerShort({...baseMeta,payload:body,sheetId:sid,sheet:n});
+}
+const firstUrl=base+'/?'+new URLSearchParams({x:'PRINT37-1',k:ctx.testQr.token('PRINT37-1',verify).slice(0,32)});
+const secondUrl=base+'/?'+new URLSearchParams({x:'PRINT37-2',k:ctx.testQr.token('PRINT37-2',verify).slice(0,32)});
+const firstPage=await (await fetch(firstUrl)).text();
+const secondPage=await (await fetch(secondUrl)).text();
+assert(firstPage.includes('OPEN NEXT PRINTED SHEET'),'First phone page must offer Next Sheet');
+assert(firstPage.includes(secondUrl),'Next button must point to next sheet own signed URL');
+assert(!secondPage.includes('OPEN NEXT PRINTED SHEET'),'Final sheet must not loop to Sheet 1');
+assert(secondPage.includes('ALL SHEETS UPLOADED'),'Last sheet must be terminal');
 console.log('PASS: long and compact signed QR -> phone camera page -> upload -> exact student sheet; 32-char signature, persisted registration, invalid GET/POST rejected.');
 })().then(async()=>{await ctx.testQr.close();fs.rmSync(root,{recursive:true,force:true});},async err=>{console.error(err);await ctx.testQr.close();fs.rmSync(root,{recursive:true,force:true});process.exitCode=1;});
