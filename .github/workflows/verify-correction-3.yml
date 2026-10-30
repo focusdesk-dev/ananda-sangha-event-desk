@@ -1,0 +1,32 @@
+name: Verify Correction 3 (no installer)
+on:
+  push:
+    branches: [correction-3-attendance-ui-permission]
+  workflow_dispatch:
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check changed and preserved functionality three times
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check main.js
+          node --check preload.js
+          for pass in 1 2 3; do
+            echo "=== CORRECTION 3 TEST PASS $pass ==="
+            npm run test:attendance
+            npm run test:ai
+            node scripts/verify-phone-ai-route.js
+            npm run test:ai-settings
+            npm run test:qr-print
+            npm run test:ai-recovery
+            npm run test:ai-performance
+            npm run test:unified
+            npm run test:attendance-permission
+            npm run test:attendance-ui
+          done
