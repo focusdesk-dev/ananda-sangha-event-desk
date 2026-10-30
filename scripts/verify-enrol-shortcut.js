@@ -31,7 +31,7 @@ page='classes';assert.equal(send().prevented,0,'not active on other pages');page
 activeBatch='';assert.equal(send().prevented,0,'without batch no shortcut');activeBatch='BATCH-A';
 assert.equal(send({ctrlKey:true}).prevented,0,'Ctrl + is not an enrolment shortcut');
 button.click();assert.equal(clicks.at(-1),'BATCH-A','mouse uses same existing enrolment button');
-assert(html.includes('id="p2EnrollStudent" class="btn small" type="button">Enrol student</button>'));
+assert(html.includes('id="p2EnrollStudent" class="btn small" type="button">ENROL STUDENT</button>'));
 assert(!html.includes('id="p2EnrollStudent" class="btn small" type="button">+ Enrol Student</button>'));
 const ps=preload.indexOf('function handleAddShortcut()'),pe=preload.indexOf('function submitFormWithPreferredButton(',ps);
 assert(ps>0&&pe>ps);
