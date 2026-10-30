@@ -5895,7 +5895,7 @@ function p2v58BindPhoneListener(){
 
     // BETA536: One class-wide attendance list. Paper sheet divisions are print-only.
     let p2v536SessionKey='',p2v536Draft={},p2v536ScannedSheets=new Set();
-    let p2v537ProcessedFingerprints=new Set(),p2v537LastMessage='',p2v537LastError=false;
+    let p2v537ProcessedFingerprints=new Set(),p2v537RecognisedEnrollments=new Set(),p2v537LastMessage='',p2v537LastError=false;
     let p2v536ExpectedPages=0,p2v536PrintRunId='',p2v536Confirmed=false;
 
     function p2v536EnsureSession(){
@@ -5906,7 +5906,7 @@ function p2v58BindPhoneListener(){
       for(const r of p2v518CurrentRowsBase()){
         p2v536Draft[r.en.id]=p2v58AttendanceValue(r.en,p2v58Date);
       }
-      p2v536ScannedSheets=new Set();p2v537ProcessedFingerprints=new Set();p2v536ExpectedPages=0;
+      p2v536ScannedSheets=new Set();p2v537ProcessedFingerprints=new Set();p2v537RecognisedEnrollments=new Set();p2v536ExpectedPages=0;
       p2v536PrintRunId='';p2v536Confirmed=false;
     }
     function p2v536OnPrint(total,runId){
@@ -5935,7 +5935,12 @@ function p2v58BindPhoneListener(){
       p2v536ExpectedPages=Math.max(p2v536ExpectedPages,Number(data.totalSheets||1));
       // Replace only the photographed students. Other scanned pages and manual
       // corrections are preserved in the class-wide draft.
-      rows.forEach((r,i)=>{p2v536Draft[r.en.id]=present.has(numbers[i])?true:null});
+      rows.forEach((r,i)=>{
+        const id=String(r.en.id),recognised=present.has(numbers[i]);
+        p2v536Draft[r.en.id]=recognised?true:null;
+        p2v537RecognisedEnrollments.delete(id);
+        if(recognised)p2v537RecognisedEnrollments.add(id);
+      });
       p2v536ScannedSheets.add(Number(data.sheet));
       p2v536Confirmed=false;
       p2v58Draft=p2v536Draft;
@@ -5957,7 +5962,7 @@ function p2v58BindPhoneListener(){
           '<span class="p2v58-box"></span></label>';
       };
       host.innerHTML=rows.length
-        ?'<div class="p2v58-namebar">ALL STUDENTS · '+rows.length+'</div>'+
+        ?'<div class="p2v58-namebar">All students · '+rows.length+'</div>'+
           '<div class="p2v58-two"><div>'+left.map((r,i)=>makeRow(r,i)).join('')+'</div>'+
           '<div>'+right.map((r,i)=>makeRow(r,i+half)).join('')+'</div></div>'
         :'<div class="p2-empty">No students are enrolled in this batch.</div>';
@@ -6034,9 +6039,7 @@ function p2v58BindPhoneListener(){
       steps?.remove();
       $('p2v531Print').textContent='PRINT ATTENDANCE SHEETS';
       $('p2v530Status').textContent='Print attendance sheets, scan each sheet QR with your phone and review the complete class list.';
-      const progress=document.createElement('div');progress.id='p2v536Progress';
-      progress.style.cssText='font-size:12px;color:#345c82;padding:8px 0';
-      $('p2v530Status').insertAdjacentElement('beforebegin',progress);
+
     }
     $('p2v58All').onclick=p2v536MarkRemainingAbsent;
     $('p2v58Confirm').onclick=p2v536ConfirmAttendance;
@@ -6063,7 +6066,7 @@ function p2v58BindPhoneListener(){
     function p2v537RefreshStatus(){
       const el=$('p2v530Status');if(!el)return;
       const received=p2v536ScannedSheets.size;
-      const recognised=p2v518CurrentRowsBase().filter(r=>p2v536Draft[r.en.id]===true).length;
+      const recognised=p2v537RecognisedEnrollments.size;
       const title=p2v537LastError?'Attention needed':p2v536Confirmed?'Attendance saved':received?'Attendance processed':'Process attendance';
       const details=received?received+' of '+(p2v536ExpectedPages||received)+' photos received · '+recognised+
         ' student'+(recognised===1?'':'s')+' recognised':
@@ -6072,7 +6075,10 @@ function p2v58BindPhoneListener(){
         (p2v537LastMessage?'<small class="'+(p2v537LastError?'p2v537-error':'')+'">'+esc(p2v537LastMessage)+'</small>':'');
     }
     p2v530SetStatus=function(message,isError=false){
-      const detail=String(message||'').trim();
+      let detail=String(message||'').trim();
+      if(/API key|API charges|OpenAI|credits/i.test(detail))
+        detail='Processing needs administrator attention. See Settings → Attendance Processing.';
+      else detail=detail.replace(/\bAI\b/g,'attendance');
       // Ongoing processing replaces transient guidance. Completed scans use
       // the concise data-driven summary, not multiple repeated announcements.
       p2v537LastMessage=detail;
@@ -6715,6 +6721,12 @@ function p2v58BindPhoneListener(){
       '@media(max-width:700px){#classAttendanceHub .p2v58-filters{grid-template-columns:1fr;gap:10px}}';
     document.head.appendChild(p2v537Styles);
     $('p2v531Print').textContent='Print attendance sheets';
+    const heading=$('classAttendanceHub')?.querySelector('.p2v58-title-row h2');
+    if(heading)heading.textContent='Class attendance';
+    const listTitle=$('classAttendanceHub')?.querySelector('.p2v58-tab');
+    if(listTitle)listTitle.textContent='Attendance list';
+    $('p2v58All').textContent='Mark remaining absent';
+    $('p2v58Confirm').textContent='Confirm attendance';
     const helper=$('p2v531Print')?.parentElement?.querySelector('span');if(helper)helper.textContent='Use the QR code on each printed sheet to upload its photograph.';
     p2v537RefreshStatus();
 
