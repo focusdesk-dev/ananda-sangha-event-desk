@@ -5965,7 +5965,7 @@ function p2v58BindPhoneListener(){
       try{
         p2v530SetStatus('Checking printed Sheet ID and the exact student list...');
         await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
-        const prep=await p2v535PrepareAiImage(p2v530PhotoBlob,true);
+        const prep=await p2v535PrepareAiImage(p2v530PhotoBlob,!p2v530PhotoPayload);
         const raw=p2v530PhotoPayload||prep.raw||'';
         const data=await p2v540ResolveQr(raw);
         if(!data||Number(data.v)!==5||data.layout!==P2V521_LAYOUT||!data.sheetId)
