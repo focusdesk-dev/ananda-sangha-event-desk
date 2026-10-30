@@ -6502,7 +6502,17 @@ function p2v58BindPhoneListener(){
       },true);
     }
     
-    $('p2v58Confirm').onclick=p2v536ConfirmAttendance;
+    // v5.43: Confirmation must have ONE authoritative full-class click path.
+    // The previous sheet-scoped save handler can otherwise run first and reject
+    // a correct 30+7 class when it sees Absent marks on only the last sheet.
+    const confirmBtn=$('p2v58Confirm');
+    if(confirmBtn){
+      confirmBtn.onclick=null;
+      confirmBtn.addEventListener('click',event=>{
+        event.preventDefault();event.stopImmediatePropagation();
+        p2v536ConfirmAttendance();
+      },true);
+    }
     const p2v536OriginalSwitch=switchPage;
     switchPage=function(id){
       const result=p2v536OriginalSwitch.apply(this,arguments);
