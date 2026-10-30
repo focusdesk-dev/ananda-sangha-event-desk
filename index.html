@@ -5536,6 +5536,29 @@ function p2v58BindPhoneListener(){
         }
       }).catch(()=>{p2v530SetStatus('AI settings could not be loaded.');});
     }
+    // BETA535: Use the validated phone QR instead of rescanning full-size images.
+    // JPEG conversion is asynchronous; no blocking canvas.toDataURL().
+    async function p2v535PrepareAiImage(blob,needQr){
+      const bitmap=await createImageBitmap(blob);
+      const scale=Math.min(1,2200/Math.max(bitmap.width,bitmap.height));
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.round(bitmap.width*scale));
+      canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+      canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);
+      bitmap.close?.();
+      const raw=needQr?(p2v516FindQr(canvas)?.data||''):'';
+      const imageDataUrl=await new Promise((resolve,reject)=>{
+        canvas.toBlob(blob=>{
+          if(!blob){reject(Error('Could not compress the attendance image.'));return}
+          const reader=new FileReader();
+          reader.onload=()=>resolve(reader.result);
+          reader.onerror=()=>reject(Error('Could not read the attendance image.'));
+          reader.readAsDataURL(blob);
+        },'image/jpeg',0.85);
+      });
+      canvas.width=0;canvas.height=0;
+      return{raw,imageDataUrl};
+    }
     async function p2v530Analyse(){
       if(p2v530AiBusy)return;
       const api=window.anandaDesktop;
@@ -5545,7 +5568,8 @@ function p2v58BindPhoneListener(){
       p2v530AiBusy=true;if($('p2v530Analyze'))$('p2v530Analyze').disabled=true;
       try{
         p2v530SetStatus('Checking printed Sheet ID and the exact student list...');
-        const prep=await p2v518Prepare(p2v530PhotoBlob);
+        await new Promise(resolve=>requestAnimationFrame(()=>setTimeout(resolve,0)));
+        const prep=await p2v535PrepareAiImage(p2v530PhotoBlob,!p2v530PhotoPayload);
         const raw=p2v530PhotoPayload||prep.raw||'';
         const data=p2v58ParsePayload(raw);
         if(!data||Number(data.v)!==5||data.layout!==P2V521_LAYOUT||!data.sheetId)
@@ -5559,7 +5583,7 @@ function p2v58BindPhoneListener(){
           throw Error('One or more printed students cannot be matched to their saved enrolment. No attendance was changed.');
         const numbers=mapped.out.map((r,i)=> (Number(data.sheet)-1)*30 + Number(r.sheetRow?.position||i+1));
         if(new Set(numbers).size!==numbers.length)throw Error('Printed row numbers are duplicated.');
-        const img=prep.canvas.toDataURL('image/jpeg',.86);
+        const img=prep.imageDataUrl;
         p2v530SetStatus('AI is reading handwritten strokes; the photograph is being sent to OpenAI. Please wait...');
         const result=await api.analyzeAiAttendance({imageDataUrl:img,printedNumbers:numbers});
         if(!result?.ok)throw Error(result?.error||'AI analysis failed');
