@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.36 Setup
+name: Build Ananda Event Desk beta 5.37 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-36-release]
+    branches: [beta-5-37-correction-3-release]
 jobs:
   windows-installer:
     runs-on: windows-latest
@@ -46,9 +46,32 @@ jobs:
       - run: npm run test:ai-recovery
       - run: npm run test:ai-performance
       - run: npm run test:unified
+      - run: npm run test:attendance-permission
+      - run: npm run test:attendance-ui
       - run: npm run dist:win
+      - name: Smoke test - launch packaged Windows desktop application
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD "dist/win-unpacked/Ananda Sangha Event Desk.exe"
+          if (!(Test-Path $exe)) { throw "Packaged application executable missing: $exe" }
+          $appProcess = Start-Process -FilePath $exe -ArgumentList "--remote-debugging-port=9223" -PassThru
+          try {
+            $found = $false
+            for ($attempt = 0; $attempt -lt 18; $attempt++) {
+              Start-Sleep -Seconds 2
+              if ($appProcess.HasExited) { throw "Packaged desktop app exited during startup (exit code $($appProcess.ExitCode))" }
+              try {
+                $pages = Invoke-RestMethod -Uri "http://127.0.0.1:9223/json/list" -TimeoutSec 3
+                $appPage = @($pages) | Where-Object { $_.type -eq 'page' -and ($_.url -match 'index.html' -or $_.title -match 'Ananda') }
+                if ($appPage.Count -gt 0) { $found = $true; Write-Host "App opened successfully: $($appPage[0].title)"; break }
+              } catch { Write-Host "Waiting for desktop window to load..." }
+            }
+            if (!$found) { throw "Packaged app did not expose a loaded Ananda window within the smoke check." }
+          } finally {
+            Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Ananda Sangha Event Desk.exe' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+          }
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.36-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.37-Setup
           path: dist/*.exe
           if-no-files-found: error
