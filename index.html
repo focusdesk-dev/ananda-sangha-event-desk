@@ -312,6 +312,28 @@
         <div id="p2v532KeyMessage" role="status" style="font-size:12px;margin-top:12px;color:#244d79"></div>
         <div class="security-warning" style="margin-top:12px"><b>Before you buy credits:</b> Free Precheck checks the installed application without contacting OpenAI. Connection Test checks the saved API key without analyzing an image. Neither proves AI can read a real marked sheet. Review every AI attendance result before saving; API credits are required for a live photo test.</div>
       </div>
+      <div id="p2v537PermissionCard" class="card" style="margin-top:18px">
+        <div class="card-head"><div><h3>Attendance Processing</h3>
+          <div class="card-sub">Administrator permission and processing usage. Volunteers cannot change these settings.</div></div></div>
+        <div class="note" style="margin-bottom:13px">
+          <strong>Permission:</strong> <span id="p2v537PermissionState">Checking...</span>
+          <div id="p2v537PermissionAudit" class="hint" style="margin-top:5px"></div>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label for="p2v537AdminName">ADMINISTRATOR NAME</label><input id="p2v537AdminName" autocomplete="off" placeholder="Administrator name"></div>
+          <div class="field"><label for="p2v537AdminPassword">ADMINISTRATOR PASSWORD</label><input id="p2v537AdminPassword" type="password" autocomplete="current-password" placeholder="Required for each change"></div>
+        </div>
+        <div class="actions" style="margin-top:14px">
+          <button id="p2v537Grant" class="btn" type="button">Grant permission</button>
+          <button id="p2v537Revoke" class="btn secondary" type="button">Revoke permission</button>
+        </div>
+        <div id="p2v537PermissionMessage" role="status" style="font-size:12px;margin-top:10px"></div>
+        <div class="note" style="margin-top:16px">
+          <strong>API usage and estimated cost</strong>
+          <div id="p2v537ApiUsage" class="hint" style="margin-top:7px">Checking this computer...</div>
+          <div class="hint" style="margin-top:6px">Estimated at GPT-4.1 standard rates ($2 per million input tokens and $8 per million output tokens). Actual charges may differ. OpenAI billing is authoritative; no student names or photographs are stored in this usage summary.</div>
+        </div>
+      </div>
       <div id="v123DataCard" class="card" style="margin-top:18px">
         <div class="card-head"><div><h3>Data, backup & updates</h3><div class="card-sub">Program updates no longer replace or move your permanent records</div></div><span class="pill green">PRODUCTION 1.0.126</span></div>
         <div class="note" style="margin-bottom:16px"><strong>Permanent data location</strong><div id="v123DataLocation" class="hint" style="margin-top:6px;word-break:break-all">ANANDA SANGHA EVENT DESK\Data</div><div class="hint" style="margin-top:6px">The complete NGO handover folder contains Application, Data and Backup. Move or submit the whole folder together.</div></div>
@@ -5580,8 +5602,14 @@ function p2v58BindPhoneListener(){
           throw Error('One or more printed students cannot be matched to their saved enrolment. No attendance was changed.');
         const numbers=mapped.out.map((r,i)=> (Number(data.sheet)-1)*30 + Number(r.sheetRow?.position||i+1));
         if(new Set(numbers).size!==numbers.length)throw Error('Printed row numbers are duplicated.');
+        const fingerprint=await p2v537PhotoFingerprint(p2v530PhotoBlob);
+        const seenKey=String(data.sheetId)+'|'+fingerprint;
+        if(p2v537ProcessedFingerprints.has(seenKey)){
+          p2v530SetStatus('This photograph was already processed. Attendance and manual corrections are unchanged.');
+          return;
+        }
         const img=prep.imageDataUrl;
-        p2v530SetStatus('AI is reading handwritten strokes; the photograph is being sent to OpenAI. Please wait...');
+        p2v530SetStatus('Processing photograph…');
         const result=await api.analyzeAiAttendance({imageDataUrl:img,printedNumbers:numbers});
         if(!result?.ok)throw Error(result?.error||'AI analysis failed');
         // Commit the review only after the sheet, roster and AI result are valid.
@@ -5592,6 +5620,7 @@ function p2v58BindPhoneListener(){
         p2v524ScanSession={snapshot:snap,rows:mapped.out,data};
         p2v524SyncSelectors(b,String(data.date));
         p2v536MergeAiSheet(data,mapped.out,numbers,present);
+        p2v537ProcessedFingerprints.add(seenKey);
         p2v528AwaitingPhoto=false;p2v528MarkedRemainingAbsent=false;
         p2v58LockSelectors(false);
         p2v58RenderRoster();
@@ -5866,6 +5895,7 @@ function p2v58BindPhoneListener(){
 
     // BETA536: One class-wide attendance list. Paper sheet divisions are print-only.
     let p2v536SessionKey='',p2v536Draft={},p2v536ScannedSheets=new Set();
+    let p2v537ProcessedFingerprints=new Set(),p2v537LastMessage='',p2v537LastError=false;
     let p2v536ExpectedPages=0,p2v536PrintRunId='',p2v536Confirmed=false;
 
     function p2v536EnsureSession(){
@@ -5876,7 +5906,7 @@ function p2v58BindPhoneListener(){
       for(const r of p2v518CurrentRowsBase()){
         p2v536Draft[r.en.id]=p2v58AttendanceValue(r.en,p2v58Date);
       }
-      p2v536ScannedSheets=new Set();p2v536ExpectedPages=0;
+      p2v536ScannedSheets=new Set();p2v537ProcessedFingerprints=new Set();p2v536ExpectedPages=0;
       p2v536PrintRunId='';p2v536Confirmed=false;
     }
     function p2v536OnPrint(total,runId){
@@ -6021,6 +6051,672 @@ function p2v58BindPhoneListener(){
     };
     p2v536KeepUnifiedPanel();
     p2v536RenderFullRoster();
+
+
+    // Correction 3: one status surface; processed photos and SAVED attendance
+    // are intentionally separate. No duplicate technical panels.
+    async function p2v537PhotoFingerprint(blob){
+      const bytes=await blob.arrayBuffer();
+      const hash=await crypto.subtle.digest('SHA-256',bytes);
+      return Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
+    }
+    function p2v537RefreshStatus(){
+      const el=$('p2v530Status');if(!el)return;
+      const received=p2v536ScannedSheets.size;
+      const recognised=p2v518CurrentRowsBase().filter(r=>p2v536Draft[r.en.id]===true).length;
+      const title=p2v537LastError?'Attention needed':p2v536Confirmed?'Attendance saved':received?'Attendance processed':'Process attendance';
+      const details=received?received+' of '+(p2v536ExpectedPages||received)+' photos received · '+recognised+
+        ' student'+(recognised===1?'':'s')+' recognised':
+        'Print attendance sheets, scan the QR code and review the class list.';
+      el.innerHTML='<strong>'+esc(title)+'</strong><span>'+esc(details)+'</span>'+
+        (p2v537LastMessage?'<small class="'+(p2v537LastError?'p2v537-error':'')+'">'+esc(p2v537LastMessage)+'</small>':'');
+    }
+    p2v530SetStatus=function(message,isError=false){
+      const detail=String(message||'').trim();
+      // Ongoing processing replaces transient guidance. Completed scans use
+      // the concise data-driven summary, not multiple repeated announcements.
+      p2v537LastMessage=detail;
+      p2v537LastError=Boolean(isError);
+      p2v537RefreshStatus();
+    };
+    async function p2v537RefreshAdminSettings(){
+      const el=$('p2v537PermissionState'),audit=$('p2v537PermissionAudit'),usage=$('p2v537ApiUsage');
+      try{
+        const status=await window.anandaDesktop?.attendancePermissionStatus?.();
+        if(el)el.textContent=status?.allowed?'Granted':'Not granted / Revoked';
+        if(audit)audit.textContent=status?.updatedAt
+          ?'Last changed by '+(status.administrator||'Administrator')+' on '+new Date(status.updatedAt).toLocaleString()+
+            ' · Permission version '+status.permissionVersion+' · Revision '+(status.revision||1)
+          :'Permission version 1 · No administrator approval recorded.';
+      }catch{if(el)el.textContent='Permission status unavailable';}
+      try{
+        const data=await window.anandaDesktop?.attendanceApiUsage?.();
+        if(usage)usage.textContent=data?.ok
+          ?Number(data.requests||0)+' processed requests · '+Number(data.inputTokens||0).toLocaleString()+
+            ' input tokens · '+Number(data.outputTokens||0).toLocaleString()+' output tokens · Estimated 
+  window.addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop'))e.target.classList.remove('open')});
+  resetEventForm();
+  renderAll();
+})();
+</script>
+  <!-- Version 96: remove the planning/help text without removing required controls. -->
+  <script>
+    (() => {
+      const removeExactly = new Set([
+        'VERSION 65 — CLEAR OLD REGISTRATION WARNINGS',
+        'ALL INFORMATION IS SAVED ON THIS COMPUTER.',
+        'USE BACKUP REGULARLY.',
+        'DASHBOARD',
+        'ANANDA SANGHA GURGAON EVENT REGISTRATION',
+        'EACH EVENT KEEPS ITS OWN PERMANENT RECORD',
+        'DATES AND ITEM RULES CAN CHANGE EVERY YEAR',
+        'SELECT ONLY THE ACTUAL DAYS. FOR EXAMPLE: 27 SEPTEMBER AND 4 OCTOBER WILL BE COUNTED AS 2 DAYS.',
+        'THIS IS FOR EVENT PLANNING. REGISTRATION WILL STILL RECOGNISE ANYONE SAVED IN VIP MASTER IF THEY ARRIVE UNEXPECTEDLY.',
+        'AFTER SAVING, USE “EDIT SETTINGS” TO CORRECT THE DATES, VENUE, BADGE, SCARF OR VIP CHOICE.',
+        'SWITCH BETWEEN DIFFERENT YEARS',
+        'ALL TASKS FOR THE SELECTED EVENT',
+        'EVERY ACTION BELOW BELONGS ONLY TO THE EVENT SHOWN ABOVE',
+        'PLAN THE VOLUNTEER ROSTER AND ARRIVAL CHECK-IN',
+        'REGISTER, SEARCH AND CHECK IN THIS EVENT',
+        'PRINT, ISSUE AND RECEIVE EVENT ITEMS',
+        'EXPECTED, ACTUAL AND PERMANENT EVENT HISTORY',
+        'REGISTER, IMPORT AND CHECK IN ATTENDEES FOR THIS EVENT',
+        'SEARCH VOLUNTEER MASTER BY NAME OR MOBILE. ADDING SOMEONE MEANS THEY ARE VOLUNTEERING TODAY—IT DOES NOT MARK THEM AS ARRIVED.',
+        'IMPORT THE COMPLETE GOOGLE FORM LIST; VOLUNTEERS AND ATTENDEES ARE SORTED AUTOMATICALLY',
+        'IMPORT “NUMBER OF GUESTS” EXCLUDING THE VOLUNTEER OR MAIN OUTSIDE PERSON. GUEST NAMES AND MOBILES MAY BE LEFT BLANK UNTIL KNOWN.',
+        'CONFIRM THE PHYSICAL NAME BADGES YOU ALREADY HAVE BEFORE ISSUING THEM.',
+        'SEARCH BY NAME OR MOBILE, OR USE NEW REGISTRATION WHEN YOU ARE SURE THE ATTENDEE IS NEW.'
+      ]);
+      const normalise = value => value.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/\s+/g, ' ').trim().toUpperCase();
+      const shouldRemove = value => removeExactly.has(normalise(value));
+      // Keep the surrounding element and its event handlers intact. Some of
+      // these labels live inside required controls such as #pageSubtitle.
+      const removeTextElement = node => { node.nodeValue = ''; };
+      const cleanUnwantedText = () => {
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        const nodes = [];
+        let node;
+        while ((node = walker.nextNode())) {
+          const parent = node.parentElement;
+          if (!parent || parent.closest('script,style,textarea')) continue;
+          nodes.push(node);
+        }
+        nodes.forEach(textNode => {
+          let value = textNode.nodeValue || '';
+          const trimmed = value.trim();
+          if (!trimmed) return;
+          if (shouldRemove(trimmed)) { removeTextElement(textNode); return; }
+          if (/ANNUAL EVENT REGISTRATION AND PERMANENT RECORDS/i.test(value)) {
+            textNode.nodeValue = value.replace(/ANNUAL EVENT REGISTRATION AND PERMANENT RECORDS/gi, 'EVENT REGISTRATION AND RECORDS');
+            value = textNode.nodeValue;
+          }
+          // Remove the separate badge/scarf/VIP planning line completely.
+          if (/BADGE:|SCARF:|VIP ATTENDING:/i.test(value)) {
+            removeTextElement(textNode);
+            return;
+          }
+          // On event headers/cards, retain only the date portion as requested.
+          if (/\s·\s/.test(value) && (/NO VENUE|EVENT DAY/i.test(value))) {
+            textNode.nodeValue = value.split(/\s·\s/)[0];
+          }
+        });
+      };
+      let cleaning = false;
+      const run = () => {
+        if (cleaning) return;
+        cleaning = true;
+        try { cleanUnwantedText(); } finally { cleaning = false; }
+      };
+      run();
+      new MutationObserver(run).observe(document.body, { childList: true, subtree: true });
+    })();
+  </script>
+  <script>
+    // Version 97: protected CSV exports for each permanent master list.
+    (()=>{
+      const v97CsvDownload=(filename,rows)=>download(filename,csv(rows),'text/csv;charset=utf-8');
+      const v97MasterRows={
+        volunteers:()=>[['First Name','Last Name','Mobile','Birthday','Notes','Badge Available'],...state.volunteers.slice().sort((a,b)=>volName(a).localeCompare(volName(b),undefined,{sensitivity:'base'})).map(person=>[person.firstName||'',person.lastName||'',person.mobile||'',person.birthday||'',person.notes||'',person.badgeAvailable?'Yes':'No'])],
+        attendees:()=>[['Name','Main / Family Mobile','Personal Mobile','Relationship','Category','Linked Volunteer','Notes','Needs Review'],...state.attendeeMaster.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'})).map(person=>{const volunteer=state.volunteers.find(item=>item.id===person.linkedVolunteerId);return[person.name||'',person.mobile||'',person.personalMobile||'',person.relationship||'',person.category==='family'?'Volunteer family':'Outside / general',volunteer?volName(volunteer):'',person.notes||'',person.needsReview?'Yes':'No']})],
+        kriyabans:()=>[['Full Name','Mobile Number','Notes','Also Listed As'],...state.kriyabans.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'})).map(person=>[person.name||'',person.mobile||'',person.notes||'',v46KriyabanConnections(person)])],
+        vips:()=>[['Name','Also Listed As','Photo Available'],...state.vips.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'})).map(person=>[person.name||'',v47VipConnections(person),person.photo?'Yes':'No'])]
+      };
+      const v97Export=(key,filename,label)=>v51RequireAdmin(()=>v97CsvDownload(filename,v97MasterRows[key]()),`export ${label}`);
+      const v97AddButton=(sectionId,id,label,key,filename,permission)=>{
+        const actions=document.querySelector(`#${sectionId} .card-head .actions`);
+        if(!actions)return;
+        const button=$(id)||document.createElement('button');
+        button.id=id;button.type='button';button.className='btn secondary';button.textContent=label;
+        button.onclick=()=>v97Export(key,filename,permission);
+        if(!button.parentElement)actions.insertBefore(button,actions.firstElementChild);
+      };
+      v97AddButton('volunteers','v97ExportVolunteers','Export CSV','volunteers','ananda-sangha-volunteer-master.csv','the Volunteer Master');
+      v97AddButton('attendeeMaster','v97ExportAttendees','Export CSV','attendees','ananda-sangha-attendee-master.csv','the Attendee Master');
+      v97AddButton('kriyabans','v97ExportKriyabans','Export CSV','kriyabans','ananda-sangha-kriyaban-master.csv','the Kriyaban Master');
+      v97AddButton('vips','v97ExportVips','Export CSV','vips','ananda-sangha-vip-master.csv','the VIP Master');
+
+      // Keep page navigation safe even if an old saved DOM has lost a heading node.
+      const v97EnsureHeadings=()=>{
+        const topbar=document.querySelector('.topbar>div');
+        if(!topbar)return;
+        if(!$('pageTitle')){const title=document.createElement('h2');title.id='pageTitle';topbar.prepend(title)}
+        if(!$('pageSubtitle')){const subtitle=document.createElement('p');subtitle.id='pageSubtitle';topbar.querySelector('#pageTitle')?.after(subtitle)}
+      };
+      const v97SwitchPageBefore=switchPage;
+      switchPage=id=>{v97EnsureHeadings();return v97SwitchPageBefore(id)};
+    })();
+  </script>
+  <script>
+    // Version 100: export each permanent master as a real Excel workbook.
+    (()=>{
+      const v100Rows={
+        volunteers:()=>[['First Name','Last Name','Mobile','Birthday','Notes','Badge Available'],...state.volunteers.slice().sort((a,b)=>volName(a).localeCompare(volName(b),undefined,{sensitivity:'base'})).map(person=>[person.firstName||'',person.lastName||'',person.mobile||'',person.birthday||'',person.notes||'',person.badgeAvailable?'Yes':'No'])],
+        attendees:()=>[['Name','Main / Family Mobile','Personal Mobile','Relationship','Category','Linked Volunteer','Notes','Needs Review'],...state.attendeeMaster.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'})).map(person=>{const volunteer=state.volunteers.find(item=>item.id===person.linkedVolunteerId);return[person.name||'',person.mobile||'',person.personalMobile||'',person.relationship||'',person.category==='family'?'Volunteer family':'Outside / general',volunteer?volName(volunteer):'',person.notes||'',person.needsReview?'Yes':'No']})],
+        kriyabans:()=>[['Full Name','Mobile Number','Notes','Also Listed As'],...state.kriyabans.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'})).map(person=>[person.name||'',person.mobile||'',person.notes||'',v46KriyabanConnections(person)])],
+        vips:()=>[['Name','Also Listed As','Photo Available'],...state.vips.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'})).map(person=>[person.name||'',v47VipConnections(person),person.photo?'Yes':'No'])]
+      };
+      const v100Workbook=(sheetName,rows)=>{
+        const contentTypes='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>';
+        const workbook='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="'+v51Xml(sheetName)+'" sheetId="1" r:id="rId1"/></sheets></workbook>';
+        const workbookRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+        const styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="1"><fill><patternFill patternType="none"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs></styleSheet>';
+        return v51Zip([{name:'[Content_Types].xml',data:contentTypes},{name:'_rels/.rels',data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},{name:'xl/workbook.xml',data:workbook},{name:'xl/_rels/workbook.xml.rels',data:workbookRels},{name:'xl/styles.xml',data:styles},{name:'xl/worksheets/sheet1.xml',data:v51SheetXml(rows)}]);
+      };
+      const v100Definitions=[['v97ExportVolunteers','volunteers','ananda-sangha-volunteer-master.xlsx','Volunteer Master','Volunteers'],['v97ExportAttendees','attendees','ananda-sangha-attendee-master.xlsx','Attendee Master','Attendees'],['v97ExportKriyabans','kriyabans','ananda-sangha-kriyaban-master.xlsx','Kriyaban Master','Kriyabans'],['v97ExportVips','vips','ananda-sangha-vip-master.xlsx','VIP Master','VIPs']];
+      v100Definitions.forEach(([id,key,filename,purpose,sheetName])=>{const button=$(id);if(!button)return;button.textContent='Export Excel';button.onclick=()=>v51RequireAdmin(()=>v51DownloadBlob(filename,v100Workbook(sheetName,v100Rows[key]())),`export the ${purpose}`)});
+    })();
+  </script>
+  <script>
+    // Version 101: keep Add visible first and group list actions in one dropdown.
+    (()=>{
+      document.head.insertAdjacentHTML('beforeend','<style>.v101-actions-dropdown{position:relative}.v101-actions-dropdown>summary{list-style:none;cursor:pointer}.v101-actions-dropdown>summary::-webkit-details-marker{display:none}.v101-actions-dropdown-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:40;display:grid;gap:6px;min-width:205px;padding:8px;background:#fff;border:1px solid #c8d8e2;border-radius:10px;box-shadow:0 12px 28px rgba(20,51,79,.16)}.v101-actions-dropdown-menu .btn,.v101-actions-dropdown-menu label{width:100%;box-sizing:border-box;text-align:left;white-space:nowrap}</style>');
+      const v101Template=(filename,sheet,headers)=>v87TemplateWorkbook(filename,sheet,headers);
+      const v101MakeDropdown=(sectionId,addId,exportId,importId,templateId,templateSpec)=>{
+        const actions=document.querySelector(`#${sectionId} .card-head .actions`),add=$(addId),exportButton=$(exportId),input=$(importId),existingTemplate=$(templateId);
+        if(!actions||!add||!exportButton||!input||actions.querySelector('.v101-actions-dropdown'))return;
+        const template=existingTemplate||document.createElement('button');
+        if(!existingTemplate){template.type='button';template.className='btn ghost';template.textContent='Download template'}
+        if(templateSpec)template.onclick=()=>v101Template(templateSpec[0],templateSpec[1],templateSpec[2]);
+        const dropdown=document.createElement('details');dropdown.className='v101-actions-dropdown';
+        const summary=document.createElement('summary');summary.className='btn secondary';summary.textContent='Options ▾';
+        const menu=document.createElement('div');menu.className='v101-actions-dropdown-menu';
+        menu.append(exportButton,input.closest('label'),template);dropdown.append(summary,menu);
+        actions.insertBefore(add,actions.firstElementChild);actions.append(dropdown);
+      };
+      v101MakeDropdown('volunteers','addVolunteer','v97ExportVolunteers','volunteerImportFile',null,['ananda-sangha-volunteers-template.xlsx','Volunteers',['First Name','Last Name','Mobile','Birthday','Notes']]);
+      v101MakeDropdown('attendeeMaster','addAttendeeMaster','v97ExportAttendees','attendeeMasterImportFile','downloadAttendeeMasterTemplate',['ananda-sangha-attendees-template.xlsx','Attendees',['Attendee Name','Main / Family Mobile','Personal Mobile','Attendee Category','Linked Volunteer Name','Linked Volunteer Mobile','Notes']]);
+      v101MakeDropdown('kriyabans','addKriyaban','v97ExportKriyabans','kriyabanImportFile','downloadKriyabanTemplate',['ananda-sangha-kriyabans-template.xlsx','Kriyabans',['Full Name','Mobile Number','Notes']]);
+      v101MakeDropdown('vips','addVip','v97ExportVips','vipImportFile','downloadVipTemplate',['ananda-sangha-vips-template.xlsx','VIPs',['Name']]);
+    })();
+  </script>
+  <style>
+    /* Version 104: the controls are present in the HTML itself, so they do not depend on a later DOM rewrite. */
+    .v104-static-dropdown{position:relative}
+    .v104-static-dropdown>summary{list-style:none;cursor:pointer}
+    .v104-static-dropdown>summary::-webkit-details-marker{display:none}
+    .v104-static-dropdown .v101-actions-dropdown-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:40;display:grid;gap:6px;min-width:205px;padding:8px;background:#fff;border:1px solid #c8d8e2;border-radius:10px;box-shadow:0 12px 28px rgba(20,51,79,.16)}
+    .v104-static-dropdown .v101-actions-dropdown-menu .btn,.v104-static-dropdown .v101-actions-dropdown-menu label{width:100%;box-sizing:border-box;text-align:left;white-space:nowrap}
+  </style>
+  <script>
+    // Version 104: static dropdown actions and real Excel templates.
+    (()=>{
+      const templates=[
+        ['v104VolunteerTemplate','ananda-sangha-volunteers-template.xlsx','Volunteers',['First Name','Last Name','Mobile','Birthday','Notes']],
+        ['downloadAttendeeMasterTemplate','ananda-sangha-attendees-template.xlsx','Attendees',['Attendee Name','Main / Family Mobile','Personal Mobile','Attendee Category','Linked Volunteer Name','Linked Volunteer Mobile','Notes']],
+        ['downloadKriyabanTemplate','ananda-sangha-kriyabans-template.xlsx','Kriyabans',['Full Name','Mobile Number','Notes']],
+        ['downloadVipTemplate','ananda-sangha-vips-template.xlsx','VIPs',['Name']]
+      ];
+      templates.forEach(([id,filename,sheet,headers])=>{const button=$(id);if(button){button.textContent='Download Excel template';button.onclick=()=>v87TemplateWorkbook(filename,sheet,headers)}});
+      ['v97ExportVolunteers','v97ExportAttendees','v97ExportKriyabans','v97ExportVips'].forEach(id=>{const button=$(id);if(button)button.textContent='Export Excel'});
+    })();
+  </script>
+  <script>
+    // Version 106: dependable Excel-compatible downloads using the app's direct download path.
+    (()=>{
+      const v106ExcelXml=(sheetName,rows)=>{
+        const rowXml=rows.map(row=>`<Row>${row.map(value=>`<Cell><Data ss:Type="${typeof value==='number'&&Number.isFinite(value)?'Number':'String'}">${v51Xml(value)}</Data></Cell>`).join('')}</Row>`).join('');
+        return `<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="${v51Xml(sheetName)}"><Table>${rowXml}</Table></Worksheet></Workbook>`;
+      };
+      const v106Template=(filename,sheet,headers)=>download(filename,v106ExcelXml(sheet,[headers,['']]),'application/vnd.ms-excel;charset=utf-8');
+      const templateDefinitions=[
+        ['v104VolunteerTemplate','ananda-sangha-volunteers-template.xls','Volunteers',['First Name','Last Name','Mobile','Birthday','Notes']],
+        ['downloadAttendeeMasterTemplate','ananda-sangha-attendees-template.xls','Attendees',['Attendee Name','Main / Family Mobile','Personal Mobile','Attendee Category','Linked Volunteer Name','Linked Volunteer Mobile','Notes']],
+        ['downloadKriyabanTemplate','ananda-sangha-kriyabans-template.xls','Kriyabans',['Full Name','Mobile Number','Notes']],
+        ['downloadVipTemplate','ananda-sangha-vips-template.xls','VIPs',['Name']]
+      ];
+      templateDefinitions.forEach(([id,filename,sheet,headers])=>{const button=$(id);if(!button)return;button.textContent='Download Excel template';button.onclick=()=>v106Template(filename,sheet,headers)});
+      const exportRows={
+        volunteers:()=>[['First Name','Last Name','Mobile','Birthday','Notes','Badge Available'],...state.volunteers.slice().sort((a,b)=>volName(a).localeCompare(volName(b),undefined,{sensitivity:'base'})).map(person=>[person.firstName||'',person.lastName||'',person.mobile||'',person.birthday||'',person.notes||'',person.badgeAvailable?'Yes':'No'])],
+        attendees:()=>[['Name','Main / Family Mobile','Personal Mobile','Relationship','Category','Linked Volunteer','Notes','Needs Review'],...state.attendeeMaster.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'})).map(person=>{const volunteer=state.volunteers.find(item=>item.id===person.linkedVolunteerId);return[person.name||'',person.mobile||'',person.personalMobile||'',person.relationship||'',person.category==='family'?'Volunteer family':'Outside / general',volunteer?volName(volunteer):'',person.notes||'',person.needsReview?'Yes':'No']})],
+        kriyabans:()=>[['Full Name','Mobile Number','Notes','Also Listed As'],...state.kriyabans.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'})).map(person=>[person.name||'',person.mobile||'',person.notes||'',v46KriyabanConnections(person)])],
+        vips:()=>[['Name','Also Listed As','Photo Available'],...state.vips.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'',undefined,{sensitivity:'base'})).map(person=>[person.name||'',v47VipConnections(person),person.photo?'Yes':'No'])]
+      };
+      [['v97ExportVolunteers','volunteers','ananda-sangha-volunteer-master.xls','Volunteers','the Volunteer Master'],['v97ExportAttendees','attendees','ananda-sangha-attendee-master.xls','Attendees','the Attendee Master'],['v97ExportKriyabans','kriyabans','ananda-sangha-kriyaban-master.xls','Kriyabans','the Kriyaban Master'],['v97ExportVips','vips','ananda-sangha-vip-master.xls','VIPs','the VIP Master']].forEach(([id,key,filename,sheet,purpose])=>{const button=$(id);if(!button)return;button.textContent='Export Excel';button.onclick=()=>v51RequireAdmin(()=>download(filename,v106ExcelXml(sheet,exportRows[key]()),'application/vnd.ms-excel;charset=utf-8'),`export the ${purpose}`)});
+    })();
+  </script>
+  <script>
+    if(false){
+    // Version 107: self-contained downloads. Earlier enhancement scripts are inside a private scope,
+    // so this version intentionally uses only DOM APIs and the saved localStorage record.
+    (()=>{
+      const get=id=>document.getElementById(id);
+      const escapeXml=value=>String(value??'').replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[character]));
+      const loadData=()=>{try{return JSON.parse(localStorage.getItem('annualEventRegistration.v1')||'{}')}catch{return {}}};
+      const directDownload=(filename,contents,mime)=>{const url=URL.createObjectURL(new Blob([contents],{type:mime})),link=document.createElement('a');link.href=url;link.download=filename;link.style.display='none';document.body.appendChild(link);link.click();setTimeout(()=>{link.remove();URL.revokeObjectURL(url)},1500)};
+      const workbook=(sheetName,rows)=>`<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="${escapeXml(sheetName)}"><Table>${rows.map(row=>`<Row>${row.map(value=>`<Cell><Data ss:Type="String">${escapeXml(value)}</Data></Cell>`).join('')}</Row>`).join('')}</Table></Worksheet></Workbook>`;
+      const cleanName=person=>String(person?.name||'').trim();
+      const volunteerName=person=>[person?.firstName,person?.lastName].filter(Boolean).join(' ').trim()||cleanName(person);
+      const norm=value=>String(value??'').trim().toLowerCase();
+      const rowsFor=(key,data)=>{
+        const volunteers=Array.isArray(data.volunteers)?data.volunteers:[],attendees=Array.isArray(data.attendeeMaster)?data.attendeeMaster:[],kriyabans=Array.isArray(data.kriyabans)?data.kriyabans:[],vips=Array.isArray(data.vips)?data.vips:[];
+        if(key==='volunteers')return [['First Name','Last Name','Mobile','Birthday','Notes','Badge Available'],...volunteers.slice().sort((a,b)=>volunteerName(a).localeCompare(volunteerName(b))).map(person=>[person.firstName||'',person.lastName||'',person.mobile||'',person.birthday||'',person.notes||'',person.badgeAvailable?'Yes':'No'])];
+        if(key==='attendees')return [['Name','Main / Family Mobile','Personal Mobile','Relationship','Category','Linked Volunteer','Notes','Needs Review'],...attendees.slice().sort((a,b)=>cleanName(a).localeCompare(cleanName(b))).map(person=>{const volunteer=volunteers.find(item=>item.id===person.linkedVolunteerId);return[cleanName(person),person.mobile||'',person.personalMobile||'',person.relationship||'',person.category==='family'?'Volunteer family':'Outside / general',volunteer?volunteerName(volunteer):'',person.notes||'',person.needsReview?'Yes':'No']})];
+        if(key==='kriyabans')return [['Full Name','Mobile Number','Notes','Also Listed As'],...kriyabans.slice().sort((a,b)=>cleanName(a).localeCompare(cleanName(b))).map(person=>{const name=cleanName(person),mobile=String(person.mobile||'');const links=[];if(volunteers.some(item=>norm(volunteerName(item))===norm(name)&&(!mobile||String(item.mobile||'')===mobile)))links.push('Volunteer');if(attendees.some(item=>norm(cleanName(item))===norm(name)&&(!mobile||String(item.mobile||'')===mobile)))links.push('Attendee');return[name,mobile,person.notes||'',links.join(', ')]})];
+        return [['Name','Also Listed As','Photo Available'],...vips.slice().sort((a,b)=>cleanName(a).localeCompare(cleanName(b))).map(person=>{const name=cleanName(person),links=[];if(volunteers.some(item=>norm(volunteerName(item))===norm(name)))links.push('Volunteer');if(attendees.some(item=>norm(cleanName(item))===norm(name)))links.push('Attendee');if(kriyabans.some(item=>norm(cleanName(item))===norm(name)))links.push('Kriyaban');return[name,links.join(', '),person.photo?'Yes':'No']})];
+      };
+      const templates=[
+        ['v104VolunteerTemplate','ananda-sangha-volunteers-template.xls','Volunteers',['First Name','Last Name','Mobile','Birthday','Notes']],
+        ['downloadAttendeeMasterTemplate','ananda-sangha-attendees-template.xls','Attendees',['Attendee Name','Main / Family Mobile','Personal Mobile','Attendee Category','Linked Volunteer Name','Linked Volunteer Mobile','Notes']],
+        ['downloadKriyabanTemplate','ananda-sangha-kriyabans-template.xls','Kriyabans',['Full Name','Mobile Number','Notes']],
+        ['downloadVipTemplate','ananda-sangha-vips-template.xls','VIPs',['Name']]
+      ];
+      templates.forEach(([id,filename,sheet,headers])=>{const button=get(id);if(!button)return;button.textContent='Download Excel template';button.onclick=()=>directDownload(filename,workbook(sheet,[headers,['']]),'application/vnd.ms-excel')});
+      const data=loadData();
+      [['v97ExportVolunteers','volunteers','ananda-sangha-volunteer-master.xls','Volunteers'],['v97ExportAttendees','attendees','ananda-sangha-attendee-master.xls','Attendees'],['v97ExportKriyabans','kriyabans','ananda-sangha-kriyaban-master.xls','Kriyabans'],['v97ExportVips','vips','ananda-sangha-vip-master.xls','VIPs']].forEach(([id,key,filename,sheet])=>{const button=get(id);if(!button)return;button.textContent='Export Excel';button.onclick=()=>directDownload(filename,workbook(sheet,rowsFor(key,data)),'application/vnd.ms-excel')});
+    })();
+
+    // v123: badge/scarf uses only the selected event/day volunteer roster. Issuing
+    // either item checks the person in; checking in never issues an item.
+    function v116ItemPeople(){
+      const rosterIds=typeof v36RosterIds==='function'?v36RosterIds(state.activeEventId,$('workingDate').value):dailyIds();
+      const volunteers=rosterIds.map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean).map(v=>({type:'volunteer',id:v.id,name:volName(v),sub:`${v.mobile||'No mobile'}${v.birthday?' · Birthday '+fmt(v.birthday):''}`}));
+      const attendees=todaysAttendees().map(a=>({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo}${a.mobile?' · '+a.mobile:''}`}));
+      return [...volunteers,...attendees];
+    }
+    function v116MarkCheckedIn(type,id){
+      const date=$('workingDate').value,eventId=state.activeEventId;
+      if(type==='volunteer'){
+        const volunteer=state.volunteers.find(v=>v.id===id);
+        if(!volunteer)return;
+        ensureVolunteerCheckin(volunteer,eventId,date,'badge/scarf');
+        const key=`${eventId}|${date}`;
+        state.daily[key]=[...new Set([...(state.daily[key]||[]),id])];
+        if(typeof ensureV36State==='function')ensureV36State();
+        if(typeof v36DayKey==='function'){
+          const rosterKey=v36DayKey(eventId,date);
+          state.volunteerRosters[rosterKey]=[...new Set([...(state.volunteerRosters[rosterKey]||[]),id])];
+        }
+      }else{
+        const attendee=state.attendees.find(a=>a.id===id);
+        if(!attendee)return;
+        attendee.checkins=[...new Set([...attendeeDates(attendee),date])];
+        attendee.checkedIn=true;attendee.date=date;attendee.checkInAt=new Date().toISOString();
+      }
+    }
+    renderItems=function(){
+      const q=$('itemSearch').value.toLowerCase(),pt=$('personTypeFilter').value;
+      let list=v116ItemPeople().filter(p=>(pt==='all'||p.type===pt)&&[p.name,p.sub].join(' ').toLowerCase().includes(q));
+      if(itemFilter==='pending')list=list.filter(p=>{const a=allocation(p.type,p.id);return(a.badgeIssued&&!a.badgeReturned)||(a.scarfIssued&&!a.scarfReturned)});
+      $('itemTable').innerHTML=list.length?`<div class="table-wrap"><table><thead><tr><th>Person</th><th>Type</th><th>Badge</th><th>Scarf</th></tr></thead><tbody>${list.map(p=>{const a=allocation(p.type,p.id);return`<tr><td><div class="name">${esc(p.name)}</div><div class="sub">${esc(p.sub)}</div></td><td><span class="pill ${p.type==='volunteer'?'purple':'green'}">${p.type}</span></td><td>${itemControls(p,'badge',a)}</td><td>${itemControls(p,'scarf',a)}</td></tr>`}).join('')}</tbody></table></div>`:`<div class="empty"><div class="emoji">▣</div>No people match this list. Add volunteers or register attendees first.</div>`;
+      document.querySelectorAll('.item-action').forEach(b=>b.onclick=()=>toggleItem(b.dataset.type,b.dataset.id,b.dataset.item,b.dataset.action));
+    };
+    toggleItem=function(type,id,item,action){
+      const a=allocation(type,id);
+      if(action==='issue'){
+        a[item+'Issued']=!a[item+'Issued'];
+        if(!a[item+'Issued'])a[item+'Returned']=false;
+        if(a[item+'Issued'])v116MarkCheckedIn(type,id);
+      }else if(a[item+'Issued'])a[item+'Returned']=!a[item+'Returned'];
+      save();renderItems();toast(`${item[0].toUpperCase()+item.slice(1)} updated`);
+    };
+    document.title='ANANDA SANGHA GURGAON Event Desk v125';
+    if($('itemSearch')){$('itemSearch').oninput=renderItems;$('personTypeFilter').onchange=renderItems;renderItems()}
+
+    // v123: keep badge printing and Issue/Receive on the same event/day volunteer set.
+    v72BadgeState=function(){
+      const key=v72BadgeKey(),roster=(typeof v36RosterIds==='function'?v36RosterIds(state.activeEventId,$('workingDate').value):dailyIds()).slice(),saved=state.badgePrint[key]||{printedIds:[],complete:false};
+      saved.printedIds=[...new Set((saved.printedIds||[]).filter(id=>roster.includes(id)))];
+      saved.complete=!!saved.complete&&saved.printedIds.length===roster.length;
+      state.badgePrint[key]=saved;
+      return{key,roster,saved};
+    };
+    toggleItem=function(type,id,item,action){
+      const key=allocKey(type,id),a=state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false});
+      if(action==='issue'){
+        const next=!Boolean(a[item+'Issued']);
+        a[item+'Issued']=next;
+        if(!next)a[item+'Returned']=false;
+        if(next)v116MarkCheckedIn(type,id);
+      }else if(action==='return'&&a[item+'Issued']){
+        a[item+'Returned']=!Boolean(a[item+'Returned']);
+      }
+      localStorage.setItem(KEY,JSON.stringify(state));
+      renderAll();
+      if(page==='items')renderItems();
+      toast(`${item==='badge'?'Badge':'Scarf'} ${action==='return'?(a[item+'Returned']?'received back':'marked not received'):(a[item+'Issued']?'issued':'unissued')}`);
+    };
+    document.title='ANANDA SANGHA GURGAON Event Desk v125';
+    if($('itemTable'))renderItems();
+    }
+  </script>
+
+  <script>
+    // v125: keyboard productivity shortcuts. Global + for Add/New and Alt+S for Save.
+    (()=>{
+      const visible=el=>!!el&&el.offsetParent!==null&&!el.disabled;
+
+      function v125EnsurePermanentChooser(){
+        let modal=$('v125PermanentAddChooser');
+        if(modal)return modal;
+        document.body.insertAdjacentHTML('beforeend',`<div id="v125PermanentAddChooser" class="modal-backdrop" role="dialog" aria-modal="true" aria-label="Add permanent record">
+          <div class="modal" style="max-width:560px">
+            <div class="modal-head"><div><h3>ADD PERMANENT RECORD</h3><div class="card-sub">Shortcut +</div></div><button class="icon-btn" id="v125ClosePermanentChooser" type="button">×</button></div>
+            <div class="quick-actions" style="grid-template-columns:1fr 1fr;margin-top:6px">
+              <button class="quick v125-permanent-add" data-page="volunteers" data-button="addVolunteer" type="button"><strong>＋ Volunteer</strong><small>Add to Volunteer Master</small></button>
+              <button class="quick v125-permanent-add" data-page="attendeeMaster" data-button="addAttendeeMaster" type="button"><strong>＋ Attendee</strong><small>Add to Attendee Master</small></button>
+              <button class="quick v125-permanent-add" data-page="kriyabans" data-button="addKriyaban" type="button"><strong>＋ Kriyaban</strong><small>Add to Kriyaban Master</small></button>
+              <button class="quick v125-permanent-add" data-page="vips" data-button="addVip" type="button"><strong>＋ VIP</strong><small>Add to VIP Master</small></button>
+            </div>
+          </div>
+        </div>`);
+        modal=$('v125PermanentAddChooser');
+        $('v125ClosePermanentChooser').onclick=()=>modal.classList.remove('open');
+        modal.querySelectorAll('.v125-permanent-add').forEach(button=>button.onclick=()=>{
+          modal.classList.remove('open');
+          switchPage(button.dataset.page);
+          setTimeout(()=>$(button.dataset.button)?.click(),0);
+        });
+        return modal;
+      }
+
+      function v125AddShortcut(){
+        if(page==='dashboard'){
+          v125EnsurePermanentChooser().classList.add('open');
+          return true;
+        }
+        if(page==='events'){
+          resetEventForm();
+          $('eventForm')?.scrollIntoView({behavior:'smooth',block:'start'});
+          setTimeout(()=>$('eventName')?.focus(),80);
+          toast('New event form ready');
+          return true;
+        }
+        const map={volunteers:'addVolunteer',attendeeMaster:'addAttendeeMaster',kriyabans:'addKriyaban',vips:'addVip',daily:'v48AddVolunteer',checkin:'v36NewRegistration'};
+        const id=map[page],button=id?$(id):null;
+        if(button){button.click();return true}
+        return false;
+      }
+
+      function v125SaveShortcut(){
+        const modalForms=[...document.querySelectorAll('.modal-backdrop.open form')].filter(visible);
+        let form=modalForms.at(-1);
+        if(!form&&page==='events'&&visible($('eventForm')))form=$('eventForm');
+        if(!form)return false;
+        if(form.id==='v36RegistrationForm'){
+          const saveOnly=form.querySelector('button[type="submit"][data-mode="register"]');
+          if(saveOnly){form.requestSubmit(saveOnly);return true}
+        }
+        form.requestSubmit();
+        return true;
+      }
+
+      document.addEventListener('keydown',event=>{
+        if(event.defaultPrevented||event.isComposing)return;
+        const key=(event.key||'').toLowerCase();
+        const isSave=event.altKey&&!event.ctrlKey&&!event.metaKey&&key==='s';
+        if(isSave){
+          event.preventDefault();
+          event.stopPropagation();
+          if(!v125SaveShortcut())toast('Nothing open to save');
+          return;
+        }
+        const isPlus=!event.ctrlKey&&!event.metaKey&&!event.altKey&&(event.key==='+'||event.code==='NumpadAdd'||(event.code==='Equal'&&event.shiftKey));
+        if(!isPlus)return;
+        // Do not hijack + while an Add/Edit modal is already open; everywhere else it is a global Add/New shortcut.
+        if(document.querySelector('.modal-backdrop.open'))return;
+        if(v125AddShortcut()){
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      },true);
+
+      const addHints={addVolunteer:'Add volunteer • Shortcut: +',addAttendeeMaster:'Add attendee • Shortcut: +',addKriyaban:'Add Kriyaban • Shortcut: +',addVip:'Add VIP • Shortcut: +',v48AddVolunteer:'Add volunteer to this event/day • Shortcut: +',v36NewRegistration:'New attendee registration • Shortcut: +'};
+      Object.entries(addHints).forEach(([id,title])=>{const button=$(id);if(button)button.title=title});
+      document.querySelectorAll('form button[type="submit"]').forEach(button=>{button.title='Save • Shortcut: Alt+S'});
+      ['addVolunteer','addAttendeeMaster','addKriyaban','addVip'].forEach(id=>{const button=$(id);if(button&&!button.querySelector('.v125-keyhint'))button.insertAdjacentHTML('beforeend',' <span class="v125-keyhint">(+)</span>')});
+      document.head.insertAdjacentHTML('beforeend',`<style>.v125-keyhint{font-size:11px;opacity:.72;margin-left:4px;font-weight:700}
+  .p2-year-folder{border:1px solid #d8e3eb;border-radius:12px;margin:10px 0;background:#fff;overflow:hidden}
+  .p2-year-folder>summary{list-style:none;cursor:pointer;padding:15px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:800;color:#173f7d;background:#f7fafc}
+  .p2-year-folder>summary::-webkit-details-marker{display:none}
+  .p2-year-folder>summary:after{content:'+';font-size:20px;line-height:1;color:#173f7d}
+  .p2-year-folder[open]>summary:after{content:'−'}
+  .p2-year-folder>summary span{font-size:12px;font-weight:600;color:#6c7f90;margin-left:auto;margin-right:10px}
+  .p2-year-folder>.p2-card-list{padding:12px}
+
+  /* PHASE2 BETA4A YEAR GROUPING */
+  .p2-year-class-box{border:1px solid #d6e2eb;border-radius:14px;background:#fff;margin:12px 0;overflow:hidden;outline:none}
+  .p2-year-class-box:focus{box-shadow:0 0 0 3px rgba(23,63,125,.10)}
+  .p2-year-class-head{padding:18px;display:flex;align-items:center;justify-content:space-between;gap:18px;cursor:default;user-select:none}
+  .p2-year-class-head h4{margin:7px 0 4px;font-size:18px;color:#102d5e}
+  .p2-year-class-head p{margin:0;color:#687d91;font-size:12px;text-transform:uppercase;letter-spacing:.02em}
+  .p2-year-open-hint{font-size:12px;color:#607890;border:1px solid #d6e2eb;border-radius:999px;padding:7px 10px;white-space:nowrap}
+  .p2-year-class-box.open .p2-year-class-head{background:#f7fafc;border-bottom:1px solid #dce6ed}
+  .p2-year-class-body{padding:14px 16px 18px;background:#fbfdfe}
+  .p2-year-section>h4{margin:4px 0 10px;color:#173f7d;font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+  .p2-year-section.inactive{margin-top:18px;padding-top:16px;border-top:1px dashed #d4dfe7}
+  .p2-year-section.inactive>h4{color:#6d7c88}
+</style>`);
+      document.title='ANANDA SANGHA GURGAON Event Desk v125';
+    })();
+  </script>
+  <script>
+    // NGO Production Base 1.0.126 — reliable app-level shortcuts + in-folder backups.
+    (()=>{
+      function prodPermanentChooser(){
+        let modal=$('prodPermanentAddChooser');
+        if(modal)return modal;
+        document.body.insertAdjacentHTML('beforeend',`<div id="prodPermanentAddChooser" class="modal-backdrop" role="dialog" aria-modal="true" aria-label="Add permanent record">
+          <div class="modal" style="max-width:560px">
+            <div class="modal-head"><div><h3>ADD PERMANENT RECORD</h3><div class="card-sub">Keyboard shortcut: +</div></div><button class="icon-btn" id="prodClosePermanentChooser" type="button">×</button></div>
+            <div class="quick-actions" style="grid-template-columns:1fr 1fr;margin-top:6px">
+              <button class="quick prod-permanent-add" data-page="volunteers" data-button="addVolunteer" type="button"><strong>＋ Volunteer</strong><small>Add to Volunteer Master</small></button>
+              <button class="quick prod-permanent-add" data-page="attendeeMaster" data-button="addAttendeeMaster" type="button"><strong>＋ Attendee</strong><small>Add to Attendee Master</small></button>
+              <button class="quick prod-permanent-add" data-page="kriyabans" data-button="addKriyaban" type="button"><strong>＋ Kriyaban</strong><small>Add to Kriyaban Master</small></button>
+              <button class="quick prod-permanent-add" data-page="vips" data-button="addVip" type="button"><strong>＋ VIP</strong><small>Add to VIP Master</small></button>
+            </div>
+          </div>
+        </div>`);
+        modal=$('prodPermanentAddChooser');
+        $('prodClosePermanentChooser').onclick=()=>modal.classList.remove('open');
+        modal.querySelectorAll('.prod-permanent-add').forEach(button=>button.onclick=()=>{
+          modal.classList.remove('open');
+          switchPage(button.dataset.page);
+          const firstField={volunteers:'volunteerFirstName',attendeeMaster:'attendeeMasterName',kriyabans:'kriyabanName',vips:'vipName'}[button.dataset.page];
+          setTimeout(()=>{ $(button.dataset.button)?.click(); setTimeout(()=>$(firstField)?.focus(),70); },30);
+        });
+        return modal;
+      }
+
+      function prodAdd(){
+        if(document.querySelector('.modal-backdrop.open'))return false;
+        if(page==='dashboard'){
+          prodPermanentChooser().classList.add('open');
+          return true;
+        }
+        if(page==='events'){
+          if(typeof resetEventForm==='function')resetEventForm();
+          $('eventForm')?.scrollIntoView({behavior:'smooth',block:'start'});
+          setTimeout(()=>$('eventName')?.focus(),60);
+          toast('New event ready');
+          return true;
+        }
+        const map={volunteers:'addVolunteer',attendeeMaster:'addAttendeeMaster',kriyabans:'addKriyaban',vips:'addVip',daily:'v48AddVolunteer',checkin:'v36NewRegistration',register:'v36NewRegistration',students:'p2AddStudent',acharyas:'p2AddAcharya',courseMaster:'p2AddCourse',classes:'p2AddBatch'};
+        const focusMap={volunteers:'volunteerFirstName',attendeeMaster:'attendeeMasterName',kriyabans:'kriyabanName',vips:'vipName',daily:'volunteerFirstName',checkin:'v36MainName',register:'v36MainName',students:'p2StudentName',acharyas:'p2AcharyaName',courseMaster:'p2CourseName',classes:'p2BatchName'};
+        const button=$(map[page]);
+        if(button){const currentPage=page;button.click();setTimeout(()=>$(focusMap[currentPage])?.focus(),90);return true}
+        return false;
+      }
+
+      function prodSave(){
+        const openModals=[...document.querySelectorAll('.modal-backdrop.open')];
+        let form=openModals.length?openModals[openModals.length-1].querySelector('form'):null;
+        if(!form&&page==='events')form=$('eventForm');
+        if(!form&&page==='settings')form=$('v52PasswordSettingsForm');
+        if(!form)return false;
+        if(form.id==='v36RegistrationForm'){
+          const saveOnly=form.querySelector('button[type="submit"][data-mode="register"]');
+          if(saveOnly){form.requestSubmit(saveOnly);return true}
+        }
+        form.requestSubmit();
+        return true;
+      }
+
+      function runShortcut(action){
+        if(action==='add'){
+          if(!prodAdd())toast('No Add action on this page');
+          return;
+        }
+        if(action==='save'){
+          if(!prodSave())toast('Nothing open to save');
+        }
+      }
+
+      if(window.anandaDesktop&&typeof window.anandaDesktop.onShortcut==='function')window.anandaDesktop.onShortcut(runShortcut);
+
+      document.addEventListener('keydown',event=>{
+        if(event.defaultPrevented||event.isComposing)return;
+        const key=String(event.key||'').toLowerCase();
+        const code=String(event.code||'');
+        const keyCode=Number(event.keyCode||event.which||0);
+        if(key==='escape'&&!event.altKey&&!event.ctrlKey&&!event.metaKey){
+          if(document.querySelector('.v43-suggestions:not(.hidden), #v50VipSuggestions:not(.hidden), #v86AttendeeSuggestions:not(.hidden)'))return;
+          const modals=[...document.querySelectorAll('.modal-backdrop.open')];
+          if(modals.length){
+            event.preventDefault();event.stopImmediatePropagation();
+            const modal=modals[modals.length-1];
+            const close=modal.querySelector('[data-close], .x, [id*="Close"], [id*="Cancel"]');
+            if(close&&typeof close.click==='function')close.click();else modal.classList.remove('open');
+            return;
+          }
+          const back=$('backButton');
+          if(back&&!back.classList.contains('hidden')){event.preventDefault();event.stopImmediatePropagation();back.click()}
+          return;
+        }
+        const save=event.altKey&&!event.ctrlKey&&!event.metaKey&&key==='s';
+        const plus=!event.altKey&&!event.ctrlKey&&!event.metaKey&&(event.key==='+'||code==='NumpadAdd'||keyCode===107||((code==='Equal'||keyCode===187||event.key==='=')&&event.shiftKey));
+        if(!save&&!plus)return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        runShortcut(save?'save':'add');
+      },true);
+
+      async function productionManualBackup(){
+        if(!window.anandaDesktop||typeof window.anandaDesktop.manualBackupState!=='function'){
+          $('backupData')?.click();
+          return;
+        }
+        const result=await window.anandaDesktop.manualBackupState(JSON.stringify(state));
+        if(result&&result.ok)toast('Backup saved inside the NGO Backup folder');
+        else toast((result&&result.error)||'Could not create backup');
+      }
+
+      if($('v123BackupSettings')){
+        $('v123BackupSettings').onclick=()=>{
+          const run=()=>productionManualBackup();
+          if(typeof v51RequireAdmin==='function')v51RequireAdmin(run,'create a complete data backup');else run();
+        };
+      }
+      if($('v126OpenBackupFolder')){
+        $('v126OpenBackupFolder').onclick=async()=>{
+          if(!window.anandaDesktop||typeof window.anandaDesktop.openBackupFolder!=='function'){toast('Backup folder is available in the Windows app');return}
+          const result=await window.anandaDesktop.openBackupFolder();
+          if(!result||!result.ok)toast((result&&result.error)||'Could not open Backup folder');
+        };
+      }
+
+      if(window.anandaDesktop&&typeof window.anandaDesktop.dataLocation==='function'){
+        window.anandaDesktop.dataLocation().then(result=>{if(result&&result.ok&&$('v123DataLocation'))$('v123DataLocation').textContent=result.path}).catch(()=>{});
+      }
+
+      setTimeout(async()=>{
+        if(!window.anandaDesktop||typeof window.anandaDesktop.autoBackupState!=='function')return;
+        try{
+          const result=await window.anandaDesktop.autoBackupState(JSON.stringify(state));
+          if(result&&result.ok&&result.created)toast('Automatic 5-day backup created');
+        }catch{}
+      },1800);
+
+      const prodVolunteerFirst=$('volunteerFirstName'),prodVolunteerLast=$('volunteerLastName'),prodVolunteerMobile=$('volunteerMobile'),prodVolunteerBirthday=$('volunteerBirthday');
+      if(prodVolunteerFirst&&!prodVolunteerFirst.dataset.prodEnterFlow){
+        prodVolunteerFirst.dataset.prodEnterFlow='1';
+        prodVolunteerFirst.addEventListener('keydown',event=>{if(event.key!=='Enter'||event.altKey||event.ctrlKey||event.metaKey)return;event.preventDefault();event.stopPropagation();const value=prodVolunteerFirst.value.trim();if(value.includes(' ')&&!prodVolunteerLast.value.trim()){const parts=value.split(/\s+/);prodVolunteerFirst.value=parts.shift()||'';prodVolunteerLast.value=parts.join(' ');prodVolunteerMobile?.focus();return}if(prodVolunteerLast?.value.trim())prodVolunteerMobile?.focus();else prodVolunteerLast?.focus()});
+        prodVolunteerLast?.addEventListener('keydown',event=>{if(event.key!=='Enter'||event.altKey||event.ctrlKey||event.metaKey)return;event.preventDefault();event.stopPropagation();prodVolunteerMobile?.focus()});
+        prodVolunteerMobile?.addEventListener('keydown',event=>{if(event.key!=='Enter'||event.altKey||event.ctrlKey||event.metaKey)return;event.preventDefault();event.stopPropagation();prodVolunteerBirthday?.focus()});
+      }
+
+      document.querySelectorAll('form button[type="submit"]').forEach(button=>button.title='Save • Alt+S');
+      ['addVolunteer','addAttendeeMaster','addKriyaban','addVip','v48AddVolunteer','v36NewRegistration'].forEach(id=>{const button=$(id);if(button)button.title=(button.title?button.title+' • ':'')+'Keyboard: +'});
+      document.title='ANANDA SANGHA GURGAON Event Desk — Phase 2 • 2.0.0-beta.5.27';
+    })();
+  </script>
+</body>
+</html>+
+            Number(data.estimatedUsd||0).toFixed(4)+(data.lastAt?' · Last '+new Date(data.lastAt).toLocaleString():'')
+          :'Usage information unavailable.';
+      }catch{if(usage)usage.textContent='Usage information unavailable';}
+    }
+    async function p2v537ChangePermission(allowed){
+      const name=String($('p2v537AdminName')?.value||'').trim();
+      const password=String($('p2v537AdminPassword')?.value||'');
+      const msg=$('p2v537PermissionMessage');
+      if(!name||!password){if(msg)msg.textContent='Administrator name and password are required.';return}
+      const button=$(allowed?'p2v537Grant':'p2v537Revoke');
+      if(button)button.disabled=true;
+      try{
+        const result=await window.anandaDesktop?.setAttendancePermission?.({administrator:name,password,allowed});
+        if(msg)msg.textContent=result?.ok
+          ?'Permission '+(allowed?'granted':'revoked')+'. The change is saved on this computer.'
+          :result?.error||'Unable to update permission.';
+        if(msg)msg.style.color=result?.ok?'#164f83':'#a22828';
+      }catch(err){if(msg)msg.textContent=String(err?.message||err)}
+      finally{
+        $('p2v537AdminPassword').value='';
+        if(button)button.disabled=false;
+        await p2v537RefreshAdminSettings();
+      }
+    }
+    $('p2v537Grant')?.addEventListener('click',()=>p2v537ChangePermission(true));
+    $('p2v537Revoke')?.addEventListener('click',()=>p2v537ChangePermission(false));
+    document.querySelector('[data-page="settings"]')?.addEventListener('click',p2v537RefreshAdminSettings);
+    p2v537RefreshAdminSettings();
+
+    const p2v537Styles=document.createElement('style');
+    p2v537Styles.id='p2v537AttendancePolish';
+    p2v537Styles.textContent=
+      '#classAttendanceHub .p2v58-page{max-width:1300px;margin:auto;line-height:1.5}'+
+      '#classAttendanceHub .p2v58-title-row{padding:0 0 14px;border-bottom:1px solid #e5edf4;margin-bottom:16px}'+
+      '#classAttendanceHub .p2v58-title-row h2{font-size:24px;font-weight:650;letter-spacing:-.02em;text-transform:none}'+
+      '#classAttendanceHub .p2v58-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:end;margin:0 0 14px}'+
+      '#classAttendanceHub .p2v58-filters>div{min-width:0}'+
+      '#classAttendanceHub .p2v58-filters .p2v58-date-only{display:none}'+
+      '#classAttendanceHub .p2v58-filters select{width:100%;min-width:0}'+
+      '#classAttendanceHub #p2v530Panel{margin:8px 0 16px;padding:0!important;border:0!important;box-shadow:none!important;background:transparent!important}'+
+      '#classAttendanceHub #p2v531Print{min-height:42px;width:auto;padding:10px 18px;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;border-radius:8px}'+
+      '#classAttendanceHub .p2v58-upload-buttons{margin:0 0 12px;gap:12px;align-items:center}'+
+      '#classAttendanceHub .p2v58-upload-buttons span{font-size:12px;color:#718397!important}'+
+      '#classAttendanceHub .p2v537-status{display:flex;flex-direction:column;gap:3px;border:0!important;border-left:3px solid #1b5a9c!important;border-radius:0!important;box-shadow:none;padding:8px 14px!important;font-size:13px!important;background:#f8fbfe;color:#244970!important}'+
+      '#classAttendanceHub .p2v537-status strong{font-size:13px;font-weight:700}'+
+      '#classAttendanceHub .p2v537-status span{color:#596e83;font-size:12px}'+
+      '#classAttendanceHub .p2v537-status small{display:block;margin-top:5px;font-size:12px;color:#566e84}'+
+      '#classAttendanceHub .p2v537-status small.p2v537-error{color:#a22828}'+
+      '#classAttendanceHub .p2v58-list-head{margin-top:12px;padding:10px 0;border-top:1px solid #e9eff5!important}'+
+      '#classAttendanceHub .p2v58-tab{font-size:13px;text-transform:none;font-weight:650}'+
+      '#classAttendanceHub .p2v58-footer{border-top:1px solid #e8eef4;gap:15px}'+
+      '@media(max-width:700px){#classAttendanceHub .p2v58-filters{grid-template-columns:1fr;gap:10px}}';
+    document.head.appendChild(p2v537Styles);
+    $('p2v531Print').textContent='Print attendance sheets';
+    const helper=$('p2v531Print')?.parentElement?.querySelector('span');if(helper)helper.textContent='Use the QR code on each printed sheet to upload its photograph.';
+    p2v537RefreshStatus();
 
     updateBackButton();
   resetQuickCounter(true);
