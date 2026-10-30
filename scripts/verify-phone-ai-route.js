@@ -61,7 +61,7 @@ const secondUrl=base+'/?'+new URLSearchParams({x:'PRINT37-2',k:ctx.testQr.token(
 const firstPage=await (await fetch(firstUrl)).text();
 const secondPage=await (await fetch(secondUrl)).text();
 assert(firstPage.includes('OPEN NEXT PRINTED SHEET'),'First phone page must offer Next Sheet');
-assert(firstPage.includes(secondUrl),'Next button must point to next sheet own signed URL');
+assert(firstPage.includes(new URL(secondUrl).search),'Next button must include next sheet own signed ID and HMAC');
 assert(!secondPage.includes('OPEN NEXT PRINTED SHEET'),'Final sheet must not loop to Sheet 1');
 assert(secondPage.includes('ALL SHEETS UPLOADED'),'Last sheet must be terminal');
 console.log('PASS: long and compact signed QR -> phone camera page -> upload -> exact student sheet; 32-char signature, persisted registration, invalid GET/POST rejected.');
