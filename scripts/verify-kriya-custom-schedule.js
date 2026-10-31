@@ -2,7 +2,7 @@
 const assert=require('assert'),fs=require('fs'),vm=require('vm');
 const html=fs.readFileSync('index.html','utf8');
 const start=html.indexOf('      // BETA 5.47 — Make undated Custom Date');
-const end=html.indexOf("      document.title='ANANDA SANGHA GURGAON",start);
+const end=html.indexOf('      // BETA 5.49 — One editable individual-date workflow',start);
 assert(start>0&&end>start,'Kriya custom date patch must be present');
 const src=html.slice(start,end);
 let saved=0;const notices=[],styles=[],inputs={},handlers={};
