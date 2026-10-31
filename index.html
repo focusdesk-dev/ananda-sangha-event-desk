@@ -7275,7 +7275,7 @@ function p2v58BindPhoneListener(){
         if(!p2v546Level(b))return p2v546ProposedBefore(b,en);
         const a=p2v53AttendanceSummary(b,en),min=p2v546MinimumFor(b);
         if(a.total&&a.present===0&&a.absent===a.total)return'Withdrawn';
-        if(a.total&&(a.pct>=min||p2v546ApprovedException(en,b)))return'Completed';
+        if(a.total&&(a.present*100>=min*a.total||p2v546ApprovedException(en,b)))return'Completed';
         return'Did Not Complete';
       };
       const p2v546FinalizeBefore=p2v53FinalizeEndBatch;
