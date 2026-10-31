@@ -435,7 +435,7 @@
 
         <section id="classes" class="page">
       <!-- PHASE2 CLASSES NAV BETA3 -->
-      <div class="event-banner"><div><h3>Classes</h3><p>Meditation classes, attendance, student progress and outreach. <small id="p2v548BuildMark" style="white-space:nowrap;opacity:.82">Beta 5.48</small></p></div></div>
+      <div class="event-banner"><div><h3>Classes</h3><p>Meditation classes, attendance, student progress and outreach. <small id="p2v548BuildMark" style="white-space:nowrap;opacity:.82">Beta 5.49</small></p></div></div>
 
       <!-- Kept only for compatibility with existing Phase 2 handlers. These are intentionally not shown on the Classes opening page. -->
       <div style="display:none" aria-hidden="true">
@@ -452,7 +452,7 @@
         <button class="p2-home-card go" data-go="studentProgress"><span class="no">03</span><div><strong>Student Progress &amp; Outreach</strong><br><small>Search a student and view class history, progress and next-stage follow-up.</small></div></button>
         <button class="p2-home-card" id="p2ClassesAttendance"><span class="no">04</span><div><strong>Attendance</strong><br><small>Open an active class and mark attendance session by session.</small></div></button>
         <button class="p2-home-card" id="p2ClassesReports"><span class="no">05</span><div><strong>Class Reports</strong><br><small>Roster, attendance, completion, progression and annual summary.</small></div></button>
-        <button class="p2-home-card go" data-go="courseMaster" id="p2v548ManageCourseNames"><span class="no">06</span><div><strong>Edit Course Names</strong><br><small>Rename courses such as Kriya 2 without deleting student records or batches.</small></div></button>
+        <button class="p2-home-card go" data-go="courseMaster" id="p2v548ManageCourseNames"><span class="no">06</span><div><strong>Add / Edit Courses</strong><br><small>Add a new course or rename an existing course without changing student records.</small></div></button>
       </div>
 
       <div class="card" id="p2BatchListCard">
@@ -551,6 +551,7 @@
       <div class="field"><label for="p2BatchScheduleType">Schedule type</label><select id="p2BatchScheduleType"><option value="weekly">Weekly recurring</option><option value="monthly">Monthly recurring</option><option value="custom">Custom dates</option><option value="single">Single date</option></select></div>
       <div class="field"><label for="p2BatchDay">Usual class day</label><select id="p2BatchDay"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></div>
       <div class="field" id="p2v537CountField"><label for="p2v537ClassCount">Number of classes *</label><input id="p2v537ClassCount" type="number" min="1" step="1" required value="1"></div>
+      <div class="field full" id="p2v549ManualDatesField"><label>Individual class dates</label><div id="p2v549ManualDatesList"></div><small id="p2v549ManualDatesHint">Set dates individually. The End Date follows the final dated class.</small></div>
       <div class="field" id="p2v55FeeField"><label for="p2BatchFee">Course fee (₹)</label><input id="p2BatchFee" inputmode="decimal" placeholder="0 for free"></div>
       <div class="field full"><label for="p2BatchAcharyaSearch">Acharya(s)</label><input id="p2BatchAcharyaSearch" autocomplete="off" placeholder="Search name or mobile"><div id="p2BatchAcharyaSuggestions" class="p2-suggestions hidden"></div><div id="p2BatchAcharyaSelected" class="p2-selected-list"></div></div>
       <div class="field full"><label for="p2BatchVolunteerSearch">Assisting volunteers</label><input id="p2BatchVolunteerSearch" autocomplete="off" placeholder="Search name or mobile"><div id="p2BatchVolunteerSuggestions" class="p2-suggestions hidden"></div><div id="p2BatchVolunteerSelected" class="p2-selected-list"></div></div>
@@ -2160,10 +2161,11 @@
     {id:'course-l2',name:'Level 2',category:'Progression',progressionOrder:2,defaultSchedule:'weekly',defaultDay:0,active:true,locked:true},
     {id:'course-l3',name:'Level 3',category:'Progression',progressionOrder:3,defaultSchedule:'weekly',defaultDay:0,active:true,locked:true},
     {id:'course-l4',name:'Level 4',category:'Progression',progressionOrder:4,defaultSchedule:'weekly',defaultDay:0,active:true,locked:true},
+    {id:'course-kriya',name:'Kriya',category:'Advanced',progressionOrder:null,defaultSchedule:'custom',defaultDay:0,active:true,locked:false},
     {id:'course-stt',name:'STT',category:'Advanced',progressionOrder:null,defaultSchedule:'custom',defaultDay:0,active:true,locked:false},
     {id:'course-kriya2',name:'Kriya 2',category:'Advanced',progressionOrder:null,defaultSchedule:'custom',defaultDay:0,active:true,locked:false}
   ];
-  p2DefaultCourses.forEach(def=>{let c=state.courseTypes.find(x=>normName(x.name)===normName(def.name));if(!c){state.courseTypes.push({...def})}else{Object.keys(def).forEach(k=>{if(c[k]===undefined)c[k]=def[k]})}});
+  p2DefaultCourses.forEach(def=>{let c=state.courseTypes.find(x=>x.id===def.id)||state.courseTypes.find(x=>normName(x.name)===normName(def.name));if(!c){state.courseTypes.push({...def})}else{Object.keys(def).forEach(k=>{if(c[k]===undefined)c[k]=def[k]})}});
   state.classBatches.forEach(b=>{if(!b.courseId){const c=state.courseTypes.find(x=>normName(x.name)===normName(b.level||''));if(c)b.courseId=c.id}if(!b.scheduleType)b.scheduleType=p2Levels.includes(b.level)?'weekly':'custom';if(b.usualDay===undefined)b.usualDay=0;if(!Array.isArray(b.acharyaIds)){b.acharyaIds=[];(b.acharyas||[]).forEach(name=>{let a=state.acharyas.find(x=>normName(x.name)===normName(name));if(!a){a={id:uid('ach'),name,mobile:'',notes:'Migrated from batch assignment',active:true};state.acharyas.push(a)}b.acharyaIds.push(a.id)})}});
   v51ProtectedPages.add('students');v51ProtectedPages.add('acharyas');
   let p2EditingAcharyaIds=[],p2EditingVolunteerIds=[],p2ReportMode='class';
@@ -6969,15 +6971,16 @@ function p2v58BindPhoneListener(){
         return rows.length>0&&rows.every(r=>p2v537IsDate(r.date));
       }
       function p2v547RefreshCustomEnd(b){
-        if(b?.scheduleType!=='custom'||!Array.isArray(b.plannedSessions))return;
+        if(!b||!Array.isArray(b.plannedSessions))return;
         if(p2v547AllPlannedDated(b)){
-          // The end is the last saved date, independent of the order that
-          // volunteers assigned class numbers.
+          // Applies to ALL courses, including manual and recurring schedules.
           b.end=b.plannedSessions.map(r=>r.date).sort().at(-1);
-          b.endFromCustomSessions=true;
-        }else if(b.endFromCustomSessions){
+          b.endFromCustomSessions=(b.scheduleType==='custom');
+          b.endFromPlannedSessions=true;
+        }else if(b.endFromCustomSessions||b.endFromPlannedSessions){
           b.end='';
           b.endFromCustomSessions=false;
+          b.endFromPlannedSessions=false;
         }
       }
       const p2v547OpenDateBase=p2v5Fix2OpenDateDialog;
@@ -7114,7 +7117,181 @@ function p2v58BindPhoneListener(){
         '#p2v5ScheduleCard .p2v547-session-date:disabled{cursor:default;opacity:.65}';
       document.head.appendChild(p2v547Style);
 
-      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.48';
+      // BETA 5.49 — One editable individual-date workflow for every course.
+      // No course or batch is created from an edit; the Kriya course definition
+      // is distinct from Kriya 2, and is initially empty of batches.
+      let p2v549Draft=[],p2v549EditingId='',p2v549HasDateFields=false;
+      function p2v549Count(){
+        const raw=$('p2v537ClassCount').value.trim();
+        if(!/^[1-9]\d*$/.test(raw)||!Number.isSafeInteger(Number(raw)))return 0;
+        return Number(raw);
+      }
+      function p2v549DraftEnd(){
+        const dates=p2v549Draft.filter(Boolean).sort();
+        return dates.length===p2v549Draft.length&&dates.length?dates.at(-1):'';
+      }
+      function p2v549SetEndFromDraft(){
+        if(!p2v549HasDateFields)return;
+        // For custom/manual batches, do not imply a completed calendar while
+        // one or more class dates remain undecided.
+        const end=p2v549DraftEnd(),input=$('p2BatchEnd');
+        if(end)input.value=end;
+        else if(!p2v545Recurring($('p2BatchScheduleType').value))input.value='';
+        const hint=$('p2v549ManualDatesHint');
+        if(hint)hint.textContent=end
+          ?'End Date is the latest saved class date. Edit any date if necessary.'
+          :'Enter each class date; End Date appears when every class has a date.';
+      }
+      function p2v549RenderDates(reset=false){
+        const host=$('p2v549ManualDatesList');if(!host)return;
+        const count=p2v549Count(),type=$('p2BatchScheduleType').value,
+          start=$('p2BatchStart').value,day=$('p2BatchDay').value,
+          existing=state.classBatches.find(b=>b.id===$('p2BatchId').value);
+        if(!count){p2v549HasDateFields=false;host.textContent='Enter a valid number of classes.';return}
+        if(count>60){
+          p2v549HasDateFields=false;
+          host.textContent='For '+count+' classes, save the batch and set individual dates under Class Dates & Schedule to keep this form compact.';
+          return;
+        }
+        p2v549HasDateFields=true;
+        const known=existing?p2v537Rows(existing):[],
+          recurrence=(!existing&&p2v545Recurring(type)&&start)
+            ?p2v545Sessions(start,count,type,day):[];
+        if(reset)p2v549Draft=Array.from({length:count},(_,i)=>known[i]?.date||recurrence[i]||'');
+        else{
+          const old=p2v549Draft.slice();
+          p2v549Draft=Array.from({length:count},(_,i)=>old[i]??known[i]?.date??recurrence[i]??'');
+        }
+        host.innerHTML='<div class="p2v549-date-grid">'+p2v549Draft.map((d,i)=>
+          '<label class="p2v549-date-row"><span>Class '+(i+1)+'</span><input type="date" data-n="'+i+'" value="'+esc(d)+'"></label>'
+        ).join('')+'</div>';
+        host.querySelectorAll('input[type=date]').forEach(input=>{
+          input.addEventListener('input',()=>{
+            p2v549Draft[Number(input.dataset.n)]=input.value;
+            p2v549SetEndFromDraft();
+          });
+          input.addEventListener('change',()=>{
+            p2v549Draft[Number(input.dataset.n)]=input.value;
+            p2v549SetEndFromDraft();
+          });
+        });
+        p2v549SetEndFromDraft();
+      }
+      const p2v549OpenBase=p2OpenBatch;
+      p2OpenBatch=function(id=''){
+        p2v549OpenBase(id);
+        p2v549EditingId=id;
+        p2v549Draft=[];
+        p2v549RenderDates(true);
+      };
+      const p2v549CountInput=$('p2v537ClassCount'),
+        p2v549CountBefore=p2v549CountInput.oninput;
+      p2v549CountInput.oninput=function(ev){
+        if(p2v549CountBefore)p2v549CountBefore.call(this,ev);
+        p2v549RenderDates();
+      };
+      for(const id of ['p2BatchStart','p2BatchDay','p2BatchScheduleType']){
+        $(id).addEventListener('change',()=>{
+          // For brand-new recurring batches the date suggestions follow the
+          // weekday / start date. Existing attendance dates never regenerate.
+          if(!$('p2BatchId').value&&p2v545Recurring($('p2BatchScheduleType').value))p2v549RenderDates(true);
+          else p2v549RenderDates();
+        });
+      }
+      $('p2BatchCourse').addEventListener('change',()=>p2v549RenderDates(true));
+      const p2v549SubmitBase=$('p2BatchForm').onsubmit;
+      $('p2BatchForm').onsubmit=function(event){
+        event.preventDefault();
+        const count=p2v549Count(),editing=$('p2BatchId').value,
+          using=p2v549HasDateFields&&count>0&&count<=60,
+          input=$('p2BatchEnd'),originalEnd=input.value,
+          start=$('p2BatchStart').value,type=$('p2BatchScheduleType').value,
+          draft=using?p2v549Draft.slice(0,count):[];
+        if(using){
+          const selected=draft.filter(Boolean);
+          if(new Set(selected).size!==selected.length){toast('Two classes cannot have the same date.');return}
+          if(selected.some(d=>!p2v545InputDate(d))){toast('Choose a valid class date.');return}
+          if(start&&selected.some(d=>d<start)){toast('A class date precedes the Start Date.');return}
+          const old=state.classBatches.find(b=>b.id===editing),oldRows=old?p2v537Rows(old):[];
+          if(old){
+            for(let i=0;i<Math.min(count,oldRows.length);i++){
+              const prev=oldRows[i].date,next=draft[i]||'';
+              if(prev&&prev!==next&&state.classEnrollments.some(en=>
+                en.batchId===old.id&&Object.prototype.hasOwnProperty.call(en.attendance||{},prev))){
+                toast('This date has saved attendance. Change it in Class Dates & Schedule to preserve attendance.');return;
+              }
+            }
+          }
+          // Let the existing recurrence validator see the nominal last date.
+          // Actual individually edited dates are then written as authoritative.
+          if(p2v545Recurring(type)&&start){
+            const nominal=p2v545Sessions(start,count,type,$('p2BatchDay').value);
+            if(nominal.length===count)input.value=nominal.at(-1);
+          }else input.value=p2v549DraftEnd();
+        }
+        p2v549SubmitBase.call(this,event);
+        const b=state.classBatches.find(x=>x.id===(editing||state.activeClassBatchId));
+        if(!b||$('p2BatchModal').classList.contains('open')){
+          input.value=originalEnd;return;
+        }
+        if(using&&b.plannedSessions.length===count){
+          b.plannedSessions=b.plannedSessions.map((r,i)=>({...r,number:i+1,date:draft[i]||''}));
+          b.sessionDates=[...new Set(draft.filter(Boolean))].sort();
+          // A pending class means the batch end is unknown; the calendar is
+          // never inferred from unrelated days of the week.
+          b.end=p2v549DraftEnd();
+          b.endFromPlannedSessions=!!b.end;
+          b.endFromCustomSessions=!!b.end&&type==='custom';
+          b.status=p2v55AutoStatus(b);
+          save();
+        }
+      };
+      // When an existing date is changed on the workspace, update End Date
+      // for both recurring and custom schedules without deleting attendance.
+      const p2v549EditBefore=p2v5Fix2EditClassDate;
+      p2v5Fix2EditClassDate=function(b,oldDate,newDate){
+        const result=p2v549EditBefore(b,oldDate,newDate);
+        if(result&&b){
+          p2v547RefreshCustomEnd(b);
+          save();
+        }
+        return result;
+      };
+      const p2v549AddBefore=p2v5AddNewClass;
+      p2v5AddNewClass=function(b,iso){
+        const old=(b?.sessionDates||[]).length;
+        const result=p2v549AddBefore(b,iso);
+        if(b&&(b.sessionDates||[]).length!==old){
+          p2v547RefreshCustomEnd(b);save();
+        }
+        return result;
+      };
+      // Put course-name editing next to Edit Batch on the selected batch.
+      const p2v549HeaderBefore=p2v5RenderHeader;
+      p2v5RenderHeader=function(b){
+        const result=p2v549HeaderBefore(b),actions=$('p2ClassHeader')?.querySelector('.actions');
+        const course=p2CourseForBatch(b);
+        if(actions&&course&&!actions.querySelector('#p2v549EditCourse')){
+          const button=document.createElement('button');
+          button.type='button';button.className='btn secondary';
+          button.id='p2v549EditCourse';button.textContent='Edit Course Name';
+          button.onclick=()=>p2OpenCourse(course.id);
+          actions.insertBefore(button,actions.firstChild);
+        }
+        return result;
+      };
+      const p2v549Style=document.createElement('style');
+      p2v549Style.textContent=
+        '#p2v549ManualDatesField{padding-top:5px;border-top:1px solid #e5ebf2}'+
+        '#p2v549ManualDatesList{max-height:185px;overflow:auto;margin-top:5px}'+
+        '.p2v549-date-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 11px}'+
+        '.p2v549-date-row{display:flex;gap:5px;align-items:center;font-size:11px;color:#304c6e}'+
+        '.p2v549-date-row span{white-space:nowrap}'+
+        '#p2BatchForm .p2v549-date-row input{min-width:0;height:34px;font-size:12px}'+
+        '@media(max-width:700px){.p2v549-date-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}';
+      document.head.appendChild(p2v549Style);
+      const betaLabel=document.querySelector('#classes .p2v56-chat-class-header, #classes .p2v54-banner, #classes .p2v5-banner');
+      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.49';
     })();
 
   resetEventForm();
