@@ -2,7 +2,7 @@
 const assert=require('assert'),fs=require('fs'),vm=require('vm');
 const html=fs.readFileSync('index.html','utf8');
 const a=html.indexOf('      // CORRECTION 18 — global minimum attendance;');
-const b=html.indexOf("      document.title='ANANDA SANGHA GURGAON",a);
+const b=html.indexOf('      // BETA 5.47 — Make undated Custom Date',a);
 assert(a>0&&b>a,'Correction 18 progression module missing');
 const source=html.slice(a,b);
 const dates=['2026-11-01','2026-11-08','2026-11-15','2026-11-22','2026-11-29'];
