@@ -90,7 +90,10 @@ assert.strictEqual(batch.plannedSessions[8].date,'2026-12-27');
 assert.strictEqual(enrolled.attendance['2026-11-01'],true);
 // Existing manually customised schedule is retained even when batch metadata changes.
 batch.plannedSessions[1].date='2026-11-09';batch.sessionDates[1]='2026-11-09';
-enrolled.attendance['2026-11-09']=false;
+// Mimic Class Schedule's attendance-preserving move, rather than forging
+// a second orphan attendance key outside the batch's sessionDates.
+enrolled.attendance['2026-11-09']=enrolled.attendance['2026-11-08'];
+delete enrolled.attendance['2026-11-08'];
 open(batchId);fields.p2BatchNotes.value='Custom preserved';submit();
 assert.strictEqual(batch.plannedSessions[1].date,'2026-11-09');
 assert.strictEqual(enrolled.attendance['2026-11-09'],false);
