@@ -2549,7 +2549,7 @@
     if(p2v5IsEnded(b))return;const dates=p2v5ValidDates(b),enrol=state.classEnrollments.filter(e=>e.batchId===b.id);if(!dates.length){toast('Add at least one class date before ending the batch');return}
     const missing=[];enrol.forEach(en=>dates.filter(d=>p2v5EnrollmentEligibleOn(en,d)).forEach(d=>{if(p2cAttendanceStatus(en,d)===null)missing.push([en,d])}));if(missing.length){toast(`Attendance is still unmarked in ${missing.length} place${missing.length===1?'':'s'}. Use each class column's Mark Remaining Absent button first.`);return}
     if(!confirm('End this batch? Attendance and final outcomes will be locked.'))return;
-    const next=p2v5CourseNext(b),course=p2CourseForBatch(b);enrol.forEach(en=>{const eligible=dates.filter(d=>p2v5EnrollmentEligibleOn(en,d)),present=eligible.filter(d=>p2cAttendanceStatus(en,d)===true).length,absent=eligible.filter(d=>p2cAttendanceStatus(en,d)===false).length;if(eligible.length&&present===0&&absent===eligible.length){en.outcome='Withdrawn';en.eligibleFor=''}else if(present>0){en.outcome='Completed';en.completionDate=today();en.eligibleFor=course?.name==='Level 4'?'':next}else{en.outcome='Did Not Complete';en.eligibleFor=''}});b.status='Completed';b.endedAt=new Date().toISOString();b.end=b.end||dates.at(-1)||today();save();toast('Batch ended and final outcomes saved')
+    const next=p2v5CourseNext(b),course=p2CourseForBatch(b);enrol.forEach(en=>{const eligible=dates.filter(d=>p2v5EnrollmentEligibleOn(en,d)),present=eligible.filter(d=>p2cAttendanceStatus(en,d)===true).length,absent=eligible.filter(d=>p2cAttendanceStatus(en,d)===false).length;if(eligible.length&&present===0&&absent===eligible.length){en.outcome='Withdrawn';en.eligibleFor=''}else if(present>0){en.outcome='Completed';en.completionDate=today();en.eligibleFor=p2FullChain.slice(3,7).includes(course?.name)?'':next}else{en.outcome='Did Not Complete';en.eligibleFor=''}});b.status='Completed';b.endedAt=new Date().toISOString();b.end=b.end||dates.at(-1)||today();save();toast('Batch ended and final outcomes saved')
   }
 
   function p2v5RenderStats(b){const enrol=state.classEnrollments.filter(e=>e.batchId===b.id),completed=enrol.filter(e=>e.outcome==='Completed').length,incomplete=enrol.filter(e=>['Withdrawn','Did Not Complete','Incomplete'].includes(e.outcome)).length,ended=p2v5IsEnded(b);$('p2ClassStats').innerHTML=`<div class="p2-kpi"><span>Enrolled</span><b>${enrol.length}</b></div><div class="p2-kpi"><span>Completed</span><b>${completed}</b></div><div class="p2-kpi"><span>Incomplete / Withdraw</span><b>${incomplete}</b></div><div class="p2-kpi"><span>Sessions</span><b>${p2v5ValidDates(b).length}</b></div><button id="p2v5EndBatch" type="button" ${ended?'disabled':''}>${ended?'BATCH ENDED ✓':'END BATCH'}</button>`;if(!ended)$('p2v5EndBatch').onclick=()=>p2v5EndBatch(b)}
@@ -2770,7 +2770,7 @@
     const ws=$('classWorkspace'),host=p2v53EnsureSummaryHost();
     [...ws.children].forEach(el=>{if(el===host||el.id==='p2ClassHeader')return;if(show){if(el.dataset.p2v53Display===undefined)el.dataset.p2v53Display=el.style.display||'';el.style.display='none'}else{el.style.display=el.dataset.p2v53Display??''}});host.style.display=show?'block':'none'
   }
-  function p2v53EligibilityLabel(courseName,outcome,next){if(outcome!=='Completed')return'No';if(courseName==='Level 4')return'Acharya';return next?'Yes':'—'}
+  function p2v53EligibilityLabel(courseName,outcome,next){if(outcome!=='Completed')return'No';if(p2FullChain.slice(3,7).includes(courseName))return'Acharya';return next?'Yes':'—'}
   function p2v53RenderSummary(b,preview=false){
     p2v53SetSummaryMode(true);const host=p2v53EnsureSummaryHost(),enrol=state.classEnrollments.filter(e=>e.batchId===b.id).slice().sort((a,z)=>p2v5Person(a).name.localeCompare(p2v5Person(z).name,undefined,{sensitivity:'base'})),dates=p2v5ValidDates(b),course=p2CourseForBatch(b),next=p2v5CourseNext(b),courseName=course?.name||p2CourseName(b);
     const rows=enrol.map(en=>{const a=p2v53AttendanceSummary(b,en),out=preview?p2v53ProposedOutcome(b,en):(en.outcome||p2v53ProposedOutcome(b,en)),paid=en.paymentStatus==='Paid';return{en,p:p2v5Person(en),a,out,paid,eligible:p2v53EligibilityLabel(courseName,out,next)}});
@@ -7293,6 +7293,264 @@ function p2v58BindPhoneListener(){
         '#p2BatchForm .p2v549-date-row input{min-width:0;height:34px;font-size:12px}'+
         '@media(max-width:700px){.p2v549-date-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}';
       document.head.appendChild(p2v549Style);
+
+      // BETA 5.50 — Level 1 → 4 → Kriya → Kriya 2 → 3 → 4.
+      // An Acharya decision is a separate, auditable record; neither
+      // attendance nor an administrator enrollment override is an approval.
+      function p2v550Stage(b){
+        const id=String(b?.courseId||''),match={
+          'course-l1':'Level 1','course-l2':'Level 2','course-l3':'Level 3',
+          'course-l4':'Level 4','course-kriya':'Kriya',
+          'course-kriya2':'Kriya 2','course-kriya3':'Kriya 3','course-kriya4':'Kriya 4'
+        }[id];
+        return match||[p2CourseName(b),b?.level].find(x=>p2FullChain.includes(x))||'';
+      }
+      function p2v550Completed(studentId,source){
+        if(!studentId||!source)return false;
+        if(source==='Kriya'){
+          const student=p2FindStudent(studentId);
+          // Older Kriyaban records remain valid as evidence that Kriya was received.
+          if(student&&(student.kriyabanId||student.kriyaDate||student.kriyaYear))return true;
+        }
+        return state.classEnrollments.some(en=>{
+          if(en.studentId!==studentId||en.outcome!=='Completed')return false;
+          const batch=state.classBatches.find(b=>b.id===en.batchId);
+          return batch?p2v550Stage(batch)===source:en.level===source;
+        });
+      }
+      function p2v550Decision(student,target){
+        const record=student?.acharyaProgressionApprovals?.[target];
+        return record&&record.status==='Approved'&&record.approvedAt&&record.acharyaId&&
+          !record.revokedAt?record:null;
+      }
+      const p2v550RequirementBase=p2v55ProgressionRequirement;
+      p2v55ProgressionRequirement=function(studentId,batchId){
+        const batch=state.classBatches.find(b=>b.id===batchId);
+        if(!batch)return{ok:false,reason:'Class batch not found.'};
+        const target=p2v550Stage(batch),index=p2FullChain.indexOf(target);
+        if(index<4)return p2v550RequirementBase(studentId,batchId);
+        const student=p2FindStudent(studentId),previous=p2FullChain[index-1];
+        if(!student)return{ok:false,reason:'Select an existing student before enrolling in '+target+'.'};
+        if(!p2v550Completed(student.id,previous))
+          return{ok:false,reason:previous+' must be completed before enrolling in '+target+'.'};
+        if(!p2v550Decision(student,target))
+          return{ok:false,reason:'Acharya approval for '+target+' is required. Record the decision in the '+previous+' batch first.'};
+        return{ok:true,reason:''};
+      };
+      // Enrollment methods must enforce the real Acharya decision independently
+      // of the older administrator password override dialog.
+      const p2v550CreateEnrollmentBase=p2CreateEnrollment;
+      p2CreateEnrollment=function(studentId,batchId){
+        const b=state.classBatches.find(x=>x.id===batchId);
+        if(p2FullChain.indexOf(p2v550Stage(b))>=4){
+          const check=p2v55ProgressionRequirement(studentId,batchId);
+          if(!check.ok){toast(check.reason);return null}
+        }
+        return p2v550CreateEnrollmentBase(studentId,batchId);
+      };
+      const p2v550EnrollFormBase=$('p2EnrollForm').onsubmit;
+      $('p2EnrollForm').onsubmit=function(event){
+        const batch=p2ActiveBatch();
+        if(p2FullChain.indexOf(p2v550Stage(batch))>=4){
+          const student=p2v54StudentFromEnrollForm();
+          const check=p2v55ProgressionRequirement(student?.id||'',batch.id);
+          if(!check.ok){
+            event.preventDefault();
+            toast(check.reason);
+            return;
+          }
+        }
+        return p2v550EnrollFormBase.call(this,event);
+      };
+      // Advanced course statuses never become "Eligible" merely on the basis
+      // of an attendance percentage. An explicit decision is still necessary.
+      const p2v550EligibilityBase=p2v546Eligibility;
+      p2v546Eligibility=function(en,b){
+        const source=p2v550Stage(b),index=p2FullChain.indexOf(source);
+        if(index<3||index>=7)return p2v550EligibilityBase(en,b);
+        const next=p2FullChain[index+1],student=p2FindStudent(en.studentId);
+        if(state.classEnrollments.some(x=>x.studentId===en.studentId&&
+          p2v550Stage(state.classBatches.find(b=>b.id===x.batchId))===next))
+          return{key:'Joined',label:'Joined '+next,cls:'blue'};
+        if(!p2v550Completed(en.studentId,source))
+          return{key:'Review Required',label:'Complete '+source+' first',cls:'amber'};
+        if(p2v550Decision(student,next))
+          return{key:'Eligible',label:'Acharya approved for '+next,cls:'green'};
+        return{key:'Review Required',label:'Acharya approval required for '+next,cls:'amber'};
+      };
+      p2v54NextStatus=function(en,b){return p2v546Eligibility(en,b)};
+      p2EligibleFromLevel=function(level){
+        const next=p2NextLevel(level),target=p2FullChain.indexOf(next);
+        if(!next)return[];
+        return state.students.filter(student=>{
+          if(state.classEnrollments.some(en=>en.studentId===student.id&&
+            p2v550Stage(state.classBatches.find(b=>b.id===en.batchId))===next))return false;
+          if(target>=4)return p2v550Completed(student.id,level)&&!!p2v550Decision(student,next);
+          const history=p2StudentEnrollments(student.id);
+          return p2v55EligibilityFromHistory(next,history);
+        });
+      };
+      const p2v550RegisterBase=p2RegisterNext;
+      p2RegisterNext=function(studentId,fromLevel){
+        const next=p2NextLevel(fromLevel);
+        if(p2FullChain.indexOf(next)<4)return p2v550RegisterBase(studentId,fromLevel);
+        const student=p2FindStudent(studentId);
+        if(!student){toast('Student record not found.');return}
+        if(!p2v550Completed(studentId,fromLevel)){
+          toast(fromLevel+' must be completed before '+next+'.');return;
+        }
+        if(!p2v550Decision(student,next)){
+          toast('Record Acharya approval for '+next+' before registration.');return;
+        }
+        const batches=state.classBatches.filter(b=>p2v550Stage(b)===next&&!b.endedAt)
+          .sort((a,b)=>String(a.start).localeCompare(String(b.start)));
+        if(!batches.length){toast('Create an upcoming or active '+next+' batch first.');return}
+        let batch=batches[0];
+        if(batches.length>1){
+          const answer=window.prompt('Select '+next+' batch:\n'+batches.map((b,i)=>
+            (i+1)+'. '+b.name+' ('+(b.start||'date pending')+')').join('\n'),'1');
+          const index=Number(answer)-1;
+          if(!Number.isInteger(index)||!batches[index])return;
+          batch=batches[index];
+        }
+        const enrollment=p2CreateEnrollment(studentId,batch.id);
+        if(!enrollment)return;
+        const outreach=p2OutreachRecord(studentId,fromLevel);
+        outreach.status='Registered';outreach.contactDate=today();
+        save();toast('Registered for '+next+' — '+batch.name);
+      };
+      const p2v550StageBefore=p2CurrentStage;
+      p2CurrentStage=function(student){
+        if(!student)return'Not started';
+        const enrolled=state.classEnrollments.filter(en=>en.studentId===student.id)
+          .map(en=>p2v550Stage(state.classBatches.find(b=>b.id===en.batchId))||
+            (p2FullChain.includes(en.level)?en.level:''))
+          .filter(x=>p2FullChain.includes(x));
+        if(student.kriyabanId||student.kriyaDate||student.kriyaYear)enrolled.push('Kriya');
+        if(enrolled.length)return enrolled.sort((a,b)=>p2FullChain.indexOf(b)-p2FullChain.indexOf(a))[0];
+        return p2v550StageBefore(student);
+      };
+      let p2v550Pending=null;
+      function p2v550ApprovalModal(){
+        if($('p2v550ApprovalModal'))return;
+        document.body.insertAdjacentHTML('beforeend',
+          '<div id="p2v550ApprovalModal" class="modal-backdrop"><form id="p2v550ApprovalForm" class="modal" style="max-width:470px">'+
+          '<div class="modal-head"><h3>Acharya progression decision</h3><button type="button" class="x" id="p2v550Close">×</button></div>'+
+          '<div id="p2v550ApprovalInfo" class="p2-note"></div>'+
+          '<div class="field full"><label>Approving Acharya *</label><select id="p2v550Acharya" required></select></div>'+
+          '<div class="field full"><label>Decision</label><select id="p2v550Decision"><option value="Approved">Approved</option><option value="Not approved">Not approved</option></select></div>'+
+          '<div class="field full"><label>Decision notes (optional)</label><textarea id="p2v550Notes" rows="2"></textarea></div>'+
+          '<div class="actions"><button class="btn" type="submit">Record decision</button><button class="btn secondary" id="p2v550Cancel" type="button">Cancel</button></div>'+
+          '</form></div>');
+        const close=()=>{$('p2v550ApprovalModal').classList.remove('open');p2v550Pending=null};
+        $('p2v550Close').onclick=$('p2v550Cancel').onclick=close;
+        $('p2v550ApprovalForm').onsubmit=event=>{
+          event.preventDefault();
+          if(!p2v550Pending)return;
+          const ctx={...p2v550Pending},acharya=state.acharyas.find(a=>a.id===$('p2v550Acharya').value&&a.active!==false);
+          if(!acharya){toast('Select an Acharya from Acharya Master.');return}
+          const status=$('p2v550Decision').value,notes=$('p2v550Notes').value.trim();
+          v51RequireAdmin(()=>{
+            const person=p2FindStudent(ctx.studentId);
+            const source=state.classBatches.find(b=>b.id===ctx.sourceBatchId);
+            if(!person||!source||p2v550Stage(source)!==ctx.from){
+              toast('Source batch or student was changed; no decision recorded.');return;
+            }
+            if(!p2v550Completed(person.id,ctx.from)){
+              toast('Complete '+ctx.from+' before recording the decision.');return;
+            }
+            person.acharyaProgressionApprovals=person.acharyaProgressionApprovals||{};
+            const previous=person.acharyaProgressionApprovals[ctx.next];
+            // Keep a history of revisions instead of erasing earlier decisions.
+            person.acharyaProgressionHistory=person.acharyaProgressionHistory||[];
+            if(previous)person.acharyaProgressionHistory.push({...previous,target:ctx.next});
+            person.acharyaProgressionApprovals[ctx.next]={
+              status,approvedAt:status==='Approved'?new Date().toISOString():'',
+              decidedAt:new Date().toISOString(),acharyaId:acharya.id,
+              acharyaName:acharya.name,sourceLevel:ctx.from,
+              sourceBatchId:ctx.sourceBatchId,notes
+            };
+            $('p2v550ApprovalModal').classList.remove('open');
+            p2v550Pending=null;
+            save();
+            toast('Acharya decision recorded for '+ctx.next+'.');
+          },'record Acharya progression approval for '+ctx.next);
+        };
+      }
+      function p2v550OpenApproval(studentId,sourceBatchId){
+        const source=state.classBatches.find(b=>b.id===sourceBatchId),from=p2v550Stage(source);
+        const next=p2NextLevel(from),student=p2FindStudent(studentId);
+        if(!student||!next||p2FullChain.indexOf(next)<4)return;
+        if(!p2v550Completed(studentId,from)){
+          toast('Complete '+from+' before recording an Acharya decision.');return;
+        }
+        const acharyas=state.acharyas.filter(a=>a.active!==false)
+          .sort((a,b)=>a.name.localeCompare(b.name));
+        if(!acharyas.length){toast('Add an Acharya in Acharya Master first.');return}
+        p2v550ApprovalModal();
+        p2v550Pending={studentId,sourceBatchId,from,next};
+        $('p2v550ApprovalInfo').textContent=student.name+' · '+from+' → '+next;
+        $('p2v550Acharya').innerHTML='<option value="">Select Acharya</option>'+
+          acharyas.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('');
+        $('p2v550Decision').value='Approved';$('p2v550Notes').value='';
+        $('p2v550ApprovalModal').classList.add('open');
+      }
+      function p2v550RenderApprovals(){
+        const current=p2ActiveBatch(),from=p2v550Stage(current),
+          next=p2NextLevel(from),qualifies=p2FullChain.indexOf(next)>=4;
+        $('p2v550ApprovalCard')?.remove();
+        if(!qualifies||page!=='classWorkspace')return;
+        const enrollments=state.classEnrollments.filter(e=>e.batchId===current.id);
+        const host=document.createElement('section');
+        host.className='card';host.id='p2v550ApprovalCard';
+        host.innerHTML='<div class="card-head"><div><h3>Acharya approval · '+esc(next)+'</h3>'+
+          '<div class="card-sub">Approval is recorded separately from attendance and is required before enrollment in '+esc(next)+'.</div></div></div>'+
+          (enrollments.length?'<div class="table-wrap"><table><thead><tr><th>Student</th><th>Previous course</th><th>Acharya decision</th><th></th></tr></thead><tbody>'+
+          enrollments.map(en=>{
+            const student=p2FindStudent(en.studentId);
+            if(!student)return'';
+            const ready=p2v550Completed(student.id,from);
+            const decision=p2v550Decision(student,next);
+            const denied=student.acharyaProgressionApprovals?.[next]?.status==='Not approved';
+            return'<tr><td><strong>'+esc(student.name)+'</strong></td><td>'+esc(from)+
+              ' · '+esc(en.outcome||'In Progress')+'</td><td>'+
+              (decision?'Approved by '+esc(decision.acharyaName):
+                denied?'Not approved':ready?'Pending Acharya decision':'Course not completed')+
+              '</td><td><button class="btn secondary small p2v550-approve" data-student="'+esc(student.id)+'" '+
+              (!ready?'disabled':'')+'>Record decision</button></td></tr>';
+          }).join('')+'</tbody></table></div>':
+          '<div class="p2-empty">No student enrolments in this batch.</div>');
+        const anchor=$('p2ClassRoster');
+        if(anchor)anchor.insertAdjacentElement('afterend',host);
+        host.querySelectorAll('.p2v550-approve').forEach(button=>button.onclick=()=>
+          p2v550OpenApproval(button.dataset.student,current.id));
+      }
+      const p2v550WorkspaceBase=p2RenderClassWorkspace;
+      p2RenderClassWorkspace=function(){
+        const result=p2v550WorkspaceBase();
+        p2v550RenderApprovals();
+        return result;
+      };
+      const p2v550OutreachBase=p2RenderOutreach;
+      p2RenderOutreach=function(level){
+        const result=p2v550OutreachBase(level);
+        const from=p2FullChain.indexOf(level),next=p2NextLevel(level);
+        if(from>=3&&from<7&&$('p2BatchOutreach')){
+          const pending=state.students.filter(student=>p2v550Completed(student.id,level)&&
+            !p2v550Decision(student,next)&&
+            !state.classEnrollments.some(en=>en.studentId===student.id&&
+              p2v550Stage(state.classBatches.find(b=>b.id===en.batchId))===next)).length;
+          if(pending){
+            const msg=document.createElement('p');
+            msg.className='p2-note';
+            msg.textContent=pending+' student(s) require Acharya approval for '+next+
+              '. Record the decision in their '+level+' batch.';
+            $('p2BatchOutreach').prepend(msg);
+          }
+        }
+        return result;
+      };
+
       const betaLabel=document.querySelector('#classes .p2v56-chat-class-header, #classes .p2v54-banner, #classes .p2v5-banner');
       document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.49';
     })();
