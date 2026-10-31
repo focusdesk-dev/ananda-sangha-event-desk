@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.44 Setup
+name: Build Ananda Event Desk beta 5.45 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-44-no-admin-permission]
+    branches: [beta-5-45-correction-17-batch-form]
 jobs:
   windows-installer:
     runs-on: windows-latest
@@ -77,6 +77,6 @@ jobs:
           }
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.44-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.45-Setup
           path: dist/*.exe
           if-no-files-found: error
