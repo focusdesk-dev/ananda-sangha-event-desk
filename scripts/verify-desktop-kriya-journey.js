@@ -20,7 +20,7 @@ function journey(){
  yes(document.querySelector('#courseMaster.page.active'),'Course Master did not open');
  let course=snap().courseTypes.find(c=>c.name==='Kriya 2');
  if(!course){click('p2AddCourse');set('p2CourseName','Kriya 2');set('p2CourseSchedule','custom','change');el('p2CourseForm').requestSubmit();course=snap().courseTypes.find(c=>c.name==='Kriya 2')}
- yes(course,'Kriya 2 not created');
+ yes(course,'Kriya 2 not created; courses='+JSON.stringify((snap().courseTypes||[]).map(c=>({id:c.id,name:c.name})))+'; modal='+el('p2CourseModal').className+'; name='+el('p2CourseName').value+'; formValid='+el('p2CourseForm').checkValidity()+'; toast='+el('toast').textContent);
  classes();click('p2AddBatch');
  set('p2BatchCourse',course.id,'change');set('p2BatchName','Kriya 2 Batch 1');set('p2BatchStart','2026-11-01','change');
  set('p2BatchScheduleType','custom','change');set('p2v537ClassCount','3');set('p2BatchEnd','');
