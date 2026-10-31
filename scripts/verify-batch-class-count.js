@@ -136,4 +136,13 @@ for(const id of ['p2BatchCourse','p2BatchName','p2BatchStart','p2BatchEnd',
 assert(html.includes('width:min(870px,calc(100vw - 32px))'),'Desktop 870px dialog');
 assert(html.includes('const p2v537EditDateBase=p2v5Fix2EditClassDate'),'Class Schedule editing preserved');
 assert(html.includes('Class date cannot be removed: attendance is saved'),'Attendance protection preserved');
-console.log('PASS: two-way weekly (8→Dec20, Dec13→7), monthly, no first-day overshoot, new 8 sessions, unscheduled, custom, existing IDs/attendance, expansion, safe reduction, desktop form and autocomplete preserved');
+// No arbitrary 1,000-class ceiling: one or more classes accepted.
+assert.strictEqual(test.dates('2026-11-01',1201,'weekly',0).length,1201,'Recurring classes allow more than 1,000');
+assert.strictEqual(test.dates('2026-11-01',1201,'monthly',0).length,1201,'Monthly schedule allows more than 1,000');
+open();fields.p2BatchName.value='Custom 1201';edit('p2BatchScheduleType','custom');edit('p2v537ClassCount','1201');submit();
+const expanded=state.classBatches.at(-1);
+assert.strictEqual(expanded.numberOfClasses,1201,'Custom batches allow more than 1,000 classes');
+assert.strictEqual(expanded.plannedSessions.length,1201);
+assert(!expanded.end,'Undated large custom batch must not invent an End Date');
+assert(html.includes('id="p2v537ClassCount" type="number" min="1" step="1"'),'No fixed max in the Classes input');
+console.log('PASS: class-count range 1–1201 and higher, custom/weekly/monthly, two-way date calculations, saved session identifiers and existing attendance');
