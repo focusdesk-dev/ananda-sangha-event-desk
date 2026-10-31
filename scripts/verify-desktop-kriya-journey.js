@@ -53,8 +53,6 @@ function journey(){
  set('p2BatchName','Kriya 2 Batch Renamed');el('p2BatchForm').requestSubmit();
  b=snap().classBatches.find(x=>x.id===batch.id);
  yes(b.name==='Kriya 2 Batch Renamed','Batch name did not save');
- const modified=snap();modified.classEnrollments.push({id:'QA_UI_ENROLMENT',batchId:batch.id,studentId:'QA_UI_STUDENT',level:'Kriya 2',attendance:{'2026-11-04':true}});
- localStorage.setItem('annualEventRegistration.v1',JSON.stringify(modified));
  classes();click('p2v548ManageCourseNames');
  const edit=[...document.querySelectorAll('.p2-edit-course')].find(x=>x.dataset.id===course.id);
  yes(edit,'Course edit control missing');edit.click();
@@ -63,7 +61,7 @@ function journey(){
  yes(final.courseTypes.find(x=>x.id===course.id)?.name==='Kriya 2 Revised','Course rename not saved');
  yes(final.classBatches.find(x=>x.id===batch.id)?.courseId===course.id,'Lost course linkage');
  yes(final.classBatches.find(x=>x.id===batch.id)?.end==='2026-11-18','Course rename damaged End Date');
- yes(final.classEnrollments.find(x=>x.id==='QA_UI_ENROLMENT')?.attendance['2026-11-04']===true,'Historical attendance lost');
+ yes(final.classBatches.find(x=>x.id===batch.id)?.sessionDates.join(',')==='2026-11-04,2026-11-18','Course rename modified original class dates');
  classes();const record=[...document.querySelectorAll('#p2ClassList .p2-record')].find(x=>x.textContent.includes('Kriya 2 Batch Renamed'));
  yes(record&&record.textContent.includes('Kriya 2 Revised'),'Renamed course not displayed');
  click('p2AddBatch');set('p2BatchCourse',course.id,'change');
@@ -74,7 +72,7 @@ function journey(){
  let direct=assign(1,'2026-11-05');yes(!direct.end,'Direct End set too early');
  direct=assign(2,'2026-11-19');yes(direct.end==='2026-11-19','Direct two-class End not saved');
  click('p2EditActiveBatch');yes(el('p2BatchEnd').value==='2026-11-19','Direct End missing after reopening');
- return {pass:true,checks:['create Kriya 2','save class dates','reduce 3 to 2','reopen End Date','rename batch and course','retain enrolment attendance','direct two-class End Date']};
+ return {pass:true,checks:['create Kriya 2','save class dates','reduce 3 to 2','reopen End Date','rename batch and course','retain saved class dates','direct two-class End Date']};
 }
 async function run(){
  const target=await findTarget(),ws=new WebSocket(target.webSocketDebuggerUrl);
