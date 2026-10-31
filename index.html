@@ -2476,11 +2476,11 @@
   function p2v5EnrollmentEligibleOn(en,date){const joined=(en?.enrolledAt||'').slice(0,10);return !joined||joined<=date}
   function p2v5Person(en){return p2cEnrollmentPerson(en)}
   function p2v5Weekday(iso){if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||''))return'';return['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(iso+'T12:00:00').getDay()]}
-  function p2v5CourseNext(b){const c=p2CourseForBatch(b);if(!p2FullChain.includes(c?.name))return'';return p2NextLevel(c.name)}
+  function p2v5CourseNext(b){const c=p2CourseForBatch(b),id=String(b?.courseId||'');const stage={'course-l1':'Level 1','course-l2':'Level 2','course-l3':'Level 3','course-l4':'Level 4','course-kriya':'Kriya','course-kriya2':'Kriya 2','course-kriya3':'Kriya 3','course-kriya4':'Kriya 4'}[id]||c?.name;return p2NextLevel(stage)}
   function p2v5OutcomeLabel(b,en){
     if(!p2v5IsEnded(b))return en.outcome&&en.outcome!=='Enrolled'?en.outcome:'Enrolled';
     if(en.outcome==='Completed'){
-      const course=p2CourseForBatch(b);if(p2FullChain.slice(3,7).includes(course?.name))return'Completed — Acharya approval required for '+p2NextLevel(course.name);
+      const course=p2CourseForBatch(b);if(['course-l4','course-kriya','course-kriya2','course-kriya3'].includes(b.courseId)||p2FullChain.slice(3,7).includes(course?.name))return'Completed — Acharya approval required for '+p2v5CourseNext(b);
       const next=p2v5CourseNext(b);return next?`Completed — Eligible for ${next}`:'Completed';
     }
     if(en.outcome==='Withdrawn')return'Withdrawn — all eligible classes absent';
@@ -7328,8 +7328,24 @@ function p2v58BindPhoneListener(){
         const batch=state.classBatches.find(b=>b.id===batchId);
         if(!batch)return{ok:false,reason:'Class batch not found.'};
         const target=p2v550Stage(batch),index=p2FullChain.indexOf(target);
-        if(index<4)return p2v550RequirementBase(studentId,batchId);
+        if(index<=0)return p2v550RequirementBase(studentId,batchId);
         const student=p2FindStudent(studentId),previous=p2FullChain[index-1];
+        if(index<4){
+          // Stable course IDs must preserve the Level 1–4 prerequisite even
+          // when an administrator renames the displayed course title.
+          if(!student)return{ok:false,reason:'Select an existing student before enrolling in '+target+'.'};
+          const qualifies=p2StudentEnrollments(student.id).some(en=>{
+            const prior=state.classBatches.find(x=>x.id===en.batchId);
+            const source=prior?p2v550Stage(prior):en.level;
+            if(source!==previous)return false;
+            if(en.outcome==='Completed')return true;
+            if(!prior||prior.endedAt)return false;
+            const status=p2v546Eligibility(en,prior);
+            return status.key==='Eligible'||status.key==='Joined';
+          });
+          return qualifies?{ok:true,reason:''}:
+            {ok:false,reason:'Complete the '+previous+' attendance requirement before joining '+target+'. Administrator approval is required for an exception.'};
+        }
         if(!student)return{ok:false,reason:'Select an existing student before enrolling in '+target+'.'};
         if(!p2v550Completed(student.id,previous))
           return{ok:false,reason:previous+' must be completed before enrolling in '+target+'.'};
@@ -7342,9 +7358,11 @@ function p2v58BindPhoneListener(){
       const p2v550CreateEnrollmentBase=p2CreateEnrollment;
       p2CreateEnrollment=function(studentId,batchId){
         const b=state.classBatches.find(x=>x.id===batchId);
-        if(p2FullChain.indexOf(p2v550Stage(b))>=4){
+        const index=p2FullChain.indexOf(p2v550Stage(b));
+        if(index>0){
           const check=p2v55ProgressionRequirement(studentId,batchId);
-          if(!check.ok){toast(check.reason);return null}
+          const allowedLevelOverride=index<4&&!!p2v54AdminOverrideReason;
+          if(!check.ok&&!allowedLevelOverride){toast(check.reason);return null}
         }
         return p2v550CreateEnrollmentBase(studentId,batchId);
       };
@@ -7533,8 +7551,10 @@ function p2v58BindPhoneListener(){
       };
       const p2v550OutreachBase=p2RenderOutreach;
       p2RenderOutreach=function(level){
-        const result=p2v550OutreachBase(level);
-        const from=p2FullChain.indexOf(level),next=p2NextLevel(level);
+        const canonical=p2v550Stage(p2ActiveBatch())||level;
+        const result=p2v550OutreachBase(canonical);
+        const from=p2FullChain.indexOf(canonical),next=p2NextLevel(canonical);
+        level=canonical;
         if(from>=3&&from<7&&$('p2BatchOutreach')){
           const pending=state.students.filter(student=>p2v550Completed(student.id,level)&&
             !p2v550Decision(student,next)&&
