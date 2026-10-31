@@ -507,7 +507,50 @@
 
 <div id="p2StudentModal" class="modal-backdrop"><form id="p2StudentForm" class="modal"><div class="modal-head"><h3 id="p2StudentModalTitle">Add student</h3><button type="button" class="x" data-close="p2StudentModal">×</button></div><input id="p2StudentId" type="hidden"><div class="form-grid"><div class="field"><label>FULL NAME *</label><input id="p2StudentName" required></div><div class="field"><label>MOBILE NUMBER *</label><input id="p2StudentMobile" inputmode="numeric" maxlength="10" required></div><div class="field"><label>KRIYA DATE (OPTIONAL)</label><input id="p2StudentKriyaDate" type="date"></div><div class="field"><label>KRIYA YEAR (IF DATE UNKNOWN)</label><input id="p2StudentKriyaYear" inputmode="numeric" maxlength="4" placeholder="e.g. 2024"></div><div class="field full"><label>NOTES</label><textarea id="p2StudentNotes" placeholder="Historical batch/year may be left unknown"></textarea></div></div><div id="p2StudentLinkInfo" class="p2-note" style="margin-top:14px"></div><div class="actions" style="margin-top:18px"><button class="btn" type="submit">Save student</button><button id="p2DeleteStudent" class="btn ghost hidden" type="button">Delete</button></div></form></div>
 
-<div id="p2BatchModal" class="modal-backdrop"><form id="p2BatchForm" class="modal"><div class="modal-head"><h3 id="p2BatchModalTitle">New class batch</h3><button type="button" class="x" data-close="p2BatchModal">×</button></div><input id="p2BatchId" type="hidden"><div class="form-grid"><div class="field"><label>COURSE *</label><select id="p2BatchCourse" required></select></div><div class="field"><label>BATCH NAME / NUMBER *</label><input id="p2BatchName" required placeholder="e.g. Batch 2"></div><div class="field"><label>START DATE *</label><input id="p2BatchStart" type="date" required></div><div class="field"><label>END DATE</label><input id="p2BatchEnd" type="date"></div><div class="field"><label>STATUS</label><select id="p2BatchStatus"><option>Upcoming</option><option>Current</option><option>Completed</option></select></div><div class="field"><label>SCHEDULE TYPE</label><select id="p2BatchScheduleType"><option value="weekly">Weekly recurring</option><option value="monthly">Monthly recurring</option><option value="custom">Custom dates</option><option value="single">Single date</option></select></div><div class="field"><label>USUAL CLASS DAY</label><select id="p2BatchDay"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></div><div class="field"><label>&nbsp;</label><button id="p2GenerateSchedule" class="btn secondary" type="button">Generate schedule</button></div><div class="field full"><label>SESSION DATES</label><textarea id="p2BatchSessions" placeholder="One date per line. You can change any generated Sunday to Saturday or another date."></textarea><div class="p2-schedule-help">Level 1–4 default to weekly Sunday. STT, Kriya 2 and other courses can use monthly, custom or single-date schedules.</div></div><div class="field full"><label>ACHARYA(S)</label><input id="p2BatchAcharyaSearch" placeholder="Type Acharya name or mobile"><div id="p2BatchAcharyaSuggestions" class="p2-suggestions hidden"></div><div id="p2BatchAcharyaSelected" class="p2-selected-list"></div></div><div class="field full"><label>ASSISTING VOLUNTEERS</label><input id="p2BatchVolunteerSearch" placeholder="Type volunteer name or mobile"><div id="p2BatchVolunteerSuggestions" class="p2-suggestions hidden"></div><div id="p2BatchVolunteerSelected" class="p2-selected-list"></div></div><div class="field full"><label>NOTES</label><textarea id="p2BatchNotes"></textarea></div></div><div class="actions" style="margin-top:18px"><button class="btn" type="submit">Save batch</button><button id="p2DeleteBatch" class="btn ghost hidden" type="button">Delete</button></div></form></div>
+
+<style id="p2v545BatchDesktopStyle">
+  #p2BatchModal{padding:16px;align-items:center;justify-items:center}
+  #p2BatchForm.modal{box-sizing:border-box;width:min(870px,calc(100vw - 32px));max-width:870px;max-height:calc(100vh - 32px);padding:20px 26px 18px;border-radius:12px;overflow-y:auto;box-shadow:0 20px 60px rgba(11,41,80,.22)}
+  #p2BatchForm .modal-head{margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #e2eaf3}
+  #p2BatchForm .modal-head h3{margin:0;color:#154b8a;font-size:20px;letter-spacing:-.01em}
+  #p2BatchForm .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px 20px}
+  #p2BatchForm .form-grid>.field{min-width:0;display:grid;align-content:start;gap:5px}
+  #p2BatchForm .form-grid>.field.full{grid-column:1/-1}
+  #p2BatchForm .field label{font-size:11px;font-weight:700;letter-spacing:.025em;color:#304c6e;text-transform:none}
+  #p2BatchForm .field input:not([type=checkbox]),#p2BatchForm .field select{width:100%;box-sizing:border-box;height:39px;min-height:39px;padding:7px 11px;border-radius:7px}
+  #p2BatchForm .field textarea{width:100%;box-sizing:border-box;min-height:55px;height:55px;padding:8px 10px;resize:vertical;border-radius:7px}
+  #p2BatchForm #p2BatchAcharyaSelected,#p2BatchForm #p2BatchVolunteerSelected{min-height:0;gap:6px;margin-top:3px}
+  #p2BatchForm .actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:15px!important;padding-top:12px;border-top:1px solid #e2eaf3}
+  #p2BatchForm .actions .btn{min-width:110px;min-height:39px;padding:8px 16px;border-radius:7px}
+  #p2BatchForm .actions [type=submit]{background:#155198;color:#fff;border-color:#155198}
+  #p2BatchForm .actions [type=submit]:focus-visible{outline:3px solid #f3c64d;outline-offset:2px}
+  #p2BatchForm #p2v55CustomCourseField{grid-column:1/-1}
+  @media(max-width:700px){#p2BatchForm.modal{padding:16px;max-height:calc(100vh - 20px)}#p2BatchForm .form-grid{grid-template-columns:1fr;gap:10px}#p2BatchForm .form-grid>.field.full{grid-column:auto}}
+</style>
+<div id="p2BatchModal" class="modal-backdrop">
+  <form id="p2BatchForm" class="modal">
+    <div class="modal-head"><h3 id="p2BatchModalTitle">New class batch</h3><button type="button" class="x" data-close="p2BatchModal">×</button></div>
+    <input id="p2BatchId" type="hidden">
+    <!-- Existing non-visible compatibility values for older class modules; not scheduling controls. -->
+    <div hidden aria-hidden="true"><select id="p2BatchStatus"><option>Upcoming</option><option>Current</option><option>Completed</option></select><textarea id="p2BatchSessions"></textarea><button id="p2GenerateSchedule" type="button"></button></div>
+    <div class="form-grid">
+      <div class="field"><label for="p2BatchCourse">Course *</label><select id="p2BatchCourse" required></select></div>
+      <div class="field"><label for="p2BatchName">Batch name / number *</label><input id="p2BatchName" required placeholder="e.g. Batch 2"></div>
+      <div class="field full" id="p2v55CustomCourseField" style="display:none"><label for="p2v55CustomCourseName">Custom class name *</label><input id="p2v55CustomCourseName" placeholder="e.g. Healing workshop"></div>
+      <div class="field"><label for="p2BatchStart">Start date</label><input id="p2BatchStart" type="date"></div>
+      <div class="field"><label for="p2BatchEnd">End date</label><input id="p2BatchEnd" type="date"></div>
+      <div class="field"><label for="p2BatchScheduleType">Schedule type</label><select id="p2BatchScheduleType"><option value="weekly">Weekly recurring</option><option value="monthly">Monthly recurring</option><option value="custom">Custom dates</option><option value="single">Single date</option></select></div>
+      <div class="field"><label for="p2BatchDay">Usual class day</label><select id="p2BatchDay"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></div>
+      <div class="field" id="p2v537CountField"><label for="p2v537ClassCount">Number of classes *</label><input id="p2v537ClassCount" type="number" min="1" max="1000" step="1" required value="1"></div>
+      <div class="field" id="p2v55FeeField"><label for="p2BatchFee">Course fee (₹)</label><input id="p2BatchFee" inputmode="decimal" placeholder="0 for free"></div>
+      <div class="field full"><label for="p2BatchAcharyaSearch">Acharya(s)</label><input id="p2BatchAcharyaSearch" autocomplete="off" placeholder="Search name or mobile"><div id="p2BatchAcharyaSuggestions" class="p2-suggestions hidden"></div><div id="p2BatchAcharyaSelected" class="p2-selected-list"></div></div>
+      <div class="field full"><label for="p2BatchVolunteerSearch">Assisting volunteers</label><input id="p2BatchVolunteerSearch" autocomplete="off" placeholder="Search name or mobile"><div id="p2BatchVolunteerSuggestions" class="p2-suggestions hidden"></div><div id="p2BatchVolunteerSelected" class="p2-selected-list"></div></div>
+      <div class="field full"><label for="p2BatchNotes">Notes</label><textarea id="p2BatchNotes"></textarea></div>
+    </div>
+    <div class="actions"><button class="btn secondary" type="button" data-close="p2BatchModal">Cancel</button><button class="btn" type="submit">Save batch</button></div>
+    <button id="p2DeleteBatch" class="btn ghost hidden" type="button" style="display:none">Delete</button>
+  </form>
+</div>
 
 <div id="p2EnrollModal" class="modal-backdrop"><form id="p2EnrollForm" class="modal"><div class="modal-head"><h3>Enrol student</h3><button type="button" class="x" data-close="p2EnrollModal">×</button></div><input id="p2EnrollStudentId" type="hidden"><div class="field full"><label>STUDENT *</label><input id="p2EnrollStudentSearch" autocomplete="off" placeholder="Type student name or mobile"><div id="p2EnrollSuggestions" class="p2-suggestions hidden"></div><div id="p2EnrollSelected" class="p2-note" style="margin-top:8px">No student selected.</div></div><div class="field full" style="margin-top:14px"><label>ENROLMENT DATE</label><input id="p2EnrollDate" type="date"></div><div class="actions" style="margin-top:18px"><button class="btn" type="submit">Enrol</button></div></form></div>
 
@@ -2982,195 +3025,187 @@
       type:$('p2BatchScheduleType').value,day:$('p2BatchDay').value,
       count:Number($('p2v537ClassCount').value)};
   }
-  function p2v537Warnings(){
-    const f=p2v537Inputs(),warnings=[],range=p2v537RangeCount(f.start,f.end,f.type,f.day);
-    if(range!==null&&range!==f.count)warnings.push('Date range suggests '+range+' class'+(range===1?'':'es')+
-      ', but '+f.count+' planned classes will be kept.');
-    if(f.start&&f.end&&f.end<f.start)warnings.push('End Date precedes Start Date. The dates are only planning estimates.');
-    const valid=p2v537Plan.slice(0,Math.max(0,f.count)).map(r=>r.date).filter(Boolean);
-    if(valid.length!==new Set(valid).size)warnings.push('Two sessions have the same date; choose unique dates.');
-    if(f.end&&valid.some(d=>d>f.end))warnings.push('Some planned classes fall after the entered End Date.');
-    if(f.start&&valid.some(d=>d<f.start))warnings.push('Some planned classes fall before the entered Start Date.');
-    if(!f.start)warnings.push('No Start Date: classes can be scheduled individually later.');
-    if(f.type==='single'&&f.count>1)warnings.push('Single-date schedule: additional classes need their own dates.');
-    const suggested=p2v537Recurrence(f.start,Math.max(1,Math.min(1000,f.count||1)),f.type,f.day);
-    if(f.start&&suggested.at(-1)&&!f.end)warnings.push('Suggested End Date: '+suggested.at(-1)+' (not final).');
-    const text=warnings.join(' ');
-    const el=$('p2v537Warning');if(el)el.textContent=text;
-    return warnings;
+
+  // CORRECTION 17 — A compact desktop batch form, with two-way date arithmetic.
+  // Individual dates are generated internally and edited ONLY in Class Schedule.
+  let p2v545Driver='count',p2v545Calculating=false;
+  function p2v545Recurring(type){return type==='weekly'||type==='monthly'}
+  function p2v545InputDate(s){
+    if(!p2v537IsDate(s))return null;
+    const d=new Date(s+'T12:00:00Z');
+    return d.toISOString().slice(0,10)===s?d:null;
   }
-  function p2v537FitCount(count){
-    while(p2v537Plan.length<count)p2v537Plan.push({id:uid('cls'),number:p2v537Plan.length+1,date:''});
-    p2v537Plan.forEach((r,i)=>r.number=i+1);
-  }
-  function p2v537RenderPlan(){
-    const inp=$('p2v537ClassCount'),count=Number(inp?.value),host=$('p2v537SessionRows');
-    if(!host)return;
-    if(!Number.isSafeInteger(count)||count<1||count>1000){
-      host.textContent='Enter a positive whole number of classes (maximum 1000).';p2v537Warnings();return;
+  function p2v545Sessions(start,count,type,day){
+    if(!p2v545InputDate(start)||!p2v545Recurring(type)||
+      !Number.isSafeInteger(count)||count<1||count>1000)return[];
+    const d=p2v545InputDate(start),wanted=Number(day),dates=[];
+    if(!Number.isInteger(wanted)||wanted<0||wanted>6)return[];
+    if(type==='weekly'){
+      d.setUTCDate(d.getUTCDate()+(wanted-d.getUTCDay()+7)%7);
+      for(let i=0;i<count;i++){
+        dates.push(d.toISOString().slice(0,10));d.setUTCDate(d.getUTCDate()+7);
+      }
+    }else{
+      let year=d.getUTCFullYear(),month=d.getUTCMonth();
+      while(dates.length<count){
+        const first=new Date(Date.UTC(year,month,1,12));
+        first.setUTCDate(1+(wanted-first.getUTCDay()+7)%7);
+        if(first>=d)dates.push(first.toISOString().slice(0,10));
+        month++;if(month===12){year++;month=0}
+      }
     }
-    p2v537FitCount(count);
-    host.innerHTML=p2v537Plan.slice(0,count).map((r,i)=>
-      '<label class="p2v537-session" style="display:flex;align-items:center;gap:12px;padding:5px 0">'+
-      '<strong style="min-width:76px">Class '+(i+1)+'</strong>'+
-      '<input type="date" data-index="'+i+'" value="'+r.date+'" style="min-width:160px;max-width:210px" aria-label="Class '+(i+1)+' date">'+
-      '<span style="font-size:12px;color:#6c7f90">'+(r.date?'Scheduled':'Date to be decided')+'</span></label>'
-    ).join('');
-    host.querySelectorAll('input[type=date]').forEach(input=>input.onchange=()=>{
-      p2v537DatesTouched=true;p2v537Plan[Number(input.dataset.index)].date=input.value;
-      p2v537Warnings();
-      const note=input.nextElementSibling;if(note)note.textContent=input.value?'Scheduled':'Date to be decided';
-    });
-    p2v537Warnings();
+    return dates;
   }
-  function p2v537SuggestDates(allowOverwrite){
-    const f=p2v537Inputs();
-    if(!Number.isSafeInteger(f.count)||f.count<1||f.count>1000)return;
-    const dates=p2v537Recurrence(f.start,f.count,f.type,f.day);
-    p2v537FitCount(f.count);
-    dates.forEach((d,i)=>{
-      const previous=p2v537Original.find(x=>x.id===p2v537Plan[i].id);
-      if(allowOverwrite||(!p2v537Plan[i].date&&!previous))p2v537Plan[i].date=d;
-    });
-    p2v537RenderPlan();
-  }
-  function p2v537ScheduleChanged(){
-    const f=p2v537Inputs(),range=p2v537RangeCount(f.start,f.end,f.type,f.day);
-    if(!p2v537CountTouched&&range!==null&&range>=1){
-      $('p2v537ClassCount').value=String(range);
+  function p2v545Count(start,end,type,day){
+    const from=p2v545InputDate(start),to=p2v545InputDate(end);
+    if(!from||!to||to<from||!p2v545Recurring(type))return null;
+    // Iteration uses actual calendar occurrences and INCLUDES the first
+    // matching weekday on or after start and dates <= end.
+    const first=p2v545Sessions(start,1,type,day)[0];
+    if(!first)return null;
+    if(first>end)return 0;
+    if(type==='weekly')return 1+Math.floor((to.getTime()-p2v545InputDate(first).getTime())/604800000);
+    let count=0,y=from.getUTCFullYear(),m=from.getUTCMonth();
+    while(count<=1000&&y<=to.getUTCFullYear()){
+      const firstOfMonth=new Date(Date.UTC(y,m,1,12));
+      firstOfMonth.setUTCDate(1+(Number(day)-firstOfMonth.getUTCDay()+7)%7);
+      if(firstOfMonth>=from&&firstOfMonth<=to)count++;
+      if(y===to.getUTCFullYear()&&m===to.getUTCMonth())break;
+      m++;if(m===12){m=0;y++}
     }
-    if(!p2v537DatesTouched)p2v537SuggestDates(false);
-    else p2v537RenderPlan();
+    return count;
   }
+  function p2v545Recalculate(changed){
+    if(p2v545Calculating)return;
+    if(changed==='count'||changed==='end')p2v545Driver=changed;
+    const start=$('p2BatchStart').value,endInput=$('p2BatchEnd'),
+      countInput=$('p2v537ClassCount'),type=$('p2BatchScheduleType').value,
+      day=$('p2BatchDay').value,raw=countInput.value;
+    if(!start){
+      // A count-only unscheduled batch is valid. Never manufacture an end date.
+      if(changed==='start'&&endInput.value)endInput.value='';
+      return;
+    }
+    if(!p2v545Recurring(type)||!p2v545InputDate(start))return;
+    p2v545Calculating=true;
+    try{
+      if(p2v545Driver==='end'&&endInput.value){
+        const n=p2v545Count(start,endInput.value,type,day);
+        // The empty count is intentionally invalid if the range contains no class.
+        if(n!==null)countInput.value=n>=1&&n<=1000?String(n):'';
+      }else if(/^[1-9]\d*$/.test(raw)){
+        const dates=p2v545Sessions(start,Number(raw),type,day);
+        if(dates.length)endInput.value=dates[dates.length-1];
+      }
+    }finally{p2v545Calculating=false}
+  }
+  // Keep default batch settings and the established people autocomplete.
   function p2v537EnsureForm(){
-    if(!$('p2v537ClassCount')){
-      const day=$('p2BatchDay').closest('.field');
-      day.insertAdjacentHTML('afterend',
-        '<div class="field" id="p2v537CountField"><label for="p2v537ClassCount">NUMBER OF CLASSES *</label>'+
-        '<input id="p2v537ClassCount" type="number" min="1" max="1000" step="1" required value="1">'+
-        '<small style="color:#617b92">Planned sessions, even when dates are not yet decided.</small></div>');
-    }
-    if(!$('p2v537SessionField')){
-      const fee=$('p2v55FeeField')||$('p2v537CountField');
-      fee.insertAdjacentHTML('afterend',
-        '<div class="field full" id="p2v537SessionField"><label>PLANNED CLASS SESSIONS</label>'+
-        '<div id="p2v537SessionRows" style="max-height:240px;overflow-y:auto"></div>'+
-        '<button type="button" class="btn secondary small" id="p2v537Suggest" style="margin-top:8px">SUGGEST CLASS DATES</button>'+
-        '<p id="p2v537Warning" role="status" style="font-size:12px;color:#956420;margin:9px 0"></p></div>');
-    }
     $('p2BatchStart').required=false;
+    // The class count and fee are fixed grid fields; no per-session controls.
   }
   p2v537EnsureForm();
   const p2v537OpenBase=p2OpenBatch;
   p2OpenBatch=function(id=''){
-    p2v537EnsureForm();p2v537OpenBase(id);
-    const b=state.classBatches.find(x=>x.id===id);
-    if(!b)$('p2BatchStart').value='';
-    if(b&&!b.start)$('p2BatchStart').value='';
-    p2v537Original=b?p2v537Rows(b):[];
-    p2v537Plan=p2v537Original.map(x=>({...x}));
-    p2v537CountTouched=!!b;p2v537DatesTouched=!!b;
-    const count=b?Math.max(p2v537Plan.length,Number(b.numberOfClasses)||0):1;
-    $('p2v537ClassCount').value=String(Math.max(1,count));
-    p2v537FitCount(Math.max(1,count));p2v537RenderPlan();
+    p2v537OpenBase(id);
+    const b=state.classBatches.find(x=>x.id===id),rows=b?p2v537Rows(b):[];
+    const count=b?Math.max(rows.length,Number(b.numberOfClasses)||0,1):1;
+    $('p2v537ClassCount').value=String(count);
+    p2v545Driver=b?.end?'end':'count';
+    // Opening an existing batch never silently revises stored dates.
+    if(!b){$('p2BatchStart').value='';$('p2BatchEnd').value='';p2v545Driver='count'}
+    if($('p2v55CustomCourseField'))
+      $('p2v55CustomCourseField').style.display=$('p2BatchCourse').value==='__custom__'?'':'none';
   };
-  $('p2v537ClassCount').oninput=()=>{
-    p2v537CountTouched=true;p2v537RenderPlan();
-    if(!p2v537DatesTouched)p2v537SuggestDates(false);
-  };
-  ['p2BatchStart','p2BatchEnd','p2BatchScheduleType','p2BatchDay'].forEach(id=>
-    $(id).addEventListener('change',p2v537ScheduleChanged));
-  $('p2v537Suggest').onclick=()=>{
-    if(p2v537DatesTouched&&!window.confirm('Replace manually entered class dates with suggested dates? Existing saved attendance will be retained when saving.'))return;
-    p2v537DatesTouched=true;
-    p2v537SuggestDates(true);
-  };
-  // Keep the existing course, fee, instructor and volunteer save semantics.
+  $('p2v537ClassCount').oninput=()=>p2v545Recalculate('count');
+  $('p2BatchEnd').addEventListener('input',()=>p2v545Recalculate('end'));
+  ['p2BatchStart','p2BatchScheduleType','p2BatchDay'].forEach(id=>{
+    $(id).addEventListener('input',()=>p2v545Recalculate(id==='p2BatchStart'?'start':'schedule'));
+    $(id).addEventListener('change',()=>p2v545Recalculate(id==='p2BatchStart'?'start':'schedule'));
+  });
+  // This replaces older onsubmit handlers. It NEVER moves or deletes an
+  // existing session or any attendance data as a side effect of batch editing.
   $('p2BatchForm').onsubmit=e=>{
     e.preventDefault();
-    const id=$('p2BatchId').value,start=$('p2BatchStart').value,end=$('p2BatchEnd').value,
-      selected=$('p2BatchCourse').value,f=p2v537Inputs(),raw=$('p2v537ClassCount').value;
-    if(!/^[1-9]\d*$/.test(raw)||!Number.isSafeInteger(f.count)||f.count>1000){
-      toast('NUMBER OF CLASSES must be a positive whole number from 1 to 1000.');return;
+    const id=$('p2BatchId').value,selected=$('p2BatchCourse').value,
+      start=$('p2BatchStart').value,end=$('p2BatchEnd').value,
+      type=$('p2BatchScheduleType').value,day=Number($('p2BatchDay').value),
+      raw=$('p2v537ClassCount').value.trim(),count=Number(raw);
+    if(!/^[1-9]\d*$/.test(raw)||!Number.isSafeInteger(count)||count>1000){
+      toast('Enter a number of classes between 1 and 1000.');return;
     }
-    if(!String($('p2BatchName').value||'').trim()){toast('Enter a Batch Name / Number.');return}
-    const b=id?state.classBatches.find(x=>x.id===id):null;
-    if(id&&!b){toast('This batch could not be found. No data was changed.');return}
-    p2v537FitCount(f.count);
-    const next=p2v537Plan.slice(0,f.count).map((r,i)=>({...r,number:i+1,date:r.date||''}));
-    const valid=next.map(r=>r.date).filter(Boolean);
-    if(valid.some(d=>!p2v537IsDate(d))||new Set(valid).size!==valid.length){
-      toast('Each dated Class must have a unique valid date. No data was changed.');return;
+    if(!$('p2BatchName').value.trim()){toast('Enter a batch name.');return}
+    if(start&&!p2v545InputDate(start)){toast('Enter a valid start date.');return}
+    if(end&&!p2v545InputDate(end)){toast('Enter a valid end date.');return}
+    if(start&&end&&end<start){toast('End date cannot precede start date.');return}
+    if(!start&&end){toast('Enter a start date or leave the end date blank.');return}
+    const existing=id?state.classBatches.find(x=>String(x.id)===String(id)):null;
+    if(id&&!existing){toast('Batch not found. Nothing was changed.');return}
+    const recurring=p2v545Recurring(type),generated=start&&recurring?p2v545Sessions(start,count,type,day):[];
+    if(start&&recurring&&generated.length!==count){toast('Cannot calculate the selected schedule.');return}
+    if(recurring&&start&&end){
+      const expected=p2v545Count(start,end,type,day);
+      if(expected!==count){toast('The end date and number of classes do not match the schedule. Adjust either field.');return}
     }
-    const before=b?p2v537Rows(b):[];
-    const kept=new Set(next.map(r=>r.id)),removed=before.filter(r=>!kept.has(r.id));
-    const enrollment=state.classEnrollments.filter(en=>en.batchId===id);
-    const hasAttendance=d=>!!d&&enrollment.some(en=>
-      Object.prototype.hasOwnProperty.call(en.attendance||{},d)&&
-        (en.attendance[d]===true||en.attendance[d]===false));
-    const affected=removed.filter(r=>hasAttendance(r.date));
-    if(affected.length){
-      toast('Cannot reduce classes: '+affected.map(r=>'Class '+r.number).join(', ')+
-        ' contain saved attendance. Keep these sessions or resolve them individually first.');return;
+    const before=existing?p2v537Rows(existing):[];
+    // Never silently delete dated OR undated pre-existing sessions in the batch dialog.
+    if(existing&&count<before.length){
+      toast('This batch already has '+before.length+' planned sessions. Adjust sessions individually in Class Schedule. Nothing was changed.');return;
     }
-    if(removed.length&&!window.confirm('Reduce to '+f.count+' classes? '+removed.length+
-      ' planned session(s) without attendance will be removed. Continue?'))return;
-    const original=new Map(before.map(r=>[r.id,r]));
-    const moves=next.filter(r=>original.has(r.id)&&original.get(r.id).date!==r.date)
-      .map(r=>({from:original.get(r.id).date,to:r.date,number:r.number}));
-    if(moves.some(m=>m.from&&hasAttendance(m.from)&&!m.to)){
-      toast('Cannot clear a session date with saved attendance. Reschedule it to a new date instead.');return;
-    }
-    const movedFrom=new Set(moves.map(m=>m.from).filter(Boolean));
-    for(const en of enrollment){
-      const att=en.attendance||{};
-      for(const m of moves){
-        if(m.to&&Object.prototype.hasOwnProperty.call(att,m.to)&&
-           !movedFrom.has(m.to)&&Object.prototype.hasOwnProperty.call(att,m.from)){
-          toast('A rescheduled class would overwrite existing attendance on '+m.to+'. No data was changed.');return;
-        }
+    const next=before.map((r,i)=>({id:String(r.id),number:i+1,date:r.date||''}));
+    while(next.length<count)next.push({id:uid('cls'),number:next.length+1,date:''});
+    if(generated.length){
+      const agrees=before.every((r,i)=>!r.date||r.date===generated[i]);
+      // Existing manual/attendance dates always win. If their pattern differs,
+      // leave any new sessions undated for the Class Schedule screen.
+      if(agrees){
+        const used=new Set(next.map(x=>x.date).filter(Boolean));
+        next.forEach((r,i)=>{
+          if(!r.date&&generated[i]&&!used.has(generated[i])){
+            r.date=generated[i];used.add(r.date);
+          }
+        });
       }
     }
-    const movingAttendance=moves.some(m=>hasAttendance(m.from));
-    if(movingAttendance&&!window.confirm('Reschedule classes with existing attendance? All present/absent records will move with their classes; none will be deleted.'))return;
-    const range=p2v537RangeCount(start,end,f.type,f.day);
-    if(range!==null&&range!==f.count&&!window.confirm('Date range suggests '+range+
-      ' classes, but NUMBER OF CLASSES is '+f.count+'. Keep your selected count and date range?'))return;
-    let course=selected==='__custom__'?null:p2Course(selected);
-    if(selected==='__custom__'){
-      const name=$('p2v55CustomCourseName')?.value.trim()||'';
-      if(!name){toast('Enter the custom class name');return}
-      course=state.courseTypes.find(c=>normName(c.name)===normName(name));
-      if(!course){
-        course={id:uid('course'),name,category:'Other',progressionOrder:null,
-          defaultSchedule:f.type||'custom',defaultDay:Number(f.day),notes:'Created from Custom Class',active:true,locked:false};
-        state.courseTypes.push(course);
-      }
-    }
-    if(!course){toast('Choose a course');return}
-    const updated=b||{id:uid('batch'),createdAt:new Date().toISOString()};
-    const newDates=valid.slice().sort(),year=Number(String(start||newDates[0]||updated.year||today()).slice(0,4));
-    // Prepare each student's new attendance map transactionally before mutating.
-    const updates=enrollment.map(en=>{
-      const old={...(en.attendance||{})},now={...old};
-      moves.forEach(m=>{if(m.from)delete now[m.from]});
-      moves.forEach(m=>{if(m.from&&m.to&&Object.prototype.hasOwnProperty.call(old,m.from))now[m.to]=old[m.from]});
-      return{en,attendance:now};
+    const savedDates=new Set((existing?.sessionDates||[]).filter(p2v537IsDate));
+    state.classEnrollments.filter(en=>en.batchId===id).forEach(en=>{
+      Object.keys(en.attendance||{}).filter(p2v537IsDate).forEach(d=>savedDates.add(d))
     });
+    for(const d of savedDates){
+      if(!next.some(r=>r.date===d)){
+        // Defensive guard for legacy records not covered by their session plan.
+        toast('An existing attendance date would be lost. Use Class Schedule to resolve it. Nothing was changed.');return;
+      }
+    }
+    const dates=[...new Set(next.map(r=>r.date).filter(Boolean))].sort();
+    let course=selected==='__custom__'?null:p2Course(selected);
+    const customName=selected==='__custom__'?String($('p2v55CustomCourseName')?.value||'').trim():'';
+    if(selected==='__custom__'){
+      if(!customName){toast('Enter the custom class name.');return}
+      course=state.courseTypes.find(c=>normName(c.name)===normName(customName))||null;
+    }
+    if(!course&&selected!=='__custom__'){toast('Choose a course.');return}
+    // All validation completed: only now create/update records.
+    if(!course){
+      course={id:uid('course'),name:customName,category:'Other',progressionOrder:null,
+        defaultSchedule:type,defaultDay:day,notes:'Created from Custom Class',active:true,locked:false};
+      state.courseTypes.push(course);
+    }
+    const updated=existing||{id:uid('batch'),createdAt:new Date().toISOString()};
+    const year=Number(String(start||dates[0]||existing?.year||today()).slice(0,4));
     Object.assign(updated,{courseId:course.id,level:course.name,
-      name:$('p2BatchName').value.trim(),start,end,year,scheduleType:f.type,
-      usualDay:Number(f.day),defaultClassDay:Number(f.day),
-      courseFee:String($('p2BatchFee')?.value||'').trim(),
-      numberOfClasses:f.count,plannedSessions:next,sessionDates:newDates,
+      name:$('p2BatchName').value.trim(),start,end,year,
+      scheduleType:type,usualDay:day,defaultClassDay:day,
+      courseFee:String($('p2BatchFee').value||'').trim(),
+      numberOfClasses:count,plannedSessions:next,sessionDates:dates,
       acharyaIds:[...p2EditingAcharyaIds],
       acharyas:p2EditingAcharyaIds.map(aid=>state.acharyas.find(a=>a.id===aid)?.name).filter(Boolean),
       volunteerIds:[...p2EditingVolunteerIds],notes:$('p2BatchNotes').value.trim()});
     updated.status=p2v55AutoStatus(updated);
-    updates.forEach(x=>x.en.attendance=x.attendance);
-    if(!b)state.classBatches.push(updated);
+    if(!existing)state.classBatches.push(updated);
     state.activeClassBatchId=updated.id;
     $('p2BatchModal').classList.remove('open');
-    save();toast(b?'Class batch updated':'Class batch created');switchPage('classWorkspace');
+    save();toast(existing?'Class batch updated':'Class batch created');switchPage('classWorkspace');
   };
 
   function p2v55InstallSuggestionKeys(inputId,boxId,itemSelector,kind){
