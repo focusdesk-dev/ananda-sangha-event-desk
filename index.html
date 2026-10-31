@@ -290,6 +290,14 @@
         </div>
       </div>
 
+      <div id="p2v546ProgressionCard" class="card" style="margin-top:18px">
+        <div class="card-head"><div><h3>Course Progression</h3></div></div>
+        <form id="p2v546ProgressionForm" class="actions" style="display:flex;align-items:flex-end;justify-content:flex-start;gap:12px;flex-wrap:wrap;margin-top:8px">
+          <div class="field" style="max-width:240px;min-width:200px"><label for="p2v546Minimum">Minimum Attendance Required (%)</label><input id="p2v546Minimum" type="number" min="0" max="100" step="1" required value="50"></div>
+          <button class="btn" type="submit">Save</button>
+        </form>
+        <div id="p2v546ProgressionStatus" class="hint" role="status" style="margin-top:8px">Minimum attendance: 50%</div>
+      </div>
       <div id="p2v532AiSettings" class="card" style="margin-top:18px">
         <div class="card-head">
           <div><h3>AI Attendance — API Settings</h3>
@@ -7159,6 +7167,185 @@ function p2v58BindPhoneListener(){
 
       document.querySelectorAll('form button[type="submit"]').forEach(button=>button.title='Save • Alt+S');
       ['addVolunteer','addAttendeeMaster','addKriyaban','addVip','v48AddVolunteer','v36NewRegistration'].forEach(id=>{const button=$(id);if(button)button.title=(button.title?button.title+' • ':'')+'Keyboard: +'});
+
+      // CORRECTION 18 — global minimum attendance; finalised batches keep
+      // their own permanently recorded threshold and progression decisions.
+      // This works with the existing password gate. No other permission UI.
+      function p2v546Setting(){
+        if(!state.courseProgression||typeof state.courseProgression!=='object')
+          state.courseProgression={minimumAttendance:50,audit:[]};
+        if(!Array.isArray(state.courseProgression.audit))state.courseProgression.audit=[];
+        const value=Number(state.courseProgression.minimumAttendance);
+        if(!Number.isInteger(value)||value<0||value>100)state.courseProgression.minimumAttendance=50;
+        return state.courseProgression;
+      }
+      function p2v546MinimumFor(b){
+        // Status labels and a passed end date do NOT formally end a batch.
+        // Legacy ended batches without a snapshot retain their old 50% baseline.
+        if(b?.endedAt){
+          const frozen=Number(b.minimumAttendanceAtEnd);
+          return b.minimumAttendanceAtEnd!==undefined&&Number.isInteger(frozen)&&frozen>=0&&frozen<=100?frozen:50;
+        }
+        return p2v546Setting().minimumAttendance;
+      }
+      function p2v546Level(b){const name=p2CourseName(b);return p2Levels.includes(name)?name:(p2Levels.includes(b?.level)?b.level:'')}
+      function p2v546ApprovedException(en,b){
+        // Enrollment administration overrides are NOT attendance waivers.
+        // A distinct recorded, approved Acharya attendance exception is needed.
+        const a=en?.acharyaException||en?.attendanceException;
+        if(!a||a.approved!==true||!a.approvedAt||!a.approvedBy||!a.reason)return false;
+        if(a.batchId&&String(a.batchId)!==String(b?.id))return false;
+        if(a.expiresAt&&String(a.expiresAt)<today())return false;
+        if(a.revokedAt)return false;
+        return true;
+      }
+      function p2v546AttendancePct(b,en){
+        // Use the class's established attendance summary so the threshold and
+        // the displayed attendance percentage use the same denominator.
+        return p2v53AttendanceSummary(b,en).pct;
+      }
+      function p2v546Eligibility(en,b){
+        if(!b)return{key:'Review Required',label:'Review Required',cls:'amber'};
+        const level=p2v546Level(b),pct=p2v546AttendancePct(b,en),min=p2v546MinimumFor(b);
+        if(level==='Level 4'){
+          const person=en.studentId?p2FindStudent(en.studentId):null;
+          const received=!!(person&&(person.kriyabanId||person.kriyaDate||person.kriyaYear));
+          return received?{key:'Joined',label:'Kriya Received',cls:'blue'}:
+            {key:'Review Required',label:'Acharya Decision Required',cls:'amber'};
+        }
+        if(!p2Levels.slice(0,3).includes(level))
+          return{key:'Not Eligible',label:'Not Eligible',cls:'gray'};
+        const next=p2NextLevel(level),joined=!!en.studentId&&state.classEnrollments.some(
+          x=>x.studentId===en.studentId&&x.level===next);
+        if(joined)return{key:'Joined',label:'Joined '+next,cls:'blue'};
+        if(b.endedAt&&en.progressionFinalStatus)return{...en.progressionFinalStatus};
+        if(b.endedAt){
+          // Do not retrospectively reclassify old finalised batches.
+          return en.outcome==='Completed'
+            ?{key:'Eligible',label:'Eligible for '+next,cls:'green'}
+            :{key:'Not Eligible',label:'Not Eligible',cls:'gray'};
+        }
+        if(p2v53AttendanceSummary(b,en).total===0)
+          return{key:'Review Required',label:'Review Required',cls:'amber'};
+        const passed=pct>=min||p2v546ApprovedException(en,b);
+        return passed?{key:'Eligible',label:'Eligible for '+next,cls:'green'}:
+          {key:'Review Required',label:'Review Required',cls:'amber'};
+      }
+      function p2v546QualifiesHistory(level,history){
+        const i=p2Levels.indexOf(level);
+        if(i<=0)return true;
+        const previous=p2Levels[i-1];
+        return history.some(en=>{
+          if(en.level!==previous)return false;
+          const b=state.classBatches.find(x=>x.id===en.batchId);
+          if(!b)return en.outcome==='Completed'; // Existing imported history.
+          if(b.endedAt)return en.outcome==='Completed';
+          if(previous==='Level 4')return false; // Acharya decides Kriya.
+          return p2v546Eligibility(en,b).key==='Eligible'||
+            p2v546Eligibility(en,b).key==='Joined';
+        });
+      }
+      // Enrolment and class reports read live eligibility for ongoing batches.
+      // Existing registrations, attendance marks and approval records are untouched.
+      p2v55EligibilityFromHistory=p2v546QualifiesHistory;
+      p2v54ProgressionCheck=function(student,b){
+        return p2v55ProgressionRequirement(student?.id||'',b?.id||'');
+      };
+      p2v54NextStatus=function(en,b){return p2v546Eligibility(en,b)};
+      p2EligibleFromLevel=function(level){
+        const next=p2NextLevel(level);
+        if(!next||next==='Kriya')return[]; // Level 4 → Kriya: Acharya approval.
+        return state.students.filter(student=>{
+          const hist=p2StudentEnrollments(student.id);
+          if(hist.some(en=>en.level===next))return false;
+          return hist.some(en=>{
+            if(en.level!==level)return false;
+            const b=state.classBatches.find(x=>x.id===en.batchId);
+            if(!b)return en.outcome==='Completed';
+            return p2v546Eligibility(en,b).key==='Eligible';
+          });
+        });
+      };
+      // End preview and final outcome use the threshold effective *at the end*.
+      p2v53ProposedOutcome=function(b,en){
+        const a=p2v53AttendanceSummary(b,en),min=p2v546MinimumFor(b);
+        if(a.total&&a.present===0&&a.absent===a.total)return'Withdrawn';
+        if(a.total&&(a.pct>=min||p2v546ApprovedException(en,b)))return'Completed';
+        return'Did Not Complete';
+      };
+      const p2v546FinalizeBefore=p2v53FinalizeEndBatch;
+      p2v53FinalizeEndBatch=function(b){
+        if(!b||b.endedAt)return;
+        if(p2v53MissingAttendance(b).length){
+          toast('Complete all attendance before ending the batch.');return;
+        }
+        const minimum=p2v546MinimumFor(b);
+        const before=!!b.endedAt;
+        p2v546FinalizeBefore(b);
+        if(!before&&b.endedAt){
+          b.minimumAttendanceAtEnd=minimum;
+          state.classEnrollments.filter(en=>en.batchId===b.id).forEach(en=>{
+            const level=p2v546Level(b);
+            if(level==='Level 4'){
+              en.progressionFinalStatus={
+                key:'Review Required',label:'Acharya Decision Required',cls:'amber'};
+            }else if(p2Levels.slice(0,3).includes(level)){
+              const next=p2NextLevel(level);
+              en.progressionFinalStatus=en.outcome==='Completed'
+                ?{key:'Eligible',label:'Eligible for '+next,cls:'green'}
+                :{key:'Review Required',label:'Review Required',cls:'amber'};
+            }
+          });
+          save(); // Persist frozen policy and decisions with the ended batch.
+        }
+      };
+      const p2v546HeaderBefore=p2v5RenderHeader;
+      p2v5RenderHeader=function(b){
+        const result=p2v546HeaderBefore(b),header=$('p2ClassHeader');
+        if(header&&b){
+          header.querySelector('#p2v546BatchMinimum')?.remove();
+          const title=header.querySelector('h3'),line=document.createElement('div');
+          line.id='p2v546BatchMinimum';line.style.cssText='font-size:12px;color:#31577d;margin-top:5px;font-weight:600';
+          line.textContent='Minimum attendance: '+p2v546MinimumFor(b)+'%';
+          if(title)title.insertAdjacentElement('afterend',line);
+        }
+        return result;
+      };
+      function p2v546SettingsDisplay(){
+        const current=p2v546Setting().minimumAttendance,inp=$('p2v546Minimum'),msg=$('p2v546ProgressionStatus');
+        if(inp)inp.value=String(current);
+        if(msg)msg.textContent='Minimum attendance: '+current+'%';
+      }
+      function p2v546UpdateMinimum(value){
+        const target=Number(value),settings=p2v546Setting();
+        if(!Number.isInteger(target)||target<0||target>100){
+          toast('Enter a whole-number attendance percentage from 0 to 100.');return false;
+        }
+        const before=settings.minimumAttendance;
+        if(before===target){p2v546SettingsDisplay();return true}
+        // v51RequireAdmin verifies the actual configured administrator password
+        // before executing this callback (or an already-unlocked admin session).
+        settings.minimumAttendance=target;
+        settings.audit.push({from:before,to:target,changedAt:new Date().toISOString(),
+          actor:'Verified administrator session',affectedBatchIds:state.classBatches
+            .filter(b=>!b.endedAt).map(b=>b.id)});
+        save(); // Recomputed dynamically on every view for all unended batches.
+        p2v546SettingsDisplay();
+        if(page==='classWorkspace'&&p2ActiveBatch())p2RenderClassWorkspace();
+        if(page==='studentProgress'&&typeof p2v56ChatRenderProgress==='function')p2v56ChatRenderProgress();
+        toast('Minimum attendance updated to '+target+'% for ongoing batches.');
+        return true;
+      }
+      const p2v546Form=$('p2v546ProgressionForm');
+      if(p2v546Form)p2v546Form.onsubmit=ev=>{
+        ev.preventDefault();
+        const target=$('p2v546Minimum').value;
+        if(!/^\d{1,3}$/.test(target)||Number(target)>100){
+          toast('Enter a valid percentage from 0 to 100.');return;
+        }
+        v51RequireAdmin(()=>p2v546UpdateMinimum(target),'change Course Progression minimum attendance');
+      };
+      p2v546SettingsDisplay();
       document.title='ANANDA SANGHA GURGAON Event Desk — Phase 2 • 2.0.0-beta.5.27';
     })();
   </script>
