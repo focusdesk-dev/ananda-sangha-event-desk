@@ -7455,8 +7455,20 @@ function p2v58BindPhoneListener(){
       const p2v547RenderScheduleBase=p2v5RenderSchedule;
       p2v5RenderSchedule=function(b){
         p2v547RenderScheduleBase(b);
-        const card=$('p2v5ScheduleCard'),host=card?.querySelector('#p2v537PlanSummary');
-        if(!host||!b)return;
+        const card=$('p2v5ScheduleCard');
+        if(!card||!b)return;
+        // The legacy schedule can rebuild its innerHTML and discard the
+        // planned-class host. Recreate it every time rather than silently
+        // dropping all numbered Class Date buttons.
+        let host=card.querySelector('#p2v537PlanSummary');
+        if(!host){
+          host=document.createElement('div');
+          host.id='p2v537PlanSummary';
+          host.className='p2v548-plan-summary';
+          const anchor=card.querySelector('.p2v56-months')||card.querySelector('.p2v55-months');
+          if(anchor)anchor.insertAdjacentElement('beforebegin',host);
+          else card.appendChild(host);
+        }
         const rows=(b.plannedSessions||[]).slice().sort((x,y)=>Number(x.number)-Number(y.number));
         const dated=rows.filter(x=>p2v537IsDate(x.date)).length;
         host.innerHTML='<strong>PLANNED CLASSES: '+rows.length+'</strong> · '+dated+
