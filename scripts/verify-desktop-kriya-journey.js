@@ -64,8 +64,13 @@ function journey(){
  yes(final.classBatches.find(x=>x.id===batch.id)?.courseId===course.id,'Lost course linkage');
  yes(final.classBatches.find(x=>x.id===batch.id)?.end==='2026-11-18','Course rename damaged End Date');
  yes(final.classBatches.find(x=>x.id===batch.id)?.sessionDates.join(',')==='2026-11-04,2026-11-18','Course rename modified original class dates');
- classes();const record=[...document.querySelectorAll('#p2ClassList .p2-record')].find(x=>x.textContent.includes('Kriya 2 Batch Renamed'));
- yes(record&&record.textContent.includes('Kriya 2 Revised'),'Renamed course not displayed');
+ classes();
+ // The current Classes UI first displays years. Open the 2026 year before
+ // checking the renamed batch, rather than searching a legacy .p2-record.
+ const year=[...document.querySelectorAll('#p2ClassList .p2v510-class-year')].find(x=>x.dataset.year==='2026');
+ if(year)year.click();
+ const record=[...document.querySelectorAll('#p2ClassList .p2v56-chat-class')].find(x=>x.textContent.includes('Kriya 2 Batch Renamed'));
+ yes(record&&record.textContent.includes('Kriya 2 Revised'),'Renamed course not displayed in opened Classes year; text='+el('p2ClassList').textContent.slice(0,1000));
  click('p2AddBatch');set('p2BatchCourse',course.id,'change');
  set('p2BatchName','Kriya 2 Direct Two');set('p2BatchStart','2026-11-01','change');
  set('p2BatchScheduleType','custom','change');set('p2v537ClassCount','2');set('p2BatchEnd','');
