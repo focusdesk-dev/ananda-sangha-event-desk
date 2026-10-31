@@ -435,7 +435,7 @@
 
         <section id="classes" class="page">
       <!-- PHASE2 CLASSES NAV BETA3 -->
-      <div class="event-banner"><div><h3>Classes</h3><p>Meditation classes, attendance, student progress and outreach.</p></div></div>
+      <div class="event-banner"><div><h3>Classes</h3><p>Meditation classes, attendance, student progress and outreach. <small id="p2v548BuildMark" style="white-space:nowrap;opacity:.82">Beta 5.48</small></p></div></div>
 
       <!-- Kept only for compatibility with existing Phase 2 handlers. These are intentionally not shown on the Classes opening page. -->
       <div style="display:none" aria-hidden="true">
@@ -452,6 +452,7 @@
         <button class="p2-home-card go" data-go="studentProgress"><span class="no">03</span><div><strong>Student Progress &amp; Outreach</strong><br><small>Search a student and view class history, progress and next-stage follow-up.</small></div></button>
         <button class="p2-home-card" id="p2ClassesAttendance"><span class="no">04</span><div><strong>Attendance</strong><br><small>Open an active class and mark attendance session by session.</small></div></button>
         <button class="p2-home-card" id="p2ClassesReports"><span class="no">05</span><div><strong>Class Reports</strong><br><small>Roster, attendance, completion, progression and annual summary.</small></div></button>
+        <button class="p2-home-card go" data-go="courseMaster" id="p2v548ManageCourseNames"><span class="no">06</span><div><strong>Edit Course Names</strong><br><small>Rename courses such as Kriya 2 without deleting student records or batches.</small></div></button>
       </div>
 
       <div class="card" id="p2BatchListCard">
@@ -2188,7 +2189,7 @@
   function p2VolunteerNames(batch){return (batch.volunteerIds||[]).map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean).map(volName)}
   function p2RenderAll(){p2RenderDashboard();p2RenderClasses();p2RenderCourses();p2RenderAcharyas();p2RenderStudents();p2RenderProgressSelector();p2RenderClassWorkspace();p2RenderReports(p2ReportMode)}
   function p2RenderDashboard(){if($('p2StudentCount'))$('p2StudentCount').textContent=state.students.length;if($('p2AcharyaCount'))$('p2AcharyaCount').textContent=state.acharyas.length}
-  function p2ClassRecordHtml(b){return `<div class="p2-record"><div><span class="p2-chip good">CLASS · ${esc(p2BatchYear(b)||'—')}</span><h4>${esc(p2CourseName(b))} — ${esc(b.name)}</h4><p>${fmt(b.start)}${b.end?' to '+fmt(b.end):''} · ${esc(b.status||'Upcoming')} · ${esc(p2AcharyaNames(b).join(', ')||'No Acharya assigned')}</p><p style="margin-top:5px">${esc((b.scheduleType||'custom').toUpperCase())} · ${(b.sessionDates||[]).length} session(s)</p></div><div class="actions"><button class="btn secondary small p2-open-class" data-id="${b.id}">Open Batch</button><button class="btn ghost small p2-edit-class" data-id="${b.id}">Edit</button></div></div>`}
+  function p2ClassRecordHtml(b){return `<div class="p2-record"><div><span class="p2-chip good">CLASS · ${esc(p2BatchYear(b)||'—')}</span><h4>${esc(p2CourseName(b))} — ${esc(b.name)}</h4><p>${fmt(b.start)}${b.end?' to '+fmt(b.end):''} · ${esc(b.status||'Upcoming')} · ${esc(p2AcharyaNames(b).join(', ')||'No Acharya assigned')}</p><p style="margin-top:5px">${esc((b.scheduleType||'custom').toUpperCase())} · ${(b.sessionDates||[]).length} session(s)</p></div><div class="actions"><button class="btn secondary small p2-open-class" data-id="${b.id}">Open Batch</button><button class="btn ghost small p2-edit-class" data-id="${b.id}">Edit Batch Name</button></div></div>`}
   function p2BindClassListButtons(){document.querySelectorAll('#classes .p2-open-class').forEach(x=>x.onclick=()=>{state.activeClassBatchId=x.dataset.id;save();switchPage('classWorkspace')});document.querySelectorAll('#classes .p2-edit-class').forEach(x=>x.onclick=()=>p2OpenBatch(x.dataset.id))}
   function p2RenderClasses(){
     if(!$('p2ClassList'))return;
@@ -3205,10 +3206,24 @@
         defaultSchedule:type,defaultDay:day,notes:'Created from Custom Class',active:true,locked:false};
       state.courseTypes.push(course);
     }
+    // Derive the End Date when a two-class custom course has two saved dates,
+    // including when the class count is reduced from three to two.
+    let finalEnd=end,autoCustomEnd=!!existing?.endFromCustomSessions;
+    if(type==='custom'){
+      if(next.length>0&&next.every(r=>p2v537IsDate(r.date))){
+        if(!end||(autoCustomEnd&&end===existing?.end)){
+          finalEnd=dates.at(-1)||'';
+          autoCustomEnd=true;
+        }else autoCustomEnd=false;
+      }else if(autoCustomEnd&&end===existing?.end){
+        finalEnd='';
+        autoCustomEnd=false;
+      }
+    }else autoCustomEnd=false;
     const updated=existing||{id:uid('batch'),createdAt:new Date().toISOString()};
     const year=Number(String(start||dates[0]||existing?.year||today()).slice(0,4));
     Object.assign(updated,{courseId:course.id,level:course.name,
-      name:$('p2BatchName').value.trim(),start,end,year,
+      name:$('p2BatchName').value.trim(),start,end:finalEnd,endFromCustomSessions:autoCustomEnd,year,
       scheduleType:type,usualDay:day,defaultClassDay:day,
       courseFee:String($('p2BatchFee').value||'').trim(),
       numberOfClasses:count,plannedSessions:next,sessionDates:dates,
@@ -7500,7 +7515,7 @@ function p2v58BindPhoneListener(){
         '#p2v5ScheduleCard .p2v547-session-date:disabled{cursor:default;opacity:.65}';
       document.head.appendChild(p2v547Style);
 
-      document.title='ANANDA SANGHA GURGAON Event Desk — Phase 2 • 2.0.0-beta.5.27';
+      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.48';
     })();
   </script>
 </body>
