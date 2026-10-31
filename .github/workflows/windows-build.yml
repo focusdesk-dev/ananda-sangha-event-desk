@@ -1,4 +1,4 @@
-name: Build Ananda Event Desk beta 5.49 Setup
+name: Build Ananda Event Desk beta 5.50 Setup
 on:
   workflow_dispatch:
   push:
@@ -51,6 +51,7 @@ jobs:
       - run: npm run test:attendance-ui
       - run: npm run test:batch-count
       - run: npm run test:kriya-schedule
+      - run: node scripts/verify-eight-stage-progression.js
       - run: npm run test:progression
       - run: npm run test:enrol-shortcut
       - run: npm run test:attendance-status
@@ -81,6 +82,6 @@ jobs:
           }
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.49-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.50-Setup
           path: dist/*.exe
           if-no-files-found: error
