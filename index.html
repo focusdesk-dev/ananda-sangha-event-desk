@@ -550,7 +550,7 @@
       <div class="field"><label for="p2BatchEnd">End date</label><input id="p2BatchEnd" type="date"></div>
       <div class="field"><label for="p2BatchScheduleType">Schedule type</label><select id="p2BatchScheduleType"><option value="weekly">Weekly recurring</option><option value="monthly">Monthly recurring</option><option value="custom">Custom dates</option><option value="single">Single date</option></select></div>
       <div class="field"><label for="p2BatchDay">Usual class day</label><select id="p2BatchDay"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></div>
-      <div class="field" id="p2v537CountField"><label for="p2v537ClassCount">Number of classes *</label><input id="p2v537ClassCount" type="number" min="1" max="1000" step="1" required value="1"></div>
+      <div class="field" id="p2v537CountField"><label for="p2v537ClassCount">Number of classes *</label><input id="p2v537ClassCount" type="number" min="1" step="1" required value="1"></div>
       <div class="field" id="p2v55FeeField"><label for="p2BatchFee">Course fee (₹)</label><input id="p2BatchFee" inputmode="decimal" placeholder="0 for free"></div>
       <div class="field full"><label for="p2BatchAcharyaSearch">Acharya(s)</label><input id="p2BatchAcharyaSearch" autocomplete="off" placeholder="Search name or mobile"><div id="p2BatchAcharyaSuggestions" class="p2-suggestions hidden"></div><div id="p2BatchAcharyaSelected" class="p2-selected-list"></div></div>
       <div class="field full"><label for="p2BatchVolunteerSearch">Assisting volunteers</label><input id="p2BatchVolunteerSearch" autocomplete="off" placeholder="Search name or mobile"><div id="p2BatchVolunteerSuggestions" class="p2-suggestions hidden"></div><div id="p2BatchVolunteerSelected" class="p2-selected-list"></div></div>
@@ -3046,7 +3046,7 @@
   }
   function p2v545Sessions(start,count,type,day){
     if(!p2v545InputDate(start)||!p2v545Recurring(type)||
-      !Number.isSafeInteger(count)||count<1||count>1000)return[];
+      !Number.isSafeInteger(count)||count<1)return[];
     const d=p2v545InputDate(start),wanted=Number(day),dates=[];
     if(!Number.isInteger(wanted)||wanted<0||wanted>6)return[];
     if(type==='weekly'){
@@ -3075,7 +3075,7 @@
     if(first>end)return 0;
     if(type==='weekly')return 1+Math.floor((to.getTime()-p2v545InputDate(first).getTime())/604800000);
     let count=0,y=from.getUTCFullYear(),m=from.getUTCMonth();
-    while(count<=1000&&y<=to.getUTCFullYear()){
+    while(y<=to.getUTCFullYear()){
       const firstOfMonth=new Date(Date.UTC(y,m,1,12));
       firstOfMonth.setUTCDate(1+(Number(day)-firstOfMonth.getUTCDay()+7)%7);
       if(firstOfMonth>=from&&firstOfMonth<=to)count++;
@@ -3101,7 +3101,7 @@
       if(p2v545Driver==='end'&&endInput.value){
         const n=p2v545Count(start,endInput.value,type,day);
         // The empty count is intentionally invalid if the range contains no class.
-        if(n!==null)countInput.value=n>=1&&n<=1000?String(n):'';
+        if(n!==null)countInput.value=n>=1?String(n):'';
       }else if(/^[1-9]\d*$/.test(raw)){
         const dates=p2v545Sessions(start,Number(raw),type,day);
         if(dates.length)endInput.value=dates[dates.length-1];
@@ -3140,8 +3140,8 @@
       start=$('p2BatchStart').value,end=$('p2BatchEnd').value,
       type=$('p2BatchScheduleType').value,day=Number($('p2BatchDay').value),
       raw=$('p2v537ClassCount').value.trim(),count=Number(raw);
-    if(!/^[1-9]\d*$/.test(raw)||!Number.isSafeInteger(count)||count>1000){
-      toast('Enter a number of classes between 1 and 1000.');return;
+    if(!/^[1-9]\d*$/.test(raw)||!Number.isSafeInteger(count)){
+      toast('Enter a positive whole number of classes.');return;
     }
     if(!$('p2BatchName').value.trim()){toast('Enter a batch name.');return}
     if(start&&!p2v545InputDate(start)){toast('Enter a valid start date.');return}
