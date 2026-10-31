@@ -7202,7 +7202,8 @@ function p2v58BindPhoneListener(){
       function p2v546AttendancePct(b,en){
         // Use the class's established attendance summary so the threshold and
         // the displayed attendance percentage use the same denominator.
-        return p2v53AttendanceSummary(b,en).pct;
+        const a=p2v53AttendanceSummary(b,en);
+        return a.total?a.present*100/a.total:0;
       }
       function p2v546Eligibility(en,b){
         if(!b)return{key:'Review Required',label:'Review Required',cls:'amber'};
@@ -7215,10 +7216,11 @@ function p2v58BindPhoneListener(){
         }
         if(!p2Levels.slice(0,3).includes(level))
           return{key:'Not Eligible',label:'Not Eligible',cls:'gray'};
-        const next=p2NextLevel(level),joined=!!en.studentId&&state.classEnrollments.some(
+        const next=p2NextLevel(level);
+        if(b.endedAt&&en.progressionFinalStatus)return{...en.progressionFinalStatus};
+        const joined=!!en.studentId&&state.classEnrollments.some(
           x=>x.studentId===en.studentId&&x.level===next);
         if(joined)return{key:'Joined',label:'Joined '+next,cls:'blue'};
-        if(b.endedAt&&en.progressionFinalStatus)return{...en.progressionFinalStatus};
         if(b.endedAt){
           // Do not retrospectively reclassify old finalised batches.
           return en.outcome==='Completed'
