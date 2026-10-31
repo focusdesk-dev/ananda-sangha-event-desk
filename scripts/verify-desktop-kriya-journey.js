@@ -17,6 +17,10 @@ function journey(){
  const snap=()=>JSON.parse(localStorage.getItem('annualEventRegistration.v1')||'{}');
  const classes=()=>{const b=document.querySelector('.nav-btn[data-page="classes"]');yes(b,'Missing Classes nav');b.click()};
  classes();click('p2v548ManageCourseNames');
+ // A fresh installation contains separate course definitions, but not Kriya batches.
+ const kriya=snap().courseTypes.find(c=>c.id==='course-kriya');
+ yes(kriya&&kriya.name==='Kriya','Separate empty Kriya course definition missing');
+ yes(snap().classBatches.every(b=>b.courseId!=='course-kriya'),'Kriya must not acquire an invented batch');
  yes(document.querySelector('#courseMaster.page.active'),'Course Master did not open');
  let course=snap().courseTypes?.find(c=>c.name==='Kriya 2');
  const existing=[...document.querySelectorAll('#p2CourseList .p2-course-row')].find(x=>x.querySelector('h4')?.textContent.trim()==='Kriya 2');
@@ -79,7 +83,57 @@ function journey(){
  let direct=assign(1,'2026-11-05');yes(!direct.end,'Direct End set too early');
  direct=assign(2,'2026-11-19');yes(direct.end==='2026-11-19','Direct two-class End not saved');
  click('p2EditActiveBatch');yes(el('p2BatchEnd').value==='2026-11-19','Direct End missing after reopening');
- return {pass:true,checks:['create Kriya 2','save class dates','reduce 3 to 2','reopen End Date','rename batch and course','retain saved class dates','direct two-class End Date']};
+
+ // All courses can enter their class dates directly in the batch form.
+ const fill=(i,date)=>{
+  const input=document.querySelector('#p2v549ManualDatesList input[data-n="'+i+'"]');
+  yes(input,'Class '+(i+1)+' input missing');
+  input.value=date;input.dispatchEvent(new Event('input',{bubbles:true}));
+ };
+ el('p2BatchModal').classList.remove('open');
+ classes();click('p2AddBatch');
+ set('p2BatchCourse',course.id,'change');set('p2BatchName','Kriya Two Direct Form');
+ set('p2BatchStart','2026-11-01','change');
+ set('p2BatchScheduleType','custom','change');set('p2v537ClassCount','2');
+ fill(0,'2026-11-09');yes(!el('p2BatchEnd').value,'One dated custom class must not infer End Date');
+ fill(1,'2026-11-23');yes(el('p2BatchEnd').value==='2026-11-23','Direct custom End Date did not update');
+ el('p2BatchForm').requestSubmit();
+ let directForm=snap().classBatches.find(b=>b.name==='Kriya Two Direct Form');
+ yes(directForm?.end==='2026-11-23','Kriya 2 batch form End Date not persisted');
+ yes(directForm.sessionDates.join(',')==='2026-11-09,2026-11-23','Kriya 2 direct dates not saved');
+ click('p2EditActiveBatch');
+ yes(el('p2BatchEnd').value==='2026-11-23','Saved direct form End Date missing when reopened');
+ yes(document.querySelector('#p2v549ManualDatesList input[data-n="1"]').value==='2026-11-23','Saved Kriya date missing in reopened editor');
+ el('p2BatchModal').classList.remove('open');
+ classes();click('p2AddBatch');
+ const l1=snap().courseTypes.find(x=>x.name==='Level 1');
+ yes(l1,'Level 1 course missing');
+ set('p2BatchCourse',l1.id,'change');set('p2BatchName','Level 1 Manual Date Test');
+ set('p2BatchStart','2026-11-01','change');set('p2BatchScheduleType','weekly','change');
+ set('p2BatchDay','0','change');set('p2v537ClassCount','2');
+ yes(document.querySelector('#p2v549ManualDatesList input[data-n="0"]').value==='2026-11-01','Weekly first date not generated');
+ fill(1,'2026-11-11');
+ yes(el('p2BatchEnd').value==='2026-11-11','Manual weekly edit must update End Date');
+ el('p2BatchForm').requestSubmit();
+ const weekly=snap().classBatches.find(b=>b.name==='Level 1 Manual Date Test');
+ yes(weekly?.end==='2026-11-11','Weekly manually revised End Date not saved');
+ yes(weekly.sessionDates.join(',')==='2026-11-01,2026-11-11','Weekly manual dates not saved');
+ click('p2EditActiveBatch');
+ yes(el('p2BatchEnd').value==='2026-11-11','Weekly revised End not restored in batch dialog');
+ el('p2BatchModal').classList.remove('open');
+ classes();click('p2AddBatch');
+ const select=el('p2BatchCourse');yes([...select.options].some(o=>o.value==='__custom__'),'Custom course selector unavailable');
+ set('p2BatchCourse','__custom__','change');set('p2v55CustomCourseName','Special Meditation');
+ set('p2BatchName','Custom Two Dates');set('p2BatchStart','2026-11-01','change');
+ set('p2BatchScheduleType','custom','change');set('p2v537ClassCount','2');
+ fill(0,'2026-11-06');fill(1,'2026-11-27');
+ yes(el('p2BatchEnd').value==='2026-11-27','New custom course End Date not calculated');
+ el('p2BatchForm').requestSubmit();
+ const custom=snap().classBatches.find(b=>b.name==='Custom Two Dates');
+ yes(custom?.end==='2026-11-27'&&custom.sessionDates.length===2,'New custom course dates not saved');
+ click('p2v549EditCourse');yes(el('p2CourseModal').classList.contains('open'),'Direct Edit Course Name button does not open course editor');
+ el('p2CourseModal').classList.remove('open');
+ return {pass:true,checks:['create Kriya 2','save class dates','reduce 3 to 2','reopen End Date','rename batch and course','retain saved class dates','direct two-class End Date','Kriya separate course with no batches','direct Kriya 2 class dates','weekly manual dates','custom new course dates','Edit Course Name within batch']};
 }
 async function run(){
  const target=await findTarget(),ws=new WebSocket(target.webSocketDebuggerUrl);
