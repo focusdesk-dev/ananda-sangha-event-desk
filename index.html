@@ -3158,9 +3158,15 @@
     const before=existing?p2v537Rows(existing):[];
     // Never silently delete dated OR undated pre-existing sessions in the batch dialog.
     if(existing&&count<before.length){
-      toast('This batch already has '+before.length+' planned sessions. Adjust sessions individually in Class Schedule. Nothing was changed.');return;
+      const discarded=before.slice(count);
+      // Dated sessions (including historical attendance dates) cannot be
+      // removed in the batch form. Only genuinely undated placeholders are safe.
+      if(discarded.some(r=>r.date)){
+        toast('The classes being removed already have saved dates. Change them in Class Schedule; no records were changed.');return;
+      }
+      if(!window.confirm('Remove '+discarded.length+' undated planned class'+(discarded.length===1?'':'es')+'? Existing dated sessions and attendance will remain untouched.'))return;
     }
-    const next=before.map((r,i)=>({id:String(r.id),number:i+1,date:r.date||''}));
+    const next=before.slice(0,count).map((r,i)=>({id:String(r.id),number:i+1,date:r.date||''}));
     while(next.length<count)next.push({id:uid('cls'),number:next.length+1,date:''});
     if(generated.length){
       const agrees=before.every((r,i)=>!r.date||r.date===generated[i]);
@@ -7351,6 +7357,149 @@ function p2v58BindPhoneListener(){
         v51RequireAdmin(()=>p2v546UpdateMinimum(target),'change Course Progression minimum attendance');
       };
       p2v546SettingsDisplay();
+
+      // BETA 5.47 — Make undated Custom Date (including Kriya 2) sessions
+      // editable directly from the established Class Dates & Schedule screen.
+      // Never generate guessed dates for Custom; never modify attendance marks.
+      let p2v547PendingSession=null;
+      function p2v547AllPlannedDated(b){
+        const rows=Array.isArray(b?.plannedSessions)?b.plannedSessions:[];
+        return rows.length>0&&rows.every(r=>p2v537IsDate(r.date));
+      }
+      function p2v547RefreshCustomEnd(b){
+        if(b?.scheduleType!=='custom'||!Array.isArray(b.plannedSessions))return;
+        if(p2v547AllPlannedDated(b)){
+          // The end is the last saved date, independent of the order that
+          // volunteers assigned class numbers.
+          b.end=b.plannedSessions.map(r=>r.date).sort().at(-1);
+          b.endFromCustomSessions=true;
+        }else if(b.endFromCustomSessions){
+          b.end='';
+          b.endFromCustomSessions=false;
+        }
+      }
+      const p2v547OpenDateBase=p2v5Fix2OpenDateDialog;
+      p2v5Fix2OpenDateDialog=function(b,oldDate=''){
+        p2v547PendingSession=null;
+        return p2v547OpenDateBase(b,oldDate);
+      };
+      function p2v547OpenPlannedClass(b,sessionId){
+        if(!b||p2v5IsEnded(b))return;
+        const slot=(b.plannedSessions||[]).find(r=>String(r.id)===String(sessionId));
+        if(!slot)return;
+        if(slot.date){
+          p2v5Fix2OpenDateDialog(b,slot.date);
+          return;
+        }
+        // Reuse the existing small Class Date dialog, not a new screen.
+        p2v5Fix2OpenDateDialog(b,'');
+        p2v547PendingSession={batchId:b.id,sessionId:String(slot.id)};
+        $('p2v5Fix2DateTitle').textContent='Class '+slot.number+' Date';
+        $('p2v5Fix2DateInput').value=b.start||'';
+      }
+      function p2v547SavePlannedDate(ctx,iso){
+        const b=state.classBatches.find(x=>x.id===ctx.batchId);
+        if(!b||p2v5IsEnded(b)){toast('This batch is not available for editing.');return false}
+        if(!p2v537IsDate(iso)){toast('Choose a valid class date.');return false}
+        if(b.start&&iso<b.start){
+          toast('Class date is earlier than the batch Start Date. Change the Start Date first.');return false;
+        }
+        const rows=p2v537Rows(b);
+        const target=rows.find(r=>String(r.id)===ctx.sessionId);
+        if(!target||target.date){toast('This class date has already been assigned.');return false}
+        if(rows.some(r=>r.date===iso)||(b.sessionDates||[]).includes(iso)){
+          toast('This date is already assigned to another class.');return false;
+        }
+        // Apply only the selected undated slot; preserve every stable ID.
+        target.date=iso;
+        b.plannedSessions=rows.map((r,i)=>({...r,number:i+1}));
+        b.numberOfClasses=b.plannedSessions.length;
+        b.sessionDates=[...new Set([...(b.sessionDates||[]),iso])].sort();
+        p2v547RefreshCustomEnd(b);
+        $('p2v5Fix2DateModal').classList.remove('open');
+        p2v547PendingSession=null;
+        save();toast('Class date saved.');
+        return true;
+      }
+      const p2v547DateForm=$('p2v5Fix2DateForm');
+      p2v547DateForm?.addEventListener('submit',event=>{
+        const ctx=p2v547PendingSession;
+        if(!ctx)return; // Normal New Class and Edit Date retain old handlers.
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        p2v547SavePlannedDate(ctx,$('p2v5Fix2DateInput').value);
+      },true);
+      for(const id of ['p2v5Fix2DateCancel','p2v5Fix2DateClose']){
+        const button=$(id),prior=button?.onclick;
+        if(button)button.onclick=function(event){
+          p2v547PendingSession=null;
+          if(typeof prior==='function')return prior.call(this,event);
+          $('p2v5Fix2DateModal').classList.remove('open');
+        };
+      }
+      const p2v547RenderScheduleBase=p2v5RenderSchedule;
+      p2v5RenderSchedule=function(b){
+        p2v547RenderScheduleBase(b);
+        const card=$('p2v5ScheduleCard'),host=card?.querySelector('#p2v537PlanSummary');
+        if(!host||!b)return;
+        const rows=(b.plannedSessions||[]).slice().sort((x,y)=>Number(x.number)-Number(y.number));
+        const dated=rows.filter(x=>p2v537IsDate(x.date)).length;
+        host.innerHTML='<strong>PLANNED CLASSES: '+rows.length+'</strong> · '+dated+
+          ' dated, '+(rows.length-dated)+' awaiting a date'+
+          '<div class="p2v547-session-links">'+rows.map((r,i)=>
+            '<button type="button" class="p2v547-session-date" data-session-id="'+esc(String(r.id))+'" '+
+              (p2v5IsEnded(b)?'disabled':'')+
+              ' title="Set class '+(i+1)+' date">Class '+(i+1)+' · '+
+              (r.date?fmt(r.date):'Date pending')+'</button>').join('')+'</div>';
+        host.querySelectorAll('.p2v547-session-date').forEach(btn=>{
+          btn.onclick=()=>p2v547OpenPlannedClass(b,btn.dataset.sessionId);
+        });
+      };
+      // The existing New Class button must fill pending planned slots before
+      // appending sessions; the original add wrapper already does that.
+      const p2v547AddDateBase=p2v5AddNewClass;
+      p2v5AddNewClass=function(b,iso){
+        const result=p2v547AddDateBase(b,iso);
+        if(b?.scheduleType==='custom'){
+          const endBefore=b.end;
+          p2v547RefreshCustomEnd(b);
+          if(b.end!==endBefore)save();
+        }
+        return result;
+      };
+      const p2v547EditDateBase=p2v5Fix2EditClassDate;
+      p2v5Fix2EditClassDate=function(b,oldDate,newDate){
+        const result=p2v547EditDateBase(b,oldDate,newDate);
+        if(result&&b?.scheduleType==='custom'){
+          const before=b.end;
+          p2v547RefreshCustomEnd(b);
+          if(b.end!==before)save();
+        }
+        return result;
+      };
+      // When a custom batch form changes its class count, keep an existing
+      // manual End Date, but clear a previously auto-derived end if the newly
+      // requested number of sessions is no longer fully dated.
+      const p2v547CountInput=$('p2v537ClassCount');
+      const p2v547CountBase=p2v547CountInput?.oninput;
+      if(p2v547CountInput)p2v547CountInput.oninput=function(ev){
+        if(typeof p2v547CountBase==='function')p2v547CountBase.call(this,ev);
+        const b=state.classBatches.find(x=>x.id===$('p2BatchId').value);
+        if(b?.scheduleType!=='custom'||!b.endFromCustomSessions)return;
+        const count=Number(p2v547CountInput.value),dated=(b.plannedSessions||[]).filter(x=>!!x.date).length;
+        if(count!==dated)$('p2BatchEnd').value='';
+      };
+      // Styling scoped to the Class Schedule; no individual dates in the
+      // New Class Batch form itself.
+      const p2v547Style=document.createElement('style');
+      p2v547Style.id='p2v547Style';
+      p2v547Style.textContent=
+        '#p2v5ScheduleCard .p2v547-session-links{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}'+
+        '#p2v5ScheduleCard .p2v547-session-date{padding:6px 9px;border:1px solid #d7e3ee;border-radius:6px;background:#fff;color:#17447e;font-size:12px;cursor:pointer}'+
+        '#p2v5ScheduleCard .p2v547-session-date:hover{border-color:#276fb9;background:#eff7ff}'+
+        '#p2v5ScheduleCard .p2v547-session-date:disabled{cursor:default;opacity:.65}';
+      document.head.appendChild(p2v547Style);
+
       document.title='ANANDA SANGHA GURGAON Event Desk — Phase 2 • 2.0.0-beta.5.27';
     })();
   </script>
