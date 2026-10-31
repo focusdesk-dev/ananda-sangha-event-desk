@@ -31,7 +31,7 @@ function journey(){
  yes(batch&&batch.plannedSessions.length===3,'Three-class batch not created');
  function assign(slot,date){
   const buttons=[...document.querySelectorAll('#p2v5ScheduleCard .p2v547-session-date')];
-  yes(buttons.length>=slot,'Numbered class links missing');
+  yes(buttons.length>=slot,'Numbered class links missing; count='+buttons.length+'; classWorkspace='+document.querySelector('#classWorkspace')?.className+'; summary='+document.querySelector('#p2v537PlanSummary')?.outerHTML?.slice(0,400)+'; card='+el('p2v5ScheduleCard').outerHTML.slice(0,700)+'; end='+JSON.stringify(snap().classBatches.find(x=>x.id===batch.id)));
   buttons[slot-1].click();
   yes(el('p2v5Fix2DateModal').classList.contains('open'),'Date modal did not open');
   yes(el('p2v5Fix2DateTitle').textContent.includes('Class '+slot),'Incorrect date dialog');
