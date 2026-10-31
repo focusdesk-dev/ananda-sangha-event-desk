@@ -2168,7 +2168,18 @@
     {id:'course-kriya3',name:'Kriya 3',category:'Advanced',progressionOrder:7,defaultSchedule:'custom',defaultDay:0,active:true,locked:false},
     {id:'course-kriya4',name:'Kriya 4',category:'Advanced',progressionOrder:8,defaultSchedule:'custom',defaultDay:0,active:true,locked:false}
   ];
-  p2DefaultCourses.forEach(def=>{let c=state.courseTypes.find(x=>x.id===def.id)||state.courseTypes.find(x=>normName(x.name)===normName(def.name));if(!c){state.courseTypes.push({...def})}else{Object.keys(def).forEach(k=>{if(c[k]===undefined)c[k]=def[k]})}});
+  let p2SeededCourseDefinition=false;
+  p2DefaultCourses.forEach(def=>{
+    let c=state.courseTypes.find(x=>x.id===def.id)||
+      state.courseTypes.find(x=>normName(x.name)===normName(def.name));
+    if(!c){state.courseTypes.push({...def});p2SeededCourseDefinition=true}
+    else Object.keys(def).forEach(k=>{
+      if(c[k]===undefined){c[k]=def[k];p2SeededCourseDefinition=true}
+    });
+  });
+  // Persist default course definitions immediately, even before the user's first
+  // edit. This creates no batches and never resets any student records.
+  if(p2SeededCourseDefinition)localStorage.setItem(KEY,JSON.stringify(state));
   state.classBatches.forEach(b=>{if(!b.courseId){const c=state.courseTypes.find(x=>normName(x.name)===normName(b.level||''));if(c)b.courseId=c.id}if(!b.scheduleType)b.scheduleType=p2Levels.includes(b.level)?'weekly':'custom';if(b.usualDay===undefined)b.usualDay=0;if(!Array.isArray(b.acharyaIds)){b.acharyaIds=[];(b.acharyas||[]).forEach(name=>{let a=state.acharyas.find(x=>normName(x.name)===normName(name));if(!a){a={id:uid('ach'),name,mobile:'',notes:'Migrated from batch assignment',active:true};state.acharyas.push(a)}b.acharyaIds.push(a.id)})}});
   v51ProtectedPages.add('students');v51ProtectedPages.add('acharyas');
   let p2EditingAcharyaIds=[],p2EditingVolunteerIds=[],p2ReportMode='class';
@@ -7881,7 +7892,7 @@ function p2v58BindPhoneListener(){
   </script>
 
 
-  <script>document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.48';</script>
+  <script>document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.50';</script>
 
 </body>
 </html>
