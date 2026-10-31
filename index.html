@@ -3526,7 +3526,7 @@
   function p2v56ChatOpenBatch(id){if(!id)return;state.activeClassBatchId=id;save();switchPage('classWorkspace')}
   function p2v56ChatClassCard(b){
     const s=p2v56ChatStatus(b),fee=String(b.courseFee??'').trim(),ach=p2AcharyaNames(b).join(', ')||'No Acharya assigned';
-    return `<div class="p2v56-chat-class ${p2v56ChatSelectedClass===b.id?'selected':''}" data-id="${b.id}" tabindex="0"><div><span class="p2v56-chat-chip">${esc(s)}</span><h4>${esc(p2CourseName(b))} — ${esc(b.name)}</h4><p>${b.start?fmt(b.start):'Start date not set'}${b.end?' to '+fmt(b.end):''} · ${esc(ach)}</p><p>${esc((b.scheduleType||'custom').toUpperCase())} · ${(b.sessionDates||[]).length} session${(b.sessionDates||[]).length===1?'':'s'}${fee?' · ₹ '+esc(fee):''}</p></div><button class="btn ghost small p2v56-chat-edit" data-id="${b.id}" type="button">Edit</button><span class="p2v56-chat-hint">Double-click to open</span></div>`
+    return `<div class="p2v56-chat-class ${p2v56ChatSelectedClass===b.id?'selected':''}" data-id="${b.id}" tabindex="0"><div><span class="p2v56-chat-chip">${esc(s)}</span><h4>${esc(p2CourseName(b))} — ${esc(b.name)}</h4><p>${b.start?fmt(b.start):'Start date not set'}${b.end?' to '+fmt(b.end):''} · ${esc(ach)}</p><p>${esc((b.scheduleType||'custom').toUpperCase())} · ${(b.sessionDates||[]).length} session${(b.sessionDates||[]).length===1?'':'s'}${fee?' · ₹ '+esc(fee):''}</p></div><button class="btn ghost small p2v56-chat-edit" data-id="${b.id}" type="button">Edit Batch</button><span class="p2v56-chat-hint">Double-click to open</span></div>`
   }
 
   p2RenderClasses=function(){
