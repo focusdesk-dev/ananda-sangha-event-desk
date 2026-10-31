@@ -35,7 +35,7 @@ const ctx={
 vm.runInNewContext(src+';globalThis.kriyaTest={open:p2v547OpenPlannedClass,assign:p2v547SavePlannedDate,finish:p2v547RefreshCustomEnd};',ctx,{timeout:3000});
 const k=ctx.kriyaTest,b=batches[0],forms=inputs.p2v5Fix2DateForm;
 assert.strictEqual(forms.events.submit.capture,true,'Slot save must run before legacy New Class save');
-assert(html.includes('Class '+(1)+' · '),'Class Date plan retains numbered session display');
+assert(html.includes('data-session-id'),'Class Schedule exposes direct edit buttons for numbered sessions');
 k.open(b,'S2');assert.strictEqual(inputs.p2v5Fix2DateTitle.textContent,'Class 2 Date');
 assert.strictEqual(inputs.p2v5Fix2DateInput.value,'2026-11-01');
 inputs.p2v5Fix2DateInput.value='2026-11-08';
