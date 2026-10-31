@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.47 Setup
+name: Build Ananda Event Desk beta 5.48 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-47-kriya-custom-date-save]
+    branches: [beta-5-48-kriya-verified-names]
 jobs:
   windows-installer:
     runs-on: windows-latest
@@ -74,11 +74,13 @@ jobs:
               } catch { Write-Host "Waiting for desktop window to load..." }
             }
             if (!$found) { throw "Packaged app did not expose a loaded Ananda window within the smoke check." }
+            node scripts/verify-desktop-kriya-journey.js
+            if ($LASTEXITCODE -ne 0) { throw "Desktop Kriya UI regression failed" }
           } finally {
             Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Ananda Sangha Event Desk.exe' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
           }
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.47-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.48-Setup
           path: dist/*.exe
           if-no-files-found: error
