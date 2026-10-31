@@ -79,7 +79,7 @@ assert.strictEqual(batch.notes,'Updated note');
 const priorSaves=saves;
 open(batchId);edit('p2v537ClassCount','7');submit();
 assert.strictEqual(saves,priorSaves,'Reducing existing sessions must be rejected in batch form');
-assert(messages.at(-1).includes('Adjust sessions individually'),'Instruct Class Schedule edits');
+assert(messages.at(-1).includes('Class Schedule'),'Instruct Class Schedule edits');
 assert.strictEqual(batch.plannedSessions.length,8);
 assert.strictEqual(enrolled.attendance['2026-11-08'],false);
 // Expanding safely preserves existing numbered sessions and only fills a new slot.
@@ -108,6 +108,18 @@ assert.strictEqual(unscheduled.plannedSessions.length,5);
 assert.strictEqual(unscheduled.sessionDates.length,0);
 assert(unscheduled.plannedSessions.every(x=>x.date===''));
 assert.strictEqual(unscheduled.status,'Upcoming');
+
+const undatedId=unscheduled.id;
+open(undatedId);
+ctx.window.confirm=()=>true;
+edit('p2v537ClassCount','2');
+submit();
+assert.strictEqual(unscheduled.numberOfClasses,2,'3 unscheduled slots may be reduced safely to 2 with confirmation');
+assert.strictEqual(unscheduled.plannedSessions.length,2);
+assert.strictEqual(unscheduled.sessionDates.length,0,'No dates invented during safe reduction');
+assert.strictEqual(unscheduled.end,'','End Date remains blank until custom class dates exist');
+ctx.window.confirm=()=>{throw Error('Unexpected confirmation: do not mutate dated sessions')};
+
 // Custom and single schedules do NOT invent regular class dates/end dates.
 open();fields.p2BatchName.value='Custom class';edit('p2BatchScheduleType','custom');
 edit('p2v537ClassCount','3');edit('p2BatchStart','2026-11-01');
