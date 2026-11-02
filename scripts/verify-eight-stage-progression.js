@@ -19,7 +19,7 @@ const ctx={
  p2CourseName:b=>state.courseTypes.find(c=>c.id===b?.courseId)?.name||b?.level||'',
  p2FindStudent:id=>state.students.find(s=>s.id===id),
  p2StudentEnrollments:id=>state.classEnrollments.filter(en=>en.studentId===id),
- p2v546Eligibility:en=>en.outcome==='Completed'?{key:'Eligible'}:{key:'Review Required'},
+ p2v546Eligibility:en=>en.testAttendancePct>=50?{key:'Eligible'}:{key:'Review Required'},
  p2v519Decision:(_batch,en)=>({key:en.testAttendancePct>=50?'Eligible':'Review Required'}),
  p2v55ProgressionRequirement:()=>{baseCalls++;return{ok:true,reason:''}},
 };
