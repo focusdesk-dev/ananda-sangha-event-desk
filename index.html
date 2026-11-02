@@ -3561,7 +3561,7 @@
     if(typeof p2v55SyncBatchStatuses==='function')p2v55SyncBatchStatuses();
     const cf=$('p2CourseFilter'),keep=cf?.value||'all';
     if(cf){cf.innerHTML='<option value="all">All Courses</option>'+state.courseTypes.filter(c=>c.active!==false).sort((a,b)=>{const i=p2FullChain.indexOf(a.name),j=p2FullChain.indexOf(b.name);return (i<0?99:i)-(j<0?99:j)||a.name.localeCompare(b.name)}).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');cf.value=[...cf.options].some(o=>o.value===keep)?keep:'all'}
-    const course=cf?.value||'all',records=state.classBatches.filter(b=>course==='all'||String(b.courseId)===course);
+    const course=cf?.value||'all',records=state.classBatches.filter(b=>!b.archivedAt&&(course==='all'||String(b.courseId)===course));
     const grouped={};records.forEach(b=>{const y=String(p2BatchYear(b)||'Unknown');(grouped[y]||(grouped[y]=[])).push(b)});
     const years=Object.keys(grouped).sort((a,b)=>b.localeCompare(a,undefined,{numeric:true}));
     $('p2ClassList').innerHTML=years.length?`<div class="p2v56-chat-years">${years.map(y=>{const a=grouped[y].filter(p2v56ChatActive).sort((x,z)=>String(x.start||'').localeCompare(String(z.start||''))),i=grouped[y].filter(x=>!p2v56ChatActive(x)).sort((x,z)=>String(z.start||'').localeCompare(String(x.start||'')));return `<section class="p2v56-chat-year"><div class="p2v56-chat-year-head"><div><span>YEAR · ${esc(y)}</span><h3>${esc(y)} Classes</h3><p>${a.length} Active / Upcoming · ${i.length} Inactive / Completed</p></div></div><div class="p2v56-chat-section-title">Active &amp; Upcoming</div>${a.length?`<div class="p2v56-chat-class-list">${a.map(p2v56ChatClassCard).join('')}</div>`:'<div class="p2-empty">No active or upcoming classes.</div>'}<div class="p2v56-chat-section-title muted">Inactive &amp; Completed</div>${i.length?`<div class="p2v56-chat-class-list">${i.map(p2v56ChatClassCard).join('')}</div>`:'<div class="p2-empty">No inactive or completed classes.</div>'}</section>`}).join('')}</div>`:'<div class="p2-empty">No classes available.</div>';
@@ -7567,13 +7567,28 @@ function p2v58BindPhoneListener(){
             const en=row.en,a=row.attendance,d=row.decision;
             const outcome=ended?(en.outcome==='Withdrawn'||en.outcome==='Did Not Complete'?'Paused':en.outcome||'Completed'):
               (en.outcome==='Withdrawn'?'Paused':'In Progress');
-            return'<tr><td><strong>'+esc(row.person.name||'Unnamed')+'</strong></td>'+
+            return'<tr><td><button type="button" class="p2v526-select" data-id="'+esc(en.studentId)+'">'+esc(row.person.name||'Unnamed')+'</button></td>'+
               '<td>'+(a.pct===null?'Not assessed':a.pct+'%')+'</td>'+
               '<td>'+esc(outcome)+'</td><td>'+esc(d.label)+'</td>'+
               '<td>'+esc(en.paymentStatus||en.feeStatus||(Number(b.courseFee)===0?'Free':'Not recorded'))+'</td>'+
               '<td><button class="p2v519-history" data-id="'+esc(en.studentId)+'">View history</button></td></tr>';
           }).join(''):'<tr><td colspan="6">No students enrolled in this batch.</td></tr>')+
-          '</tbody></table></div>';
+          '</tbody></table></div><div id="p2v526StudentDetail" class="p2v526-detail"></div>';
+        host.querySelectorAll('.p2v526-select').forEach(button=>button.onclick=()=>{
+          const r=stats.find(x=>x.en.studentId===button.dataset.id);if(!r)return;
+          const fee=Number(b.courseFee)||0;
+          const payment=r.en.paymentStatus||r.en.feeStatus||(fee?'Not recorded':'Free');
+          const detail=$('p2v526StudentDetail');
+          detail.innerHTML='<strong>'+esc(r.person.name||'Student')+'</strong>'+
+            '<span>Attendance: '+(r.attendance.pct===null?'Not assessed':r.attendance.pct+'%')+
+            ' · '+esc(r.decision.label)+' · Fee: '+(fee?'₹'+fee:'Free')+
+            ' · Payment: '+esc(payment)+'</span>'+
+            '<button type="button" class="btn secondary small" id="p2v526FullHistory">View full history</button>';
+          $('p2v526FullHistory').onclick=()=>{
+            p2v56ChatProgressStudent=r.en.studentId;
+            p2v56ChatProgressMode='student';switchPage('studentProgress');
+          };
+        });
         $('p2v519End')?.addEventListener('click',()=>p2v519Finalise(b));
         host.querySelectorAll('.p2v519-history').forEach(btn=>btn.onclick=()=>{
           p2v56ChatProgressStudent=btn.dataset.id;
@@ -7625,6 +7640,14 @@ function p2v58BindPhoneListener(){
         '@media(max-width:850px){#p2v519Summary .p2v519-kpis{grid-template-columns:repeat(2,1fr)}'+
         '#classWorkspace .p2v519-heading{align-items:flex-start}}';
       document.head.appendChild(p2v519Style);
+      const p2v526BatchStyle=document.createElement('style');
+      p2v526BatchStyle.textContent=
+        '#classWorkspace #p2ClassHeader{padding:15px 20px;border-bottom:2px solid #edbd38}'+
+        '#classWorkspace .p2v519-actions{margin-top:9px}'+
+        '#classWorkspace .p2v526-select{padding:3px 0;border:0;background:transparent;color:#174d93;font-weight:650;cursor:pointer}'+
+        '#classWorkspace .p2v526-detail{margin:14px;padding:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:#f7f9fc;border-radius:7px;font-size:12px}'+
+        '#classWorkspace .p2v526-detail:empty{display:none}';
+      document.head.appendChild(p2v526BatchStyle);
 
 
       // CORRECTION 20 — One query, all years. The four student-group options
