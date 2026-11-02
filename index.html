@@ -7779,6 +7779,327 @@ function p2v58BindPhoneListener(){
         '#classWorkspace .p2v519-heading{align-items:flex-start}}';
       document.head.appendChild(p2v519Style);
 
+
+      // CORRECTION 20 — One query, all years. The four student-group options
+      // are operational sets, not new student/master or attendance records.
+      const p2v520Groups=['All','Incomplete / Withdrawn','Eligible',
+        'Eligible + Incomplete / Withdrawn'];
+      let p2v520Course='',p2v520Batch='__all__',p2v520Year='__all__',
+        p2v520Group='All',p2v520View='overview',p2v520History='',
+        p2v520Selected=new Set();
+      function p2v520CourseName(courseId){
+        return state.courseTypes.find(c=>String(c.id)===String(courseId))?.name||'';
+      }
+      function p2v520PriorStage(courseId){
+        const course=state.courseTypes.find(c=>c.id===courseId);
+        const stage=['course-l1','course-l2','course-l3','course-l4',
+          'course-kriya','course-kriya2','course-kriya3','course-kriya4'].indexOf(courseId);
+        const index=stage>=0?stage:p2FullChain.indexOf(course?.name||'');
+        return index>0?p2FullChain[index-1]:'';
+      }
+      function p2v520StageCourseId(stage){
+        const fixed={'Level 1':'course-l1','Level 2':'course-l2','Level 3':'course-l3',
+          'Level 4':'course-l4','Kriya':'course-kriya','Kriya 2':'course-kriya2',
+          'Kriya 3':'course-kriya3','Kriya 4':'course-kriya4'};
+        return state.courseTypes.find(c=>c.id===fixed[stage])?.id||
+          state.courseTypes.find(c=>c.name===stage)?.id||'';
+      }
+      function p2v520EnrolledLevel(b,targetId){
+        return !!b&&(String(b.courseId)===String(targetId)||
+          (!b.courseId&&p2CourseName(b)===p2v520CourseName(targetId)));
+      }
+      function p2v520IsFurther(studentId,targetId){
+        const stage=p2v520CourseName(targetId),index=p2FullChain.indexOf(stage);
+        if(index<0)return false;
+        const student=p2FindStudent(studentId);
+        if(index<4&&student&&(student.kriyabanId||student.kriyaYear||student.kriyaDate))return true;
+        return state.classEnrollments.some(en=>{
+          if(en.studentId!==studentId)return false;
+          const b=state.classBatches.find(x=>x.id===en.batchId);
+          const actual=b?p2v550Stage(b):en.level;
+          return p2FullChain.indexOf(actual)>index;
+        });
+      }
+      function p2v520OutcomeIsUnfinished(en,b){
+        if(['Withdrawn','Incomplete','Did Not Complete','Paused','Course paused'].includes(en.outcome))return true;
+        return !!b?.endedAt&&(!en.outcome||en.outcome==='Enrolled')&&
+          !!en.attendance&&!Object.values(en.attendance).some(x=>x===true);
+      }
+      function p2v520EligibleFromPrevious(student,targetId){
+        const prev=p2v520PriorStage(targetId),target=p2v520CourseName(targetId);
+        if(!prev)return null;
+        // One enrolment in the target course in ANY year means "Not Joined"
+        // is untrue; no further follow-up eligibility search is needed.
+        if(state.classEnrollments.some(en=>en.studentId===student.id&&
+          p2v520EnrolledLevel(state.classBatches.find(b=>b.id===en.batchId),targetId)))return null;
+        if(p2v520IsFurther(student.id,targetId))return null;
+        const approvalsRequired=p2FullChain.indexOf(target)>=4;
+        if(approvalsRequired&&!p2v550Decision(student,target))return null;
+        let qualifying=[];
+        for(const en of state.classEnrollments){
+          if(en.studentId!==student.id)continue;
+          const source=state.classBatches.find(b=>b.id===en.batchId);
+          if(!source||p2v550Stage(source)!==prev)continue;
+          if(approvalsRequired){
+            if(!p2v550Completed(student.id,prev))continue;
+          }else{
+            const decision=p2v519Decision(source,en);
+            const olderCompleted=!!source.endedAt&&
+              !en.progressionFinalStatus&&en.outcome==='Completed';
+            if(decision.key!=='Eligible'&&!olderCompleted)continue;
+          }
+          qualifying.push({en,b:source});
+        }
+        if(!qualifying.length&&approvalsRequired&&prev==='Kriya'&&
+          p2v550Completed(student.id,'Kriya')){
+          // A legacy Kriyaban identity may not have a Kriya course enrolment;
+          // preserve the fact of reception, but use an actual historic course
+          // record where available for year and attendance.
+          const legacy=state.classEnrollments.filter(e=>e.studentId===student.id)
+            .map(en=>({en,b:state.classBatches.find(b=>b.id===en.batchId)}))
+            .filter(x=>x.b).sort((a,b)=>String(b.b.start||'').localeCompare(String(a.b.start||'')))[0];
+          if(legacy)qualifying.push(legacy);
+        }
+        if(!qualifying.length)return null;
+        qualifying.sort((a,b)=>String(b.b.start||'').localeCompare(String(a.b.start||'')));
+        const chosen=qualifying[0],a=p2v519Attendance(chosen.b,chosen.en);
+        return{student,en:chosen.en,b:chosen.b,year:String(p2BatchYear(chosen.b)||''),
+          group:'Eligible',action:'Invite',pct:a.pct,
+          detail:prev+' · '+chosen.b.name};
+      }
+      function p2v520Rows(courseId,group='All',year='__all__',batch='__all__'){
+        const course=p2v520CourseName(courseId);
+        if(!course)return[];
+        const yearOK=x=>year==='__all__'||String(x)===String(year);
+        const records=state.classEnrollments.map(en=>({
+          en,b:state.classBatches.find(b=>b.id===en.batchId),
+          student:p2FindStudent(en.studentId)
+        })).filter(x=>x.b&&x.student&&p2v520EnrolledLevel(x.b,courseId));
+        const current=records.filter(x=>yearOK(p2BatchYear(x.b))&&
+          (batch==='__all__'||x.b.id===batch));
+        const incompleteByStudent=new Map();
+        for(const x of records){
+          if(!p2v520OutcomeIsUnfinished(x.en,x.b))continue;
+          if(!yearOK(p2BatchYear(x.b)))continue;
+          if(batch!=='__all__'&&x.b.id!==batch)continue;
+          const all=records.filter(y=>y.student.id===x.student.id);
+          if(all.some(y=>y.en.outcome==='Completed')||
+            all.some(y=>!y.b.endedAt&&!p2v520OutcomeIsUnfinished(y.en,y.b))||
+            p2v520IsFurther(x.student.id,courseId))continue;
+          const previous=incompleteByStudent.get(x.student.id);
+          if(!previous||String(x.b.start||'')>String(previous.b.start||''))incompleteByStudent.set(x.student.id,x);
+        }
+        const unfinished=[...incompleteByStudent.values()].map(x=>{
+          const a=p2v519Attendance(x.b,x.en);
+          return{student:x.student,en:x.en,b:x.b,year:String(p2BatchYear(x.b)||''),
+            group:'Incomplete / Withdrawn',action:'Rejoin',pct:a.pct,
+            detail:p2CourseName(x.b)+' · '+x.b.name};
+        });
+        // An Eligible group always uses All batches: the student has never
+        // joined a batch belonging to the selected target course.
+        const eligible=(p2v520PriorStage(courseId)?
+          state.students.map(s=>p2v520EligibleFromPrevious(s,courseId)).filter(Boolean):[])
+          .filter(x=>yearOK(x.year));
+        const prospects=new Map(eligible.map(x=>[x.student.id,x]));
+        if(group==='Eligible')return [...prospects.values()].sort(p2v520SortRows);
+        if(group==='Incomplete / Withdrawn')return unfinished.sort(p2v520SortRows);
+        if(group==='Eligible + Incomplete / Withdrawn'){
+          const map=new Map([...prospects,...unfinished.map(x=>[x.student.id,x])]);
+          return [...map.values()].sort(p2v520SortRows);
+        }
+        const overview=current.map(x=>{
+          const a=p2v519Attendance(x.b,x.en);
+          return{student:x.student,en:x.en,b:x.b,year:String(p2BatchYear(x.b)||''),
+            group:p2v520OutcomeIsUnfinished(x.en,x.b)?'Incomplete / Withdrawn':
+              x.en.outcome==='Completed'?'Completed':'In Progress',
+            action:'—',pct:a.pct,detail:p2CourseName(x.b)+' · '+x.b.name};
+        });
+        return [...overview,...eligible].sort(p2v520SortRows);
+      }
+      function p2v520SortRows(a,b){
+        return String(a.student.name||'').localeCompare(String(b.student.name||''),undefined,
+          {sensitivity:'base'})||String(b.year).localeCompare(String(a.year));
+      }
+      function p2v520AvailableCourses(){
+        return state.courseTypes.slice().sort((a,b)=>{
+          const ai=p2FullChain.indexOf(a.name),bi=p2FullChain.indexOf(b.name);
+          if(ai>=0&&bi>=0)return ai-bi;
+          if(ai>=0)return-1;if(bi>=0)return 1;
+          return a.name.localeCompare(b.name);
+        });
+      }
+      function p2v520EnsureSelection(){
+        const choices=p2v520AvailableCourses();
+        if(!choices.some(c=>c.id===p2v520Course)){
+          p2v520Course=choices.find(c=>c.id==='course-l1'||c.name==='Level 1')?.id||
+            choices[0]?.id||'';
+        }
+        if(p2v520Group==='Eligible'||p2v520Group==='Eligible + Incomplete / Withdrawn')
+          p2v520Batch='__all__';
+      }
+      function p2v520Render(){
+        const body=$('p2v56ChatProgressBody');if(!body)return;
+        p2v520EnsureSelection();
+        const batches=state.classBatches.filter(b=>p2v520EnrolledLevel(b,p2v520Course))
+          .sort((a,b)=>String(b.start||'').localeCompare(String(a.start||''));
+        if(!batches.some(b=>b.id===p2v520Batch))p2v520Batch='__all__';
+        const source=p2v520PriorStage(p2v520Course);
+        const years=new Set(batches.map(b=>String(p2BatchYear(b)||'')).filter(Boolean));
+        if(source)state.classBatches.filter(b=>p2v550Stage(b)===source)
+          .forEach(b=>{if(p2BatchYear(b))years.add(String(p2BatchYear(b)))});
+        if(p2v520Year!=='__all__'&&!years.has(p2v520Year))p2v520Year='__all__';
+        const rows=p2v520Rows(p2v520Course,p2v520Group,p2v520Year,p2v520Batch);
+        const actionable=rows.filter(x=>x.action!=='—').length;
+        const help=p2v520Group==='Eligible'?
+          'Year refers to the qualifying previous-course cohort.':
+          p2v520Group==='Eligible + Incomplete / Withdrawn'?
+            'Year follows the previous cohort for Eligible and enrolment year for Rejoin.':
+            'Year refers to the selected-course enrolment.';
+        body.innerHTML='<div class="p2v520-filters">'+
+          '<label>Course<select id="p2v520Course">'+p2v520AvailableCourses().map(c=>
+            '<option value="'+esc(c.id)+'" '+(c.id===p2v520Course?'selected':'')+'>'+
+            esc(c.name)+'</option>').join('')+'</select></label>'+
+          '<label>Batch<select id="p2v520Batch"><option value="__all__">All batches</option>'+
+          batches.map(b=>'<option value="'+esc(b.id)+'" '+(b.id===p2v520Batch?'selected':'')+'>'+
+            esc(b.name)+' · '+esc(String(p2BatchYear(b)||''))+'</option>').join('')+
+          '</select></label>'+
+          '<label>Year<select id="p2v520Year"><option value="__all__">All years</option>'+
+          [...years].sort().reverse().map(y=>'<option '+(p2v520Year===y?'selected':'')+'>'+esc(y)+'</option>').join('')+
+          '</select></label>'+
+          '<label>Student Group<select id="p2v520Group">'+p2v520Groups.map(g=>
+            '<option '+(g===p2v520Group?'selected':'')+'>'+esc(g)+'</option>').join('')+
+          '</select></label></div>'+
+          '<div class="p2v520-toolbar"><div><strong>'+
+          (p2v520View==='followup'?'Follow-ups':'Progress Overview')+
+          '</strong><small>'+rows.length+' records'+
+          (p2v520View==='followup'?' · '+actionable+' actionable':'')+
+          '</small></div>'+
+          (p2v520View==='followup'?'<button class="btn secondary small" id="p2v520Export">Export selected (consent confirmed)</button>':'')+
+          '</div><div class="p2v520-hint">'+esc(help)+'</div>'+
+          '<div class="p2v520-scroll"><table class="p2v520-table"><thead><tr>'+
+          (p2v520View==='followup'?'<th><input type="checkbox" id="p2v520All" aria-label="Select all actionable"></th>':'')+
+          '<th>Student</th><th>Previous level / batch</th><th>Year</th>'+
+          '<th>Attendance</th><th>Student Group</th><th>Suggested action</th><th>History</th>'+
+          '</tr></thead><tbody>'+
+          (rows.length?rows.map(x=>
+            '<tr>'+(p2v520View==='followup'?'<td>'+
+            (x.action==='—'?'':('<input class="p2v520-pick" type="checkbox" data-id="'+esc(x.student.id)+'" '+
+            (p2v520Selected.has(x.student.id)?'checked':'')+'>'))+'</td>':'')+
+            '<td><strong>'+esc(x.student.name||'Unnamed')+'</strong></td>'+
+            '<td>'+esc(x.detail)+'</td><td>'+esc(x.year)+'</td>'+
+            '<td>'+(x.pct===null?'Not assessed':x.pct+'%')+'</td>'+
+            '<td>'+esc(x.group)+'</td><td>'+esc(x.action)+'</td>'+
+            '<td><button class="p2v520-history-btn" data-id="'+esc(x.student.id)+'">View</button></td></tr>'
+          ).join(''):'<tr><td colspan="'+(p2v520View==='followup'?8:7)+'">No students match the selected filters.</td></tr>')+
+          '</tbody></table></div><div id="p2v520History" class="p2v520-history"></div>';
+        $('p2v520Course').onchange=e=>{
+          p2v520Course=e.target.value;p2v520Batch='__all__';p2v520Year='__all__';
+          p2v520Selected.clear();p2v520Render();
+        };
+        $('p2v520Batch').onchange=e=>{
+          p2v520Batch=e.target.value;p2v520Render();
+        };
+        $('p2v520Year').onchange=e=>{p2v520Year=e.target.value;p2v520Render()};
+        $('p2v520Group').onchange=e=>{
+          p2v520Group=e.target.value;
+          if(p2v520Group.includes('Eligible'))p2v520Batch='__all__';
+          p2v520Selected.clear();p2v520Render();
+        };
+        body.querySelectorAll('.p2v520-history-btn').forEach(btn=>btn.onclick=()=>{
+          p2v520History=btn.dataset.id;p2v520ShowHistory();
+        });
+        body.querySelectorAll('.p2v520-pick').forEach(input=>input.onchange=()=>{
+          if(input.checked)p2v520Selected.add(input.dataset.id);
+          else p2v520Selected.delete(input.dataset.id);
+        });
+        if($('p2v520All'))$('p2v520All').onchange=e=>{
+          body.querySelectorAll('.p2v520-pick').forEach(x=>{
+            x.checked=e.target.checked;
+            if(x.checked)p2v520Selected.add(x.dataset.id);
+            else p2v520Selected.delete(x.dataset.id);
+          });
+        };
+        $('p2v520Export')?.addEventListener('click',()=>{
+          const list=rows.filter(x=>x.action!=='—'&&p2v520Selected.has(x.student.id));
+          if(!list.length){toast('Select students for manual follow-up.');return}
+          const confirmed=list.filter(x=>x.student.communicationConsent===true||
+            x.student.contactConsent===true||x.student.consentToContact===true);
+          if(!confirmed.length){toast('Confirm communication consent in student records before exporting contacts.');return}
+          if(confirmed.length<list.length)
+            toast('Students without confirmed communication consent were excluded.');
+          p2Csv(confirmed.map(x=>({Name:x.student.name,Mobile:x.student.mobile||'',
+            Course:p2v520CourseName(p2v520Course),Year:x.year,Previous_Batch:x.detail,
+            Group:x.group,Action:x.action,Consent:'Confirmed'})),
+            'Ananda_Student_Followups.csv');
+        });
+        if(p2v520History)p2v520ShowHistory();
+      }
+      function p2v520ShowHistory(){
+        const host=$('p2v520History'),student=p2FindStudent(p2v520History);
+        if(!host||!student)return;
+        const list=p2v56ChatStudentEnrollments(student.id);
+        host.innerHTML='<div class="p2v520-history-head"><strong>'+
+          esc(student.name)+' · Course history</strong>'+
+          '<button type="button" id="p2v520CloseHistory">Close</button></div>'+
+          (list.length?'<table class="p2v520-table"><thead><tr><th>Year</th><th>Course</th>'+
+          '<th>Batch</th><th>Attendance</th><th>Status</th></tr></thead><tbody>'+
+          list.map(({en,b})=>'<tr><td>'+esc(String(p2BatchYear(b)))+'</td>'+
+            '<td>'+esc(p2CourseName(b))+'</td><td>'+esc(b.name)+'</td>'+
+            '<td>'+(p2v519Attendance(b,en).pct===null?'Not assessed':p2v519Attendance(b,en).pct+'%')+'</td>'+
+            '<td>'+esc(en.outcome==='Withdrawn'||en.outcome==='Did Not Complete'?'Paused':
+              en.outcome||'In Progress')+'</td></tr>').join('')+
+          '</tbody></table>':'<div>No course history found.</div>');
+        $('p2v520CloseHistory').onclick=()=>{p2v520History='';host.innerHTML=''};
+      }
+      p2v56ChatPrepareProgress=function(){
+        const host=$('studentProgress');if(!host)return;
+        host.innerHTML='<div class="p2v520-main"><div class="p2v520-heading">'+
+          '<h3>Student Progress</h3><div class="p2v520-tabs">'+
+          '<button id="p2v520Overview">Progress Overview</button>'+
+          '<button id="p2v520Followups">Follow-ups</button></div></div>'+
+          '<div id="p2v56ChatProgressBody"></div></div>';
+        $('p2v520Overview').onclick=()=>{p2v520View='overview';p2v520History='';p2v56ChatProgressMode='batch';p2v56ChatRenderProgress()};
+        $('p2v520Followups').onclick=()=>{p2v520View='followup';p2v520History='';p2v56ChatProgressMode='batch';p2v56ChatRenderProgress()};
+        p2v56ChatRenderProgress();
+      };
+      p2v56ChatRenderProgress=function(){
+        $('p2v520Overview')?.classList.toggle('active',p2v520View==='overview');
+        $('p2v520Followups')?.classList.toggle('active',p2v520View==='followup');
+        // Existing "View history" navigation remains inside Student Progress,
+        // rather than creating another module or losing full course history.
+        if(p2v56ChatProgressMode==='student'&&p2v56ChatProgressStudent){
+          p2v520View='overview';p2v520History=p2v56ChatProgressStudent;
+          p2v56ChatProgressMode='batch';
+        }
+        p2v520Render();
+      };
+      const p2v520Style=document.createElement('style');
+      p2v520Style.id='p2v520Style';
+      p2v520Style.textContent=
+        '#studentProgress .p2v520-main{background:#fff;border-radius:13px;padding:18px 20px}'+
+        '#studentProgress .p2v520-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}'+
+        '#studentProgress .p2v520-heading h3{color:#173f7d;font-size:19px;margin:0}'+
+        '#studentProgress .p2v520-tabs{display:flex;gap:5px}'+
+        '#studentProgress .p2v520-tabs button{border:0;background:#f1f4f8;border-radius:7px;color:#31547a;padding:9px 13px;font-weight:650;cursor:pointer}'+
+        '#studentProgress .p2v520-tabs button.active{background:#173f7d;color:white}'+
+        '#studentProgress .p2v520-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:15px}'+
+        '#studentProgress .p2v520-filters label{display:grid;gap:5px;font-size:11px;font-weight:700;color:#3b5979}'+
+        '#studentProgress .p2v520-filters select{width:100%;min-width:0;height:38px;border:1px solid #d2dfe9;border-radius:7px;padding:7px;background:white;color:#17447e;font-weight:500}'+
+        '#studentProgress .p2v520-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0}'+
+        '#studentProgress .p2v520-toolbar div{display:flex;gap:12px;align-items:baseline}'+
+        '#studentProgress .p2v520-toolbar strong{font-size:15px;color:#173f7d}'+
+        '#studentProgress .p2v520-toolbar small,#studentProgress .p2v520-hint{font-size:11px;color:#7a8a9d}'+
+        '#studentProgress .p2v520-hint{margin:0 0 9px}'+
+        '#studentProgress .p2v520-scroll{overflow-x:auto}'+
+        '#studentProgress .p2v520-table{width:100%;border-collapse:collapse;font-size:12px;text-align:left}'+
+        '#studentProgress .p2v520-table th{background:#f5f8fb;color:#3e5774;font-size:11px;padding:9px 10px;white-space:nowrap}'+
+        '#studentProgress .p2v520-table td{padding:10px;border-bottom:1px solid #edf1f5;color:#385574}'+
+        '#studentProgress .p2v520-history-btn,#studentProgress #p2v520CloseHistory{border:0;background:none;color:#125392;cursor:pointer;font-weight:700}'+
+        '#studentProgress .p2v520-history{margin-top:15px}'+
+        '#studentProgress .p2v520-history-head{display:flex;justify-content:space-between;margin:10px 0}'+
+        '@media(max-width:940px){#studentProgress .p2v520-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}';
+      document.head.appendChild(p2v520Style);
+
       const betaLabel=document.querySelector('#classes .p2v56-chat-class-header, #classes .p2v54-banner, #classes .p2v5-banner');
       document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.50';
     })();
