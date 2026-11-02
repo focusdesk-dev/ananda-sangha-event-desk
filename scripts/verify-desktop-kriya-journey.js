@@ -104,7 +104,7 @@ function journey(){
  click('p2v519Schedule');
  yes(getComputedStyle(el('p2v5ScheduleCard')).display==='none','Returning to summary must hide monthly schedule');
  const summaryState=snap();
- yes(summaryState.classBatches.some(b=>b.name==='Level 1 Manual Date Test'),
+ yes(summaryState.classBatches.some(b=>b.name==='Kriya 2 Batch Renamed'),
      'Summary navigation altered unrelated batches');
  const custom=snap().classBatches.find(b=>b.name==='Custom Two Dates');
  yes(custom?.end==='2026-11-27'&&custom.sessionDates.length===2,'New custom course dates not saved');
