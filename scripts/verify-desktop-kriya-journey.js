@@ -144,7 +144,10 @@ function journey(){
      'Summary navigation altered unrelated batches');
  const custom=snap().classBatches.find(b=>b.name==='Custom Two Dates');
  yes(custom?.end==='2026-11-27'&&custom.sessionDates.length===2,'New custom course dates not saved');
- click('p2v549EditCourse');yes(el('p2CourseModal').classList.contains('open'),'Direct Edit Course Name button does not open course editor');
+ classes();click('p2v548ManageCourseNames');
+ const customEdit=[...document.querySelectorAll('.p2-edit-course')].find(x=>x.dataset.id===custom.courseId);
+ yes(customEdit,'Custom course editor missing');customEdit.click();
+ yes(el('p2CourseModal').classList.contains('open'),'Course editor must remain accessible through Classes');
  el('p2CourseModal').classList.remove('open');
  return {pass:true,checks:['create Kriya 2','save class dates','reduce 3 to 2','reopen End Date','rename batch and course','retain saved class dates','direct two-class End Date','Kriya separate course with no batches','direct Kriya 2 class dates','weekly manual dates','custom new course dates','Edit Course Name within batch']};
 }
