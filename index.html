@@ -7582,6 +7582,203 @@ function p2v58BindPhoneListener(){
         return result;
       };
 
+
+      // CORRECTION 19 — Whole-batch overview only. All original class-date,
+      // attendance, scanning, fee and historical records stay untouched.
+      function p2v519Stage(b){return p2v550Stage(b)}
+      function p2v519Plan(b){
+        const planned=Array.isArray(b?.plannedSessions)?b.plannedSessions.slice().sort((a,z)=>Number(a.number)-Number(z.number)):[];
+        const dates=p2v5ValidDates(b);
+        const ordered=planned.length?planned.map(x=>x.date||''):dates;
+        const cancelled=new Set([...(b.cancelledDates||[]),...(b.cancelledSessions||[]).filter(x=>typeof x==='string')]);
+        return ordered.map((date,i)=>({date,number:i+1,
+          conducted:!!date&&date<=today()&&!cancelled.has(date)}));
+      }
+      function p2v519Attendance(b,en){
+        const list=p2v519Plan(b);
+        const number=Number(en.joinedFromClass||en.joinFromClass||en.joinedFromClassNumber||1);
+        const from=Number.isSafeInteger(number)&&number>0?number:1;
+        const applicable=list.filter(x=>x.conducted&&x.number>=from);
+        const present=applicable.filter(x=>p2cAttendanceStatus(en,x.date)===true).length;
+        const absent=applicable.filter(x=>p2cAttendanceStatus(en,x.date)===false).length;
+        const unresolved=applicable.length-present-absent;
+        return{present,absent,unresolved,total:applicable.length,
+          pct:applicable.length?Math.round(100*present/applicable.length):null};
+      }
+      function p2v519Decision(b,en){
+        const level=p2v519Stage(b),a=p2v519Attendance(b,en),next=p2NextLevel(level);
+        if(!next)return{key:'None',label:'—'};
+        if(['Level 1','Level 2','Level 3'].includes(level)){
+          if(b.endedAt&&en.progressionFinalStatus){
+            const saved=en.progressionFinalStatus;
+            return{key:saved.key,label:saved.label||saved.key};
+          }
+          if(b.endedAt){
+            const eligible=!!en.eligibleFor&&en.eligibleFor===next;
+            return eligible?{key:'Eligible',label:'Eligible for '+next}:
+              {key:'Review Required',label:'Review Required'};
+          }
+          if(!a.total)return{key:'Unassessed',label:'Not assessed'};
+          if(a.unresolved)return{key:'Review Required',label:'Review Required'};
+          const qualified=a.pct>=p2v546MinimumFor(b)||p2v546ApprovedException(en,b);
+          return qualified?{key:'Eligible',label:'Eligible for '+next}:
+            {key:'Review Required',label:'Review Required'};
+        }
+        if(p2FullChain.indexOf(level)>=3&&p2FullChain.indexOf(level)<7){
+          const student=p2FindStudent(en.studentId);
+          if(p2v550Decision(student,next))return{key:'Eligible',label:'Acharya approved for '+next};
+          return{key:'Review Required',label:'Acharya decision required'};
+        }
+        return{key:'Unassessed',label:'Not assessed'};
+      }
+      function p2v519Finalise(b){
+        if(!b||b.endedAt)return;
+        const rows=state.classEnrollments.filter(en=>en.batchId===b.id);
+        const dates=p2v519Plan(b).filter(x=>x.conducted);
+        if(!dates.length){toast('Record at least one conducted class date before ending the batch.');return}
+        const unresolved=rows.reduce((n,en)=>n+p2v519Attendance(b,en).unresolved,0);
+        if(unresolved){toast('Complete '+unresolved+' unresolved attendance mark(s) in Class Attendance before ending.');return}
+        const level=p2v519Stage(b),next=p2NextLevel(level),threshold=p2v546MinimumFor(b);
+        const eligible=rows.filter(en=>p2v519Decision(b,en).key==='Eligible').length;
+        const review=rows.filter(en=>p2v519Decision(b,en).key==='Review Required').length;
+        if(!window.confirm('End '+p2CourseName(b)+' · '+b.name+'?\n'+rows.length+
+          ' students · '+eligible+' eligible · '+review+
+          ' for review.\nFinal results and the current policy will be preserved.'))return;
+        b.minimumAttendanceAtEnd=threshold;
+        rows.forEach(en=>{
+          const a=p2v519Attendance(b,en),decision=p2v519Decision(b,en);
+          if(a.total&&a.present===0&&a.absent===a.total)en.outcome='Withdrawn';
+          else if(a.present>0)en.outcome='Completed';
+          else if(!a.total)en.outcome=en.outcome||'Enrolled';
+          else en.outcome='Did Not Complete';
+          if(en.outcome==='Completed')en.completionDate=en.completionDate||today();
+          if(['Level 1','Level 2','Level 3'].includes(level)){
+            en.progressionFinalStatus={
+              key:decision.key==='Eligible'?'Eligible':'Review Required',
+              label:decision.key==='Eligible'?'Eligible for '+next:'Review Required',
+              cls:decision.key==='Eligible'?'green':'amber'
+            };
+            en.eligibleFor=decision.key==='Eligible'?next:'';
+          }else if(p2FullChain.indexOf(level)>=3){
+            // Never treat course completion as Kriya progression approval.
+            en.eligibleFor='';
+            en.progressionFinalStatus={
+              key:decision.key==='Eligible'?'Eligible':'Review Required',
+              label:decision.label,cls:decision.key==='Eligible'?'green':'amber'
+            };
+          }
+        });
+        b.endedAt=new Date().toISOString();
+        b.status='Completed';
+        b.end=b.end||dates.at(-1)?.date||today();
+        save();toast('Batch ended; outcomes and approvals preserved.');
+      }
+      let p2v519ScheduleMode=false;
+      function p2v519RenderSummary(){
+        const ws=$('classWorkspace'),b=p2ActiveBatch();if(!ws||!b)return;
+        ws.classList.add('p2v519-summary-mode');
+        ws.classList.toggle('p2v519-show-schedule',p2v519ScheduleMode);
+        const ended=!!b.endedAt,stage=p2v519Stage(b),year=p2BatchYear(b);
+        const rows=state.classEnrollments.filter(en=>en.batchId===b.id).slice().sort((x,y)=>
+          p2v5Person(x).name.localeCompare(p2v5Person(y).name,undefined,{sensitivity:'base'}));
+        const stats=rows.map(en=>({en,person:p2v5Person(en),
+          attendance:p2v519Attendance(b,en),decision:p2v519Decision(b,en)}));
+        const count=Math.max(Number(b.numberOfClasses)||0,b.plannedSessions?.length||0,p2v5ValidDates(b).length);
+        const conducted=p2v519Plan(b).filter(x=>x.conducted).length;
+        const eligible=stats.filter(x=>x.decision.key==='Eligible').length;
+        const review=stats.filter(x=>x.decision.key==='Review Required').length;
+        // Old monthly, attendance and End Batch summary panels are hidden via
+        // page-scoped CSS; they remain in the DOM for existing dedicated flows.
+        $('p2ClassHeader').innerHTML='<div class="p2v519-heading"><div>'+
+          '<h3>'+esc(p2CourseName(b))+' · '+esc(b.name)+'</h3>'+
+          '<p>'+esc(String(year||'Year pending'))+' · '+
+          (b.start?fmt(b.start):'Start pending')+' — '+
+          (b.end?fmt(b.end):'End not scheduled')+
+          ' · '+esc(p2AcharyaNames(b).join(', ')||'Acharya not assigned')+'</p></div>'+
+          '<span class="p2v519-status">'+(ended?'Ended':b.start&&b.start>today()?'Upcoming':'Active')+'</span></div>'+
+          '<div class="p2v519-actions">'+
+          '<button type="button" class="btn secondary" id="p2v519Back">Back to Classes</button>'+
+          '<button type="button" class="btn secondary" id="p2v519Edit">Edit Batch</button>'+
+          '<button type="button" class="btn secondary" id="p2v519Schedule">'+(p2v519ScheduleMode?'Back to Summary':'Class Schedule')+'</button>'+
+          (!ended?'<button type="button" class="btn secondary" id="p2v519Enroll">Enrol Student</button>':'')+'</div>';
+        $('p2v519Back').onclick=()=>{p2v519ScheduleMode=false;switchPage('classes')};
+        $('p2v519Edit').onclick=()=>p2OpenBatch(b.id);
+        $('p2v519Schedule').onclick=()=>{p2v519ScheduleMode=!p2v519ScheduleMode;p2v519RenderSummary()};
+        $('p2v519Enroll')?.addEventListener('click',()=>$('p2EnrollStudent')?.click());
+        let host=$('p2v519Summary');
+        if(!host){host=document.createElement('section');host.id='p2v519Summary';
+          $('p2ClassHeader').insertAdjacentElement('afterend',host)}
+        host.style.display=p2v519ScheduleMode?'none':'block';
+        host.innerHTML='<div class="p2v519-kpis">'+
+          [['Students Enrolled',rows.length],['Classes Conducted',conducted+' / '+count],
+           ['Eligible for Next Level',eligible],['Review Required',review]].map(x=>
+            '<div><span>'+x[0]+'</span><strong>'+x[1]+'</strong></div>').join('')+
+          '</div><div class="p2v519-student-head"><h3>Student progression</h3>'+
+          (!ended?'<small>Provisional eligibility</small>':'<small>Finalised results</small>')+
+          (!ended?'<button class="btn secondary small" id="p2v519End">End Batch</button>':'')+
+          '</div><div class="p2v519-table-scroll"><table class="p2v519-table"><thead><tr>'+
+          '<th>Student</th><th>Attendance</th><th>Participation</th>'+
+          '<th>Next level</th><th>History</th></tr></thead><tbody>'+
+          (stats.length?stats.map(row=>{
+            const en=row.en,a=row.attendance,d=row.decision;
+            const outcome=ended?(en.outcome==='Withdrawn'||en.outcome==='Did Not Complete'?'Paused':en.outcome||'Completed'):
+              (en.outcome==='Withdrawn'?'Paused':'In Progress');
+            return'<tr><td><strong>'+esc(row.person.name||'Unnamed')+'</strong></td>'+
+              '<td>'+(a.pct===null?'Not assessed':a.pct+'%')+'</td>'+
+              '<td>'+esc(outcome)+'</td><td>'+esc(d.label)+'</td>'+
+              '<td><button class="p2v519-history" data-id="'+esc(en.studentId)+'">View history</button></td></tr>';
+          }).join(''):'<tr><td colspan="5">No students enrolled in this batch.</td></tr>')+
+          '</tbody></table></div>';
+        $('p2v519End')?.addEventListener('click',()=>p2v519Finalise(b));
+        host.querySelectorAll('.p2v519-history').forEach(btn=>btn.onclick=()=>{
+          p2v56ChatProgressStudent=btn.dataset.id;
+          p2v56ChatProgressMode='student';
+          switchPage('studentProgress');
+        });
+      }
+      const p2v519WorkspaceBase=p2RenderClassWorkspace;
+      p2RenderClassWorkspace=function(){
+        const b=p2ActiveBatch();
+        if(!b)return p2v519WorkspaceBase();
+        const original=p2v519WorkspaceBase();
+        p2v519RenderSummary();
+        return original;
+      };
+      const p2v519Style=document.createElement('style');
+      p2v519Style.id='p2v519Style';
+      p2v519Style.textContent=
+        '#classWorkspace.p2v519-summary-mode #p2ClassStats,'+
+        '#classWorkspace.p2v519-summary-mode .grid.two,'+
+        '#classWorkspace.p2v519-summary-mode #p2v53EndSummary,'+
+        '#classWorkspace.p2v519-summary-mode #p2v53EditingEndedNote,'+
+        '#classWorkspace.p2v519-summary-mode #p2BatchOutreach{display:none!important}'+
+        '#classWorkspace.p2v519-summary-mode #p2v5ScheduleCard{display:none!important}'+
+        '#classWorkspace.p2v519-show-schedule #p2v5ScheduleCard{display:block!important;max-width:100%;margin:12px 0!important}'+
+        '#classWorkspace .p2v519-heading{display:flex;justify-content:space-between;gap:18px;align-items:center}'+
+        '#classWorkspace #p2ClassHeader{padding:19px 23px;border-bottom:3px solid #edbd38}'+
+        '#classWorkspace #p2ClassHeader h3{font-size:21px;line-height:1.3;margin-bottom:5px}'+
+        '#classWorkspace .p2v519-status{font-size:12px;font-weight:700;background:rgba(255,255,255,.13);padding:5px 11px;border-radius:14px}'+
+        '#classWorkspace .p2v519-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}'+
+        '#classWorkspace .p2v519-actions button{font-size:12px;padding:8px 13px;min-height:32px}'+
+        '#p2v519Summary{background:#fff;border-radius:11px;padding:0 5px 12px}'+
+        '#p2v519Summary .p2v519-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:6px 0 12px;border-bottom:1px solid #e3e9ee}'+
+        '#p2v519Summary .p2v519-kpis>div{padding:12px 17px;border-right:1px solid #e6edf3}'+
+        '#p2v519Summary .p2v519-kpis>div:last-child{border-right:none}'+
+        '#p2v519Summary .p2v519-kpis span{display:block;color:#60748b;font-size:11px;font-weight:650}'+
+        '#p2v519Summary .p2v519-kpis strong{display:block;color:#173f7d;font-size:23px;margin-top:7px}'+
+        '#p2v519Summary .p2v519-student-head{display:flex;align-items:center;gap:12px;margin:15px 12px 10px}'+
+        '#p2v519Summary .p2v519-student-head h3{font-size:15px;color:#163c74;margin:0}'+
+        '#p2v519Summary .p2v519-student-head small{color:#687c91;font-size:11px}'+
+        '#p2v519Summary .p2v519-student-head button{margin-left:auto}'+
+        '#p2v519Summary .p2v519-table-scroll{overflow-x:auto}'+
+        '#p2v519Summary .p2v519-table{width:100%;border-collapse:collapse;text-align:left;font-size:12px}'+
+        '#p2v519Summary .p2v519-table th{background:#f6f8fb;color:#405873;font-size:11px;padding:11px 12px}'+
+        '#p2v519Summary .p2v519-table td{border-bottom:1px solid #edf1f5;padding:11px 12px;color:#2c4564}'+
+        '#p2v519Summary .p2v519-history{border:0;background:none;padding:2px;color:#174d93;cursor:pointer;font-weight:700}'+
+        '@media(max-width:850px){#p2v519Summary .p2v519-kpis{grid-template-columns:repeat(2,1fr)}'+
+        '#classWorkspace .p2v519-heading{align-items:flex-start}}';
+      document.head.appendChild(p2v519Style);
+
       const betaLabel=document.querySelector('#classes .p2v56-chat-class-header, #classes .p2v54-banner, #classes .p2v5-banner');
       document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.50';
     })();
