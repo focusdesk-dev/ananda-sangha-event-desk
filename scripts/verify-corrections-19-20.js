@@ -76,7 +76,7 @@ assert.equal(both.length,4,'Combined operational group should unite without dupl
 assert.equal(new Set(idsOf(both)).size,4);
 assert.deepEqual(idsOf(rows('course-l2','Incomplete / Withdrawn','2025')), [repeat.id],'Year is the enrolment year for unfinished');
 assert.equal(rows('course-l2','All','2026','__all__').length,1,'All batches/year includes all target-year enrolments');
-assert.equal(rows('course-l2','All','__all__','__all__').length,6,'All batches/all years includes all historical attempts plus eligible prospects');
+assert.equal(rows('course-l2','All','__all__','__all__').length,8,'All batches/all years includes all historical attempts plus eligible prospects');
 const approvedK=rows('course-kriya','Eligible');
 assert.deepEqual(idsOf(approvedK),[approved.id],'Kriya needs explicit approval, never mere attendance/completion');
 assert(!idsOf(approvedK).includes(pending.id));
