@@ -60,7 +60,7 @@ const ctx={state,p2FullChain:chain,today:()=> '2026-11-02',
  console};
 vm.runInNewContext(source+';globalThis.test={rows:p2v520Rows,attendance:p2v519Attendance,decision:p2v519Decision,finish:p2v519Finalise};',ctx,{timeout:5000});
 const {rows,attendance,decision,finish}=ctx.test;
-const idsOf=x=>x.map(y=>y.student.id);
+const idsOf=x=>Array.from(x,y=>y.student.id);
 const e=rows('course-l2','Eligible');
 assert.deepEqual(new Set(idsOf(e)),new Set([eligible.id,eligibleOld.id]),'Eligible includes unjoined qualifying previous level, across years');
 assert(!idsOf(e).includes(completed.id),'Already joined target course must not be invited');
