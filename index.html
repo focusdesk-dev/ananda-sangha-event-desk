@@ -7941,7 +7941,7 @@ function p2v58BindPhoneListener(){
         const body=$('p2v56ChatProgressBody');if(!body)return;
         p2v520EnsureSelection();
         const batches=state.classBatches.filter(b=>p2v520EnrolledLevel(b,p2v520Course))
-          .sort((a,b)=>String(b.start||'').localeCompare(String(a.start||''));
+          .sort((a,b)=>String(b.start||'').localeCompare(String(a.start||'')));
         if(!batches.some(b=>b.id===p2v520Batch))p2v520Batch='__all__';
         const source=p2v520PriorStage(p2v520Course);
         const years=new Set(batches.map(b=>String(p2BatchYear(b)||'')).filter(Boolean));
