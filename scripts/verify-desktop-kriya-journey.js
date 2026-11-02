@@ -84,51 +84,15 @@ function journey(){
  direct=assign(2,'2026-11-19');yes(direct.end==='2026-11-19','Direct two-class End not saved');
  click('p2v519Edit');yes(el('p2BatchEnd').value==='2026-11-19','Direct End missing after reopening');
 
- // All courses can enter their class dates directly in the batch form.
- const fill=(i,date)=>{
-  const input=document.querySelector('#p2v549ManualDatesList input[data-n="'+i+'"]');
-  yes(input,'Class '+(i+1)+' input missing');
-  input.value=date;input.dispatchEvent(new Event('input',{bubbles:true}));
- };
- el('p2BatchModal').classList.remove('open');
- classes();click('p2AddBatch');
- set('p2BatchCourse',course.id,'change');set('p2BatchName','Kriya Two Direct Form');
- set('p2BatchStart','2026-11-01','change');
- set('p2BatchScheduleType','custom','change');set('p2v537ClassCount','2');
- fill(0,'2026-11-09');yes(!el('p2BatchEnd').value,'One dated custom class must not infer End Date');
- fill(1,'2026-11-23');yes(el('p2BatchEnd').value==='2026-11-23','Direct custom End Date did not update');
- el('p2BatchForm').requestSubmit();
- let directForm=snap().classBatches.find(b=>b.name==='Kriya Two Direct Form');
- yes(directForm?.end==='2026-11-23','Kriya 2 batch form End Date not persisted');
- yes(directForm.sessionDates.join(',')==='2026-11-09,2026-11-23','Kriya 2 direct dates not saved');
- click('p2v519Edit');
- yes(el('p2BatchEnd').value==='2026-11-23','Saved direct form End Date missing when reopened');
- yes(document.querySelector('#p2v549ManualDatesList input[data-n="1"]').value==='2026-11-23','Saved Kriya date missing in reopened editor');
- el('p2BatchModal').classList.remove('open');
- classes();click('p2AddBatch');
- const l1=snap().courseTypes.find(x=>x.name==='Level 1');
- yes(l1,'Level 1 course missing');
- set('p2BatchCourse',l1.id,'change');set('p2BatchName','Level 1 Manual Date Test');
- set('p2BatchStart','2026-11-01','change');set('p2BatchScheduleType','weekly','change');
- set('p2BatchDay','0','change');set('p2v537ClassCount','2');
- yes(document.querySelector('#p2v549ManualDatesList input[data-n="0"]').value==='2026-11-01','Weekly first date not generated');
- fill(1,'2026-11-11');
- yes(el('p2BatchEnd').value==='2026-11-11','Manual weekly edit must update End Date');
- el('p2BatchForm').requestSubmit();
- const weekly=snap().classBatches.find(b=>b.name==='Level 1 Manual Date Test');
- yes(weekly?.end==='2026-11-11','Weekly manually revised End Date not saved');
- yes(weekly.sessionDates.join(',')==='2026-11-01,2026-11-11','Weekly manual dates not saved');
- click('p2v519Edit');
- yes(el('p2BatchEnd').value==='2026-11-11','Weekly revised End not restored in batch dialog');
- el('p2BatchModal').classList.remove('open');
- classes();click('p2AddBatch');
- const select=el('p2BatchCourse');yes([...select.options].some(o=>o.value==='__custom__'),'Custom course selector unavailable');
+ // Correction 17: date inputs are exclusively under Class Schedule.
+ yes(!document.getElementById('p2v549ManualDatesField'),'No individual dates in Edit Batch');
+ el('p2BatchModal').classList.remove('open');classes();click('p2AddBatch');
  set('p2BatchCourse','__custom__','change');set('p2v55CustomCourseName','Special Meditation');
  set('p2BatchName','Custom Two Dates');set('p2BatchStart','2026-11-01','change');
  set('p2BatchScheduleType','custom','change');set('p2v537ClassCount','2');
- fill(0,'2026-11-06');fill(1,'2026-11-27');
- yes(el('p2BatchEnd').value==='2026-11-27','New custom course End Date not calculated');
- el('p2BatchForm').requestSubmit();
+ el('p2BatchForm').requestSubmit();batch=snap().classBatches.find(x=>x.name==='Custom Two Dates');
+ yes(batch?.plannedSessions.length===2,'Custom batch not created');
+ assign(1,'2026-11-06');assign(2,'2026-11-27');
  // CORRECTION 19: whole-batch summary has no visible monthly navigation,
  // threshold banner or duplicated attendance entry.
  yes(el('p2v519Summary').textContent.includes('Students Enrolled'),'Whole-batch KPIs missing');
