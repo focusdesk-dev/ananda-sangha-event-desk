@@ -20,18 +20,23 @@ const ctx={
  p2FindStudent:id=>state.students.find(s=>s.id===id),
  p2StudentEnrollments:id=>state.classEnrollments.filter(en=>en.studentId===id),
  p2v546Eligibility:en=>en.outcome==='Completed'?{key:'Eligible'}:{key:'Review Required'},
+ p2v519Decision:(_batch,en)=>({key:en.testAttendancePct>=50?'Eligible':'Review Required'}),
  p2v55ProgressionRequirement:()=>{baseCalls++;return{ok:true,reason:''}},
 };
 vm.runInNewContext(engine+';globalThis.verify={stage:p2v550Stage,done:p2v550Completed,approved:p2v550Decision,require:p2v55ProgressionRequirement};',ctx,{timeout:3000});
 const f=ctx.verify,check=(ix)=>f.require(person.id,batches[ix].id);
 for(let i=0;i<8;i++)assert.equal(f.stage(batches[i]),chain[i]);
-function completed(ix){state.classEnrollments.push({studentId:person.id,batchId:batches[ix].id,outcome:'Completed',level:chain[ix]})}
+function completed(ix){state.classEnrollments.push({studentId:person.id,batchId:batches[ix].id,outcome:'Completed',level:chain[ix],testAttendancePct:100})}
 assert.equal(check(0).ok,true,'Level 1 remains accessible');
 for(let i=1;i<4;i++){
  assert.equal(check(i).ok,false,'Level '+(i+1)+' cannot bypass the previous level');
  completed(i-1);
  assert.equal(check(i).ok,true,'Completing previous level unlocks Level '+(i+1));
 }
+const zero={id:'S0',name:'Zero Attendance'};
+state.students.push(zero);
+state.classEnrollments.push({studentId:zero.id,batchId:batches[1].id,outcome:'Completed',level:'Level 2',testAttendancePct:0});
+assert.equal(f.require(zero.id,batches[2].id).ok,false,'Completed Level 2 with 0% must NOT unlock Level 3');
 assert.equal(baseCalls,1,'Level 1 retains original initial enrollment handling');
 for(let i=4;i<8;i++)assert.equal(check(i).ok,false,'Kriya progression should block when prerequisites are missing');
 function approve(ix){person.acharyaProgressionApprovals[chain[ix]]={status:'Approved',approvedAt:'2026-11-01T00:00:00Z',acharyaId:'ACH1',acharyaName:'Acharya',sourceLevel:chain[ix-1]}}
