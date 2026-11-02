@@ -7709,6 +7709,11 @@ function p2v58BindPhoneListener(){
         if(!host){host=document.createElement('section');host.id='p2v519Summary';
           $('p2ClassHeader').insertAdjacentElement('afterend',host)}
         host.style.display=p2v519ScheduleMode?'none':'block';
+        // The legacy approval card lives inside the old attendance grid.
+        // Move the existing working approval UI outside that hidden grid,
+        // preserving its handlers and the original Acharya approval records.
+        const approval=$('p2v550ApprovalCard');
+        if(approval)host.insertAdjacentElement('afterend',approval);
         host.innerHTML='<div class="p2v519-kpis">'+
           [['Students Enrolled',rows.length],['Classes Conducted',conducted+' / '+count],
            ['Eligible for Next Level',eligible],['Review Required',review]].map(x=>
@@ -7752,6 +7757,8 @@ function p2v58BindPhoneListener(){
         '#classWorkspace.p2v519-summary-mode #p2v53EndSummary,'+
         '#classWorkspace.p2v519-summary-mode #p2v53EditingEndedNote,'+
         '#classWorkspace.p2v519-summary-mode #p2BatchOutreach{display:none!important}'+
+        '#classWorkspace.p2v519-summary-mode .card:has(> #p2BatchOutreach){display:none!important}' +
+        '#classWorkspace #p2v550ApprovalCard{max-width:100%;margin-top:12px;padding:13px 18px!important}' +
         '#classWorkspace.p2v519-summary-mode #p2v5ScheduleCard{display:none!important}'+
         '#classWorkspace.p2v519-show-schedule #p2v5ScheduleCard{display:block!important;max-width:100%;margin:12px 0!important}'+
         '#classWorkspace .p2v519-heading{display:flex;justify-content:space-between;gap:18px;align-items:center}'+
