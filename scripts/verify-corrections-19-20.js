@@ -10,7 +10,7 @@ const source=html.slice(a,b)+'\n'+html.slice(c,d);
 const chain=['Level 1','Level 2','Level 3','Level 4','Kriya','Kriya 2','Kriya 3','Kriya 4'];
 const ids=['course-l1','course-l2','course-l3','course-l4','course-kriya','course-kriya2','course-kriya3','course-kriya4'];
 const state={students:[],classBatches:[],classEnrollments:[],courseTypes:chain.map((name,i)=>({name,id:ids[i]}))};
-let serial=0,saves=0;
+let serial=0,saves=0,summaryRenders=0;
 const student=(name)=>{const s={id:'S'+(++serial),name};state.students.push(s);return s};
 const batch=(level,year,name,ended=true)=>{
  const i=chain.indexOf(level),id='B'+(++serial),start=year+'-01-01';
@@ -56,7 +56,7 @@ const ctx={state,p2FullChain:chain,normName:v=>String(v||'').toLowerCase().trim(
  p2v546ApprovedException:en=>!!en.acharyaException?.approved,
  p2v550Decision:(s,next)=>s?.acharyaProgressionApprovals?.[next]?.status==='Approved'?s.acharyaProgressionApprovals[next]:null,
  p2v550Completed:(sid,level)=>state.classEnrollments.some(en=>en.studentId===sid&&en.level===level&&en.outcome==='Completed'),
- save:()=>{saves++},toast:m=>messages.push(m),window:{confirm:()=>true},
+ p2v519RenderSummary:()=>{summaryRenders++},save:()=>{saves++},toast:m=>messages.push(m),window:{confirm:()=>true},
  console};
 vm.runInNewContext(source+';globalThis.test={rows:p2v520Rows,attendance:p2v519Attendance,decision:p2v519Decision,finish:p2v519Finalise};',ctx,{timeout:5000});
 const {rows,attendance,decision,finish}=ctx.test;
@@ -98,6 +98,7 @@ u.attendance[currentBatch.sessionDates[1]]=false;
 assert.equal(decision(currentBatch,u).key,'Review Required','Threshold of 60% is applied provisionally');
 finish(currentBatch);
 assert(currentBatch.endedAt,'Finished batch must be formally marked ended');
+assert.equal(summaryRenders,1,'Ending the batch must refresh the visible summary');
 assert.equal(currentBatch.minimumAttendanceAtEnd,60,'Ended batch freezes effective threshold');
 assert.equal(g.progressionFinalStatus.key,'Eligible');
 assert.equal(l.progressionFinalStatus.key,'Review Required');
