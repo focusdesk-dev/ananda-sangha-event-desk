@@ -71,7 +71,7 @@ test(12,'Weekly Start + 2 classes calculates 15 Nov 2026',()=>assert.equal(makeD
 test(13,'End Date recalculates class count',()=>{
  const f=makeDates('weekly');f.fields.p2BatchEnd.value='2026-11-29';f.fn.run('end');assert.equal(f.fields.p2v537ClassCount.value,'4');},'functional');
 test(14,'Custom dates are not fabricated',()=>assert.equal(makeDates('custom').fields.p2BatchEnd.value,''),'functional');
-test(15,'Custom Dates explanation visible beside End Date',()=>{has('id="p2v553DateHint"');has('Choose Weekly recurring')});
+test(15,'Minimal Batch form has no verbose End Date help',()=>absent('id="p2v553DateHint"'));
 test(16,'Kriya 2 session edits preserve existing records',()=>has('p2v547SavePlannedDate'));
 test(17,'Saved schedules and attendance dates guarded',()=>has('An existing attendance date would be lost'));
 test(18,'Student Progress page has no duplicate inner title',()=>absent("'<h3>Student Progress</h3><div class=\"p2v520-tabs\">'"));
@@ -91,7 +91,7 @@ test(31,'Contextual enrol shortcut and save shortcut remain',()=>{assert.ok(main
 test(32,'Offline backup and installer identity/shortcuts',()=>{
  assert.ok(main.includes('FIVE_DAYS_MS'));assert.ok(main.includes('DATA_ROOT'));
  assert.ok(pkg.build.nsis.createDesktopShortcut&&pkg.build.nsis.createStartMenuShortcut);
- assert.equal(pkg.version,'2.0.0-beta.5.53');assert.ok(main.includes('app.getVersion()'));});
+ assert.equal(pkg.version,'2.0.0-beta.5.54');assert.ok(main.includes('app.getVersion()'));});
 const failed=results.filter(x=>x.status==='FAIL');
 fs.mkdirSync('verification',{recursive:true});
 fs.writeFileSync('verification/acceptance-32.json',JSON.stringify({

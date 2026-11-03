@@ -547,7 +547,7 @@
       <div class="field"><label for="p2BatchName">Batch name / number *</label><input id="p2BatchName" required placeholder="e.g. Batch 2"></div>
       <div class="field full" id="p2v55CustomCourseField" style="display:none"><label for="p2v55CustomCourseName">Custom class name *</label><input id="p2v55CustomCourseName" placeholder="e.g. Healing workshop"></div>
       <div class="field"><label for="p2BatchStart">Start date</label><input id="p2BatchStart" type="date"></div>
-      <div class="field"><label for="p2BatchEnd">End date</label><input id="p2BatchEnd" type="date"><small id="p2v553DateHint" class="p2v553-date-hint" aria-live="polite"></small></div>
+      <div class="field"><label for="p2BatchEnd">End date</label><input id="p2BatchEnd" type="date"></div>
       <div class="field"><label for="p2BatchScheduleType">Schedule type</label><select id="p2BatchScheduleType"><option value="weekly">Weekly recurring</option><option value="monthly">Monthly recurring</option><option value="custom">Custom dates</option><option value="single">Single date</option></select></div>
       <div class="field"><label for="p2BatchDay">Usual class day</label><select id="p2BatchDay"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></div>
       <div class="field" id="p2v537CountField"><label for="p2v537ClassCount">Number of classes *</label><input id="p2v537ClassCount" type="number" min="1" step="1" required value="1"></div>
@@ -557,8 +557,7 @@
       <div class="field full"><label for="p2BatchVolunteerSearch">Assisting volunteers</label><input id="p2BatchVolunteerSearch" autocomplete="off" placeholder="Search name or mobile"><div id="p2BatchVolunteerSuggestions" class="p2-suggestions hidden"></div><div id="p2BatchVolunteerSelected" class="p2-selected-list"></div></div>
       <div class="field full"><label for="p2BatchNotes">Notes</label><textarea id="p2BatchNotes"></textarea></div>
     </div>
-    <div class="actions"><button class="btn secondary" type="button" data-close="p2BatchModal">Cancel</button><button class="btn" type="submit">Save batch</button></div>
-    <button id="p2DeleteBatch" class="btn ghost hidden" type="button">Delete batch</button>
+    <div class="actions"><button id="p2DeleteBatch" class="btn secondary hidden" style="margin-right:auto" type="button">Delete batch</button><button class="btn secondary" type="button" data-close="p2BatchModal">Cancel</button><button class="btn" type="submit">Save batch</button></div>
   </form>
 </div>
 
@@ -2157,16 +2156,19 @@
   // ===== PHASE 2 NGO DATABASE 2.0.0-beta.4c =====
   const p2Levels=['Level 1','Level 2','Level 3','Level 4'];
   const p2FullChain=['Level 1','Level 2','Level 3','Level 4','Kriya','Kriya 2','Kriya 3','Kriya 4'];
+  const p2VisibleCourseOrder=[...p2FullChain,'STT','STT 2'];
+  const p2CourseRank=name=>{const i=p2VisibleCourseOrder.findIndex(x=>normName(x)===normName(name));return i<0?99:i};
   const p2DefaultCourses=[
     {id:'course-l1',name:'Level 1',category:'Progression',progressionOrder:1,defaultSchedule:'weekly',defaultDay:0,active:true,locked:true},
     {id:'course-l2',name:'Level 2',category:'Progression',progressionOrder:2,defaultSchedule:'weekly',defaultDay:0,active:true,locked:true},
     {id:'course-l3',name:'Level 3',category:'Progression',progressionOrder:3,defaultSchedule:'weekly',defaultDay:0,active:true,locked:true},
     {id:'course-l4',name:'Level 4',category:'Progression',progressionOrder:4,defaultSchedule:'weekly',defaultDay:0,active:true,locked:true},
-    {id:'course-kriya',name:'Kriya',category:'Advanced',progressionOrder:5,defaultSchedule:'custom',defaultDay:0,active:true,locked:false},
-    {id:'course-stt',name:'STT',category:'Advanced',progressionOrder:null,defaultSchedule:'custom',defaultDay:0,active:true,locked:false},
-    {id:'course-kriya2',name:'Kriya 2',category:'Advanced',progressionOrder:6,defaultSchedule:'custom',defaultDay:0,active:true,locked:false},
-    {id:'course-kriya3',name:'Kriya 3',category:'Advanced',progressionOrder:7,defaultSchedule:'custom',defaultDay:0,active:true,locked:false},
-    {id:'course-kriya4',name:'Kriya 4',category:'Advanced',progressionOrder:8,defaultSchedule:'custom',defaultDay:0,active:true,locked:false}
+    {id:'course-kriya',name:'Kriya',category:'Advanced',progressionOrder:5,defaultSchedule:'weekly',defaultDay:0,active:true,locked:false},
+    {id:'course-stt',name:'STT',category:'Advanced',progressionOrder:null,defaultSchedule:'weekly',defaultDay:0,active:true,locked:false},
+    {id:'course-kriya2',name:'Kriya 2',category:'Advanced',progressionOrder:6,defaultSchedule:'weekly',defaultDay:0,active:true,locked:false},
+    {id:'course-kriya3',name:'Kriya 3',category:'Advanced',progressionOrder:7,defaultSchedule:'weekly',defaultDay:0,active:true,locked:false},
+    {id:'course-kriya4',name:'Kriya 4',category:'Advanced',progressionOrder:8,defaultSchedule:'weekly',defaultDay:0,active:true,locked:false},
+    {id:'course-stt2',name:'STT 2',category:'Advanced',progressionOrder:null,defaultSchedule:'weekly',defaultDay:0,active:true,locked:false}
   ];
   let p2SeededCourseDefinition=false;
   p2DefaultCourses.forEach(def=>{
@@ -2186,10 +2188,10 @@
   function p2Course(id){return state.courseTypes.find(c=>c.id===id)||null}
   function p2CourseForBatch(batch){return p2Course(batch?.courseId)||state.courseTypes.find(c=>normName(c.name)===normName(batch?.level||''))||null}
   function p2CourseName(batch){return p2CourseForBatch(batch)?.name||batch?.level||'Class'}
-  function p2NextLevel(level){const i=p2FullChain.indexOf(level);return i>=0&&i<p2FullChain.length-1?p2FullChain[i+1]:''}
+  function p2NextLevel(level){if(normName(level)===normName('STT'))return 'STT 2';const i=p2FullChain.findIndex(x=>normName(x)===normName(level));return i>=0&&i<p2FullChain.length-1?p2FullChain[i+1]:''}
   function p2BatchYear(batch){return Number(String(batch.start||'').slice(0,4))||batch.year||''}
   function p2v553BatchOrder(a,b){
-    const rank=x=>{const i=p2FullChain.indexOf(p2CourseName(x));return i<0?99:i};
+    const rank=x=>p2CourseRank(p2CourseName(x));
     return rank(a)-rank(b)||String(a.start||'').localeCompare(String(b.start||''))||
       String(a.name||'').localeCompare(String(b.name||''),undefined,{numeric:true,sensitivity:'base'});
   }
@@ -2263,7 +2265,7 @@
   function p2OpenCourse(id=''){const c=p2Course(id);$('p2CourseId').value=c?.id||'';$('p2CourseName').value=c?.name||'';$('p2CourseCategory').value=c?.category||'Advanced';$('p2CourseSchedule').value=c?.defaultSchedule||'custom';$('p2CourseDay').value=String(c?.defaultDay??0);$('p2CourseNotes').value=c?.notes||'';$('p2CourseActive').checked=c?.active!==false;$('p2CourseModalTitle').textContent=c?'Edit course type':'Add course type';$('p2DeleteCourse').classList.toggle('hidden',!c||!!c.locked);$('p2CourseModal').classList.add('open');setTimeout(()=>$('p2CourseName').focus(),40)}
   function p2OpenAcharya(id=''){const a=state.acharyas.find(x=>x.id===id);$('p2AcharyaId').value=a?.id||'';$('p2AcharyaName').value=a?.name||'';$('p2AcharyaMobile').value=a?.mobile||'';$('p2AcharyaNotes').value=a?.notes||'';$('p2AcharyaActive').checked=a?.active!==false;$('p2AcharyaModalTitle').textContent=a?'Edit Acharya':'Add Acharya';$('p2DeleteAcharya').classList.toggle('hidden',!a);$('p2AcharyaModal').classList.add('open');setTimeout(()=>$('p2AcharyaName').focus(),40)}
   function p2RenderSelectedPeople(){if($('p2BatchAcharyaSelected'))$('p2BatchAcharyaSelected').innerHTML=p2EditingAcharyaIds.map(id=>{const a=state.acharyas.find(x=>x.id===id);return a?`<span class="p2-selected">${esc(a.name)}<button type="button" class="p2-remove-ach" data-id="${id}">×</button></span>`:''}).join('');if($('p2BatchVolunteerSelected'))$('p2BatchVolunteerSelected').innerHTML=p2EditingVolunteerIds.map(id=>{const v=state.volunteers.find(x=>x.id===id);return v?`<span class="p2-selected">${esc(volName(v))}<button type="button" class="p2-remove-vol" data-id="${id}">×</button></span>`:''}).join('');document.querySelectorAll('.p2-remove-ach').forEach(x=>x.onclick=()=>{p2EditingAcharyaIds=p2EditingAcharyaIds.filter(id=>id!==x.dataset.id);p2RenderSelectedPeople()});document.querySelectorAll('.p2-remove-vol').forEach(x=>x.onclick=()=>{p2EditingVolunteerIds=p2EditingVolunteerIds.filter(id=>id!==x.dataset.id);p2RenderSelectedPeople()})}
-  function p2PopulateCourseSelect(selected=''){const sel=$('p2BatchCourse');sel.innerHTML=state.courseTypes.filter(c=>c.active!==false||c.id===selected).sort((a,b)=>{const i=p2FullChain.indexOf(a.name),j=p2FullChain.indexOf(b.name);return (i<0?99:i)-(j<0?99:j)||a.name.localeCompare(b.name)}).map(c=>`<option value="${c.id}">${esc(c.name)} · ${esc(c.category)}</option>`).join('');if(selected&&[...sel.options].some(o=>o.value===selected))sel.value=selected}
+  function p2PopulateCourseSelect(selected=''){const sel=$('p2BatchCourse');sel.innerHTML=state.courseTypes.filter(c=>c.active!==false||c.id===selected).sort((a,b)=>p2CourseRank(a.name)-p2CourseRank(b.name)||a.name.localeCompare(b.name)).map(c=>`<option value="${c.id}">${esc(c.name)} · ${esc(c.category)}</option>`).join('');if(selected&&[...sel.options].some(o=>o.value===selected))sel.value=selected}
   function p2OpenBatch(id=''){const b=state.classBatches.find(x=>x.id===id),course=b?p2CourseForBatch(b):state.courseTypes.find(c=>c.name==='Level 1');$('p2BatchId').value=b?.id||'';p2PopulateCourseSelect(course?.id||'');$('p2BatchName').value=b?.name||'';$('p2BatchStart').value=b?.start||today();$('p2BatchEnd').value=b?.end||'';$('p2BatchStatus').value=b?.status||'Upcoming';$('p2BatchScheduleType').value=b?.scheduleType||course?.defaultSchedule||'weekly';$('p2BatchDay').value=String(b?.usualDay??course?.defaultDay??0);$('p2BatchSessions').value=(b?.sessionDates||[]).join('\n');$('p2BatchNotes').value=b?.notes||'';p2EditingAcharyaIds=[...(b?.acharyaIds||[])];p2EditingVolunteerIds=[...(b?.volunteerIds||[])];$('p2BatchAcharyaSearch').value='';$('p2BatchVolunteerSearch').value='';$('p2BatchAcharyaSuggestions').classList.add('hidden');$('p2BatchVolunteerSuggestions').classList.add('hidden');p2RenderSelectedPeople();$('p2BatchModalTitle').textContent=b?'Edit class batch':'New class batch';$('p2DeleteBatch').classList.toggle('hidden',!b);$('p2BatchModal').classList.add('open');setTimeout(()=>$('p2BatchName').focus(),40)}
   $('p2DeleteBatch').onclick=()=>{
     const b=state.classBatches.find(x=>x.id===$('p2BatchId').value);if(!b)return;
@@ -2984,9 +2986,18 @@
     if(![...sel.options].some(o=>o.value==='__custom__')){const o=document.createElement('option');o.value='__custom__';o.textContent='+ Custom Class';sel.appendChild(o)}
   };
   function p2v55BatchCourseChanged(){
-    const sel=$('p2BatchCourse'),custom=sel?.value==='__custom__',field=$('p2v55CustomCourseField');if(field)field.style.display=custom?'block':'none';
-    if(custom){$('p2BatchScheduleType').value='custom';return}
-    const c=p2Course(sel?.value);if(!c)return;$('p2BatchScheduleType').value=c.defaultSchedule||'custom';$('p2BatchDay').value=String(c.defaultDay??0)
+    const sel=$('p2BatchCourse'),custom=sel?.value==='__custom__',field=$('p2v55CustomCourseField');
+    if(field)field.style.display=custom?'block':'none';
+    if(custom){$('p2BatchScheduleType').value='custom';p2v545Recalculate('schedule');return}
+    const c=p2Course(sel?.value);if(!c)return;
+    const isNew=!$('p2BatchId').value;
+    const canonical=p2CourseRank(c.name)<10;
+    // Existing NGO data may retain 'custom' defaults for Kriya and STT.
+    // New canonical stages use weekly arithmetic; users can select Custom Dates.
+    $('p2BatchScheduleType').value=isNew&&canonical?'weekly':(c.defaultSchedule||'custom');
+    $('p2BatchDay').value=String(c.defaultDay??0);
+    if(isNew){p2v545Driver='count';$('p2BatchEnd').value=''}
+    p2v545Recalculate('schedule');
   }
   $('p2BatchCourse').onchange=p2v55BatchCourseChanged;
 
@@ -3160,6 +3171,7 @@
   };
   $('p2v537ClassCount').oninput=()=>p2v545Recalculate('count');
   $('p2BatchEnd').addEventListener('input',()=>p2v545Recalculate('end'));
+  $('p2BatchEnd').addEventListener('change',()=>p2v545Recalculate('end'));
   ['p2BatchStart','p2BatchScheduleType','p2BatchDay'].forEach(id=>{
     $(id).addEventListener('input',()=>p2v545Recalculate(id==='p2BatchStart'?'start':'schedule'));
     $(id).addEventListener('change',()=>p2v545Recalculate(id==='p2BatchStart'?'start':'schedule'));
@@ -8028,17 +8040,13 @@ function p2v58BindPhoneListener(){
       function p2v553DateNote(){
         const t=$('p2BatchScheduleType')?.value,day=$('p2BatchDay'),hint=$('p2v553DateHint');
         if(day)day.disabled=(t==='custom'||t==='single');
-        if(!hint)return;
-        hint.textContent=t==='custom'
-          ?'Custom dates: enter an End Date manually, or assign each date under Class Schedule. Choose Weekly recurring to calculate the End Date from the class count.'
-          :t==='single'?'Single date: one class. Other dates belong in Class Schedule.'
-          :'End Date is calculated from Start Date and Number of Classes. Or enter End Date to calculate the class count.';
+        // Keep this screen compact; schedule options identify the calculation mode.
       }
       $('p2BatchScheduleType')?.addEventListener('change',p2v553DateNote);
       const oldOpen553=p2OpenBatch;
       p2OpenBatch=function(){const result=oldOpen553.apply(this,arguments);p2v553DateNote();return result};
       p2v553DateNote();
-      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.53';
+      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.54';
     })();
 
   resetEventForm();

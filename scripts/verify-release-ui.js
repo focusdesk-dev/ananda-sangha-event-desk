@@ -23,22 +23,39 @@ function batchCheck(){
  yes(grid,'Batch form grid absent');
  yes(getComputedStyle(grid).gridTemplateColumns.split(' ').length>=2,'Desktop form not two columns');
  yes(!form.querySelector('#p2v549ManualDatesField'),'Old individual date inputs remain in Edit Batch');
- const opt=[...el('p2BatchCourse').options].find(o=>o.textContent.trim().startsWith('Kriya '))||
-   [...el('p2BatchCourse').options].find(o=>o.textContent.trim()==='Kriya');
- yes(opt,'Kriya course missing');
- set('p2BatchCourse',opt.value,'change');
- set('p2BatchName','Beta 5.53 UI Verification');
+ const options=[...el('p2BatchCourse').options];
+ const canonical=['Level 1','Level 2','Level 3','Level 4','Kriya','Kriya 2','Kriya 3','Kriya 4','STT','STT 2'];
+ const normal=x=>String(x).trim().toLowerCase();
+ const positions=canonical.map(name=>options.findIndex(o=>normal(o.textContent)===normal(name)));
+ yes(positions.every((p,i)=>p>=0),'Canonical course missing: '+canonical.filter((_,i)=>positions[i]<0).join(', '));
+ yes(positions.every((p,i)=>i===0||p>positions[i-1]),'Course options have wrong progression order: '+options.map(o=>o.textContent.trim()).join(' / '));
+ const setStage=name=>{
+   const option=options.find(o=>normal(o.textContent)===normal(name));
+   yes(option,'Missing course '+name);
+   set('p2BatchCourse',option.value,'change');
+ };
+ for(const name of ['Kriya','Kriya 2','Kriya 3','Kriya 4','STT','STT 2']){
+   setStage(name);
+   yes(el('p2BatchScheduleType').value==='weekly',name+' must open with weekly auto calculation');
+   set('p2BatchStart','2026-11-08','change');
+   set('p2v537ClassCount','2');
+   yes(el('p2BatchEnd').value==='2026-11-15',name+' Start + Count did not calculate End: '+el('p2BatchEnd').value);
+   set('p2BatchEnd','2026-11-29','change');
+   yes(el('p2v537ClassCount').value==='4',name+' Start + End did not calculate Count: '+el('p2v537ClassCount').value);
+ }
+ setStage('Kriya');
+ set('p2BatchName','Beta 5.54 UI Verification');
  set('p2BatchScheduleType','custom','change');
  set('p2BatchStart','2026-11-08','change');
  set('p2BatchEnd','');
  set('p2v537ClassCount','2');
  yes(!el('p2BatchEnd').value,'Custom dates must not fabricate End Date');
- yes(el('p2v553DateHint').textContent.includes('Weekly recurring'),'Custom schedule guidance missing');
+ yes(!el('p2v553DateHint'),'Unnecessary date guidance remains visible');
  yes(el('p2BatchDay').disabled,'Irrelevant weekday should be disabled under Custom Dates');
  set('p2BatchScheduleType','weekly','change');
  set('p2v537ClassCount','2');
  yes(el('p2BatchEnd').value==='2026-11-15','Two Sunday classes should end 15 Nov, got '+el('p2BatchEnd').value);
- set('p2BatchEnd','2026-11-29');
+ set('p2BatchEnd','2026-11-29','change');
  yes(el('p2v537ClassCount').value==='4','End Date must recalculate 4 classes');
  set('p2v537ClassCount','2');
  yes(el('p2BatchEnd').value==='2026-11-15','Count must recalculate End Date again');
@@ -47,7 +64,7 @@ function batchCheck(){
  form.requestSubmit();
  const batches=state().classBatches||[];
  yes(batches.length===before+1,'Batch was not saved');
- const batch=batches.find(b=>b.name==='Beta 5.53 UI Verification');
+ const batch=batches.find(b=>b.name==='Beta 5.54 UI Verification');
  yes(batch?.end==='2026-11-15','Saved batch End Date wrong');
  yes(el('p2v519Summary'),'Whole-batch summary missing');
  yes(document.querySelector('.p2v553-roster-layout'),'Rostering layout missing');
@@ -55,6 +72,10 @@ function batchCheck(){
  yes(getComputedStyle(header).backgroundImage==='none','Old large gradient banner still active');
  yes(!el('pageSubtitle').textContent.trim(),'Redundant Class Batch subtitle still visible');
  yes(!el('p2v519Summary').textContent.includes('Mark remaining absent'),'Attendance marking duplicated in Class Batch');
+ el('p2v519Edit').click();
+ yes(!el('p2DeleteBatch').classList.contains('hidden'),'Delete Batch absent while editing saved batch');
+ yes(!!el('p2DeleteBatch').closest('.actions'),'Delete Batch must be in the form footer');
+ el('p2BatchModal').classList.remove('open');
  return {pass:true,batchId:batch.id,end:batch.end,version:document.title};
 }
 async function progressCheck(){
@@ -96,9 +117,9 @@ async function run(){
  try{
   await cmd('Page.enable');
   const batch=await runCode(batchCheck);assert.ok(batch?.pass,'Batch UI checks failed');
-  await screenshot('class-batch-beta-5.53.png');
+  await screenshot('class-batch-beta-5.54.png');
   const progress=await runCode(progressCheck);assert.ok(progress?.pass,'Student UI checks failed');
-  await screenshot('student-wise-beta-5.53.png');
+  await screenshot('student-wise-beta-5.54.png');
   console.log('PASS packaged Windows UI and visible layout '+JSON.stringify({batch,progress}));
  }finally{ws.close()}
 }
