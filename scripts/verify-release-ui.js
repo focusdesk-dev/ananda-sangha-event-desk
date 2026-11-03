@@ -44,7 +44,7 @@ async function batchCheck(){
    yes(el('p2v537ClassCount').value==='4',name+' Start + End did not calculate Count: '+el('p2v537ClassCount').value);
  }
  setStage('Kriya');
- set('p2BatchName','Beta 5.55 UI Verification');
+ set('p2BatchName','Beta 5.56 UI Verification');
  set('p2BatchScheduleType','custom','change');
  set('p2BatchStart','2026-11-08','change');
  set('p2BatchEnd','');
@@ -64,7 +64,7 @@ async function batchCheck(){
  form.requestSubmit();
  const batches=state().classBatches||[];
  yes(batches.length===before+1,'Batch was not saved');
- const batch=batches.find(b=>b.name==='Beta 5.55 UI Verification');
+ const batch=batches.find(b=>b.name==='Beta 5.56 UI Verification');
  yes(batch?.end==='2026-11-15','Saved batch End Date wrong');
  yes(el('p2v519Summary'),'Whole-batch summary missing');
  yes(document.querySelector('.p2v553-roster-layout'),'Rostering layout missing');
@@ -107,6 +107,40 @@ async function batchCheck(){
  yes(el('activeClasses').classList.contains('active'),'Deletion did not return to Active Classes');
  return {pass:true,batchId:batch.id,end:batch.end,version:document.title,cardEditDelete:true,authorisedDelete:true};
 }
+async function typingCheck(cmd){
+  // Real packaged Windows input: mouse focus + Chromium keyboard events.
+  const ev=async expression=>{
+    const r=await cmd('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});
+    if(r.result?.exceptionDetails)throw Error(JSON.stringify(r.result.exceptionDetails));
+    return r.result?.value;
+  };
+  const setup=await ev("(()=>{const nav=document.querySelector('.nav-btn[data-page=\\\"classes\\\"]');nav.click();document.getElementById('p2AddBatch').click();return {open:document.getElementById('p2BatchModal').classList.contains('open'),backdrops:document.querySelectorAll('.modal-backdrop.open').length};})()");
+  assert.equal(setup?.open,true,'New Class Batch failed to open');
+  assert.equal(setup?.backdrops,1,'Another modal backdrop intercepts Class Batch input');
+  const tested=[];
+  for(const id of ['p2BatchName','p2BatchAcharyaSearch','p2BatchVolunteerSearch','p2BatchNotes','p2BatchFee']){
+    const point=await ev("(()=>{const x=document.getElementById("+JSON.stringify(id)+");const r=x.getBoundingClientRect(),px=r.left+r.width/2,py=r.top+r.height/2,top=document.elementFromPoint(px,py);return {x:px,y:py,disabled:x.disabled,readOnly:x.readOnly,visible:r.width>0&&r.height>0,clickable:top===x||x.contains(top),hit:top?.id||top?.tagName};})()");
+    assert.ok(point?.visible&&point?.clickable&&!point.disabled&&!point.readOnly,
+      'Batch field blocked before typing: '+id+' '+JSON.stringify(point));
+    await cmd('Input.dispatchMouseEvent',{type:'mousePressed',x:point.x,y:point.y,button:'left',clickCount:1});
+    await cmd('Input.dispatchMouseEvent',{type:'mouseReleased',x:point.x,y:point.y,button:'left',clickCount:1});
+    const focused=await ev('document.activeElement?.id');
+    assert.equal(focused,id,'Click did not focus field '+id+'; focus='+focused);
+    await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'A',code:'KeyA',text:'A',unmodifiedText:'A',windowsVirtualKeyCode:65,nativeVirtualKeyCode:65});
+    await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'A',code:'KeyA',windowsVirtualKeyCode:65,nativeVirtualKeyCode:65});
+    const typed=await ev("document.getElementById("+JSON.stringify(id)+").value");
+    assert.ok(typed.includes('A'),'Physical keyboard typing failed in '+id+': '+JSON.stringify(typed));
+    // Shift+= must insert '+' inside an editor, not fire New/Add shortcut.
+    await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'+',code:'Equal',text:'+',unmodifiedText:'=',modifiers:8,windowsVirtualKeyCode:187,nativeVirtualKeyCode:187});
+    await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'+',code:'Equal',modifiers:8,windowsVirtualKeyCode:187,nativeVirtualKeyCode:187});
+    const plus=await ev("document.getElementById("+JSON.stringify(id)+").value");
+    assert.ok(plus.includes('+'),'Plus character was intercepted in '+id+': '+JSON.stringify(plus));
+    tested.push(id);
+  }
+  await ev("document.querySelector('#p2BatchModal [data-close]').click(); true");
+  return {pass:true,typedFields:tested,physicalKeyboard:true};
+}
+
 async function progressCheck(){
  const yes=(v,m)=>{if(!v)throw Error(m)};
  const route=document.querySelector('.go[data-go="studentProgress"]');
@@ -159,10 +193,11 @@ async function run(){
     await cmd('Page.reload',{ignoreCache:true});
     await wait(1800);
   }
+  const typing=await typingCheck(cmd);assert.ok(typing?.pass,'Real keyboard typing failed');
   const batch=await runCode(batchCheck);assert.ok(batch?.pass,'Batch UI checks failed');
-  await screenshot('class-batch-beta-5.55.png');
+  await screenshot('class-batch-beta-5.56.png');
   const progress=await runCode(progressCheck);assert.ok(progress?.pass,'Student UI checks failed');
-  await screenshot('student-wise-beta-5.55.png');
+  await screenshot('student-wise-beta-5.56.png');
   console.log('PASS packaged Windows UI and visible layout '+JSON.stringify({batch,progress}));
  }finally{ws.close()}
 }

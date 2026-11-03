@@ -127,17 +127,13 @@ function createWindow() {
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (!input || (input.type && !String(input.type).toLowerCase().includes('keydown'))) return;
     const key = String(input.key || '').toLowerCase();
-    const code = String(input.code || '');
+    // Allow normal typing, including '+' in text and numeric form fields.
+    // The renderer owns the context-aware '+' enrolment shortcut, so the
+    // main process must not suppress input before it can inspect focus.
     const altSave = !!input.alt && !input.control && !input.meta && key === 's';
-    const plus = !input.alt && !input.control && !input.meta && (
-      input.key === '+' || code === 'NumpadAdd' || (code === 'Equal' && !!input.shift) || (input.key === '=' && !!input.shift)
-    );
     if (altSave) {
       event.preventDefault();
       sendShortcut('save');
-    } else if (plus) {
-      event.preventDefault();
-      sendShortcut('add');
     }
   });
 

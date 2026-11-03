@@ -87,11 +87,11 @@ test(27,'50 percent default with ended-batch snapshot',()=>{has('minimumAttendan
 test(28,'Late joining attendance logic retained',()=>{has('joinedFromClass');has('Not assessed')});
 test(29,'Class Batch shows read-only progress and fee',()=>{has('p2v519Summary');has('<th>Payment</th>');has('p2v553-roster-layout')});
 test(30,'Dedicated QR/photo Class Attendance remains',()=>{has('classAttendanceHub');has('Mark remaining absent');assert.ok(h.toLowerCase().includes('photos received'))});
-test(31,'Contextual enrol shortcut and save shortcut remain',()=>{assert.ok(main.includes('ananda-shortcut'));assert.ok(main.includes("sendShortcut('save')")&&main.includes("sendShortcut('add')"))});
+test(31,'Contextual enrol shortcut and save shortcut remain',()=>{assert.ok(main.includes('ananda-shortcut'));assert.ok(main.includes("sendShortcut('save')")&&h.includes("runShortcut(save?'save':'add')"));assert.ok(main.includes('renderer owns the context-aware')||main.includes("renderer owns the context-aware"))});
 test(32,'Offline backup and installer identity/shortcuts',()=>{
  assert.ok(main.includes('FIVE_DAYS_MS'));assert.ok(main.includes('DATA_ROOT'));
  assert.ok(pkg.build.nsis.createDesktopShortcut&&pkg.build.nsis.createStartMenuShortcut);
- assert.equal(pkg.version,'2.0.0-beta.5.55');assert.ok(main.includes('app.getVersion()'));});
+ assert.equal(pkg.version,'2.0.0-beta.5.56');assert.ok(main.includes('app.getVersion()'));});
 const failed=results.filter(x=>x.status==='FAIL');
 fs.mkdirSync('verification',{recursive:true});
 fs.writeFileSync('verification/acceptance-32.json',JSON.stringify({

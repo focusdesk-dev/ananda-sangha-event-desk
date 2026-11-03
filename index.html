@@ -6779,6 +6779,11 @@ function p2v58BindPhoneListener(){
         const save=event.altKey&&!event.ctrlKey&&!event.metaKey&&key==='s';
         const plus=!event.altKey&&!event.ctrlKey&&!event.metaKey&&(event.key==='+'||code==='NumpadAdd'||keyCode===107||((code==='Equal'||keyCode===187||event.key==='=')&&event.shiftKey));
         if(!save&&!plus)return;
+        const focus=event.target||document.activeElement;
+        const typing=!!(focus?.closest?.('input,textarea,select,[contenteditable],[role="textbox"]')||focus?.isContentEditable);
+        // '+' is an enrolment shortcut only outside inputs and modals. Never
+        // intercept normal characters while staff enter a class or name.
+        if(plus&&(typing||document.querySelector('.modal-backdrop.open')))return;
         event.preventDefault();
         event.stopImmediatePropagation();
         runShortcut(save?'save':'add');
@@ -8053,9 +8058,25 @@ function p2v58BindPhoneListener(){
       }
       $('p2BatchScheduleType')?.addEventListener('change',p2v553DateNote);
       const oldOpen553=p2OpenBatch;
-      p2OpenBatch=function(){const result=oldOpen553.apply(this,arguments);p2v553DateNote();return result};
+      p2OpenBatch=function(){
+        const result=oldOpen553.apply(this,arguments);
+        p2v553DateNote();
+        const dialog=$('p2BatchModal'),name=$('p2BatchName');
+        if(dialog?.classList.contains('open')){
+          // Avoid stacked, invisible dialog backdrops capturing clicks/typing.
+          document.querySelectorAll('.modal-backdrop.open').forEach(other=>{
+            if(other!==dialog)other.classList.remove('open');
+          });
+          setTimeout(()=>{
+            if(dialog.classList.contains('open')&&!dialog.contains(document.activeElement)){
+              name?.focus();
+            }
+          },90);
+        }
+        return result;
+      };
       p2v553DateNote();
-      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.55';
+      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.56';
     })();
 
   resetEventForm();
