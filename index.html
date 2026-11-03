@@ -2266,7 +2266,7 @@
   function p2OpenAcharya(id=''){const a=state.acharyas.find(x=>x.id===id);$('p2AcharyaId').value=a?.id||'';$('p2AcharyaName').value=a?.name||'';$('p2AcharyaMobile').value=a?.mobile||'';$('p2AcharyaNotes').value=a?.notes||'';$('p2AcharyaActive').checked=a?.active!==false;$('p2AcharyaModalTitle').textContent=a?'Edit Acharya':'Add Acharya';$('p2DeleteAcharya').classList.toggle('hidden',!a);$('p2AcharyaModal').classList.add('open');setTimeout(()=>$('p2AcharyaName').focus(),40)}
   function p2RenderSelectedPeople(){if($('p2BatchAcharyaSelected'))$('p2BatchAcharyaSelected').innerHTML=p2EditingAcharyaIds.map(id=>{const a=state.acharyas.find(x=>x.id===id);return a?`<span class="p2-selected">${esc(a.name)}<button type="button" class="p2-remove-ach" data-id="${id}">×</button></span>`:''}).join('');if($('p2BatchVolunteerSelected'))$('p2BatchVolunteerSelected').innerHTML=p2EditingVolunteerIds.map(id=>{const v=state.volunteers.find(x=>x.id===id);return v?`<span class="p2-selected">${esc(volName(v))}<button type="button" class="p2-remove-vol" data-id="${id}">×</button></span>`:''}).join('');document.querySelectorAll('.p2-remove-ach').forEach(x=>x.onclick=()=>{p2EditingAcharyaIds=p2EditingAcharyaIds.filter(id=>id!==x.dataset.id);p2RenderSelectedPeople()});document.querySelectorAll('.p2-remove-vol').forEach(x=>x.onclick=()=>{p2EditingVolunteerIds=p2EditingVolunteerIds.filter(id=>id!==x.dataset.id);p2RenderSelectedPeople()})}
   function p2PopulateCourseSelect(selected=''){const sel=$('p2BatchCourse');sel.innerHTML=state.courseTypes.filter(c=>c.active!==false||c.id===selected).sort((a,b)=>p2CourseRank(a.name)-p2CourseRank(b.name)||a.name.localeCompare(b.name)).map(c=>`<option value="${c.id}">${esc(c.name)} · ${esc(c.category)}</option>`).join('');if(selected&&[...sel.options].some(o=>o.value===selected))sel.value=selected}
-  function p2OpenBatch(id=''){const b=state.classBatches.find(x=>x.id===id),course=b?p2CourseForBatch(b):state.courseTypes.find(c=>c.name==='Level 1');$('p2BatchId').value=b?.id||'';p2PopulateCourseSelect(course?.id||'');$('p2BatchName').value=b?.name||'';$('p2BatchStart').value=b?.start||today();$('p2BatchEnd').value=b?.end||'';$('p2BatchStatus').value=b?.status||'Upcoming';$('p2BatchScheduleType').value=b?.scheduleType||course?.defaultSchedule||'weekly';$('p2BatchDay').value=String(b?.usualDay??course?.defaultDay??0);$('p2BatchSessions').value=(b?.sessionDates||[]).join('\n');$('p2BatchNotes').value=b?.notes||'';p2EditingAcharyaIds=[...(b?.acharyaIds||[])];p2EditingVolunteerIds=[...(b?.volunteerIds||[])];$('p2BatchAcharyaSearch').value='';$('p2BatchVolunteerSearch').value='';$('p2BatchAcharyaSuggestions').classList.add('hidden');$('p2BatchVolunteerSuggestions').classList.add('hidden');p2RenderSelectedPeople();$('p2BatchModalTitle').textContent=b?'Edit class batch':'New class batch';$('p2DeleteBatch').classList.toggle('hidden',!b);$('p2BatchModal').classList.add('open');setTimeout(()=>$('p2BatchName').focus(),40)}
+  function p2OpenBatch(id=''){const b=state.classBatches.find(x=>x.id===id),course=b?p2CourseForBatch(b):state.courseTypes.find(c=>c.name==='Level 1');$('p2BatchId').value=b?.id||'';p2PopulateCourseSelect(course?.id||'');$('p2BatchName').value=b?.name||'';$('p2BatchStart').value=b?.start||today();$('p2BatchEnd').value=b?.end||'';$('p2BatchStatus').value=b?.status||'Upcoming';$('p2BatchScheduleType').value=b?.scheduleType||course?.defaultSchedule||'weekly';$('p2BatchDay').value=String(b?.usualDay??course?.defaultDay??0);$('p2BatchSessions').value=(b?.sessionDates||[]).join('\n');$('p2BatchNotes').value=b?.notes||'';p2EditingAcharyaIds=[...(b?.acharyaIds||[])];p2EditingVolunteerIds=[...(b?.volunteerIds||[])];$('p2BatchAcharyaSearch').value='';$('p2BatchVolunteerSearch').value='';$('p2BatchAcharyaSuggestions').classList.add('hidden');$('p2BatchVolunteerSuggestions').classList.add('hidden');p2RenderSelectedPeople();$('p2BatchModalTitle').textContent=b?'Edit class batch':'New class batch';$('p2DeleteBatch').classList.toggle('hidden',!b);$('p2BatchModal').classList.add('open');setTimeout(()=>{const dialog=$('p2BatchModal'),active=document.activeElement;if(dialog.classList.contains('open')&&(!active||active===document.body||active===dialog))$('p2BatchName').focus()},40)}
   $('p2DeleteBatch').onclick=()=>{
     const b=state.classBatches.find(x=>x.id===$('p2BatchId').value);if(!b)return;
     const linked=state.classEnrollments.some(x=>x.batchId===b.id)||!!b.endedAt;
@@ -7545,6 +7545,7 @@ function p2v58BindPhoneListener(){
         b.status='Completed';
         b.end=b.end||dates.at(-1)?.date||today();
         save();toast('Batch ended; outcomes and approvals preserved.');
+        p2v519RenderSummary();
       }
       let p2v519ScheduleMode=false;
       function p2v519RenderSummary(){
@@ -7573,7 +7574,8 @@ function p2v58BindPhoneListener(){
 
           '<button type="button" class="btn secondary" id="p2v519Edit">Edit Batch</button>'+
           '<button type="button" class="btn secondary" id="p2v519Schedule">'+(p2v519ScheduleMode?'Back to Summary':'Class Schedule')+'</button>'+
-          (!ended?'<button type="button" class="btn secondary" id="p2v519Enroll">Enrol Student</button>':'')+'</div>';
+          (!ended?'<button type="button" class="btn secondary" id="p2v519Enroll">Enrol Student</button>':'')+
+          (!ended?'<button type="button" class="btn secondary" id="p2v519End">End Batch</button>':'')+'</div>';
 
         $('p2v519Edit').onclick=()=>p2OpenBatch(b.id);
         $('p2v519Schedule').onclick=()=>{p2v519ScheduleMode=!p2v519ScheduleMode;p2v519RenderSummary()};
@@ -7593,7 +7595,6 @@ function p2v58BindPhoneListener(){
             '<div><span>'+x[0]+'</span><strong>'+x[1]+'</strong></div>').join('')+
           '</div><div class="p2v519-student-head"><h3>Student progression</h3>'+
           (!ended?'<small>Provisional eligibility</small>':'<small>Finalised results</small>')+
-          (!ended?'<button class="btn secondary small" id="p2v519End">End Batch</button>':'')+
           '</div><div class="p2v553-roster-layout"><div class="p2v519-table-scroll"><table class="p2v519-table"><thead><tr>'+
           '<th>Student</th><th>Attendance</th><th>Participation</th>'+
           '<th>Next level</th><th>Payment</th><th>History</th></tr></thead><tbody>'+

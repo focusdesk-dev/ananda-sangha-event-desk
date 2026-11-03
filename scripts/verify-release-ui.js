@@ -72,6 +72,12 @@ async function batchCheck(){
  yes(getComputedStyle(header).backgroundImage==='none','Old large gradient banner still active');
  yes(!el('pageSubtitle').textContent.trim(),'Redundant Class Batch subtitle still visible');
  yes(!el('p2v519Summary').textContent.includes('Mark remaining absent'),'Attendance marking duplicated in Class Batch');
+ const endHeaderButton=document.querySelector('#p2ClassHeader #p2v519End');
+ yes(endHeaderButton,'End Batch button missing beside Edit Batch and Class Schedule at top');
+ yes(!document.querySelector('#p2v519Summary #p2v519End'),'End Batch is duplicated in lower Student Progress table');
+ el('p2v519Schedule').click();
+ yes(!!document.querySelector('#p2ClassHeader #p2v519End'),'End Batch disappears in Class Schedule view');
+ el('p2v519Schedule').click();
  el('p2v519Edit').click();
  yes(!el('p2DeleteBatch').classList.contains('hidden'),'Delete Batch absent while editing saved batch');
  yes(!!el('p2DeleteBatch').closest('.actions'),'Delete Batch must be in the form footer');
