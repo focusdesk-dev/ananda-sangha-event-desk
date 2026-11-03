@@ -3,6 +3,9 @@ on:
   workflow_dispatch:
   push:
     branches: [beta-5-51-corrections-19-20]
+permissions:
+  contents: read
+  actions: read
 jobs:
   windows-installer:
     runs-on: windows-latest
