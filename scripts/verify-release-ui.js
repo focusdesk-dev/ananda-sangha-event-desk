@@ -116,7 +116,7 @@ async function progressCheck(){
  yes(page?.classList.contains('active'),'Student Progress did not open');
  yes(!document.getElementById('pageSubtitle')?.textContent.trim(),'Duplicate Student Progress subtitle');
  yes(!page.querySelector('.p2v520-main h3'),'Repeated Student Progress title inside panel');
- const select=el('p2v520Course');
+ const select=document.getElementById('p2v520Course');yes(select,'Student Progress course selector missing');
  const selectedCourses=[...select.options].map(x=>x.textContent.trim().toLowerCase());
  const ordered=['level 1','level 2','level 3','level 4','kriya','kriya 2','kriya 3','kriya 4','stt','stt 2'];
  const indices=ordered.map(name=>selectedCourses.indexOf(name));
