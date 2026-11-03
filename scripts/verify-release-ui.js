@@ -50,7 +50,7 @@ function batchCheck(){
  set('p2BatchEnd','');
  set('p2v537ClassCount','2');
  yes(!el('p2BatchEnd').value,'Custom dates must not fabricate End Date');
- yes(!el('p2v553DateHint'),'Unnecessary date guidance remains visible');
+ yes(!document.getElementById('p2v553DateHint'),'Unnecessary date guidance remains visible');
  yes(el('p2BatchDay').disabled,'Irrelevant weekday should be disabled under Custom Dates');
  set('p2BatchScheduleType','weekly','change');
  set('p2v537ClassCount','2');
