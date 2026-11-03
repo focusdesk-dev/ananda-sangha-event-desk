@@ -46,13 +46,13 @@ function classesFixture(){
  const $=id=>fields[id]||(fields[id]={});
  const code="let p2RenderClasses;let p2v56ChatSelectedClass='';"+src+";return {show:p2RenderClasses,year:x=>p2v510ClassYear=x}";
  const app=new Function('$','state','p2v55SyncBatchStatuses','p2FullChain','p2BatchYear',
-  'p2v56ChatActive','p2v56ChatClassCard','p2v56ChatOpenBatch','p2OpenBatch','esc','p2v553BatchOrder',code)(
+  'p2v56ChatActive','p2v56ChatClassCard','p2v56ChatOpenBatch','p2OpenBatch','esc','p2v553BatchOrder','p2CourseRank',code)(
   $,state,()=>{},['Level 1','Level 2','Level 3','Level 4','Kriya','Kriya 2','Kriya 3','Kriya 4'],
   ()=>2026,b=>b.status==='Current',b=>'<div class="p2v56-chat-class">'+(b.courseId==='k'?'Kriya':'Kriya 2')+' '+b.name+'</div>',
-  ()=>{},()=>{},x=>String(x),(a,b)=>(a.courseId==='k'?0:1)-(b.courseId==='k'?0:1));
+  ()=>{},()=>{},x=>String(x),(a,b)=>(a.courseId==='k'?0:1)-(b.courseId==='k'?0:1),name=>['Level 1','Level 2','Level 3','Level 4','Kriya','Kriya 2','Kriya 3','Kriya 4','STT','STT 2'].indexOf(name));
  app.year('2026');app.show();return fields.p2ClassList.innerHTML;
 }
-test(1,'Only one authorised Delete Batch handler',()=>assert.equal(h.split("$('p2DeleteBatch').onclick=").length-1,1),'functional');
+test(1,'Only one authorised Delete Batch handler; direct card Delete action',()=>{assert.equal(h.split("$('p2DeleteBatch').onclick=").length-1,1);has("p2v56-chat-delete");has("$('p2DeleteBatch').click();")},'functional');
 test(2,'Delete Batch requires admin approval',()=>assert.equal(deleteFixture(true).admin,1),'functional');
 test(3,'Linked student and payment history survive batch archive',()=>{
  const t=deleteFixture(true);assert.equal(t.state.classEnrollments.length,1);assert.ok(t.state.classBatches[0].archivedAt);},'functional');
@@ -64,7 +64,7 @@ test(6,'Archived batches absent from visible Classes listing',()=>assert.ok(!cla
 test(7,'Kriya before Kriya 2 in visible Classes listing',()=>{
  const x=classesFixture();assert.ok(x.indexOf('Kriya Batch 1')<x.indexOf('Kriya 2 Batch 2'));},'functional');
 test(8,'All eight canonical course levels retained',()=>{for(const c of ['course-l1','course-l2','course-l3','course-l4','course-kriya','course-kriya2','course-kriya3','course-kriya4'])has(c)});
-test(9,'Batch Course dropdown uses canonical stage order',()=>has("function p2v553BatchOrder"));
+test(9,'Batch and Student Progress dropdowns use canonical stage order',()=>{has("function p2v553BatchOrder");has("function p2v520AvailableCourses()");has("p2CourseRank(a.name)-p2CourseRank(b.name)")});
 test(10,'Balanced two-column New/Edit Batch form',()=>{has('id="p2BatchForm"');has('class="form-grid"');has('id="p2v537ClassCount"')});
 test(11,'Individual class dates live only in Class Schedule',()=>absent('id="p2v549ManualDatesField"'));
 test(12,'Weekly Start + 2 classes calculates 15 Nov 2026',()=>assert.equal(makeDates('weekly').fields.p2BatchEnd.value,'2026-11-15'),'functional');
@@ -91,7 +91,7 @@ test(31,'Contextual enrol shortcut and save shortcut remain',()=>{assert.ok(main
 test(32,'Offline backup and installer identity/shortcuts',()=>{
  assert.ok(main.includes('FIVE_DAYS_MS'));assert.ok(main.includes('DATA_ROOT'));
  assert.ok(pkg.build.nsis.createDesktopShortcut&&pkg.build.nsis.createStartMenuShortcut);
- assert.equal(pkg.version,'2.0.0-beta.5.54');assert.ok(main.includes('app.getVersion()'));});
+ assert.equal(pkg.version,'2.0.0-beta.5.55');assert.ok(main.includes('app.getVersion()'));});
 const failed=results.filter(x=>x.status==='FAIL');
 fs.mkdirSync('verification',{recursive:true});
 fs.writeFileSync('verification/acceptance-32.json',JSON.stringify({

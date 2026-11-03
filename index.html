@@ -2220,7 +2220,7 @@
     const yf=$('p2YearFilter'),keepYear=yf?.value||'all';
     if(yf){yf.innerHTML='<option value="all">All years</option>'+allYears.map(y=>`<option value="${y}">${y}</option>`).join('');if([...yf.options].some(o=>o.value===keepYear))yf.value=keepYear}
     const cf=$('p2CourseFilter'),keepCourse=cf?.value||'all';
-    if(cf){cf.innerHTML='<option value="all">All courses</option>'+state.courseTypes.filter(c=>c.active!==false).sort((a,b)=>{const i=p2FullChain.indexOf(a.name),j=p2FullChain.indexOf(b.name);return (i<0?99:i)-(j<0?99:j)||a.name.localeCompare(b.name)}).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');if([...cf.options].some(o=>o.value===keepCourse))cf.value=keepCourse}
+    if(cf){cf.innerHTML='<option value="all">All courses</option>'+state.courseTypes.filter(c=>c.active!==false).sort((a,b)=>{return p2CourseRank(a.name)-p2CourseRank(b.name)||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'})}).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');if([...cf.options].some(o=>o.value===keepCourse))cf.value=keepCourse}
     const q=($('p2ClassSearch')?.value||'').trim().toLowerCase(),course=cf?.value||'all',year=yf?.value||'all';
     const matches=b=>(course==='all'||b.courseId===course)&&(year==='all'||String(p2BatchYear(b))===year)&&(!q||[p2CourseName(b),b.name,b.status,p2AcharyaNames(b).join(' '),p2BatchYear(b)].join(' ').toLowerCase().includes(q));
     const records=state.classBatches.filter(b=>!b.archivedAt&&matches(b));
@@ -2250,7 +2250,7 @@
     });
     p2BindClassListButtons();
   }
-  function p2RenderCourses(){if(!$('p2CourseList'))return;$('p2CourseList').innerHTML=state.courseTypes.slice().sort((a,b)=>{const i=p2FullChain.indexOf(a.name),j=p2FullChain.indexOf(b.name);return (i<0?99:i)-(j<0?99:j)||a.name.localeCompare(b.name)}).map(c=>`<div class="p2-course-row"><div><h4>${esc(c.name)} ${c.active===false?'<span class="p2-chip bad">Inactive</span>':''}</h4><p>${esc(c.category||'Other')} · Default ${esc(c.defaultSchedule||'custom')}${c.defaultDay!==undefined?' · '+['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][Number(c.defaultDay)]:''}</p></div><button class="btn ghost small p2-edit-course" data-id="${c.id}">Edit</button></div>`).join('');document.querySelectorAll('.p2-edit-course').forEach(x=>x.onclick=()=>p2OpenCourse(x.dataset.id))}
+  function p2RenderCourses(){if(!$('p2CourseList'))return;$('p2CourseList').innerHTML=state.courseTypes.slice().sort((a,b)=>{return p2CourseRank(a.name)-p2CourseRank(b.name)||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'})}).map(c=>`<div class="p2-course-row"><div><h4>${esc(c.name)} ${c.active===false?'<span class="p2-chip bad">Inactive</span>':''}</h4><p>${esc(c.category||'Other')} · Default ${esc(c.defaultSchedule||'custom')}${c.defaultDay!==undefined?' · '+['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][Number(c.defaultDay)]:''}</p></div><button class="btn ghost small p2-edit-course" data-id="${c.id}">Edit</button></div>`).join('');document.querySelectorAll('.p2-edit-course').forEach(x=>x.onclick=()=>p2OpenCourse(x.dataset.id))}
   function p2RenderAcharyas(){if(!$('p2AcharyaTable'))return;const q=($('p2AcharyaMasterSearch')?.value||'').toLowerCase(),rows=state.acharyas.filter(a=>!q||[a.name,a.mobile,a.notes].join(' ').toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name));$('p2AcharyaTable').innerHTML=rows.length?`<div class="table-wrap"><table><thead><tr><th>Acharya</th><th>Mobile</th><th>Status</th><th></th></tr></thead><tbody>${rows.map(a=>`<tr><td><strong>${esc(a.name)}</strong><div class="sub">${esc(a.notes||'')}</div></td><td>${esc(a.mobile||'—')}</td><td>${a.active===false?'Inactive':'Active'}</td><td><button class="btn ghost small p2-edit-acharya" data-id="${a.id}">Edit</button></td></tr>`).join('')}</tbody></table></div>`:'<div class="p2-empty">No Acharyas saved yet.</div>';document.querySelectorAll('.p2-edit-acharya').forEach(x=>x.onclick=()=>p2OpenAcharya(x.dataset.id))}
   function p2StudentRows(){const q=$('p2StudentSearch')?.value.toLowerCase()||'',stage=$('p2StudentStage')?.value||'all';return state.students.filter(s=>(!q||[s.name,s.mobile,s.notes].join(' ').toLowerCase().includes(q))&&(stage==='all'||p2CurrentStage(s)===stage)).sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base'}))}
   function p2RenderStudents(){if(!$('p2StudentTable'))return;const rows=p2StudentRows();$('p2StudentTable').innerHTML=rows.length?`<div class="table-wrap"><table><thead><tr><th>Student</th><th>Mobile</th><th>Stage</th><th>Linked records</th><th></th></tr></thead><tbody>${rows.map(s=>`<tr><td><strong>${esc(s.name)}</strong><div class="sub">${esc(s.notes||'')}</div></td><td>${esc(s.mobile||'—')}</td><td><span class="p2-chip ${p2CurrentStage(s)==='Kriya'?'good':''}">${esc(p2CurrentStage(s))}</span></td><td><div class="p2-linked">${s.volunteerId?'<span class="p2-chip">Volunteer</span>':''}${s.attendeeId?'<span class="p2-chip">Attendee</span>':''}${s.kriyabanId?'<span class="p2-chip good">Kriyaban</span>':''}</div></td><td><div class="actions"><button class="btn ghost small p2-student-progress" data-id="${s.id}">Progress</button><button class="btn ghost small p2-edit-student" data-id="${s.id}">Edit</button></div></td></tr>`).join('')}</tbody></table></div>`:'<div class="p2-empty">No students found. Add the first student from Permanent Records.</div>';document.querySelectorAll('.p2-edit-student').forEach(b=>b.onclick=()=>p2OpenStudent(b.dataset.id));document.querySelectorAll('.p2-student-progress').forEach(b=>b.onclick=()=>{switchPage('studentProgress');$('p2ProgressSelect').value=b.dataset.id;p2RenderProgressDetail(b.dataset.id)})}
@@ -2270,11 +2270,14 @@
   $('p2DeleteBatch').onclick=()=>{
     const b=state.classBatches.find(x=>x.id===$('p2BatchId').value);if(!b)return;
     const linked=state.classEnrollments.some(x=>x.batchId===b.id)||!!b.endedAt;
+    const fromActiveClasses=typeof page!=='undefined'&&page==='activeClasses';
     v51RequireAdmin(()=>{
       if(!confirm(linked?'Archive '+b.name+' and preserve all student history?':'Permanently delete empty '+b.name+'?'))return;
       if(linked)b.archivedAt=new Date().toISOString();
       else{state.classBatches=state.classBatches.filter(x=>x.id!==b.id);if(state.activeClassBatchId===b.id)state.activeClassBatchId=''}
-      $('p2BatchModal').classList.remove('open');save();switchPage('classes');
+      $('p2BatchModal').classList.remove('open');save();
+      switchPage(fromActiveClasses?'activeClasses':'classes');
+      if(fromActiveClasses)p2RenderClasses();
       toast(linked?'Archived; student records preserved.':'Empty batch deleted.');
     },linked?'archive class batch':'delete empty batch');
   };
@@ -3577,7 +3580,7 @@
     if(!$('p2ClassList'))return;
     if(typeof p2v55SyncBatchStatuses==='function')p2v55SyncBatchStatuses();
     const cf=$('p2CourseFilter'),keep=cf?.value||'all';
-    if(cf){cf.innerHTML='<option value="all">All Courses</option>'+state.courseTypes.filter(c=>c.active!==false).sort((a,b)=>{const i=p2FullChain.indexOf(a.name),j=p2FullChain.indexOf(b.name);return (i<0?99:i)-(j<0?99:j)||a.name.localeCompare(b.name)}).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');cf.value=[...cf.options].some(o=>o.value===keep)?keep:'all'}
+    if(cf){cf.innerHTML='<option value="all">All Courses</option>'+state.courseTypes.filter(c=>c.active!==false).sort((a,b)=>{return p2CourseRank(a.name)-p2CourseRank(b.name)||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'})}).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');cf.value=[...cf.options].some(o=>o.value===keep)?keep:'all'}
     const course=cf?.value||'all',records=state.classBatches.filter(b=>!b.archivedAt&&(course==='all'||String(b.courseId)===course));
     const grouped={};records.forEach(b=>{const y=String(p2BatchYear(b)||'Unknown');(grouped[y]||(grouped[y]=[])).push(b)});
     const years=Object.keys(grouped).sort((a,b)=>b.localeCompare(a,undefined,{numeric:true}));
@@ -3616,7 +3619,7 @@
   }
 
   function p2v56ChatRenderBatchProgress(body){
-    const courses=[...new Map(state.classBatches.map(b=>[String(b.courseId||p2CourseName(b)),{id:String(b.courseId||p2CourseName(b)),name:p2CourseName(b)}])).values()].sort((a,b)=>a.name.localeCompare(b.name));
+    const courses=[...new Map(state.classBatches.map(b=>[String(b.courseId||p2CourseName(b)),{id:String(b.courseId||p2CourseName(b)),name:p2CourseName(b)}])).values()].sort((a,b)=>p2CourseRank(a.name)-p2CourseRank(b.name)||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
     if(!p2v56ChatProgressCourse)p2v56ChatProgressCourse='__all__';
     let batches=p2v56ChatBatchOptions(p2v56ChatProgressCourse);if(!batches.some(b=>b.id===p2v56ChatProgressBatch))p2v56ChatProgressBatch=batches[0]?.id||'';
     const b=state.classBatches.find(x=>x.id===p2v56ChatProgressBatch),rows=b?state.classEnrollments.filter(e=>e.batchId===b.id).map(en=>{const p=p2v56ChatPerson(en),a=p2v56ChatAttendance(b,en),n=p2v56ChatNext(en,b);return{en,p,a,n}}).sort((x,z)=>x.p.name.localeCompare(z.p.name,undefined,{sensitivity:'base'})):[];
@@ -3638,7 +3641,7 @@
   }
 
   function p2v56ChatEnsureStyle(){if($('p2v56ChatStyle'))return;const st=document.createElement('style');st.id='p2v56ChatStyle';st.textContent=`
-    #p2ClassSearch{display:none!important}#p2PastClassCard{display:none!important}#p2BatchListCard{border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important}.p2v56-chat-years{display:grid;gap:18px}.p2v56-chat-year{background:#f8fafc;border-radius:17px;padding:20px}.p2v56-chat-year-head span{display:inline-block;background:#e5f5ee;color:#14765a;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900}.p2v56-chat-year-head h3{margin:9px 0 4px;color:#102d5e;font-size:18px}.p2v56-chat-year-head p{margin:0;color:#61778d;font-size:12px}.p2v56-chat-section-title{margin:18px 0 10px;color:#173f7d;font-size:13px;font-weight:900;text-transform:uppercase}.p2v56-chat-section-title.muted{color:#6f7e8d;margin-top:22px}.p2v56-chat-class-list{display:grid;gap:11px}.p2v56-chat-class{position:relative;background:#fff;border:1px solid #edf1f5;border-radius:15px;padding:15px 110px 15px 16px;min-height:82px;outline:none;box-shadow:0 1px 4px rgba(16,45,94,.025);transition:.15s}.p2v56-chat-class:hover{box-shadow:0 5px 16px rgba(16,45,94,.07);transform:translateY(-1px)}.p2v56-chat-class.selected{background:#fbfdff;box-shadow:0 0 0 2px rgba(23,63,125,.09)}.p2v56-chat-class h4{margin:5px 0 5px;color:#102d5e;font-size:15px}.p2v56-chat-class p{margin:3px 0;color:#63788c;font-size:12px}.p2v56-chat-chip{display:inline-block;background:#e8f6f1;color:#0b7a66;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:900}.p2v56-chat-edit{position:absolute;right:15px;top:15px}.p2v56-chat-hint{position:absolute;right:15px;bottom:13px;color:#9aa8b5;font-size:10px}
+    #p2ClassSearch{display:none!important}#p2PastClassCard{display:none!important}#p2BatchListCard{border:0!important;box-shadow:none!important;background:transparent!important;padding:0!important}.p2v56-chat-years{display:grid;gap:18px}.p2v56-chat-year{background:#f8fafc;border-radius:17px;padding:20px}.p2v56-chat-year-head span{display:inline-block;background:#e5f5ee;color:#14765a;border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900}.p2v56-chat-year-head h3{margin:9px 0 4px;color:#102d5e;font-size:18px}.p2v56-chat-year-head p{margin:0;color:#61778d;font-size:12px}.p2v56-chat-section-title{margin:18px 0 10px;color:#173f7d;font-size:13px;font-weight:900;text-transform:uppercase}.p2v56-chat-section-title.muted{color:#6f7e8d;margin-top:22px}.p2v56-chat-class-list{display:grid;gap:11px}.p2v56-chat-class{position:relative;background:#fff;border:1px solid #edf1f5;border-radius:15px;padding:15px 110px 15px 16px;min-height:82px;outline:none;box-shadow:0 1px 4px rgba(16,45,94,.025);transition:.15s}.p2v56-chat-class:hover{box-shadow:0 5px 16px rgba(16,45,94,.07);transform:translateY(-1px)}.p2v56-chat-class.selected{background:#fbfdff;box-shadow:0 0 0 2px rgba(23,63,125,.09)}.p2v56-chat-class h4{margin:5px 0 5px;color:#102d5e;font-size:15px}.p2v56-chat-class p{margin:3px 0;color:#63788c;font-size:12px}.p2v56-chat-chip{display:inline-block;background:#e8f6f1;color:#0b7a66;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:900}.p2v56-chat-actions{position:absolute;right:15px;top:15px;display:flex;align-items:center;gap:7px}.p2v56-chat-actions .p2v56-chat-edit{position:static;right:auto;top:auto}.p2v56-chat-delete{color:#8a4040}.p2v56-chat-hint{position:absolute;right:15px;bottom:13px;color:#9aa8b5;font-size:10px}
     .p2v56-chat-progress{background:#fff;border:1px solid #e1e9f0;border-radius:17px;overflow:hidden}.p2v56-chat-progress-head{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 22px;border-bottom:1px solid #edf1f5}.p2v56-chat-progress-head h3{margin:0;color:#102d5e;font-size:21px}.p2v56-chat-progress-head p{margin:5px 0 0;color:#65798e;font-size:12px}.p2v56-chat-tabs{display:flex;gap:5px;background:#f1f5f9;border-radius:10px;padding:4px}.p2v56-chat-tabs button{border:0;background:transparent;border-radius:8px;padding:9px 15px;color:#173f7d;font-weight:900;cursor:pointer}.p2v56-chat-tabs button.active{background:#173f7d;color:#fff}.p2v56-chat-progress-body{padding:20px 22px}.p2v56-chat-progress-filters{display:grid;grid-template-columns:minmax(220px,1fr) minmax(260px,1.4fr);gap:14px;margin-bottom:16px}.p2v56-chat-progress-filters label,.p2v56-chat-student-search label{display:block;font-size:11px;font-weight:900;color:#294b6c;margin-bottom:6px;text-transform:uppercase}.p2v56-chat-progress-filters select,.p2v56-chat-student-search input{width:100%;height:42px;border:1px solid #ccd9e6;border-radius:9px;background:#fff;padding:0 11px;color:#17385f}.p2v56-chat-progress-title h3{margin:0;color:#102d5e}.p2v56-chat-progress-title p{margin:5px 0 0;color:#6a7d90;font-size:12px}.p2v56-chat-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}.p2v56-chat-kpis>div{background:#f7fbff;border-radius:13px;padding:13px}.p2v56-chat-kpis span{display:block;color:#60748a;font-size:10px;text-transform:uppercase;font-weight:900}.p2v56-chat-kpis b{display:block;color:#102d5e;font-size:23px;margin-top:3px}.p2v56-chat-table-wrap{overflow:auto;border:1px solid #e2eaf1;border-radius:11px}.p2v56-chat-table{width:100%;border-collapse:collapse;min-width:760px}.p2v56-chat-table th{background:#f3f7fa;color:#294b6c;text-align:left;font-size:11px;padding:10px}.p2v56-chat-table td{padding:10px;border-top:1px solid #edf1f5;color:#31506e;font-size:12px}.p2v56-chat-student-row{cursor:pointer}.p2v56-chat-student-row:hover{background:#fafcff}.p2v56-chat-footnote{margin-top:8px;color:#8a99a8;font-size:10px}.p2v56-chat-student-search{position:relative;max-width:680px}.p2v56-chat-suggestions{position:absolute;z-index:40;left:0;right:0;top:68px;background:#fff;border:1px solid #d8e3ed;border-radius:10px;box-shadow:0 10px 26px rgba(16,45,94,.12);overflow:hidden}.p2v56-chat-suggestions.hidden{display:none}.p2v56-chat-suggest{width:100%;border:0;border-bottom:1px solid #edf1f5;background:#fff;padding:10px 12px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;gap:12px}.p2v56-chat-suggest:hover,.p2v56-chat-suggest.active{background:#eef5ff}.p2v56-chat-suggest small{color:#6f8193}.p2v56-chat-no-suggest{padding:11px;color:#77899a;font-size:12px}.p2v56-chat-student-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:22px 0 13px}.p2v56-chat-student-head h3{margin:0;color:#102d5e}.p2v56-chat-student-head p{margin:4px 0 0;color:#6c8093}.p2v56-chat-kriya{background:#fff2bd;color:#795c00;border-radius:999px;padding:6px 10px;font-size:10px;font-weight:900}.p2v56-chat-journey-title{font-weight:900;color:#173f7d;text-transform:uppercase;font-size:12px;margin:10px 0}.p2v56-chat-current{margin-top:12px;background:#f7fbff;border-radius:12px;padding:12px 14px}.p2v56-chat-current span{display:block;color:#6c8093;font-size:10px;text-transform:uppercase;font-weight:900}.p2v56-chat-current strong{display:block;color:#102d5e;margin-top:4px}@media(max-width:800px){.p2v56-chat-progress-head{align-items:flex-start;flex-direction:column}.p2v56-chat-progress-filters,.p2v56-chat-kpis{grid-template-columns:1fr 1fr}.p2v56-chat-class{padding-right:90px}}`;
     document.head.appendChild(st)
   }
@@ -3654,7 +3657,7 @@
   const p2v57ClassCardBase=p2v56ChatClassCard;
   p2v56ChatClassCard=function(b){
     const s=p2v56ChatStatus(b),fee=String(b.courseFee??'').trim(),ach=p2AcharyaNames(b).join(', ')||'No Acharya assigned';
-    return `<div class="p2v56-chat-class ${p2v56ChatSelectedClass===b.id?'selected':''}" data-id="${b.id}" tabindex="0"><div><span class="p2v56-chat-chip">${esc(s)}</span><h4>${esc(p2CourseName(b))} — ${esc(b.name)}</h4><p>${b.start?fmt(b.start):'Start date not set'}${b.end?' to '+fmt(b.end):''} · ${esc(ach)}</p><p>${esc((b.scheduleType||'custom').toUpperCase())} · ${(b.sessionDates||[]).length} session${(b.sessionDates||[]).length===1?'':'s'}${fee?' · ₹ '+esc(fee):''}</p></div><button class="btn ghost small p2v56-chat-edit" data-id="${b.id}" type="button">EDIT</button><span class="p2v56-chat-hint">Double-click a class card to open its batch.</span></div>`
+    return `<div class="p2v56-chat-class ${p2v56ChatSelectedClass===b.id?'selected':''}" data-id="${b.id}" tabindex="0"><div><span class="p2v56-chat-chip">${esc(s)}</span><h4>${esc(p2CourseName(b))} — ${esc(b.name)}</h4><p>${b.start?fmt(b.start):'Start date not set'}${b.end?' to '+fmt(b.end):''} · ${esc(ach)}</p><p>${esc((b.scheduleType||'custom').toUpperCase())} · ${(b.sessionDates||[]).length} session${(b.sessionDates||[]).length===1?'':'s'}${fee?' · ₹ '+esc(fee):''}</p></div><div class="p2v56-chat-actions"><button class="btn ghost small p2v56-chat-edit" data-id="${b.id}" type="button">Edit</button><button class="btn ghost small p2v56-chat-delete" data-id="${b.id}" type="button">Delete</button></div></div>`
   };
 
   p2v56ChatPrepareProgress=function(){
@@ -3669,7 +3672,7 @@
   function p2v57Completed(row){return row?.en?.outcome==='Completed'}
 
   p2v56ChatRenderBatchProgress=function(body){
-    const courses=[...new Map(state.classBatches.map(b=>[String(b.courseId||p2CourseName(b)),{id:String(b.courseId||p2CourseName(b)),name:p2CourseName(b)}])).values()].sort((a,b)=>a.name.localeCompare(b.name));
+    const courses=[...new Map(state.classBatches.map(b=>[String(b.courseId||p2CourseName(b)),{id:String(b.courseId||p2CourseName(b)),name:p2CourseName(b)}])).values()].sort((a,b)=>p2CourseRank(a.name)-p2CourseRank(b.name)||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
     if(!p2v56ChatProgressCourse)p2v56ChatProgressCourse='__all__';
     let batches=p2v56ChatBatchOptions(p2v56ChatProgressCourse);
     if(!batches.some(b=>b.id===p2v56ChatProgressBatch))p2v56ChatProgressBatch=batches[0]?.id||'';
@@ -3718,7 +3721,7 @@
   (function p2v57Style(){
     if($('p2v57Style'))return;
     const st=document.createElement('style');st.id='p2v57Style';st.textContent=`
-      #p2ClassSearch{display:none!important}.p2v56-chat-class{border-color:#f1f4f7!important;box-shadow:0 1px 3px rgba(16,45,94,.018)!important;padding-right:250px}.p2v56-chat-class:hover{box-shadow:0 5px 15px rgba(16,45,94,.055)!important}.p2v56-chat-hint{max-width:205px;text-align:right;line-height:1.25}.p2v57-batch-progress-table{min-width:1060px}.p2v57-stage-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin:10px 0 17px}.p2v57-stage{background:#f7f9fb;border:1px solid #edf1f4;border-radius:12px;padding:11px}.p2v57-stage span{display:block;color:#4c657d;font-size:11px;font-weight:900}.p2v57-stage b{display:block;margin-top:4px;color:#8a98a6;font-size:10px;text-transform:uppercase}.p2v57-stage.done{background:#eef8f3}.p2v57-stage.done b{color:#167353}.p2v57-stage.active{background:#eef5ff}.p2v57-stage.active b{color:#1c5ca7}.p2v56-chat-suggest{align-items:center}.p2v56-chat-suggest small{text-align:right;max-width:70%;line-height:1.3}@media(max-width:900px){.p2v56-chat-class{padding-right:95px}.p2v56-chat-hint{display:none}.p2v57-stage-strip{grid-template-columns:1fr 1fr}}
+      #p2ClassSearch{display:none!important}.p2v56-chat-class{border-color:#f1f4f7!important;box-shadow:0 1px 3px rgba(16,45,94,.018)!important;padding-right:190px}.p2v56-chat-class:hover{box-shadow:0 5px 15px rgba(16,45,94,.055)!important}.p2v56-chat-hint{max-width:205px;text-align:right;line-height:1.25}.p2v57-batch-progress-table{min-width:1060px}.p2v57-stage-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin:10px 0 17px}.p2v57-stage{background:#f7f9fb;border:1px solid #edf1f4;border-radius:12px;padding:11px}.p2v57-stage span{display:block;color:#4c657d;font-size:11px;font-weight:900}.p2v57-stage b{display:block;margin-top:4px;color:#8a98a6;font-size:10px;text-transform:uppercase}.p2v57-stage.done{background:#eef8f3}.p2v57-stage.done b{color:#167353}.p2v57-stage.active{background:#eef5ff}.p2v57-stage.active b{color:#1c5ca7}.p2v56-chat-suggest{align-items:center}.p2v56-chat-suggest small{text-align:right;max-width:70%;line-height:1.3}@media(max-width:900px){.p2v56-chat-class{padding-right:95px}.p2v56-chat-hint{display:none}.p2v57-stage-strip{grid-template-columns:1fr 1fr}}
     `;document.head.appendChild(st)
   })();
 
@@ -4090,7 +4093,7 @@ function p2v58BindPhoneListener(){
   p2RenderClasses=function(){
     if(!$('p2ClassList'))return;if(typeof p2v55SyncBatchStatuses==='function')p2v55SyncBatchStatuses();
     const cf=$('p2CourseFilter'),keep=cf?.value||'all';
-    if(cf){cf.innerHTML='<option value="all">All Courses</option>'+state.courseTypes.filter(c=>c.active!==false).sort((a,b)=>{const i=p2FullChain.indexOf(a.name),j=p2FullChain.indexOf(b.name);return (i<0?99:i)-(j<0?99:j)||a.name.localeCompare(b.name)}).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');cf.value=[...cf.options].some(o=>o.value===keep)?keep:'all'}
+    if(cf){cf.innerHTML='<option value="all">All Courses</option>'+state.courseTypes.filter(c=>c.active!==false).sort((a,b)=>{return p2CourseRank(a.name)-p2CourseRank(b.name)||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'})}).map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');cf.value=[...cf.options].some(o=>o.value===keep)?keep:'all'}
     const course=cf?.value||'all',records=state.classBatches.filter(b=>!b.archivedAt&&(course==='all'||String(b.courseId)===course)),grouped={};records.forEach(b=>{const y=String(p2BatchYear(b)||'Unknown');(grouped[y]||(grouped[y]=[])).push(b)});
     const years=Object.keys(grouped).sort((a,b)=>b.localeCompare(a,undefined,{numeric:true})),host=$('p2ClassList');
     if(!p2v510ClassYear||!grouped[p2v510ClassYear]){
@@ -4101,7 +4104,15 @@ function p2v58BindPhoneListener(){
     host.innerHTML=`<div class="p2v510-year-open-head"><div><span>YEAR · ${esc(p2v510ClassYear)}</span><h3>${esc(p2v510ClassYear)} Classes</h3><p>${active.length} Active / Upcoming · ${inactive.length} Inactive / Completed</p></div><button id="p2v510BackClassYears" class="btn secondary small" type="button">← Back to Years</button></div><div class="p2v56-chat-section-title">Active &amp; Upcoming</div>${active.length?`<div class="p2v56-chat-class-list">${active.map(p2v56ChatClassCard).join('')}</div>`:'<div class="p2-empty">No active or upcoming classes.</div>'}<div class="p2v56-chat-section-title muted">Inactive &amp; Completed</div>${inactive.length?`<div class="p2v56-chat-class-list">${inactive.map(p2v56ChatClassCard).join('')}</div>`:'<div class="p2-empty">No inactive or completed classes.</div>'}`;
     $('p2v510BackClassYears').onclick=()=>{p2v510ClassYear='';p2RenderClasses()};
     host.querySelectorAll('.p2v56-chat-class').forEach(card=>{card.onclick=e=>{if(e.target.closest('button'))return;p2v56ChatSelectedClass=card.dataset.id;host.querySelectorAll('.p2v56-chat-class').forEach(x=>x.classList.toggle('selected',x===card))};card.ondblclick=e=>{if(!e.target.closest('button'))p2v56ChatOpenBatch(card.dataset.id)};card.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();p2v56ChatOpenBatch(card.dataset.id)}}});
-    host.querySelectorAll('.p2v56-chat-edit').forEach(x=>x.onclick=e=>{e.stopPropagation();p2OpenBatch(x.dataset.id)})
+    host.querySelectorAll('.p2v56-chat-edit').forEach(x=>x.onclick=e=>{e.stopPropagation();p2OpenBatch(x.dataset.id)});
+    host.querySelectorAll('.p2v56-chat-delete').forEach(x=>x.onclick=e=>{
+      e.preventDefault();e.stopPropagation();
+      const b=state.classBatches.find(b=>String(b.id)===String(x.dataset.id));
+      if(!b)return;
+      // Delegate to the existing admin-protected Delete/Archive handler.
+      $('p2BatchId').value=b.id;
+      $('p2DeleteBatch').click();
+    });
   };
   if($('p2ClassBatches'))$('p2ClassBatches').onclick=()=>{p2v510ClassYear='';p2RenderClasses();$('p2BatchListCard')?.scrollIntoView({behavior:'smooth'})};
 
@@ -7682,7 +7693,8 @@ function p2v58BindPhoneListener(){
         const course=state.courseTypes.find(c=>c.id===courseId);
         const stage=['course-l1','course-l2','course-l3','course-l4',
           'course-kriya','course-kriya2','course-kriya3','course-kriya4'].indexOf(courseId);
-        const index=stage>=0?stage:p2FullChain.indexOf(course?.name||'');
+        if(normName(course?.name)==='stt 2')return 'STT';
+        const index=stage>=0?stage:p2FullChain.findIndex(x=>normName(x)===normName(course?.name));
         return index>0?p2FullChain[index-1]:'';
       }
       function p2v520StageCourseId(stage){
@@ -7697,7 +7709,7 @@ function p2v58BindPhoneListener(){
           (!b.courseId&&p2CourseName(b)===p2v520CourseName(targetId)));
       }
       function p2v520IsFurther(studentId,targetId){
-        const stage=p2v520CourseName(targetId),index=p2FullChain.indexOf(stage);
+        const stage=p2v520CourseName(targetId),index=p2FullChain.findIndex(x=>normName(x)===normName(stage));
         if(index<0)return false;
         const student=p2FindStudent(studentId);
         if(index<4&&student&&(student.kriyabanId||student.kriyaYear||student.kriyaDate))return true;
@@ -7705,7 +7717,7 @@ function p2v58BindPhoneListener(){
           if(en.studentId!==studentId)return false;
           const b=state.classBatches.find(x=>x.id===en.batchId);
           const actual=b?p2v550Stage(b):en.level;
-          return p2FullChain.indexOf(actual)>index;
+          return p2FullChain.findIndex(x=>normName(x)===normName(actual))>index;
         });
       }
       function p2v520OutcomeIsUnfinished(en,b){
@@ -7721,7 +7733,7 @@ function p2v58BindPhoneListener(){
         if(state.classEnrollments.some(en=>en.studentId===student.id&&
           p2v520EnrolledLevel(state.classBatches.find(b=>b.id===en.batchId),targetId)))return null;
         if(p2v520IsFurther(student.id,targetId))return null;
-        const approvalsRequired=p2FullChain.indexOf(target)>=4;
+        const approvalsRequired=p2FullChain.findIndex(x=>normName(x)===normName(target))>=4;
         if(approvalsRequired&&!p2v550Decision(student,target))return null;
         let qualifying=[];
         for(const en of state.classEnrollments){
@@ -7807,12 +7819,9 @@ function p2v58BindPhoneListener(){
           {sensitivity:'base'})||String(b.year).localeCompare(String(a.year));
       }
       function p2v520AvailableCourses(){
-        return state.courseTypes.slice().sort((a,b)=>{
-          const ai=p2FullChain.indexOf(a.name),bi=p2FullChain.indexOf(b.name);
-          if(ai>=0&&bi>=0)return ai-bi;
-          if(ai>=0)return-1;if(bi>=0)return 1;
-          return a.name.localeCompare(b.name);
-        });
+        return state.courseTypes.slice().sort((a,b)=>
+          p2CourseRank(a.name)-p2CourseRank(b.name)||
+          a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
       }
       function p2v520EnsureSelection(){
         const choices=p2v520AvailableCourses();
@@ -8046,7 +8055,7 @@ function p2v58BindPhoneListener(){
       const oldOpen553=p2OpenBatch;
       p2OpenBatch=function(){const result=oldOpen553.apply(this,arguments);p2v553DateNote();return result};
       p2v553DateNote();
-      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.54';
+      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.55';
     })();
 
   resetEventForm();

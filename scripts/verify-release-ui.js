@@ -13,7 +13,7 @@ async function find(){
  }
  throw Error('Windows application not available on CDP port '+port);
 }
-function batchCheck(){
+async function batchCheck(){
  const yes=(v,m)=>{if(!v)throw Error(m)};
  const el=id=>{const x=document.getElementById(id);yes(x,'Missing '+id);return x};
  const set=(id,value,event='input')=>{const x=el(id);x.value=value;x.dispatchEvent(new Event(event,{bubbles:true}))};
@@ -44,7 +44,7 @@ function batchCheck(){
    yes(el('p2v537ClassCount').value==='4',name+' Start + End did not calculate Count: '+el('p2v537ClassCount').value);
  }
  setStage('Kriya');
- set('p2BatchName','Beta 5.54 UI Verification');
+ set('p2BatchName','Beta 5.55 UI Verification');
  set('p2BatchScheduleType','custom','change');
  set('p2BatchStart','2026-11-08','change');
  set('p2BatchEnd','');
@@ -64,7 +64,7 @@ function batchCheck(){
  form.requestSubmit();
  const batches=state().classBatches||[];
  yes(batches.length===before+1,'Batch was not saved');
- const batch=batches.find(b=>b.name==='Beta 5.54 UI Verification');
+ const batch=batches.find(b=>b.name==='Beta 5.55 UI Verification');
  yes(batch?.end==='2026-11-15','Saved batch End Date wrong');
  yes(el('p2v519Summary'),'Whole-batch summary missing');
  yes(document.querySelector('.p2v553-roster-layout'),'Rostering layout missing');
@@ -76,7 +76,36 @@ function batchCheck(){
  yes(!el('p2DeleteBatch').classList.contains('hidden'),'Delete Batch absent while editing saved batch');
  yes(!!el('p2DeleteBatch').closest('.actions'),'Delete Batch must be in the form footer');
  el('p2BatchModal').classList.remove('open');
- return {pass:true,batchId:batch.id,end:batch.end,version:document.title};
+ // Live year list: both operations must appear directly on each class card.
+ nav.click();
+ el('p2ClassBatches').click();
+ yes(el('activeClasses').classList.contains('active'),'Active Classes screen did not open');
+ const yearCard=document.querySelector('#p2ClassList .p2v510-class-year[data-year="2026"]');
+ if(yearCard)yearCard.click();
+ const row=[...document.querySelectorAll('#p2ClassList .p2v56-chat-class')]
+    .find(x=>x.dataset.id===batch.id);
+ yes(row,'New class missing from 2026 Active Classes listing');
+ const editButton=row.querySelector('.p2v56-chat-edit');
+ const deleteButton=row.querySelector('.p2v56-chat-delete');
+ yes(editButton&&deleteButton,'Both Edit and Delete must appear on class card');
+ yes(getComputedStyle(deleteButton).display!=='none','Delete button is hidden on class card');
+ editButton.click();
+ yes(el('p2BatchId').value===batch.id,'Edit did not load the chosen batch');
+ el('p2BatchModal').classList.remove('open');
+ deleteButton.click();
+ yes(el('v51SecurityModal').classList.contains('open'),'Delete did not request administrator authorisation');
+ yes(state().classBatches.some(x=>x.id===batch.id),'Batch deleted before administrator authorised');
+ const password='CI-ONLY-test-55';
+ set('v51Password',password);
+ if(!el('v51ConfirmField').classList.contains('hidden'))set('v51PasswordConfirm',password);
+ const confirmBase=window.confirm;window.confirm=()=>true;
+ try{
+   el('v51SecurityForm').requestSubmit();
+   await new Promise(resolve=>setTimeout(resolve,1300));
+ }finally{window.confirm=confirmBase;}
+ yes(!state().classBatches.some(x=>x.id===batch.id),'Admin-authorised Delete did not remove empty batch: '+el('v51SecurityError').textContent);
+ yes(el('activeClasses').classList.contains('active'),'Deletion did not return to Active Classes');
+ return {pass:true,batchId:batch.id,end:batch.end,version:document.title,cardEditDelete:true,authorisedDelete:true};
 }
 async function progressCheck(){
  const yes=(v,m)=>{if(!v)throw Error(m)};
@@ -87,6 +116,12 @@ async function progressCheck(){
  yes(page?.classList.contains('active'),'Student Progress did not open');
  yes(!document.getElementById('pageSubtitle')?.textContent.trim(),'Duplicate Student Progress subtitle');
  yes(!page.querySelector('.p2v520-main h3'),'Repeated Student Progress title inside panel');
+ const select=el('p2v520Course');
+ const selectedCourses=[...select.options].map(x=>x.textContent.trim().toLowerCase());
+ const ordered=['level 1','level 2','level 3','level 4','kriya','kriya 2','kriya 3','kriya 4','stt','stt 2'];
+ const indices=ordered.map(name=>selectedCourses.indexOf(name));
+ yes(indices.every(x=>x>=0),'Student Progress missing canonical course: '+ordered.filter((_,i)=>indices[i]<0).join(', '));
+ yes(indices.every((x,i)=>i===0||x>indices[i-1]),'Student Progress Kriya/STT course order incorrect: '+selectedCourses.join(' / '));
  const tab=document.getElementById('p2v520Followups');
  yes(tab&&tab.textContent.trim()==='Student Wise','Second tab not Student Wise. Found '+(tab?.outerHTML||'missing')+'; panel '+page.innerHTML.slice(0,350));
  tab.click();
@@ -125,9 +160,9 @@ async function run(){
     await wait(1800);
   }
   const batch=await runCode(batchCheck);assert.ok(batch?.pass,'Batch UI checks failed');
-  await screenshot('class-batch-beta-5.54.png');
+  await screenshot('class-batch-beta-5.55.png');
   const progress=await runCode(progressCheck);assert.ok(progress?.pass,'Student UI checks failed');
-  await screenshot('student-wise-beta-5.54.png');
+  await screenshot('student-wise-beta-5.55.png');
   console.log('PASS packaged Windows UI and visible layout '+JSON.stringify({batch,progress}));
  }finally{ws.close()}
 }
