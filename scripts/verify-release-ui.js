@@ -57,22 +57,23 @@ function batchCheck(){
  yes(!el('p2v519Summary').textContent.includes('Mark remaining absent'),'Attendance marking duplicated in Class Batch');
  return {pass:true,batchId:batch.id,end:batch.end,version:document.title};
 }
-function progressCheck(){
+async function progressCheck(){
  const yes=(v,m)=>{if(!v)throw Error(m)};
  const route=document.querySelector('.go[data-go="studentProgress"]');
  yes(route,'Student Progress navigation missing');route.click();
+ await new Promise(resolve=>setTimeout(resolve,450));
  const page=document.getElementById('studentProgress');
  yes(page?.classList.contains('active'),'Student Progress did not open');
  yes(!document.getElementById('pageSubtitle')?.textContent.trim(),'Duplicate Student Progress subtitle');
  yes(!page.querySelector('.p2v520-main h3'),'Repeated Student Progress title inside panel');
  const tab=document.getElementById('p2v520Followups');
- yes(tab&&tab.textContent.trim()==='Student Wise','Second tab not Student Wise');
+ yes(tab&&tab.textContent.trim()==='Student Wise','Second tab not Student Wise. Found '+(tab?.outerHTML||'missing')+'; panel '+page.innerHTML.slice(0,350));
  tab.click();
  const search=document.getElementById('p2v526Search');
  yes(search,'Student Wise search not rendered');
  search.value='Kriya';search.dispatchEvent(new Event('input',{bubbles:true}));
  yes(document.getElementById('p2v526Search')?.value==='Kriya','Student Wise search input lost query');
- return {pass:true,tab:tab.textContent.trim(),search:document.getElementById('p2v526Search').value};
+ return {pass:true,tab:tab.textContent.trim(),search:document.getElementById('p2v526Search').value,version:document.title};
 }
 async function run(){
  const target=await find(),ws=new WebSocket(target.webSocketDebuggerUrl);
