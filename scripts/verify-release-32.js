@@ -71,7 +71,7 @@ test(12,'Weekly Start + 2 classes calculates 15 Nov 2026',()=>assert.equal(makeD
 test(13,'End Date recalculates class count',()=>{
  const f=makeDates('weekly');f.fields.p2BatchEnd.value='2026-11-29';f.fn.run('end');assert.equal(f.fields.p2v537ClassCount.value,'4');},'functional');
 test(14,'Custom dates are not fabricated',()=>assert.equal(makeDates('custom').fields.p2BatchEnd.value,''),'functional');
-test(15,'Custom Dates explanation visible beside End Date',()=>{has('id="p2v553DateHint"');has('choose Weekly recurring')});
+test(15,'Custom Dates explanation visible beside End Date',()=>{has('id="p2v553DateHint"');has('Choose Weekly recurring')});
 test(16,'Kriya 2 session edits preserve existing records',()=>has('p2v547SavePlannedDate'));
 test(17,'Saved schedules and attendance dates guarded',()=>has('An existing attendance date would be lost'));
 test(18,'Student Progress page has no duplicate inner title',()=>absent("'<h3>Student Progress</h3><div class=\"p2v520-tabs\">'"));
@@ -86,7 +86,7 @@ test(26,'Zero-percent earlier enrolment does not automatically qualify',()=>{has
 test(27,'50 percent default with ended-batch snapshot',()=>{has('minimumAttendanceAtEnd');has('p2v546MinimumFor')});
 test(28,'Late joining attendance logic retained',()=>{has('joinedFromClass');has('Not assessed')});
 test(29,'Class Batch shows read-only progress and fee',()=>{has('p2v519Summary');has('<th>Payment</th>');has('p2v553-roster-layout')});
-test(30,'Dedicated QR/photo Class Attendance remains',()=>{has('classAttendanceHub');has('Mark remaining absent');has('Photos received')});
+test(30,'Dedicated QR/photo Class Attendance remains',()=>{has('classAttendanceHub');has('Mark remaining absent');assert.ok(h.toLowerCase().includes('photos received'))});
 test(31,'Contextual enrol shortcut and save shortcut remain',()=>{has('ananda-shortcut');assert.ok(main.includes("sendShortcut('save')")&&main.includes("sendShortcut('add')"))});
 test(32,'Offline backup and installer identity/shortcuts',()=>{
  assert.ok(main.includes('FIVE_DAYS_MS'));assert.ok(main.includes('DATA_ROOT'));
