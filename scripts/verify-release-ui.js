@@ -116,6 +116,14 @@ async function run(){
  };
  try{
   await cmd('Page.enable');
+  // The preceding desktop journey intentionally renames Kriya 2 in the same
+  // ephemeral CI profile. Restore a clean synthetic fixture before checking
+  // canonical ordering and new-batch defaults. Never reset a user's profile.
+  if(process.env.GITHUB_ACTIONS==='true'){
+    await cmd('Runtime.evaluate',{expression:"localStorage.removeItem('annualEventRegistration.v1'); true",returnByValue:true});
+    await cmd('Page.reload',{ignoreCache:true});
+    await wait(1800);
+  }
   const batch=await runCode(batchCheck);assert.ok(batch?.pass,'Batch UI checks failed');
   await screenshot('class-batch-beta-5.54.png');
   const progress=await runCode(progressCheck);assert.ok(progress?.pass,'Student UI checks failed');
