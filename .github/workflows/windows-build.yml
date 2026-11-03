@@ -85,6 +85,52 @@ jobs:
           } finally {
             Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Ananda Sangha Event Desk.exe' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
           }
+      - name: Download previous Beta 5.52 installer for upgrade test
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -Path previous-installer -ItemType Directory -Force | Out-Null
+          gh run download 41513239635 --repo focusdesk-dev/ananda-sangha-event-desk --name "Ananda-Sangha-Event-Desk-beta-5.52-Setup" --dir previous-installer
+          if (!(Get-ChildItem previous-installer -Filter *.exe)) { throw "Previous installer missing" }
+      - name: Real NSIS installation, upgrade, data preservation and uninstall
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $old = (Get-ChildItem previous-installer -Filter *.exe | Select-Object -First 1).FullName
+          $new = (Get-ChildItem dist -Filter *.exe | Select-Object -First 1).FullName
+          $dest = Join-Path $env:RUNNER_TEMP "AnandaVerifiedInstall"
+          function DoInstall([string]$source) {
+            $proc = Start-Process -FilePath $source -ArgumentList @("/S",("/D=" + $dest)) -Wait -PassThru
+            if ($proc.ExitCode -ne 0) { throw "NSIS failed: $($proc.ExitCode)" }
+            $exe = Join-Path $dest "Ananda Sangha Event Desk.exe"
+            if (!(Test-Path $exe)) { throw "Missing installed executable" }
+            return $exe
+          }
+          function CheckData([string]$exe,[string]$mode) {
+            $proc = Start-Process -FilePath $exe -ArgumentList "--remote-debugging-port=9225" -PassThru
+            try {
+              $env:ANANDA_DEVTOOLS_PORT = "9225"
+              node scripts/verify-installed-upgrade.js $mode
+              if ($LASTEXITCODE -ne 0) { throw "Installed app $mode failed" }
+            } finally {
+              Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Ananda Sangha Event Desk.exe' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+              Start-Sleep -Seconds 3
+            }
+          }
+          $first = DoInstall $old
+          CheckData $first "seed"
+          $second = DoInstall $new
+          CheckData $second "verify"
+          $uninstall = Get-ChildItem $dest -Filter "Uninstall*.exe" | Select-Object -First 1
+          if (!$uninstall) { throw "Uninstaller missing" }
+          $link = Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) 'Ananda Sangha Event Desk.lnk'
+          if (!(Test-Path $link)) { throw "Desktop shortcut missing" }
+          $proc = Start-Process -FilePath $uninstall.FullName -ArgumentList "/S" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Uninstall failed" }
+          $data = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK\Data'
+          if (!(Test-Path $data)) { throw "Uninstall removed offline data" }
+          Write-Host "PASS real install, 5.52 to 5.53 upgrade, persistent NGO test student, shortcut and uninstall"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
