@@ -44,7 +44,7 @@ enroll(approved,level4,'Completed');
 enroll(pending,level4,'Completed');
 approved.acharyaProgressionApprovals={Kriya:{status:'Approved',approvedAt:'2026-01-15',acharyaId:'ACH1'}};
 const messages=[];
-const ctx={state,p2FullChain:chain,today:()=> '2026-11-02',
+const ctx={state,p2FullChain:chain,normName:v=>String(v||'').toLowerCase().trim(),p2CourseRank:v=>{let i=[...chain,'STT','STT 2'].findIndex(x=>x.toLowerCase()===String(v||'').toLowerCase());return i<0?99:i},today:()=> '2026-11-02',
  p2v550Stage:b=>b?.level||'',
  p2v5ValidDates:b=>[...(b?.sessionDates||[])].sort(),
  p2BatchYear:b=>b?.year||'',
