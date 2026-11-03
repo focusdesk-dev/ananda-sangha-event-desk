@@ -10,8 +10,8 @@ async function run(){
  const ws=new WebSocket(target.webSocketDebuggerUrl);
  await new Promise((resolve,reject)=>{ws.addEventListener('open',resolve,{once:true});ws.addEventListener('error',reject,{once:true})});
  const expression=mode==='seed'
-  ?"(function(){const k='annualEventRegistration.v1',d=JSON.parse(localStorage.getItem(k)||'{}');d.students=Array.isArray(d.students)?d.students:[];if(!d.students.some(s=>s.id==='ANANDA_UPGRADE_TEST'))d.students.push({id:'ANANDA_UPGRADE_TEST',name:'Upgrade test student',mobile:'9876500001'});localStorage.setItem(k,JSON.stringify(d));return {ok:d.students.some(s=>s.id==='ANANDA_UPGRADE_TEST'),count:d.students.length};})()"
-  :"(function(){const d=JSON.parse(localStorage.getItem('annualEventRegistration.v1')||'{}');return {ok:!!d.students?.some(s=>s.id==='ANANDA_UPGRADE_TEST'),version:document.title};})()";
+  ?"(function(){const btn=document.getElementById('p2AddStudent'),f=document.getElementById('p2StudentForm');if(!btn||!f)throw Error('Student Master form missing');btn.click();const n=document.getElementById('p2StudentName'),m=document.getElementById('p2StudentMobile');n.value='Upgrade test student';m.value='9876500001';f.requestSubmit();const d=JSON.parse(localStorage.getItem('annualEventRegistration.v1')||'{}');return {ok:!!d.students?.some(s=>s.name==='Upgrade test student'&&s.mobile==='9876500001'),count:d.students?.length||0};})()"
+  :"(function(){const d=JSON.parse(localStorage.getItem('annualEventRegistration.v1')||'{}');return {ok:!!d.students?.some(s=>s.name==='Upgrade test student'&&s.mobile==='9876500001'),version:document.title,count:d.students?.length||0};})()";
  const value=await new Promise((resolve,reject)=>{
   const t=setTimeout(()=>reject(Error('Probe timeout')),30000);
   ws.addEventListener('message',e=>{const m=JSON.parse(String(e.data));if(m.id!==1)return;clearTimeout(t);

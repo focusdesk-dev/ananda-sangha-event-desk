@@ -117,12 +117,20 @@ jobs:
               node scripts/verify-installed-upgrade.js $mode
               if ($LASTEXITCODE -ne 0) { throw "Installed app $mode failed" }
             } finally {
-              Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Ananda Sangha Event Desk.exe' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+              Start-Sleep -Seconds 3
+              Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Ananda Sangha Event Desk.exe' } | ForEach-Object {
+                $running = Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue
+                if ($running) {
+                  try { $null = $running.CloseMainWindow(); $null = $running.WaitForExit(5000) } catch {}
+                  if (!$running.HasExited) { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+                }
+              }
               Start-Sleep -Seconds 3
             }
           }
           $first = DoInstall $old
           CheckData $first "seed"
+          CheckData $first "verify-old"
           $second = DoInstall $new
           CheckData $second "verify"
           $uninstall = Get-ChildItem $dest -Filter "Uninstall*.exe" | Select-Object -First 1
