@@ -547,7 +547,7 @@
       <div class="field"><label for="p2BatchName">Batch name / number *</label><input id="p2BatchName" required placeholder="e.g. Batch 2"></div>
       <div class="field full" id="p2v55CustomCourseField" style="display:none"><label for="p2v55CustomCourseName">Custom class name *</label><input id="p2v55CustomCourseName" placeholder="e.g. Healing workshop"></div>
       <div class="field"><label for="p2BatchStart">Start date</label><input id="p2BatchStart" type="date"></div>
-      <div class="field"><label for="p2BatchEnd">End date</label><input id="p2BatchEnd" type="date"></div>
+      <div class="field"><label for="p2BatchEnd">End date</label><input id="p2BatchEnd" type="date"><small id="p2v553DateHint" class="p2v553-date-hint" aria-live="polite"></small></div>
       <div class="field"><label for="p2BatchScheduleType">Schedule type</label><select id="p2BatchScheduleType"><option value="weekly">Weekly recurring</option><option value="monthly">Monthly recurring</option><option value="custom">Custom dates</option><option value="single">Single date</option></select></div>
       <div class="field"><label for="p2BatchDay">Usual class day</label><select id="p2BatchDay"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></div>
       <div class="field" id="p2v537CountField"><label for="p2v537ClassCount">Number of classes *</label><input id="p2v537ClassCount" type="number" min="1" step="1" required value="1"></div>
@@ -7345,6 +7345,7 @@ function p2v58BindPhoneListener(){
             $('p2v550ApprovalModal').classList.remove('open');
             p2v550Pending=null;
             save();
+            if(p2v520View==='student'&&p2v520History)p2v520Render();
             toast('Acharya decision recorded for '+ctx.next+'.');
           },'record Acharya progression approval for '+ctx.next);
         };
@@ -7565,7 +7566,7 @@ function p2v58BindPhoneListener(){
           '</div><div class="p2v519-student-head"><h3>Student progression</h3>'+
           (!ended?'<small>Provisional eligibility</small>':'<small>Finalised results</small>')+
           (!ended?'<button class="btn secondary small" id="p2v519End">End Batch</button>':'')+
-          '</div><div class="p2v519-table-scroll"><table class="p2v519-table"><thead><tr>'+
+          '</div><div class="p2v553-roster-layout"><div class="p2v519-table-scroll"><table class="p2v519-table"><thead><tr>'+
           '<th>Student</th><th>Attendance</th><th>Participation</th>'+
           '<th>Next level</th><th>Payment</th><th>History</th></tr></thead><tbody>'+
           (stats.length?stats.map(row=>{
@@ -7578,7 +7579,7 @@ function p2v58BindPhoneListener(){
               '<td>'+esc(en.paymentStatus||en.feeStatus||(Number(b.courseFee)===0?'Free':'Not recorded'))+'</td>'+
               '<td><button class="p2v519-history" data-id="'+esc(en.studentId)+'">View history</button></td></tr>';
           }).join(''):'<tr><td colspan="6">No students enrolled in this batch.</td></tr>')+
-          '</tbody></table></div><div id="p2v526StudentDetail" class="p2v526-detail"></div>';
+          '</tbody></table></div><aside id="p2v526StudentDetail" class="p2v526-detail" aria-live="polite"></aside></div>';
         host.querySelectorAll('.p2v526-select').forEach(button=>button.onclick=()=>{
           const r=stats.find(x=>x.en.studentId===button.dataset.id);if(!r)return;
           const fee=Number(b.courseFee)||0;
@@ -7818,7 +7819,7 @@ function p2v58BindPhoneListener(){
           '<div class="p2v526-results">'+(p2v526Search.trim()?hits.map(x=>'<button type="button" class="p2v526-result" data-id="'+esc(x.id)+'">'+esc(x.name)+' · '+esc(x.mobile||'')+'</button>').join(''):'Type a name or mobile number')+
           '</div><div id="p2v520History" class="p2v520-history"></div>';
         $('p2v526Search').oninput=e=>{
-          const n=e.target.selectionStart;p2v526Search=e.target.value;p2v526StudentWise(body);
+          const n=e.target.selectionStart;p2v526Search=e.target.value;p2v520History='';p2v526StudentWise(body);
           $('p2v526Search').focus();$('p2v526Search').setSelectionRange(n,n);
         };
         body.querySelectorAll('.p2v526-result').forEach(btn=>btn.onclick=()=>{
@@ -7860,7 +7861,7 @@ function p2v58BindPhoneListener(){
             '<option '+(g===p2v520Group?'selected':'')+'>'+esc(g)+'</option>').join('')+
           '</select></label></div>'+
           '<div class="p2v520-toolbar"><div><strong>'+
-          (p2v520View==='followup'?'Follow-ups':'Progress Overview')+
+          (p2v520View==='followup'?'Follow-ups':'Students')+
           '</strong><small>'+rows.length+' records'+
           (p2v520View==='followup'?' · '+actionable+' actionable':'')+
           '</small></div>'+
@@ -8006,6 +8007,37 @@ function p2v58BindPhoneListener(){
       document.head.appendChild(s526);
 
       const betaLabel=document.querySelector('#classes .p2v56-chat-class-header, #classes .p2v54-banner, #classes .p2v5-banner');
+      const style553=document.createElement('style');
+      style553.id='p2v553Rams';
+      style553.textContent=
+        '#pageSubtitle:empty{display:none!important}'+
+        '#classWorkspace #p2ClassHeader{background:#fff!important;background-image:none!important;color:#173f7d!important;border:1px solid #e2eaf1!important;border-bottom:1px solid #e2eaf1!important;box-shadow:none!important;border-radius:10px!important;padding:15px 18px!important;margin-bottom:12px!important}'+
+        '#classWorkspace #p2ClassHeader h3{color:#173f7d!important;font-size:20px!important;margin:0 0 6px!important;font-weight:650!important}'+
+        '#classWorkspace #p2ClassHeader p{color:#60758b!important;opacity:1!important;font-size:12px!important;margin:0!important}'+
+        '#classWorkspace #p2ClassHeader .btn{color:#174780!important;background:#f6f9fc!important;border:1px solid #d8e3ee!important;min-height:36px!important;font-weight:600!important}'+
+        '#classWorkspace #p2ClassHeader .p2v519-actions{margin-top:9px!important;gap:8px!important}'+
+        '#classWorkspace #p2ClassHeader .p2v519-status{color:#174780!important;background:#eaf2fc!important;border-radius:12px!important;font-size:11px!important}'+
+        '#p2v519Summary .p2v519-kpis>div{padding:10px 15px!important}'+
+        '#p2v519Summary .p2v553-roster-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(265px,34%);gap:15px;align-items:start}'+
+        '#p2v519Summary .p2v553-roster-layout:has(.p2v526-detail:empty){grid-template-columns:minmax(0,1fr)}'+
+        '#p2v519Summary .p2v526-detail:not(:empty){margin:0!important;padding:16px!important;border:1px solid #e4ebf3;border-radius:9px;background:#f9fbfe!important;display:flex;flex-direction:column;align-items:stretch;gap:10px}'+
+        '#p2v519Summary .p2v519-table-scroll{min-width:0}'+
+        '#p2BatchModal .p2v553-date-hint{font-size:11px;line-height:1.35;color:#647992;margin-top:5px;display:block}'+
+        '@media(max-width:1100px){#p2v519Summary .p2v553-roster-layout{grid-template-columns:1fr}}';
+      document.head.appendChild(style553);
+      function p2v553DateNote(){
+        const t=$('p2BatchScheduleType')?.value,day=$('p2BatchDay'),hint=$('p2v553DateHint');
+        if(day)day.disabled=(t==='custom'||t==='single');
+        if(!hint)return;
+        hint.textContent=t==='custom'
+          ?'Custom dates: enter an End Date manually, or assign each date under Class Schedule. Choose Weekly recurring to calculate the End Date from the class count.'
+          :t==='single'?'Single date: one class. Other dates belong in Class Schedule.'
+          :'End Date is calculated from Start Date and Number of Classes. Or enter End Date to calculate the class count.';
+      }
+      $('p2BatchScheduleType')?.addEventListener('change',p2v553DateNote);
+      const oldOpen553=p2OpenBatch;
+      p2OpenBatch=function(){const result=oldOpen553.apply(this,arguments);p2v553DateNote();return result};
+      p2v553DateNote();
       document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.53';
     })();
 
