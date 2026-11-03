@@ -24,7 +24,8 @@
     "test:progression": "node scripts/verify-course-progression-threshold.js",
     "test:kriya-schedule": "node scripts/verify-kriya-custom-schedule.js",
     "test:corrections19-20": "node scripts/verify-corrections-19-20.js",
-    "test:corrections21-26": "node scripts/verify-corrections-21-26.js"
+    "test:corrections21-26": "node scripts/verify-corrections-21-26.js",
+    "test:release32": "node scripts/verify-release-32.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4",

@@ -1,4 +1,4 @@
-name: Build Ananda Event Desk beta 5.52 Setup
+name: Build Ananda Event Desk beta 5.53 Setup
 on:
   workflow_dispatch:
   push:
@@ -58,6 +58,8 @@ jobs:
       - run: npm run test:enrol-shortcut
       - run: npm run test:attendance-status
       - run: npm run test:page-two
+      - name: Audit 32 approved acceptance cases
+        run: npm run test:release32
       - run: npm run dist:win
       - name: Smoke test - launch packaged Windows desktop application
         shell: pwsh
@@ -84,6 +86,6 @@ jobs:
           }
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.52-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.53-Setup
           path: dist/*.exe
           if-no-files-found: error
