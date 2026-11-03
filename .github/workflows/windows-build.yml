@@ -80,10 +80,17 @@ jobs:
             }
             if (!$found) { throw "Packaged app did not expose a loaded Ananda window within the smoke check." }
             node scripts/verify-desktop-kriya-journey.js
+            node scripts/verify-release-ui.js
             if ($LASTEXITCODE -ne 0) { throw "Desktop Kriya UI regression failed" }
           } finally {
             Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Ananda Sangha Event Desk.exe' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
           }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Ananda-beta-5.53-verification-evidence
+          path: verification/
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
           name: Ananda-Sangha-Event-Desk-beta-5.53-Setup
