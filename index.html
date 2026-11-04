@@ -2273,8 +2273,6 @@
     v51RequireAdmin(()=>{
       const label=p2CourseName(b)+' · '+b.name;
       if(!confirm('Permanently delete '+label+' and ALL its student enrolments, attendance, outcomes and progression history? This cannot be undone. Student Master profiles and other batches will be preserved.'))return;
-      const typed=prompt('To confirm irreversible deletion, type DELETE:','');
-      if(typed!=='DELETE'){toast('Batch deletion cancelled.');return}
       const id=b.id;
       const deletedEnrollments=state.classEnrollments.filter(en=>en.batchId===id);
       const deletedIds=new Set(deletedEnrollments.map(en=>en.id));
