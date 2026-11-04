@@ -41,12 +41,12 @@ const enrolments=[
 const data={students:people,courseTypes:courses,batches,enrolments};
 const get=(group,year='__all__',batchId='__all__')=>rows(data,'course-2',group,year,batchId,(_b,e)=>e.outcome==='Completed');
 const eligible=get('Eligible');
-assert.deepEqual(eligible.map(x=>x.student.id),['duplicate','eligible'],'Level 1 eligible, not joined Level 2');
+assert.deepEqual(eligible.map(x=>x.student.id),['eligible','duplicate'],'Level 1 eligible, not joined Level 2');
 assert.ok(!eligible.some(x=>x.student.id==='enrolled'),'Never invite someone already joined Level 2');
 const unfinished=get('Incomplete / Withdrawn');
 assert.deepEqual(unfinished.map(x=>x.student.id),['rejoin'],'Only non-completers without later completion/progression');
 const combined=get('Eligible + Incomplete / Withdrawn');
-assert.deepEqual(combined.map(x=>x.student.id),['duplicate','eligible','rejoin']);
+assert.deepEqual(combined.map(x=>x.student.id),['eligible','rejoin','duplicate']);
 assert.equal(new Set(combined.map(x=>x.student.id)).size,combined.length,'Combined rows must be unique');
 const selected=new Set(['eligible','rejoin']);
 const exported=combined.filter(x=>selected.has(x.student.id));
