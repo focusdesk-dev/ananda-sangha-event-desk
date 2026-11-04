@@ -84,6 +84,8 @@ assert.equal(f.stage(legacyBatch2),'Kriya 2','Lowercase legacy Kriya 2 must reso
 assert.equal(f.require(zero.id,legacyBatch2.id).ok,false,'Legacy Kriya 2 must not bypass prerequisite');
 for(const name of ['Kriya','Kriya 2','Kriya 3','Kriya 4'])
  assert(html.includes("name:'"+name+"'"),name+' course definition must be retained');
+assert(!html.includes("return level==='Level 4'?'':"),'Legacy Level 4 → Kriya suppression must not disable Acharya review');
+assert(html.includes("document.addEventListener('submit',function(event)"),'Central capturing enrolment gate must survive form rerenders');
 assert(html.includes('p2CreateEnrollment=function(studentId,batchId)'),'Enrollment guard must exist');
 assert(html.includes("v51RequireAdmin(()=>"),'Recording a decision must require administrator authorization');
 assert(html.includes('acharyaProgressionHistory'),'Previous Acharya decisions must remain in history');

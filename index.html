@@ -2475,9 +2475,9 @@
   p2ExportSessions=function(){const rows=[];state.classEnrollments.forEach(e=>{const s=p2cEnrollmentPerson(e),b=state.classBatches.find(x=>x.id===e.batchId);(b?.sessionDates||[]).forEach(d=>rows.push({Student:s.name||'',Mobile:s.mobile||'',Course:b?p2CourseName(b):(e.courseName||e.level||''),Batch:b?.name||'',Session_Date:d,Attendance:p2cAttendanceStatus(e,d)===true?'Present':p2cAttendanceStatus(e,d)===false?'Absent':'Not marked'}))});p2Csv(rows,'Ananda_Class_Session_Attendance.csv')};
 
 
-  // PHASE2 BETA5 EXACT BATCH PAGE — only the approved Classes-by-Year and batch workspace redesign.
-  const p2v5NextLevelOriginal=p2NextLevel;
-  p2NextLevel=function(level){return level==='Level 4'?'':p2v5NextLevelOriginal(level)};
+  // Preserve the canonical Level 4 → Kriya progression relationship.
+  // Kriya enrollment remains blocked until a separate Acharya decision is approved.
+  // Never hide the next course; it is needed to open the approval workflow.
 
   const p2v5RenderClassesBase=p2RenderClasses;
   p2RenderClasses=function(){
@@ -7282,21 +7282,11 @@ function p2v58BindPhoneListener(){
           const previous=p2FullChain[index-1];
           const prior=student&&p2StudentEnrollments(student.id).find(en=>
             p2v550Stage(state.classBatches.find(b=>b.id===en.batchId))===previous);
-          if(window.__anandaCiDebug)window.__anandaCiState={
-            target,index,studentFound:!!student,studentId:student?.id||'',
-            previous,priorId:prior?.batchId||'',
-            completed:!!(student&&p2v550Completed(student.id,previous)),
-            sourceStage:p2v550Stage(state.classBatches.find(b=>b.id===prior?.batchId)),
-            nextFromSource:p2NextLevel(p2v550Stage(state.classBatches.find(b=>b.id===prior?.batchId))),
-            acharyaCount:state.acharyas.length
-          };
           if(prior&&p2v550Completed(student.id,previous)){
-            try{p2v550OpenApproval(student.id,prior.batchId)}
-            catch(error){if(window.__anandaCiDebug)window.__anandaCiState.error=String(error);throw error}
+            p2v550OpenApproval(student.id,prior.batchId);
           }else{
             toast(previous+' must be completed before Acharya approval for '+target+'.');
           }
-          if(window.__anandaCiDebug)window.__anandaCiState.open=!!$('p2v550ApprovalModal')?.classList.contains('open');
           return;
         }
         const unmapped=p2v55ProgressionRequirement(student?.id||'',batch?.id||'');
