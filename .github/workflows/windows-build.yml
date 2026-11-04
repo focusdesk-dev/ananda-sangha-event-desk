@@ -2,7 +2,7 @@ name: Build Ananda Event Desk beta 5.58 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-beta-5-58-student-progress]
+    branches: [beta-5-58-student-progress]
 permissions:
   contents: write
   actions: read
