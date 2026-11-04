@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.58 Setup
+name: Build Ananda Event Desk beta 5.59 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-58-student-progress]
+    branches: [correction-21a-class-reports]
 permissions:
   contents: write
   actions: read
@@ -57,6 +57,7 @@ jobs:
       - run: node scripts/verify-eight-stage-progression.js
       - run: npm run test:corrections19-20
       - run: npm run test:corrections21-26
+      - run: npm run test:correction21a
       - run: npm run test:progression
       - run: npm run test:enrol-shortcut
       - run: npm run test:attendance-status
@@ -141,24 +142,24 @@ jobs:
           if ($proc.ExitCode -ne 0) { throw "Uninstall failed" }
           $data = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK\Data'
           if (!(Test-Path $data)) { throw "Uninstall removed offline data" }
-          Write-Host "PASS real install, 5.52 to 5.58 upgrade, persistent NGO test student, shortcut and uninstall"
+          Write-Host "PASS real install, 5.52 to 5.59 upgrade, persistent NGO test student, shortcut and uninstall"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Ananda-beta-5.58-verification-evidence
+          name: Ananda-beta-5.59-verification-evidence
           path: verification/
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.58-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.59-Setup
           path: dist/*.exe
           if-no-files-found: error
 
       - name: Publish single-file installer to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ananda-beta-5.58
-          name: Ananda Sangha Event Desk Beta 5.58
+          tag_name: ananda-beta-5.59
+          name: Ananda Sangha Event Desk Beta 5.59
           prerelease: true
           files: dist/*.exe
           body: "Windows installer, successful packaged Windows UI and NSIS upgrade checks. Installer is unsigned; Smart App Control may block it."
