@@ -8111,6 +8111,11 @@ function p2v58BindPhoneListener(){
         if(!host||!student)return;
         const list=p2v56ChatStudentEnrollments(student.id);
         const lessons=list.map(({en,b})=>({en,b,stage:p2v550Stage(b),year:String(p2BatchYear(b)||'')}));
+        const volunteering=state.volunteerRegistrations.filter(r=>
+          student.volunteerId&&r.volunteerId===student.volunteerId).map(r=>{
+            const event=state.events.find(e=>e.id===r.eventId);
+            return{event:event?.name||event?.title||'Event',date:event?.start||r.registeredAt||'',role:r.role||r.duty||'Volunteer'};
+          }).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
         const nextStages=['Kriya','Kriya 2','Kriya 3','Kriya 4'];
         const reviews=nextStages.map(target=>{
           const i=p2FullChain.indexOf(target),from=p2FullChain[i-1];
@@ -8138,7 +8143,9 @@ function p2v58BindPhoneListener(){
             (x.source?'<button type="button" class="btn secondary small p2v558-review" data-index="'+i+'">Review</button>':'')+
             '</div>').join('')+'</div>':'')+'</div>'+
           '<div id="p2v558VolunteerPanel" class="hidden"><strong>Volunteer Record</strong>'+
-          '<p>'+esc(student.volunteerId?'Linked to Volunteer Master. View volunteer duties in the volunteer record.':'No linked volunteer record.')+'</p></div>'+
+          (volunteering.length?'<table class="p2v520-table"><thead><tr><th>Event</th><th>Date</th><th>Role</th></tr></thead><tbody>'+
+          volunteering.map(v=>'<tr><td>'+esc(v.event)+'</td><td>'+esc(String(v.date).slice(0,10))+'</td><td>'+esc(v.role)+'</td></tr>').join('')+
+          '</tbody></table>':'<p>No volunteer participation recorded.</p>')+'</div>'+
           '<div id="p2v558NotesPanel" class="hidden"><strong>Notes</strong>'+
           '<p>'+esc(student.notes||'No notes recorded.')+'</p></div>';
         const panels=[$('p2v558JourneyPanel'),$('p2v558VolunteerPanel'),$('p2v558NotesPanel')];
