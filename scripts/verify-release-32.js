@@ -80,7 +80,7 @@ test(20,'Student Progress four exact groups in order',()=>has("const p2v520Group
 test(21,'Student Wise is second main tab, not Follow-Ups',()=>has('<button id="p2v520Followups">Student Wise</button>'));
 test(22,'Student Wise search accepts student name or mobile',()=>{has("function p2v526StudentWise(body)");has('Search by name or mobile')});
 test(23,'Student Wise shows complete historical batches and attendance',()=>{has('p2v56ChatStudentEnrollments(student.id)');has('p2v520ShowHistory()')});
-test(24,'Accepted for Kriya invokes existing authorised decision',()=>{has('p2v526Accept');has('p2v550OpenApproval(student.id,source.b.id)')});
+test(24,'Review invokes authorised Acharya decision for Kriya stages',()=>{has('p2v558-review');has('p2v550OpenApproval(student.id,x.source.b.id)')});
 test(25,'Kriya approval is explicit and individually audited',()=>{has('acharyaProgressionApprovals');has('acharyaProgressionHistory');has('v51RequireAdmin(()=>')});
 test(26,'Zero-percent earlier enrolment does not automatically qualify',()=>{has("if(decision.key!=='Eligible')continue;");has("a.pct<p2v546MinimumFor(b)")});
 test(27,'50 percent default with ended-batch snapshot',()=>{has('minimumAttendanceAtEnd');has('p2v546MinimumFor')});
