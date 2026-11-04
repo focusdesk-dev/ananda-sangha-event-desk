@@ -3834,7 +3834,7 @@
   function p2v59EnsureClassReportsPage(){
     if($('classReportsHub'))return;
     const sec=document.createElement('section');sec.id='classReportsHub';sec.className='page';
-    sec.innerHTML=`<div class='p2v59-class-reports'><div class='p2v59-class-report-title'><div><h2>CLASS REPORTS</h2><p>CLASS BATCHES, ATTENDANCE, COMPLETION, PROGRESSION AND ANNUAL CLASS SUMMARY</p></div><button id='p2v59ClassReportsBack' class='btn secondary' type='button'>← BACK</button></div><div id='p2v59ClassReportsPanel'></div></div>`;
+    sec.innerHTML=`<div class='p2v59-class-reports'><div class='p2v59-class-report-title'><div></div><button id='p2v59ClassReportsBack' class='btn secondary' type='button'>← BACK</button></div><div id='p2v59ClassReportsPanel'></div></div>`;
     const base=$('classAttendanceHub')||$('phase2Reports')||$('classes');base.insertAdjacentElement('afterend',sec);
     $('p2v59ClassReportsBack').onclick=()=>switchPage('classes')
   }
