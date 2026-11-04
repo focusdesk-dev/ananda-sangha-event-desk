@@ -204,8 +204,16 @@ async function approvalCheck(){
        open:[...document.querySelectorAll('.modal-backdrop.open')].map(x=>x.id),
        handler:String(form.onsubmit).slice(0,550),
        toast:document.querySelector('.toast')?.textContent,
+       toastById:document.getElementById('toast')?.textContent,
+       heading:document.getElementById('p2ClassHeader')?.textContent?.slice(0,180),
+       nameInput:document.getElementById('p2cEnrollName')?.value,
+       mobileInput:document.getElementById('p2cEnrollMobile')?.value,
+       hiddenStudentId:document.getElementById('p2EnrollStudentId')?.value,
        relevant,student:state.students.find(s=>s.name===name),
-       target:state.classBatches.find(b=>b.id===batchId)
+       acharyas:state.acharyas?.map(x=>({name:x.name,active:x.active})),
+       target:state.classBatches.find(b=>b.id===batchId),
+       prev:state.classBatches.find(b=>b.id==='ci-kriya-source'),
+       legacyCourse:state.courseTypes.find(c=>c.id==='ci-kriya-legacy')
      }));
    }
    return {batchId,blocked:true,modal:modalId};
