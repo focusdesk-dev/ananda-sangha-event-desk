@@ -2269,17 +2269,33 @@
   function p2OpenBatch(id=''){const b=state.classBatches.find(x=>x.id===id),course=b?p2CourseForBatch(b):state.courseTypes.find(c=>c.name==='Level 1');$('p2BatchId').value=b?.id||'';p2PopulateCourseSelect(course?.id||'');$('p2BatchName').value=b?.name||'';$('p2BatchStart').value=b?.start||today();$('p2BatchEnd').value=b?.end||'';$('p2BatchStatus').value=b?.status||'Upcoming';$('p2BatchScheduleType').value=b?.scheduleType||course?.defaultSchedule||'weekly';$('p2BatchDay').value=String(b?.usualDay??course?.defaultDay??0);$('p2BatchSessions').value=(b?.sessionDates||[]).join('\n');$('p2BatchNotes').value=b?.notes||'';p2EditingAcharyaIds=[...(b?.acharyaIds||[])];p2EditingVolunteerIds=[...(b?.volunteerIds||[])];$('p2BatchAcharyaSearch').value='';$('p2BatchVolunteerSearch').value='';$('p2BatchAcharyaSuggestions').classList.add('hidden');$('p2BatchVolunteerSuggestions').classList.add('hidden');p2RenderSelectedPeople();$('p2BatchModalTitle').textContent=b?'Edit class batch':'New class batch';$('p2DeleteBatch').classList.toggle('hidden',!b);$('p2BatchModal').classList.add('open');setTimeout(()=>{const dialog=$('p2BatchModal'),active=document.activeElement;if(dialog.classList.contains('open')&&(!active||active===document.body||active===dialog))$('p2BatchName').focus()},40)}
   $('p2DeleteBatch').onclick=()=>{
     const b=state.classBatches.find(x=>x.id===$('p2BatchId').value);if(!b)return;
-    const linked=state.classEnrollments.some(x=>x.batchId===b.id)||!!b.endedAt;
     const fromActiveClasses=typeof page!=='undefined'&&page==='activeClasses';
     v51RequireAdmin(()=>{
-      if(!confirm(linked?'Archive '+b.name+' and preserve all student history?':'Permanently delete empty '+b.name+'?'))return;
-      if(linked)b.archivedAt=new Date().toISOString();
-      else{state.classBatches=state.classBatches.filter(x=>x.id!==b.id);if(state.activeClassBatchId===b.id)state.activeClassBatchId=''}
+      const label=p2CourseName(b)+' · '+b.name;
+      if(!confirm('Permanently delete '+label+' and ALL its student enrolments, attendance, outcomes and progression history? This cannot be undone. Student Master profiles and other batches will be preserved.'))return;
+      const typed=prompt('To confirm irreversible deletion, type DELETE:','');
+      if(typed!=='DELETE'){toast('Batch deletion cancelled.');return}
+      const id=b.id;
+      const deletedEnrollments=state.classEnrollments.filter(en=>en.batchId===id);
+      const deletedIds=new Set(deletedEnrollments.map(en=>en.id));
+      state.classEnrollments=state.classEnrollments.filter(en=>en.batchId!==id);
+      state.classBatches=state.classBatches.filter(batch=>batch.id!==id);
+      if(state.activeClassBatchId===id)state.activeClassBatchId='';
+      // Approval based on a deleted source course must not survive in student history.
+      for(const student of state.students){
+        for(const [level,decision] of Object.entries(student.acharyaProgressionApprovals||{})){
+          if(decision&&decision.sourceBatchId===id)delete student.acharyaProgressionApprovals[level];
+        }
+        if(Array.isArray(student.acharyaProgressionHistory))
+          student.acharyaProgressionHistory=student.acharyaProgressionHistory.filter(d=>d.sourceBatchId!==id);
+      }
+      if(Array.isArray(state.outreach))
+        state.outreach=state.outreach.filter(x=>x.batchId!==id&&x.sourceBatchId!==id&&!deletedIds.has(x.enrollmentId));
       $('p2BatchModal').classList.remove('open');save();
       switchPage(fromActiveClasses?'activeClasses':'classes');
       if(fromActiveClasses)p2RenderClasses();
-      toast(linked?'Archived; student records preserved.':'Empty batch deleted.');
-    },linked?'archive class batch':'delete empty batch');
+      toast('Batch and linked history permanently deleted.');
+    },'permanently delete class batch');
   };
   function p2RegisterNext(studentId,fromLevel){const next=p2NextLevel(fromLevel);if(next==='Kriya'){const s=p2FindStudent(studentId);if(confirm(`Mark Kriya received for ${s.name}?`)){p2EnsureKriyaban(s,'');const r=p2OutreachRecord(studentId,fromLevel);r.status='Registered';r.contactDate=today();save();toast('Kriyaban Master updated')}return}const batches=state.classBatches.filter(b=>p2CourseName(b)===next&&b.status!=='Completed').sort((a,b)=>String(a.start).localeCompare(String(b.start)));if(!batches.length){toast(`Create an upcoming/current ${next} batch first`);return}let batch=batches[0];if(batches.length>1){const answer=prompt(`Choose ${next} batch:\n`+batches.map((b,i)=>`${i+1}. ${b.name} (${b.start})`).join('\n'),'1');const idx=Number(answer)-1;if(!Number.isInteger(idx)||!batches[idx])return;batch=batches[idx]}p2CreateEnrollment(studentId,batch.id);const r=p2OutreachRecord(studentId,fromLevel);r.status='Registered';r.contactDate=today();save();toast(`Registered for ${p2CourseName(batch)} — ${batch.name}`)}
   function p2RegisterStudentForEvent(studentId){const s=p2FindStudent(studentId);if(!activeEvent()){toast('Open an event first, then register this student');switchPage('events');return}switchPage('checkin');setTimeout(()=>{const btn=$('v36NewRegistration');if(btn)btn.click();setTimeout(()=>{if($('v36MainName'))$('v36MainName').value=s.name;if($('v36MainMobile'))$('v36MainMobile').value=s.mobile||'';['input','change'].forEach(ev=>$('v36MainMobile')?.dispatchEvent(new Event(ev,{bubbles:true})))},80)},80)}
@@ -7426,8 +7442,32 @@ function p2v58BindPhoneListener(){
             $('p2v550ApprovalModal').classList.remove('open');
             p2v550Pending=null;
             save();
+            let enrolmentMessage='';
+            if(status==='Approved'){
+              // Only a genuinely active course batch may accept automatic enrolment.
+              const candidates=state.classBatches.filter(b=>!b.endedAt&&!b.archivedAt&&
+                p2v550Stage(b)===ctx.next&&p2v56ChatStatus(b).toLowerCase()==='current');
+              const already=candidates.some(b=>state.classEnrollments.some(en=>
+                en.batchId===b.id&&en.studentId===ctx.studentId));
+              if(already)enrolmentMessage=' Already enrolled in an active batch.';
+              else if(!candidates.length)enrolmentMessage=' No active batch; approval saved for later enrolment.';
+              else{
+                let target=candidates[0];
+                if(candidates.length>1){
+                  const answer=prompt('Choose the ACTIVE '+ctx.next+' batch:\\n'+
+                    candidates.map((b,i)=>(i+1)+'. '+b.name+' ('+(b.start||'')+')').join('\\n'),'1');
+                  const index=Number(answer)-1;
+                  target=answer!==null&&Number.isInteger(index)?candidates[index]:null;
+                }
+                if(target){
+                  const created=p2CreateEnrollment(ctx.studentId,target.id);
+                  enrolmentMessage=created?' Automatically enrolled in '+target.name+'.':
+                    ' Approval saved; enrolment requires attention.';
+                }else enrolmentMessage=' Approval saved; batch selection pending.';
+              }
+            }
             if(p2v520View==='student'&&p2v520History)p2v520Render();
-            toast('Acharya decision recorded for '+ctx.next+'.');
+            toast('Acharya decision recorded for '+ctx.next+'.'+enrolmentMessage);
           },'record Acharya progression approval for '+ctx.next);
         };
       }
@@ -7974,6 +8014,10 @@ function p2v58BindPhoneListener(){
         if(p2v520Year!=='__all__'&&!years.has(p2v520Year))p2v520Year='__all__';
         const rows=p2v520Rows(p2v520Course,p2v520Group,p2v520Year,p2v520Batch);
         const actionable=rows.filter(x=>x.action!=='—').length;
+        const uniqueStudents=new Set(rows.map(x=>x.student.id)).size;
+        const countCompleted=rows.filter(x=>x.en?.outcome==='Completed').length;
+        const countPaused=rows.filter(x=>x.en?.outcome==='Withdrawn').length;
+        const countIncomplete=rows.filter(x=>x.group==='Incomplete / Withdrawn'&&x.en?.outcome!=='Withdrawn').length;
         const help=p2v520Group==='Eligible'?
           'Year refers to the qualifying previous-course cohort.':
           p2v520Group==='Eligible + Incomplete / Withdrawn'?
@@ -7993,7 +8037,11 @@ function p2v58BindPhoneListener(){
           '<label>Student Group<select id="p2v520Group">'+p2v520Groups.map(g=>
             '<option '+(g===p2v520Group?'selected':'')+'>'+esc(g)+'</option>').join('')+
           '</select></label></div>'+
-          '<div class="p2v520-toolbar"><div><strong>'+
+          '<div class="p2v558-summary">'+
+          [['Total Students',uniqueStudents],['Completed',countCompleted],['Incomplete',countIncomplete],['Withdrawn',countPaused]].map(x=>
+            '<div><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join('')+
+          '</div>'+
+          '<div class="p2v520-toolbar"'><div><strong>'+
           (p2v520View==='followup'?'Follow-ups':'Students')+
           '</strong><small>'+rows.length+' records'+
           (p2v520View==='followup'?' · '+actionable+' actionable':'')+
@@ -8062,26 +8110,48 @@ function p2v58BindPhoneListener(){
         const host=$('p2v520History'),student=p2FindStudent(p2v520History);
         if(!host||!student)return;
         const list=p2v56ChatStudentEnrollments(student.id);
-        host.innerHTML='<div class="p2v520-history-head"><strong>'+
-          esc(student.name)+' · Course history</strong>'+
-          '<button type="button" id="p2v520CloseHistory">Close</button></div>'+
-          (list.length?'<table class="p2v520-table"><thead><tr><th>Year</th><th>Course</th>'+
+        const lessons=list.map(({en,b})=>({en,b,stage:p2v550Stage(b),year:String(p2BatchYear(b)||'')}));
+        const nextStages=['Kriya','Kriya 2','Kriya 3','Kriya 4'];
+        const reviews=nextStages.map(target=>{
+          const i=p2FullChain.indexOf(target),from=p2FullChain[i-1];
+          const source=lessons.filter(x=>x.stage===from&&x.en.outcome==='Completed').slice(-1)[0];
+          const decision=student.acharyaProgressionApprovals?.[target];
+          return{target,source,decision};
+        }).filter(x=>x.source||x.decision);
+        host.innerHTML='<div class="p2v520-history-head"><strong>'+esc(student.name)+
+          ' · Student journey</strong><button type="button" id="p2v520CloseHistory">Close</button></div>'+
+          '<div class="p2v558-journey-tabs"><button id="p2v558Journey">Journey</button>'+
+          '<button id="p2v558Volunteer">Volunteer Record</button>'+
+          '<button id="p2v558Notes">Notes</button></div>'+
+          '<div id="p2v558JourneyPanel">'+
+          (lessons.length?'<table class="p2v520-table"><thead><tr><th>Year</th><th>Course</th>'+
           '<th>Batch</th><th>Attendance</th><th>Status</th></tr></thead><tbody>'+
-          list.map(({en,b})=>'<tr><td>'+esc(String(p2BatchYear(b)))+'</td>'+
+          lessons.map(({en,b,year})=>'<tr><td>'+esc(year)+'</td>'+
             '<td>'+esc(p2CourseName(b))+'</td><td>'+esc(b.name)+'</td>'+
             '<td>'+(p2v519Attendance(b,en).pct===null?'Not assessed':p2v519Attendance(b,en).pct+'%')+'</td>'+
             '<td>'+esc(en.outcome==='Withdrawn'||en.outcome==='Did Not Complete'?'Paused':
               en.outcome||'In Progress')+'</td></tr>').join('')+
-          '</tbody></table>':'<div>No course history found.</div>');
-        const source=list.find(({en,b})=>p2v550Stage(b)==='Level 4'&&en.outcome==='Completed');
-        if(source){
-          const accepted=p2v550Decision(student,'Kriya');
-          const item=document.createElement('div');item.className='p2v526-kriya';
-          item.innerHTML='<strong>Kriya</strong> · '+(accepted?'Accepted for Kriya':
-            '<button type="button" class="btn secondary small" id="p2v526Accept">Accepted for Kriya</button>');
-          host.appendChild(item);
-          $('p2v526Accept')?.addEventListener('click',()=>p2v550OpenApproval(student.id,source.b.id));
-        }
+          '</tbody></table>':'<div>No course history found.</div>')+
+          (reviews.length?'<div class="p2v558-review-list">'+reviews.map((x,i)=>
+            '<div class="p2v558-review-row"><strong>'+esc(x.target)+'</strong> · '+
+            esc(x.decision?.status||'Review required')+
+            (x.source?'<button type="button" class="btn secondary small p2v558-review" data-index="'+i+'">Review</button>':'')+
+            '</div>').join('')+'</div>':'')+'</div>'+
+          '<div id="p2v558VolunteerPanel" class="hidden"><strong>Volunteer Record</strong>'+
+          '<p>'+esc(student.volunteerId?'Linked to Volunteer Master. View volunteer duties in the volunteer record.':'No linked volunteer record.')+'</p></div>'+
+          '<div id="p2v558NotesPanel" class="hidden"><strong>Notes</strong>'+
+          '<p>'+esc(student.notes||'No notes recorded.')+'</p></div>';
+        const panels=[$('p2v558JourneyPanel'),$('p2v558VolunteerPanel'),$('p2v558NotesPanel')];
+        const buttons=[$('p2v558Journey'),$('p2v558Volunteer'),$('p2v558Notes')];
+        buttons.forEach((button,i)=>button.onclick=()=>{
+          panels.forEach((p,j)=>p.classList.toggle('hidden',i!==j));
+          buttons.forEach((b,j)=>b.classList.toggle('active',i===j));
+        });
+        buttons[0].click();
+        host.querySelectorAll('.p2v558-review').forEach(btn=>btn.onclick=()=>{
+          const x=reviews[Number(btn.dataset.index)];
+          if(x?.source)p2v550OpenApproval(student.id,x.source.b.id);
+        });
         $('p2v520CloseHistory').onclick=()=>{p2v520History='';host.innerHTML=''};
       }
       p2v56ChatPrepareProgress=function(){
@@ -8106,6 +8176,16 @@ function p2v58BindPhoneListener(){
         }
         p2v520Render();
       };
+      const p2v558Style=document.createElement('style');
+      p2v558Style.textContent='#studentProgress .p2v558-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}'+
+        '#studentProgress .p2v558-summary>div{border:1px solid #e5ebf2;border-radius:9px;padding:12px;display:flex;flex-direction:column;gap:4px}'+
+        '#studentProgress .p2v558-summary small{color:#52647b}#studentProgress .p2v558-summary strong{font-size:22px;color:#173f7d}'+
+        '#studentProgress .p2v558-journey-tabs{display:flex;gap:16px;margin:12px 0;border-bottom:1px solid #e5ebf2}'+
+        '#studentProgress .p2v558-journey-tabs button{border:0;background:transparent;padding:10px;color:#244467;cursor:pointer}'+
+        '#studentProgress .p2v558-journey-tabs button.active{border-bottom:2px solid #173f7d;font-weight:700}'+
+        '#studentProgress .p2v558-review-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid #e5ebf2}'+
+        '#studentProgress .p2v558-review-row button{margin-left:auto}@media(max-width:700px){#studentProgress .p2v558-summary{grid-template-columns:repeat(2,1fr)}}';
+      document.head.appendChild(p2v558Style);
       const p2v520Style=document.createElement('style');
       p2v520Style.id='p2v520Style';
       p2v520Style.textContent=
