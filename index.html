@@ -7276,6 +7276,19 @@ function p2v58BindPhoneListener(){
         if(!batch){toast('No class batch selected');return}
         const target=p2v550Stage(batch),index=p2FullChain.indexOf(target);
         const student=p2v54StudentFromEnrollForm();
+        // Never rely on another handler or a status calculation to enforce
+        // Acharya permission. A Kriya stage requires its own explicit decision.
+        if(index>=4&&!p2v550Decision(student,target)){
+          const previous=p2FullChain[index-1];
+          const prior=student&&p2StudentEnrollments(student.id).find(en=>
+            p2v550Stage(state.classBatches.find(b=>b.id===en.batchId))===previous);
+          if(prior&&p2v550Completed(student.id,previous)){
+            p2v550OpenApproval(student.id,prior.batchId);
+          }else{
+            toast(previous+' must be completed before Acharya approval for '+target+'.');
+          }
+          return;
+        }
         const unmapped=p2v55ProgressionRequirement(student?.id||'',batch?.id||'');
         if(/Unrecognised progression course/.test(unmapped.reason||'')){
           event.preventDefault();toast(unmapped.reason);return;
