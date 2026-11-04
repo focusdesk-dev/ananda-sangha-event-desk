@@ -176,6 +176,7 @@ function approvalSeed(){
  return {students:data.students.length,batches:data.classBatches.length};
 }
 async function approvalCheck(){
+ window.__anandaCiDebug=true;
  const yes=(x,m)=>{if(!x)throw Error(m)};
  const el=id=>{const x=document.getElementById(id);yes(x,'Missing '+id);return x};
  const get=()=>JSON.parse(localStorage.getItem('annualEventRegistration.v1')||'{}');
@@ -200,7 +201,7 @@ async function approvalCheck(){
    if(!approvalModal?.classList.contains('open')){
      const state=get(),relevant=state.classEnrollments.filter(e=>String(e.id).startsWith('ci-'));
      throw Error('Required Acharya approval prompt missing for '+batchId+' '+JSON.stringify({
-       requested:modalId,existing:!!approvalModal,
+       requested:modalId,existing:!!approvalModal,debug:window.__anandaCiState,
        open:[...document.querySelectorAll('.modal-backdrop.open')].map(x=>x.id),
        handler:String(form.onsubmit).slice(0,550),
        toast:document.querySelector('.toast')?.textContent,

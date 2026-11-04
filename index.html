@@ -7282,11 +7282,21 @@ function p2v58BindPhoneListener(){
           const previous=p2FullChain[index-1];
           const prior=student&&p2StudentEnrollments(student.id).find(en=>
             p2v550Stage(state.classBatches.find(b=>b.id===en.batchId))===previous);
+          if(window.__anandaCiDebug)window.__anandaCiState={
+            target,index,studentFound:!!student,studentId:student?.id||'',
+            previous,priorId:prior?.batchId||'',
+            completed:!!(student&&p2v550Completed(student.id,previous)),
+            sourceStage:p2v550Stage(state.classBatches.find(b=>b.id===prior?.batchId)),
+            nextFromSource:p2NextLevel(p2v550Stage(state.classBatches.find(b=>b.id===prior?.batchId))),
+            acharyaCount:state.acharyas.length
+          };
           if(prior&&p2v550Completed(student.id,previous)){
-            p2v550OpenApproval(student.id,prior.batchId);
+            try{p2v550OpenApproval(student.id,prior.batchId)}
+            catch(error){if(window.__anandaCiDebug)window.__anandaCiState.error=String(error);throw error}
           }else{
             toast(previous+' must be completed before Acharya approval for '+target+'.');
           }
+          if(window.__anandaCiDebug)window.__anandaCiState.open=!!$('p2v550ApprovalModal')?.classList.contains('open');
           return;
         }
         const unmapped=p2v55ProgressionRequirement(student?.id||'',batch?.id||'');
