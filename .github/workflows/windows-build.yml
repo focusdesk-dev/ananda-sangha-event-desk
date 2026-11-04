@@ -4,7 +4,7 @@ on:
   push:
     branches: [beta-5-51-corrections-19-20]
 permissions:
-  contents: read
+  contents: write
   actions: read
 jobs:
   windows-installer:
@@ -153,3 +153,12 @@ jobs:
           name: Ananda-Sangha-Event-Desk-beta-5.56-Setup
           path: dist/*.exe
           if-no-files-found: error
+
+      - name: Publish single-file installer to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-beta-5.56
+          name: Ananda Sangha Event Desk Beta 5.56
+          prerelease: true
+          files: dist/*.exe
+          body: "Windows installer, successful packaged Windows UI and NSIS upgrade checks. Installer is unsigned; Smart App Control may block it."
