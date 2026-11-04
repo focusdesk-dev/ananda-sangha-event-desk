@@ -196,7 +196,18 @@ async function approvalCheck(){
    const count=get().classEnrollments.length;
    form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
    yes(get().classEnrollments.length===count,'Unauthorised enrollment bypassed approval for '+batchId);
-   yes(el(modalId).classList.contains('open'),'Required Acharya approval prompt missing for '+batchId);
+   const approvalModal=document.getElementById(modalId);
+   if(!approvalModal?.classList.contains('open')){
+     const state=get(),relevant=state.classEnrollments.filter(e=>String(e.id).startsWith('ci-'));
+     throw Error('Required Acharya approval prompt missing for '+batchId+' '+JSON.stringify({
+       requested:modalId,existing:!!approvalModal,
+       open:[...document.querySelectorAll('.modal-backdrop.open')].map(x=>x.id),
+       handler:String(form.onsubmit).slice(0,550),
+       toast:document.querySelector('.toast')?.textContent,
+       relevant,student:state.students.find(s=>s.name===name),
+       target:state.classBatches.find(b=>b.id===batchId)
+     }));
+   }
    return {batchId,blocked:true,modal:modalId};
  };
  const review=check('ci-review-target','CI Review Student','9888811111','p2v557ReviewModal');
