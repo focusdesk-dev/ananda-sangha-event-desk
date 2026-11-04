@@ -16,7 +16,9 @@ const state={classBatches:batches,courseTypes:courses,students:[person],classEnr
 let baseCalls=0;
 const ctx={
  state,p2FullChain:chain,
+ p2CourseForBatch:b=>state.courseTypes.find(c=>c.id===b?.courseId)||state.courseTypes.find(c=>String(c.name).toLowerCase()===String(b?.level).toLowerCase()),
  p2CourseName:b=>state.courseTypes.find(c=>c.id===b?.courseId)?.name||b?.level||'',
+ p2v546ApprovedException:en=>!!en.acharyaException?.approved&&!en.acharyaException?.revokedAt,
  p2FindStudent:id=>state.students.find(s=>s.id===id),
  p2StudentEnrollments:id=>state.classEnrollments.filter(en=>en.studentId===id),
  p2v546Eligibility:en=>en.testAttendancePct>=50?{key:'Eligible'}:{key:'Review Required'},
@@ -37,6 +39,14 @@ const zero={id:'S0',name:'Zero Attendance'};
 state.students.push(zero);
 state.classEnrollments.push({studentId:zero.id,batchId:batches[1].id,outcome:'Completed',level:'Level 2',testAttendancePct:0});
 assert.equal(f.require(zero.id,batches[2].id).ok,false,'Completed Level 2 with 0% must NOT unlock Level 3');
+const zeroReview=state.classEnrollments.find(e=>e.studentId===zero.id);
+batches[1].endedAt='2026-11-01';
+assert.equal(f.require(zero.id,batches[2].id).ok,false,'Review Required after End Batch must block progression');
+zeroReview.acharyaException={approved:true,approvedAt:'2026-11-02',approvedBy:'ACH1',reason:'Approved exception'};
+assert.equal(f.require(zero.id,batches[2].id).ok,true,'Recorded Acharya exception permits reviewed progression');
+zeroReview.acharyaException.revokedAt='2026-11-03';
+assert.equal(f.require(zero.id,batches[2].id).ok,false,'Revoked Acharya exception must block progression');
+
 assert.equal(baseCalls,1,'Level 1 retains original initial enrollment handling');
 for(let i=4;i<8;i++)assert.equal(check(i).ok,false,'Kriya progression should block when prerequisites are missing');
 function approve(ix){person.acharyaProgressionApprovals[chain[ix]]={status:'Approved',approvedAt:'2026-11-01T00:00:00Z',acharyaId:'ACH1',acharyaName:'Acharya',sourceLevel:chain[ix-1]}}
@@ -60,6 +70,18 @@ assert.equal(f.done(legacy.id,'Kriya'),true,'Recognize prior Kriyaban history');
 assert.equal(f.require(legacy.id,batches[5].id).ok,false,'A previous Kriyaban still needs Acharya approval for Kriya 2');
 legacy.acharyaProgressionApprovals['Kriya 2']={status:'Approved',approvedAt:'2026-11-01',acharyaId:'ACH1'};
 assert.equal(f.require(legacy.id,batches[5].id).ok,true);
+const legacy={id:'legacy-kriya',name:'KRIYA',category:'Advanced'};
+state.courseTypes.push(legacy);
+const legacyBatch={id:'legacy-batch-kriya',courseId:legacy.id,level:'KRIYA'};
+state.classBatches.push(legacyBatch);
+assert.equal(f.stage(legacyBatch),'Kriya','Legacy uppercase KRIYA must resolve to progression stage');
+assert.equal(f.require(zero.id,legacyBatch.id).ok,false,'Legacy uppercase KRIYA must require Level 4 and Acharya approval');
+const legacyKriya2={id:'legacy-kriya2',name:'kriya 2'};
+state.courseTypes.push(legacyKriya2);
+const legacyBatch2={id:'legacy-batch-kriya2',courseId:legacyKriya2.id,level:'kriya 2'};
+state.classBatches.push(legacyBatch2);
+assert.equal(f.stage(legacyBatch2),'Kriya 2','Lowercase legacy Kriya 2 must resolve');
+assert.equal(f.require(zero.id,legacyBatch2.id).ok,false,'Legacy Kriya 2 must not bypass prerequisite');
 for(const name of ['Kriya','Kriya 2','Kriya 3','Kriya 4'])
  assert(html.includes("name:'"+name+"'"),name+' course definition must be retained');
 assert(html.includes('p2CreateEnrollment=function(studentId,batchId)'),'Enrollment guard must exist');

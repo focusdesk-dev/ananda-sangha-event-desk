@@ -44,7 +44,7 @@ async function batchCheck(){
    yes(el('p2v537ClassCount').value==='4',name+' Start + End did not calculate Count: '+el('p2v537ClassCount').value);
  }
  setStage('Kriya');
- set('p2BatchName','Beta 5.56 UI Verification');
+ set('p2BatchName','Beta 5.57 UI Verification');
  set('p2BatchScheduleType','custom','change');
  set('p2BatchStart','2026-11-08','change');
  set('p2BatchEnd','');
@@ -64,7 +64,7 @@ async function batchCheck(){
  form.requestSubmit();
  const batches=state().classBatches||[];
  yes(batches.length===before+1,'Batch was not saved');
- const batch=batches.find(b=>b.name==='Beta 5.56 UI Verification');
+ const batch=batches.find(b=>b.name==='Beta 5.57 UI Verification');
  yes(batch?.end==='2026-11-15','Saved batch End Date wrong');
  yes(el('p2v519Summary'),'Whole-batch summary missing');
  yes(document.querySelector('.p2v553-roster-layout'),'Rostering layout missing');
@@ -147,6 +147,63 @@ async function typingCheck(cmd){
   return {pass:true,typedFields:tested,physicalKeyboard:true};
 }
 
+function approvalSeed(){
+ const key='annualEventRegistration.v1',data=JSON.parse(localStorage.getItem(key)||'{}');
+ const add=(field,entry)=>{data[field]=Array.isArray(data[field])?data[field]:[];data[field].push(entry)};
+ const year=2026;
+ add('courseTypes',{id:'ci-kriya-legacy',name:'KRIYA',category:'Advanced',active:true,defaultSchedule:'weekly'});
+ add('acharyas',{id:'ci-acharya',name:'CI Sample Acharya',active:true});
+ add('students',{id:'ci-review-student',name:'CI Review Student',mobile:'9888811111',acharyaProgressionApprovals:{}});
+ add('students',{id:'ci-kriya-student',name:'CI Kriya Student',mobile:'9888822222',acharyaProgressionApprovals:{}});
+ const makeBatch=(id,courseId,level,ended)=>({
+   id,courseId,level,name:'CI '+id,start:'2026-10-04',end:'2026-10-11',
+   year,status:ended?'Completed':'Current',scheduleType:'weekly',usualDay:0,numberOfClasses:2,
+   plannedSessions:[{id:id+'-1',number:1,date:'2026-10-04'},{id:id+'-2',number:2,date:'2026-10-11'}],
+   sessionDates:['2026-10-04','2026-10-11'],acharyaIds:[],volunteerIds:[],
+   ...(ended?{endedAt:'2026-10-12T00:00:00Z'}:{})
+ });
+ add('classBatches',makeBatch('ci-review-source','course-l1','Level 1',true));
+ add('classBatches',makeBatch('ci-review-target','course-l2','Level 2',false));
+ add('classBatches',makeBatch('ci-kriya-source','course-l4','Level 4',true));
+ add('classBatches',makeBatch('ci-kriya-target','ci-kriya-legacy','KRIYA',false));
+ add('classEnrollments',{id:'ci-review-history',studentId:'ci-review-student',batchId:'ci-review-source',
+   level:'Level 1',courseId:'course-l1',outcome:'Did Not Complete',attendance:{'2026-10-04':false,'2026-10-11':false},
+   progressionFinalStatus:{key:'Review Required',label:'Review Required'},eligibleFor:'',enrolledAt:'2026-10-04'});
+ add('classEnrollments',{id:'ci-kriya-history',studentId:'ci-kriya-student',batchId:'ci-kriya-source',
+   level:'Level 4',courseId:'course-l4',outcome:'Completed',attendance:{'2026-10-04':true,'2026-10-11':true},
+   enrolledAt:'2026-10-04'});
+ localStorage.setItem(key,JSON.stringify(data));
+ return {students:data.students.length,batches:data.classBatches.length};
+}
+async function approvalCheck(){
+ const yes=(x,m)=>{if(!x)throw Error(m)};
+ const el=id=>{const x=document.getElementById(id);yes(x,'Missing '+id);return x};
+ const get=()=>JSON.parse(localStorage.getItem('annualEventRegistration.v1')||'{}');
+ const nav=document.querySelector('.nav-btn[data-page="classes"]');yes(nav,'Cannot navigate classes');
+ const check=(batchId,name,mobile,modalId)=>{
+   document.querySelectorAll('.modal-backdrop.open').forEach(x=>x.classList.remove('open'));
+   nav.click();el('p2ClassBatches').click();
+   const yearCard=document.querySelector('#p2ClassList .p2v510-class-year[data-year="2026"]');
+   if(yearCard)yearCard.click();
+   const row=[...document.querySelectorAll('#p2ClassList .p2v56-chat-class')].find(x=>x.dataset.id===batchId);
+   yes(row,'Cannot find batch '+batchId);
+   row.dispatchEvent(new MouseEvent('dblclick',{bubbles:true,cancelable:true}));
+   yes(el('classWorkspace').classList.contains('active'),'Failed to open Class Batch '+batchId);
+   const enroll=el('p2v519Enroll');enroll.click();
+   yes(el('p2EnrollModal').classList.contains('open'),'Enroll modal not open');
+   const form=el('p2EnrollForm');
+   el('p2cEnrollName').value=name;el('p2cEnrollMobile').value=mobile;
+   const count=get().classEnrollments.length;
+   form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+   yes(get().classEnrollments.length===count,'Unauthorised enrollment bypassed approval for '+batchId);
+   yes(el(modalId).classList.contains('open'),'Required Acharya approval prompt missing for '+batchId);
+   return {batchId,blocked:true,modal:modalId};
+ };
+ const review=check('ci-review-target','CI Review Student','9888811111','p2v557ReviewModal');
+ const kriya=check('ci-kriya-target','CI Kriya Student','9888822222','p2v550ApprovalModal');
+ yes(el('p2v550ApprovalInfo').textContent.includes('Level 4'),'Kriya approval should reference Level 4');
+ return {pass:true,review,kriya};
+}
 async function progressCheck(){
  const yes=(v,m)=>{if(!v)throw Error(m)};
  const route=document.querySelector('.go[data-go="studentProgress"]');
@@ -201,10 +258,20 @@ async function run(){
   }
   const typing=await typingCheck(cmd);assert.ok(typing?.pass,'Real keyboard typing failed');
   const batch=await runCode(batchCheck);assert.ok(batch?.pass,'Batch UI checks failed');
-  await screenshot('class-batch-beta-5.56.png');
+  await screenshot('class-batch-beta-5.57.png');
   const progress=await runCode(progressCheck);assert.ok(progress?.pass,'Student UI checks failed');
-  await screenshot('student-wise-beta-5.56.png');
-  console.log('PASS packaged Windows UI and visible layout '+JSON.stringify({batch,progress}));
+  await screenshot('student-wise-beta-5.57.png');
+  // CI-only synthetic students: exercise the *real* enrolment submit handler,
+  // including legacy uppercase KRIYA and Review Required. No NGO data is used.
+  const seed=await runCode(approvalSeed);assert.ok(seed?.batches>=4,'Approval fixture failed');
+  await cmd('Page.reload',{ignoreCache:true});await wait(1600);
+  const approval=await runCode(approvalCheck);assert.ok(approval?.pass,'Approval forms failed');
+  await cmd('Runtime.evaluate',{expression:"(()=>{document.getElementById('p2v550ApprovalModal').classList.remove('open');document.getElementById('p2cEnrollName').focus();return true})()",returnByValue:true});
+  await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'A',code:'KeyA',text:'A',unmodifiedText:'A',windowsVirtualKeyCode:65,nativeVirtualKeyCode:65});
+  await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'A',code:'KeyA',windowsVirtualKeyCode:65,nativeVirtualKeyCode:65});
+  const entered=await cmd('Runtime.evaluate',{expression:"document.getElementById('p2cEnrollName').value",returnByValue:true});
+  assert.ok(String(entered.result?.value||'').includes('A'),'Physical keyboard input stopped in Enrol Student form');
+  console.log('PASS packaged Windows UI, Acharya gates and keyboard '+JSON.stringify({batch,progress,approval,enrollTyping:true}));
  }finally{ws.close()}
 }
 run().catch(e=>{console.error('FAIL packaged Windows release UI: '+e.message);process.exitCode=1});

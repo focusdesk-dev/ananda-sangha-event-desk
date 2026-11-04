@@ -2408,7 +2408,7 @@
   }
   function p2cInstallEnrollmentFlow(){
     p2cEnsureEnrollUi();
-    $('p2EnrollStudent').onclick=()=>{const b=p2ActiveBatch();if(!b)return;p2cResetEnroll();$('p2EnrollModal').classList.add('open');setTimeout(()=>$('p2EnrollStudentSearch').focus(),40)};
+    $('p2EnrollStudent').onclick=()=>{const b=p2ActiveBatch();if(!b)return;p2cResetEnroll();$('p2EnrollModal').classList.add('open');setTimeout(()=>{const modal=$('p2EnrollModal');if(modal.classList.contains('open')&&!modal.contains(document.activeElement))$('p2EnrollStudentSearch').focus()},40)};
     $('p2EnrollStudentSearch').oninput=()=>{p2cEnrollSelection=null;$('p2EnrollStudentId').value='';$('p2EnrollSelected').textContent='No existing record selected. You can choose a suggestion or enrol a new person below.';$('p2cAddStudentMaster').disabled=false;p2cShowEnrollSuggestions()};
     $('p2EnrollStudentSearch').onfocus=p2cShowEnrollSuggestions;
     $('p2EnrollForm').onsubmit=e=>{
@@ -7180,12 +7180,22 @@ function p2v58BindPhoneListener(){
       // An Acharya decision is a separate, auditable record; neither
       // attendance nor an administrator enrollment override is an approval.
       function p2v550Stage(b){
-        const id=String(b?.courseId||''),match={
+        if(!b)return '';
+        const id=String(b.courseId||'').trim().toLowerCase();
+        const byId={
           'course-l1':'Level 1','course-l2':'Level 2','course-l3':'Level 3',
           'course-l4':'Level 4','course-kriya':'Kriya',
           'course-kriya2':'Kriya 2','course-kriya3':'Kriya 3','course-kriya4':'Kriya 4'
-        }[id];
-        return match||[p2CourseName(b),b?.level].find(x=>p2FullChain.includes(x))||'';
+        };
+        if(byId[id])return byId[id];
+        // Legacy records and renamed labels must use the same progression gate.
+        const normal=value=>String(value||'').trim().toLowerCase().replace(/\s+/g,' ');
+        const titles=[p2CourseForBatch(b)?.name,b.courseName,b.level,p2CourseName(b)];
+        for(const title of titles){
+          const match=p2FullChain.find(stage=>normal(stage)===normal(title));
+          if(match)return match;
+        }
+        return '';
       }
       function p2v550Completed(studentId,source){
         if(!studentId||!source)return false;
@@ -7210,6 +7220,8 @@ function p2v58BindPhoneListener(){
         const batch=state.classBatches.find(b=>b.id===batchId);
         if(!batch)return{ok:false,reason:'Class batch not found.'};
         const target=p2v550Stage(batch),index=p2FullChain.indexOf(target);
+        if(index<0&&/^(kriya|level\s*[1-4])\b/i.test(String(p2CourseName(batch))))
+          return{ok:false,reason:'Unrecognised progression course. Correct its course mapping before enrolment.'};
         if(index<=0)return p2v550RequirementBase(studentId,batchId);
         const student=p2FindStudent(studentId),previous=p2FullChain[index-1];
         if(index<4){
@@ -7220,13 +7232,15 @@ function p2v58BindPhoneListener(){
             const prior=state.classBatches.find(x=>x.id===en.batchId);
             const source=prior?p2v550Stage(prior):en.level;
             if(source!==previous)return false;
-            if(en.outcome==='Completed'&&prior&&p2v519Decision(prior,en).key==='Eligible')return true;
-            if(!prior||prior.endedAt)return false;
-            const status=p2v546Eligibility(en,prior);
-            return status.key==='Eligible'||status.key==='Joined';
+            if(!prior)return false;
+            // Review Required, Joined, or a generic administrator override must
+            // NEVER be mistaken for a valid progression decision.
+            if(p2v546ApprovedException(en,prior))return true;
+            const decision=p2v519Decision(prior,en);
+            return decision.key==='Eligible'&&(en.outcome==='Completed'||!prior.endedAt);
           });
           return qualifies?{ok:true,reason:''}:
-            {ok:false,reason:'Complete the '+previous+' attendance requirement before joining '+target+'. Administrator approval is required for an exception.'};
+            {ok:false,reason:'Review Required — a recorded Acharya exception for '+previous+' is required before enrolling in '+target+'.'};
         }
         if(!student)return{ok:false,reason:'Select an existing student before enrolling in '+target+'.'};
         if(!p2v550Completed(student.id,previous))
@@ -7241,23 +7255,41 @@ function p2v58BindPhoneListener(){
       p2CreateEnrollment=function(studentId,batchId){
         const b=state.classBatches.find(x=>x.id===batchId);
         const index=p2FullChain.indexOf(p2v550Stage(b));
-        if(index>0){
-          const check=p2v55ProgressionRequirement(studentId,batchId);
-          const allowedLevelOverride=index<4&&!!p2v54AdminOverrideReason;
-          if(!check.ok&&!allowedLevelOverride){toast(check.reason);return null}
+        // The final enrolment guard is authoritative, including ambiguous
+        // legacy Kriya courses that must never fall through to generic override.
+        const check=p2v55ProgressionRequirement(studentId,batchId);
+        if(!check.ok&&(index>0||/Unrecognised progression course/.test(check.reason))){
+          toast(check.reason);return null;
         }
         return p2v550CreateEnrollmentBase(studentId,batchId);
       };
       const p2v550EnrollFormBase=$('p2EnrollForm').onsubmit;
       $('p2EnrollForm').onsubmit=function(event){
         const batch=p2ActiveBatch();
-        if(p2FullChain.indexOf(p2v550Stage(batch))>=4){
-          const student=p2v54StudentFromEnrollForm();
+        const target=p2v550Stage(batch),index=p2FullChain.indexOf(target);
+        const student=p2v54StudentFromEnrollForm();
+        const unmapped=p2v55ProgressionRequirement(student?.id||'',batch?.id||'');
+        if(/Unrecognised progression course/.test(unmapped.reason||'')){
+          event.preventDefault();toast(unmapped.reason);return;
+        }
+        if(index>0){
           const check=p2v55ProgressionRequirement(student?.id||'',batch.id);
           if(!check.ok){
             event.preventDefault();
-            toast(check.reason);
-            return;
+            if(index<4&&student){
+              const previous=p2FullChain[index-1];
+              const en=p2StudentEnrollments(student.id).find(e=>
+                p2v550Stage(state.classBatches.find(b=>b.id===e.batchId))===previous &&
+                !p2v546ApprovedException(e,state.classBatches.find(b=>b.id===e.batchId)));
+              if(en){p2v557OpenReviewApproval(student.id,en.batchId,batch.id);return}
+            }
+            if(index>=4&&student&&p2v550Completed(student.id,p2FullChain[index-1])&&
+               !p2v550Decision(student,target)){
+              const prior=p2StudentEnrollments(student.id).find(e=>
+                p2v550Stage(state.classBatches.find(b=>b.id===e.batchId))===p2FullChain[index-1]);
+              if(prior){p2v550OpenApproval(student.id,prior.batchId);return}
+            }
+            toast(check.reason);return;
           }
         }
         return p2v550EnrollFormBase.call(this,event);
@@ -7395,6 +7427,59 @@ function p2v58BindPhoneListener(){
           acharyas.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('');
         $('p2v550Decision').value='Approved';$('p2v550Notes').value='';
         $('p2v550ApprovalModal').classList.add('open');
+      }
+      function p2v557OpenReviewApproval(studentId,sourceBatchId,targetBatchId){
+        const source=state.classBatches.find(b=>b.id===sourceBatchId);
+        const target=state.classBatches.find(b=>b.id===targetBatchId);
+        const student=p2FindStudent(studentId);
+        const en=state.classEnrollments.find(e=>e.studentId===studentId&&e.batchId===sourceBatchId);
+        const level=p2v550Stage(target);
+        if(!source||!target||!student||!en||!['Level 2','Level 3','Level 4'].includes(level)){
+          toast('Select the student and their preceding class for review.');return;
+        }
+        const acharyas=state.acharyas.filter(a=>a.active!==false);
+        if(!acharyas.length){toast('Add an Acharya in Acharya Master before approving an exception.');return}
+        if(!$('p2v557ReviewModal')){
+          document.body.insertAdjacentHTML('beforeend',
+            '<div id="p2v557ReviewModal" class="modal-backdrop"><form id="p2v557ReviewForm" class="modal" style="max-width:480px">'+
+            '<div class="modal-head"><h3>Review Required · Acharya exception</h3><button class="x" type="button" data-close="p2v557ReviewModal">×</button></div>'+
+            '<p id="p2v557ReviewInfo" class="p2-note"></p>'+
+            '<div class="field"><label>Approving Acharya *</label><select id="p2v557ReviewAcharya" required></select></div>'+
+            '<div class="field"><label>Reason for exception *</label><textarea id="p2v557ReviewReason" required></textarea></div>'+
+            '<div class="actions"><button class="btn secondary" type="button" data-close="p2v557ReviewModal">Cancel</button>'+
+            '<button class="btn" type="submit">Record exception</button></div></form></div>');
+          $('p2v557ReviewModal').querySelectorAll('[data-close]').forEach(button=>
+            button.onclick=()=>$('p2v557ReviewModal').classList.remove('open'));
+        }
+        $('p2v557ReviewInfo').textContent=student.name+' · '+p2v550Stage(source)+' → '+level+
+          '. Approval must be recorded before enrolment.';
+        $('p2v557ReviewAcharya').innerHTML='<option value="">Select Acharya</option>'+
+          acharyas.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('');
+        $('p2v557ReviewReason').value='';
+        $('p2v557ReviewForm').onsubmit=event=>{
+          event.preventDefault();
+          const acharya=state.acharyas.find(a=>a.id===$('p2v557ReviewAcharya').value&&a.active!==false);
+          const reason=$('p2v557ReviewReason').value.trim();
+          if(!acharya||!reason){toast('Select an Acharya and provide the exception reason.');return}
+          v51RequireAdmin(()=>{
+            const prior=state.classEnrollments.find(x=>x.id===en.id),batch=state.classBatches.find(x=>x.id===source.id);
+            if(!prior||!batch)return;
+            const now=new Date().toISOString();
+            const record={approved:true,approvedAt:now,approvedBy:acharya.id,acharyaName:acharya.name,
+              reason,batchId:batch.id,targetCourse:level};
+            prior.acharyaExceptionHistory=Array.isArray(prior.acharyaExceptionHistory)?prior.acharyaExceptionHistory:[];
+            if(prior.acharyaException)prior.acharyaExceptionHistory.push({...prior.acharyaException});
+            prior.acharyaException=record;
+            if(batch.endedAt){
+              prior.progressionFinalStatus={key:'Eligible',label:'Eligible for '+level,cls:'green'};
+              prior.eligibleFor=level;
+            }
+            $('p2v557ReviewModal').classList.remove('open');
+            save();
+            toast('Acharya exception recorded. Submit enrolment again to continue.');
+          },'record Acharya Review Required exception for '+student.name);
+        };
+        $('p2v557ReviewModal').classList.add('open');
       }
       function p2v550RenderApprovals(){
         const current=p2ActiveBatch(),from=p2v550Stage(current),
@@ -8077,7 +8162,7 @@ function p2v58BindPhoneListener(){
         return result;
       };
       p2v553DateNote();
-      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.56';
+      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.57';
     })();
 
   resetEventForm();
