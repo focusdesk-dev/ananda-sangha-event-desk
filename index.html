@@ -7263,9 +7263,17 @@ function p2v58BindPhoneListener(){
         }
         return p2v550CreateEnrollmentBase(studentId,batchId);
       };
+      // A Class Batch render can re-run p2cInstallEnrollmentFlow() and replace
+      // the form's .onsubmit. A document CAPTURE listener survives all those
+      // rebindings and authoritatively guards every form submission.
       const p2v550EnrollFormBase=$('p2EnrollForm').onsubmit;
-      $('p2EnrollForm').onsubmit=function(event){
+      document.addEventListener('submit',function(event){
+        if(event.target?.id!=='p2EnrollForm')return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const form=event.target;
         const batch=p2ActiveBatch();
+        if(!batch){toast('No class batch selected');return}
         const target=p2v550Stage(batch),index=p2FullChain.indexOf(target);
         const student=p2v54StudentFromEnrollForm();
         const unmapped=p2v55ProgressionRequirement(student?.id||'',batch?.id||'');
@@ -7292,8 +7300,8 @@ function p2v58BindPhoneListener(){
             toast(check.reason);return;
           }
         }
-        return p2v550EnrollFormBase.call(this,event);
-      };
+        return p2v550EnrollFormBase.call(form,event);
+      },true);
       // Advanced course statuses never become "Eligible" merely on the basis
       // of an attendance percentage. An explicit decision is still necessary.
       const p2v550EligibilityBase=p2v546Eligibility;
