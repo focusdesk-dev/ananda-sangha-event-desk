@@ -8,9 +8,9 @@ check('Review notes are optional',!html.includes('id="p2v557ReviewReason" requir
 check('Exception allows empty reason when properly approved',html.includes("!a.approvedBy)return false"));
 check('Reviewer identity is attributed to authenticated admin',html.includes("approvedBy:'administrator'")&&html.includes("v51RequireAdmin(()=>{"));
 check('Level 1 review uses eligible prior records rather than first match',html.includes('const candidates=p2StudentEnrollments(student.id).filter(e=>{'));
-check('Acharya cannot be added as student by mobile match',html.includes("const acharyaConflict=state.acharyas.find"));
+check('Acharya cannot be added as student by mobile match',html.includes('function p2v565AcharyaMatch(name,mobile,studentId=')&&html.includes('if(m&&am&&m===am)return true;'));
 check('Student cannot be added as Acharya by mobile match',html.includes("const studentConflict=state.students.find"));
-check('Enrolment rejects existing Acharya identities',html.includes('This person is already registered as an Acharya.'));
+check('Enrolment rejects existing Acharya identities',html.includes('This person is registered as an Acharya and cannot enrol as a student.')&&html.includes('if(p2v565RejectAcharya(name,mobile,c?.studentId||\'\'))return null;'));
 check('Free batch payment label is N.A.',html.includes("if(p2v563FreeBatch(b))return 'N.A.'"));
 check('Free class does not demand a payment method',html.includes("const paid=!free&&$('p2v514PaymentStatus')?.value==='Paid'"));
 check('Free class excluded from unpaid batch count',html.includes("p2v563PaymentLabel(r.en,r.b||b)==='Unpaid'"));
