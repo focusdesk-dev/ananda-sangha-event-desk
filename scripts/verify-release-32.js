@@ -35,6 +35,14 @@ function deleteFixture(linked,ended=false){
  click();
  return {state,admin,confirmCalls};
 }
+function deletionMutationFixture(linked,ended=false){
+ const src=segment("  function p2DeleteBatchRecords(id){","  $('p2DeleteBatch').onclick=");
+ const state={classBatches:[{id:'batch',name:'Batch 1',endedAt:ended?'2026-11-01':''}],
+   classEnrollments:linked?[{id:'en',studentId:'student',batchId:'batch',attendance:{'2026-11-01':true},paymentStatus:'Paid'}]:[],
+   activeClassBatchId:'batch',students:linked?[{id:'student'}]:[],outreach:[]};
+ const apply=new Function('state',src+';return p2DeleteBatchRecords;')(state);
+ const deleted=apply('batch');return{state,deleted};
+}
 function classesFixture(){
  const src=segment("  let p2v510ClassYear='';","  if($('p2ClassBatches'))");
  const state={courseTypes:[{id:'k',name:'Kriya'},{id:'k2',name:'Kriya 2'}],
@@ -54,10 +62,10 @@ function classesFixture(){
 }
 test(1,'Only one authorised Delete Batch handler; direct card Delete action',()=>{assert.equal(h.split("$('p2DeleteBatch').onclick=").length-1,1);has("p2v56-chat-delete");has("$('p2DeleteBatch').click();")},'functional');
 test(2,'Delete Batch requires admin approval',()=>assert.equal(deleteFixture(true).admin,1),'functional');
-test(3,'Linked history permanently deleted',()=>{const t=deleteFixture(true);assert.equal(t.state.classEnrollments.length,0);assert.equal(t.state.classBatches.length,0);},'functional');
+test(3,'Linked history permanently deleted',()=>{const t=deletionMutationFixture(true);assert.equal(t.state.classEnrollments.length,0);assert.equal(t.state.classBatches.length,0);assert.equal(t.state.students.length,0);},'functional');
 test(4,'Empty batch may be deleted after confirmation',()=>{
- const t=deleteFixture(false);assert.equal(t.state.classBatches.length,0);assert.equal(t.confirmCalls,1);},'functional');
-test(5,'Ended batch is permanently deleted',()=>{const t=deleteFixture(false,true);assert.equal(t.state.classBatches.length,0);},'functional');
+ const t=deletionMutationFixture(false);assert.equal(t.state.classBatches.length,0);assert.equal(t.deleted.students,0);},'functional');
+test(5,'Ended batch is permanently deleted',()=>{const t=deletionMutationFixture(false,true);assert.equal(t.state.classBatches.length,0);},'functional');
 test(6,'Archived batches absent from visible Classes listing',()=>assert.ok(!classesFixture().includes('Archived')),'functional');
 test(7,'Kriya before Kriya 2 in visible Classes listing',()=>{
  const x=classesFixture();assert.ok(x.indexOf('Kriya Batch 1')<x.indexOf('Kriya 2 Batch 2'));},'functional');
@@ -89,7 +97,7 @@ test(31,'Contextual enrol shortcut and save shortcut remain',()=>{assert.ok(main
 test(32,'Offline backup and installer identity/shortcuts',()=>{
  assert.ok(main.includes('FIVE_DAYS_MS'));assert.ok(main.includes('DATA_ROOT'));
  assert.ok(pkg.build.nsis.createDesktopShortcut&&pkg.build.nsis.createStartMenuShortcut);
- assert.equal(pkg.version,'2.0.0-beta.5.63');assert.ok(main.includes('app.getVersion()'));});
+ assert.equal(pkg.version,'2.0.0-beta.5.64');assert.ok(main.includes('app.getVersion()'));});
 const failed=results.filter(x=>x.status==='FAIL');
 fs.mkdirSync('verification',{recursive:true});
 fs.writeFileSync('verification/acceptance-32.json',JSON.stringify({
