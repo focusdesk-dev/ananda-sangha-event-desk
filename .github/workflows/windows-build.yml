@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.59 Setup
+name: Build Ananda Event Desk beta 5.60 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [correction-21a-class-reports]
+    branches: [beta-5-60-student-progress-followups]
 permissions:
   contents: write
   actions: read
@@ -142,24 +142,24 @@ jobs:
           if ($proc.ExitCode -ne 0) { throw "Uninstall failed" }
           $data = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK\Data'
           if (!(Test-Path $data)) { throw "Uninstall removed offline data" }
-          Write-Host "PASS real install, 5.52 to 5.59 upgrade, persistent NGO test student, shortcut and uninstall"
+          Write-Host "PASS real install, 5.52 to 5.60 upgrade, persistent NGO test student, shortcut and uninstall"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Ananda-beta-5.59-verification-evidence
+          name: Ananda-beta-5.60-verification-evidence
           path: verification/
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.59-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.60-Setup
           path: dist/*.exe
           if-no-files-found: error
 
       - name: Publish single-file installer to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ananda-beta-5.59
-          name: Ananda Sangha Event Desk Beta 5.59
+          tag_name: ananda-beta-5.60
+          name: Ananda Sangha Event Desk Beta 5.60
           prerelease: true
           files: dist/*.exe
           body: "Windows installer, successful packaged Windows UI and NSIS upgrade checks. Installer is unsigned; Smart App Control may block it."
