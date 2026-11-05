@@ -248,6 +248,7 @@ contextBridge.exposeInMainWorld('anandaDesktop', {
   attendanceApiUsage: () => ipcRenderer.invoke('ananda-ai-usage'),
   setAiKey: key => ipcRenderer.invoke('ananda-ai-set-key', key),
   removeAiKey: () => ipcRenderer.invoke('ananda-ai-remove-key'),
+  resetDataKeepAiKey: () => ipcRenderer.invoke('ananda-reset-data-keep-ai-key'),
   freeAiPreflight: () => ipcRenderer.invoke('ananda-ai-free-preflight'),
   testAiConnection: () => ipcRenderer.invoke('ananda-ai-test-connection'),
   analyzeAiAttendance: payload => ipcRenderer.invoke('ananda-ai-analyze-attendance', payload),
