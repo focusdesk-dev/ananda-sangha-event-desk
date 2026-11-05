@@ -615,3 +615,28 @@ app.on('before-quit', () => { try { anandaAttendanceServer?.close(); } catch {} 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+
+// Beta 5.61: Clear auxiliary NGO records without touching the encrypted AI key.
+// Chromium owns Data/localStorage: the renderer clears its own state after success.
+// Backups intentionally remain outside Data, for deliberate manual restoration.
+ipcMain.handle('ananda-reset-data-keep-ai-key', async () => {
+  try {
+    const before = fs.existsSync(AI_CREDENTIAL_PATH)
+      ? fs.readFileSync(AI_CREDENTIAL_PATH) : null;
+    const auxiliaries = [
+      ANANDA_SHORT_QR_PATH,
+      ANANDA_AI_USAGE_FILE
+    ];
+    for (const file of auxiliaries) {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    }
+    const after = fs.existsSync(AI_CREDENTIAL_PATH)
+      ? fs.readFileSync(AI_CREDENTIAL_PATH) : null;
+    if (before && (!after || !before.equals(after))) {
+      return {ok:false,error:'AI key preservation check failed. Data has not been reset.'};
+    }
+    return {ok:true,aiKeyPreserved:Boolean(after),backupsRetained:true};
+  } catch (error) {
+    return {ok:false,error:error?.message||'Unable to reset auxiliary records.'};
+  }
+});
