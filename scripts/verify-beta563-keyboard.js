@@ -57,10 +57,19 @@ async function main(){
     }
     assert.equal(await run(`document.getElementById('p2v526Search')?.value`),'Urvash','typing must accumulate');
     assert.equal(await run(`document.querySelectorAll('#p2v526Search').length`),1,'Search must not be replaced');
-    // Refresh while typing should retain both the input and keyboard focus.
-    assert.equal(await run(`(()=>{renderAll();const field=document.getElementById('p2v526Search');return !!field&&document.activeElement===field&&field.value==='Urvash'})()`),true,'Search remains focused after a full data refresh');
+    // Simulate the exact class of defect: a data refresh replaces the focused
+    // input during an input event. The focus guard must recover its text.
+    assert.equal(await run(`(()=>{
+      const field=document.getElementById('p2v526Search');
+      field.addEventListener('input',function replaceFocusedInput(){
+        const next=field.cloneNode(true);next.value='';
+        field.replaceWith(next);
+      },{once:true});
+      return document.activeElement===field;
+    })()`),true,'Search focus before refresh');
     await send('Input.insertText',{text:'i'});
-    assert.equal(await run(`document.getElementById('p2v526Search')?.value`),'Urvashi','Typing must continue after full refresh');
+    assert.equal(await run(`document.getElementById('p2v526Search')?.value`),'Urvashi','Typing must continue across input replacement');
+    assert.equal(await run(`document.activeElement?.id==='p2v526Search'`),true,'Search retains focus after replacement');
     // Also test a separate student entry form.
     assert.equal(await run(`(()=>{
       document.getElementById('p2AddStudent')?.click();
@@ -73,10 +82,17 @@ async function main(){
       assert.equal(await run(`document.activeElement?.id==='p2StudentName'`),true,'Student form focus after typing '+character);
     }
     assert.equal(await run(`document.getElementById('p2StudentName')?.value`),'Meditation student');
-    assert.equal(await run(`(()=>{renderAll();return document.activeElement?.id==='p2StudentName'&&document.getElementById('p2StudentName')?.value==='Meditation student'})()`),true,'Student form must retain focus and text after rerender');
+    assert.equal(await run(`(()=>{
+      const field=document.getElementById('p2StudentName');
+      field.addEventListener('input',()=>{
+        const next=field.cloneNode(true);next.value='';field.replaceWith(next);
+      },{once:true});
+      return document.activeElement===field;
+    })()`),true,'Student form focused before replacement');
     await send('Input.insertText',{text:' test'});
+    assert.equal(await run(`document.activeElement?.id==='p2StudentName'`),true,'Student form refocus after replacement');
     assert.equal(await run(`document.getElementById('p2StudentName')?.value`),'Meditation student test');
-    console.log('PASS packaged Windows typing: Student Wise and Student Master retain focus and text after rerender');
+    console.log('PASS packaged Windows typing: Student Wise and Student Master retain focus and text after input replacement');
   }finally{ws.close()}
 }
 main().catch(e=>{console.error('FAIL Student Wise typing '+e.stack);process.exitCode=1});
