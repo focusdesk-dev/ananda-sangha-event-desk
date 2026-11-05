@@ -239,6 +239,24 @@ async function progressCheck(){
  const indices=ordered.map(name=>selectedCourses.indexOf(name));
  yes(indices.every(x=>x>=0),'Student Progress missing canonical course: '+ordered.filter((_,i)=>indices[i]<0).join(', '));
  yes(indices.every((x,i)=>i===0||x>indices[i-1]),'Student Progress Kriya/STT course order incorrect: '+selectedCourses.join(' / '));
+ const filters=['p2v520Course','p2v520Batch','p2v520Year','p2v520Group'];
+ yes(filters.every(id=>!!document.getElementById(id)),'Student Progress missing four filters');
+ const groups=[...document.getElementById('p2v520Group').options].map(o=>o.textContent.trim());
+ yes(JSON.stringify(groups)===JSON.stringify(['All','Incomplete / Withdrawn','Eligible','Eligible + Incomplete / Withdrawn']),
+   'Student Progress group filters differ from four approved choices');
+ const exportButton=document.getElementById('p2v520Export');
+ yes(exportButton&&exportButton.textContent.includes('Export Selected'),'Export Selected missing inside Student Progress');
+ const selectAll=document.getElementById('p2v520All');
+ yes(selectAll,'Bulk selection missing inside Student Progress');
+ const studentRows=page.querySelectorAll('.p2v520-table tbody tr');
+ if(page.querySelector('.p2v520-pick')){
+   selectAll.checked=true;selectAll.dispatchEvent(new Event('change',{bubbles:true}));
+   const checked=[...page.querySelectorAll('.p2v520-pick')].filter(el=>el.checked);
+   yes(checked.length>0,'Select all does not check Student Progress rows');
+   yes(exportButton.textContent.includes(String(new Set(checked.map(el=>el.dataset.id)).size)),
+      'Export Selected count not updated from checked students');
+   selectAll.checked=false;selectAll.dispatchEvent(new Event('change',{bubbles:true}));
+ }
  const tab=document.getElementById('p2v520Followups');
  yes(tab&&tab.textContent.trim()==='Student Wise','Second tab not Student Wise. Found '+(tab?.outerHTML||'missing')+'; panel '+page.innerHTML.slice(0,350));
  tab.click();
