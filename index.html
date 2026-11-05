@@ -1936,8 +1936,6 @@
           '<p class="hint">Make a backup before resetting if you need these records later.</p>'+
           '<div class="field full"><label for="v87ResetPassword">Administrator password</label>'+
             '<input id="v87ResetPassword" type="password" required autocomplete="current-password"></div>'+
-          '<div class="field full"><label for="v87ResetConfirm">Type DELETE to confirm</label>'+
-            '<input id="v87ResetConfirm" type="text" required autocomplete="off" spellcheck="false"></div>'+
           '<div id="v87ResetError" class="review-note" role="alert" aria-live="polite"></div>'+
           '<div class="actions"><button class="btn danger" type="submit" id="v87ResetSubmit">Reset All Data</button>'+
             '<button id="v87MasterResetCancel" class="btn ghost" type="button">Cancel</button></div>'+
@@ -1955,10 +1953,9 @@
     form.onsubmit=async event=>{
       event.preventDefault();
       const error=$('v87ResetError'),button=$('v87ResetSubmit');
+      // Once the user corrects the password, a stale validation error must not remain.
       error.textContent='';
-      if($('v87ResetConfirm').value.trim()!=='DELETE'){
-        error.textContent='Type DELETE exactly to confirm.';return;
-      }
+      // Password + final native confirmation are sufficient. No typed phrase.
       const record=v51SecurityRecord();
       if(!record){error.textContent='Administrator password is not configured.';return}
       try{
