@@ -37,6 +37,12 @@ async function main(){
   try{
     await send('Page.enable');
     assert.equal(await run(`(()=>{
+      const navigate=document.querySelector('.go[data-go="studentProgress"]');
+      if(!navigate)throw Error('Student Progress navigation missing');
+      navigate.click();return true;
+    })()`),true,'navigate to Student Progress');
+    await delay(350);
+    assert.equal(await run(`(()=>{
       const tab=document.getElementById('p2v520Followups');
       if(!tab)throw Error('Student Wise tab missing');
       tab.click();
