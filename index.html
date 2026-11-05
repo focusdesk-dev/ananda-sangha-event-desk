@@ -8012,6 +8012,8 @@ function p2v58BindPhoneListener(){
         if(p2v520Year!=='__all__'&&!years.has(p2v520Year))p2v520Year='__all__';
         const rows=p2v520Rows(p2v520Course,p2v520Group,p2v520Year,p2v520Batch);
         const actionable=rows.filter(x=>x.action!=='—').length;
+        const displayedIds=new Set(rows.map(x=>x.student.id));
+        for(const id of p2v520Selected)if(!displayedIds.has(id))p2v520Selected.delete(id);
         const uniqueStudents=new Set(rows.map(x=>x.student.id)).size;
         const countCompleted=rows.filter(x=>x.en?.outcome==='Completed').length;
         const countPaused=rows.filter(x=>x.en?.outcome==='Withdrawn').length;
@@ -8040,27 +8042,26 @@ function p2v58BindPhoneListener(){
             '<div><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join('')+
           '</div>'+
           '<div class="p2v520-toolbar"><div><strong>'+
-          (p2v520View==='followup'?'Follow-ups':'Students')+
+          'Students'+
           '</strong><small>'+rows.length+' records'+
           (p2v520View==='followup'?' · '+actionable+' actionable':'')+
           '</small></div>'+
-          (p2v520View==='followup'?'<button class="btn secondary small" id="p2v520Export">Export selected (consent confirmed)</button>':'')+
+          '<button class="btn secondary small" id="p2v520Export">Export Selected ('+p2v520Selected.size+')</button>'+
           '</div><div class="p2v520-hint">'+esc(help)+'</div>'+
           '<div class="p2v520-scroll"><table class="p2v520-table"><thead><tr>'+
-          (p2v520View==='followup'?'<th><input type="checkbox" id="p2v520All" aria-label="Select all actionable"></th>':'')+
+          '<th><input type="checkbox" id="p2v520All" aria-label="Select all students"></th>'+
           '<th>Student</th><th>Previous level / batch</th><th>Year</th>'+
           '<th>Attendance</th><th>Student Group</th><th>Suggested action</th><th>History</th>'+
           '</tr></thead><tbody>'+
           (rows.length?rows.map(x=>
-            '<tr>'+(p2v520View==='followup'?'<td>'+
-            (x.action==='—'?'':('<input class="p2v520-pick" type="checkbox" data-id="'+esc(x.student.id)+'" '+
-            (p2v520Selected.has(x.student.id)?'checked':'')+'>'))+'</td>':'')+
+            '<tr><td><input class="p2v520-pick" type="checkbox" data-id="'+esc(x.student.id)+'" '+
+            (p2v520Selected.has(x.student.id)?'checked':'')+'></td>'+
             '<td><strong>'+esc(x.student.name||'Unnamed')+'</strong></td>'+
             '<td>'+esc(x.detail)+'</td><td>'+esc(x.year)+'</td>'+
             '<td>'+(x.pct===null?'Not assessed':x.pct+'%')+'</td>'+
             '<td>'+esc(x.group)+'</td><td>'+esc(x.action)+'</td>'+
             '<td><button class="p2v520-history-btn" data-id="'+esc(x.student.id)+'">View</button></td></tr>'
-          ).join(''):'<tr><td colspan="'+(p2v520View==='followup'?8:7)+'">No students match the selected filters.</td></tr>')+
+          ).join(''):'<tr><td colspan="8">No students match the selected filters.</td></tr>')+
           '</tbody></table></div><div id="p2v520History" class="p2v520-history"></div>';
         $('p2v520Course').onchange=e=>{
           p2v520Course=e.target.value;p2v520Batch='__all__';p2v520Year='__all__';
@@ -8081,6 +8082,7 @@ function p2v58BindPhoneListener(){
         body.querySelectorAll('.p2v520-pick').forEach(input=>input.onchange=()=>{
           if(input.checked)p2v520Selected.add(input.dataset.id);
           else p2v520Selected.delete(input.dataset.id);
+          const button=$('p2v520Export');if(button)button.textContent='Export Selected ('+p2v520Selected.size+')';
         });
         if($('p2v520All'))$('p2v520All').onchange=e=>{
           body.querySelectorAll('.p2v520-pick').forEach(x=>{
@@ -8088,22 +8090,33 @@ function p2v58BindPhoneListener(){
             if(x.checked)p2v520Selected.add(x.dataset.id);
             else p2v520Selected.delete(x.dataset.id);
           });
+          const button=$('p2v520Export');if(button)button.textContent='Export Selected ('+p2v520Selected.size+')';
         };
         $('p2v520Export')?.addEventListener('click',()=>{
-          const list=rows.filter(x=>x.action!=='—'&&p2v520Selected.has(x.student.id));
-          if(!list.length){toast('Select students for manual follow-up.');return}
-          const confirmed=list.filter(x=>x.student.communicationConsent===true||
-            x.student.contactConsent===true||x.student.consentToContact===true);
-          if(!confirmed.length){toast('Confirm communication consent in student records before exporting contacts.');return}
-          if(confirmed.length<list.length)
-            toast('Students without confirmed communication consent were excluded.');
-          p2Csv(confirmed.map(x=>({Name:x.student.name,Mobile:x.student.mobile||'',
-            Course:p2v520CourseName(p2v520Course),Year:x.year,Previous_Batch:x.detail,
-            Group:x.group,Action:x.action,Consent:'Confirmed'})),
-            'Ananda_Student_Followups.csv');
+          const selected=new Map();
+          rows.filter(x=>p2v520Selected.has(x.student.id)).forEach(x=>{
+            if(!selected.has(x.student.id))selected.set(x.student.id,x);
+          });
+          const list=[...selected.values()];
+          if(!list.length){toast('Select students to export.');return}
+          v51RequireAdmin(()=>p2Csv(list.map(x=>({
+            Name:x.student.name||'',Mobile:x.student.mobile||'',
+            Target_Course:p2v520CourseName(p2v520Course),
+            Source_Course_and_Batch:x.detail,Year:x.year,
+            Student_Group:x.group,Attendance:x.pct===null?'Not assessed':x.pct+'%'
+          })),'Ananda_Student_Progress_Selected_Followups.csv'),
+          'export selected Student Progress follow-ups');
         });
         if(p2v520History)p2v520ShowHistory();
       }
+      // The 4 filters, totals and selected follow-up export remain in Student Progress → Progress Overview.
+      const p2v560ScopedStyle=document.createElement('style');
+      p2v560ScopedStyle.id='p2v560StudentProgressExport';
+      p2v560ScopedStyle.textContent='#studentProgress .p2v520-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px}'+
+        '#studentProgress #p2v520Export{white-space:nowrap}'+
+        '#studentProgress .p2v520-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}'+
+        '@media(max-width:850px){#studentProgress .p2v520-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}';
+      document.head.appendChild(p2v560ScopedStyle);
       function p2v520ShowHistory(){
         const host=$('p2v520History'),student=p2FindStudent(p2v520History);
         if(!host||!student)return;
@@ -8384,28 +8397,8 @@ function p2v58BindPhoneListener(){
       })),'Ananda_Class_Reports_Selected_Followups.csv'),'export selected Class Reports follow-ups');
     };
   }
-  // Extend only the existing Class Reports screen; preserve all other report and export handlers.
-  const p2v621PreviousHome=p2v54ClassReportHome;
-  p2v54ClassReportHome=function(panel){
-    p2v621PreviousHome(panel);
-    panel.querySelector('.card-head')?.remove();
-    const follow=$('p2v54Followup');
-    if(follow){
-      follow.querySelector('strong').textContent='04 · Follow-ups';
-      follow.querySelector('small').textContent='Filter eligible and returning students; select and export together.';
-      follow.onclick=()=>{p2v54ClassReportView='followup';p2v621FollowupRender(panel)};
-    }
-  };
-  const p2v621OldOpenClassReports=p2v59OpenClassReports;
-  p2v59OpenClassReports=function(){
-    p2v621OldOpenClassReports();
-    $('p2v59ClassReportsBack').textContent='Back';
-  };
-  if($('p2v59ClassReportsBack'))$('p2v59ClassReportsBack').addEventListener('click',event=>{
-    if(p2v54ClassReportView!=='home'&&$('classReportsHub')?.classList.contains('active')){
-      event.stopImmediatePropagation();p2v54ClassReportHome($('p2v59ClassReportsPanel'));
-    }
-  },true);
+  // Correction 21A follow-up bulk controls now belong in Student Progress only.
+  // Existing Class Reports navigation and exports are unchanged.
   const p2v621Style=document.createElement('style');
   p2v621Style.id='p2v621ClassReportStyle';
   p2v621Style.textContent=
