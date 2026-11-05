@@ -2308,7 +2308,14 @@
   function p2RenderStudents(){if(!$('p2StudentTable'))return;const rows=p2StudentRows();$('p2StudentTable').innerHTML=rows.length?`<div class="table-wrap"><table><thead><tr><th>Student</th><th>Mobile</th><th>Stage</th><th>Linked records</th><th></th></tr></thead><tbody>${rows.map(s=>`<tr><td><strong>${esc(s.name)}</strong><div class="sub">${esc(s.notes||'')}</div></td><td>${esc(s.mobile||'—')}</td><td><span class="p2-chip ${p2CurrentStage(s)==='Kriya'?'good':''}">${esc(p2CurrentStage(s))}</span></td><td><div class="p2-linked">${s.volunteerId?'<span class="p2-chip">Volunteer</span>':''}${s.attendeeId?'<span class="p2-chip">Attendee</span>':''}${s.kriyabanId?'<span class="p2-chip good">Kriyaban</span>':''}</div></td><td><div class="actions"><button class="btn ghost small p2-student-progress" data-id="${s.id}">Progress</button><button class="btn ghost small p2-edit-student" data-id="${s.id}">Edit</button></div></td></tr>`).join('')}</tbody></table></div>`:'<div class="p2-empty">No students found. Add the first student from Permanent Records.</div>';document.querySelectorAll('.p2-edit-student').forEach(b=>b.onclick=()=>p2OpenStudent(b.dataset.id));document.querySelectorAll('.p2-student-progress').forEach(b=>b.onclick=()=>{switchPage('studentProgress');$('p2ProgressSelect').value=b.dataset.id;p2RenderProgressDetail(b.dataset.id)})}
   function p2RenderProgressSelector(){if(!$('p2ProgressSelect'))return;const sel=$('p2ProgressSelect'),keep=sel.value;sel.innerHTML='<option value="">Select student</option>'+state.students.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(s=>`<option value="${s.id}">${esc(s.name)} · ${esc(s.mobile||'No mobile')}</option>`).join('');if(state.students.some(s=>s.id===keep))sel.value=keep}
   function p2RenderProgressDetail(studentId){const box=$('p2ProgressDetail');if(!box)return;const s=p2FindStudent(studentId);if(!s){box.innerHTML='<div class="p2-empty">Select a student to view progress.</div>';return}const enrol=p2StudentEnrollments(s.id),stage=p2CurrentStage(s);const steps=[...p2Levels,'Kriya'].map(level=>{const done=level==='Kriya'?(s.kriyabanId||s.kriyaDate||s.kriyaYear):enrol.some(e=>e.level===level&&e.outcome==='Completed');return`<span class="p2-progress-step ${done?'done':stage===level?'current':''}">${esc(level)}</span>`}).join('');box.innerHTML=`<div class="card"><div class="card-head"><div><h3>${esc(s.name)}</h3><div class="card-sub">${esc(s.mobile||'No mobile')} · Current stage: ${esc(stage)}</div></div><div class="actions"><button class="btn secondary small" id="p2ProgressEditStudent">Edit student</button><button class="btn secondary small" id="p2ProgressRegisterEvent">Register for Event</button></div></div><div class="p2-progress-line">${steps}</div></div><div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Class history</h3><div class="card-sub">Progression and advanced classes are kept together; only L1–L4 affect progression.</div></div></div>${enrol.length?`<div class="table-wrap"><table><thead><tr><th>Course</th><th>Batch</th><th>Year</th><th>Attendance</th><th>Outcome</th><th>Completion</th></tr></thead><tbody>${enrol.map(e=>{const b=state.classBatches.find(x=>x.id===e.batchId),c=p2AttendanceCounts(e);return`<tr><td>${esc(b?p2CourseName(b):(e.courseName||e.level||''))}</td><td>${esc(b?.name||e.batchLabel||'Historical')}</td><td>${esc(b?p2BatchYear(b):(e.year||'Unknown'))}</td><td>${c.attended}/${c.total}</td><td>${esc(e.outcome||'Enrolled')}</td><td>${esc(e.completionDate||'—')}</td></tr>`}).join('')}</tbody></table></div>`:'<div class="p2-empty">No class history saved yet.</div>'}</div>`;$('p2ProgressEditStudent').onclick=()=>p2OpenStudent(s.id);$('p2ProgressRegisterEvent').onclick=()=>p2RegisterStudentForEvent(s.id)}
-  function p2CreateEnrollment(studentId,batchId){const b=state.classBatches.find(x=>x.id===batchId);if(!b)return null;if(state.classEnrollments.some(e=>e.studentId===studentId&&e.batchId===batchId)){toast('Student is already enrolled in this batch');return null}const course=p2CourseForBatch(b),level=course?.category==='Progression'?course.name:(b.level||course?.name||'');const e={id:uid('enr'),studentId,batchId,courseId:b.courseId,courseName:course?.name||b.level||'',level,enrolledAt:today(),attendance:{},outcome:'Enrolled',completionDate:'',progressedDate:''};state.classEnrollments.push(e);const idx=p2Levels.indexOf(level);if(idx>0){const previous=p2StudentEnrollments(studentId).filter(x=>x.level===p2Levels[idx-1]&&x.outcome==='Completed').at(-1);if(previous&&!previous.progressedDate)previous.progressedDate=today()}return e}
+  function p2CreateEnrollment(studentId,batchId){
+    const candidate=p2FindStudent(studentId);
+    if(candidate&&state.acharyas.some(a=>
+      (candidate.mobile&&normMobile(a.mobile)===normMobile(candidate.mobile))||
+      (!candidate.mobile&&!a.mobile&&normName(a.name)===normName(candidate.name)))){
+      toast('This person is already registered as an Acharya.');return null;
+    }
+    const b=state.classBatches.find(x=>x.id===batchId);if(!b)return null;if(state.classEnrollments.some(e=>e.studentId===studentId&&e.batchId===batchId)){toast('Student is already enrolled in this batch');return null}const course=p2CourseForBatch(b),level=course?.category==='Progression'?course.name:(b.level||course?.name||'');const e={id:uid('enr'),studentId,batchId,courseId:b.courseId,courseName:course?.name||b.level||'',level,enrolledAt:today(),attendance:{},outcome:'Enrolled',completionDate:'',progressedDate:''};state.classEnrollments.push(e);const idx=p2Levels.indexOf(level);if(idx>0){const previous=p2StudentEnrollments(studentId).filter(x=>x.level===p2Levels[idx-1]&&x.outcome==='Completed').at(-1);if(previous&&!previous.progressedDate)previous.progressedDate=today()}return e}
   function p2OpenAttendance(enrollmentId){const en=state.classEnrollments.find(e=>e.id===enrollmentId),b=en&&state.classBatches.find(x=>x.id===en.batchId),s=en&&p2FindStudent(en.studentId);if(!en||!b||!s)return;$('p2AttendanceEnrollmentId').value=en.id;$('p2AttendanceTitle').textContent=`Attendance — ${s.name}`;$('p2AttendanceChecks').innerHTML=(b.sessionDates||[]).length?(b.sessionDates||[]).map(d=>`<label class="p2-record"><span><strong>${fmt(d)}</strong><br><small>${esc(p2CourseName(b))} — ${esc(b.name)}</small></span><input type="checkbox" class="p2-att-check" data-date="${d}" ${en.attendance?.[d]?'checked':''}></label>`).join(''):'<div class="p2-empty">No session dates in this batch.</div>';$('p2AttendanceModal').classList.add('open')}
   function p2RenderOutreach(level){const box=$('p2BatchOutreach');if(!box)return;const next=p2NextLevel(level);if(!next){box.innerHTML='<div class="p2-empty">This course has no further linked progression stage.</div>';return}const list=p2EligibleFromLevel(level);box.innerHTML=list.length?`<div class="table-wrap"><table><thead><tr><th>Student</th><th>Mobile</th><th>Progress</th><th>Status</th><th></th></tr></thead><tbody>${list.map(s=>{const r=p2OutreachRecord(s.id,level);return`<tr><td><strong>${esc(s.name)}</strong></td><td>${esc(s.mobile||'—')}</td><td>${esc(level)} → ${esc(next)}</td><td><select class="p2-outreach-status" data-id="${r.id}"><option ${r.status==='Not Contacted'?'selected':''}>Not Contacted</option><option ${r.status==='Contacted'?'selected':''}>Contacted</option><option ${r.status==='Interested'?'selected':''}>Interested</option><option ${r.status==='Declined / Not Interested'?'selected':''}>Declined / Not Interested</option><option ${r.status==='Registered'?'selected':''}>Registered</option></select></td><td><button class="btn small p2-register-next" data-student="${s.id}" data-level="${level}">Register for ${esc(next)}</button></td></tr>`}).join('')}</tbody></table></div>`:`<div class="p2-empty">No ${esc(level)} students currently require ${esc(next)} outreach.</div>`;document.querySelectorAll('.p2-outreach-status').forEach(sel=>sel.onchange=()=>{const r=state.outreach.find(x=>x.id===sel.dataset.id);r.status=sel.value;if(sel.value!=='Not Contacted'&&!r.contactDate)r.contactDate=today();save()});document.querySelectorAll('.p2-register-next').forEach(btn=>btn.onclick=()=>p2RegisterNext(btn.dataset.student,btn.dataset.level))}
   function p2RenderClassWorkspace(){if(!$('p2ClassHeader'))return;const b=p2ActiveBatch();if(!b){$('p2ClassHeader').innerHTML='<div><h3>No class batch selected</h3><p>Open a batch from Classes.</p></div>';$('p2ClassStats').innerHTML='';$('p2ClassRoster').innerHTML='';$('p2SessionList').innerHTML='';$('p2BatchOutreach').innerHTML='';return}const enrol=state.classEnrollments.filter(e=>e.batchId===b.id),completed=enrol.filter(e=>e.outcome==='Completed').length,incomplete=enrol.filter(e=>e.outcome&&e.outcome!=='Completed'&&e.outcome!=='Enrolled').length,course=p2CourseForBatch(b),next=course?.category==='Progression'?p2NextLevel(course.name):'',eligible=next?p2EligibleFromLevel(course.name):[];$('p2ClassHeader').innerHTML=`<div><h3>${esc(p2CourseName(b))} — ${esc(b.name)}</h3><p>${fmt(b.start)}${b.end?' to '+fmt(b.end):''} · Grouped under ${p2BatchYear(b)} · ${esc(b.status||'Upcoming')}</p><p style="margin-top:7px;font-size:12px">Acharya: ${esc(p2AcharyaNames(b).join(', ')||'Not assigned')} · Assisting volunteers: ${p2VolunteerNames(b).length} · ${esc((b.scheduleType||'custom').toUpperCase())}</p></div><div class="actions"><button class="btn secondary" id="p2EditActiveBatch">Edit batch</button><button class="btn secondary" id="p2BackClasses">Back to Classes</button></div>`;$('p2EditActiveBatch').onclick=()=>p2OpenBatch(b.id);$('p2BackClasses').onclick=()=>switchPage('classes');$('p2ClassStats').innerHTML=`<div class="p2-kpi"><span>Enrolled</span><b>${enrol.length}</b></div><div class="p2-kpi"><span>Completed</span><b>${completed}</b></div><div class="p2-kpi"><span>Incomplete / withdrew</span><b>${incomplete}</b></div><div class="p2-kpi"><span>Sessions</span><b>${(b.sessionDates||[]).length}</b></div><div class="p2-kpi"><span>${next?'Waiting for '+esc(next):'Course type'}</span><b>${next?eligible.length:esc(course?.category||'Other')}</b></div>`;$('p2ClassRoster').innerHTML=enrol.length?`<div class="table-wrap"><table><thead><tr><th>Student</th><th>Attendance</th><th>Outcome</th><th>Actions</th></tr></thead><tbody>${enrol.map(e=>{const s=p2FindStudent(e.studentId),c=p2AttendanceCounts(e);return`<tr><td><strong>${esc(s?.name||'Unknown student')}</strong><div class="sub">${esc(s?.mobile||'')}</div></td><td>${c.attended}/${c.total} · ${c.missed} missed</td><td>${esc(e.outcome||'Enrolled')}</td><td><div class="actions"><button class="btn ghost small p2-att" data-id="${e.id}">Attendance</button><button class="btn ghost small p2-complete" data-id="${e.id}">Complete</button><button class="btn ghost small p2-incomplete" data-id="${e.id}">Incomplete</button></div></td></tr>`}).join('')}</tbody></table></div>`:'<div class="p2-empty">No students enrolled in this batch.</div>';document.querySelectorAll('.p2-att').forEach(x=>x.onclick=()=>p2OpenAttendance(x.dataset.id));document.querySelectorAll('.p2-complete').forEach(x=>x.onclick=()=>{const e=state.classEnrollments.find(y=>y.id===x.dataset.id);e.outcome='Completed';e.completionDate=e.completionDate||today();save();toast('Marked completed')});document.querySelectorAll('.p2-incomplete').forEach(x=>x.onclick=()=>{const e=state.classEnrollments.find(y=>y.id===x.dataset.id);e.outcome='Did Not Complete';e.completionDate='';save();toast('Marked incomplete')});$('p2SessionList').innerHTML=(b.sessionDates||[]).length?`<div class="p2-session-list">${b.sessionDates.map(d=>`<span class="p2-session">${fmt(d)}</span>`).join('')}</div>`:'<div class="p2-empty">No session dates added yet. Edit the batch and generate or enter dates.</div>';p2RenderOutreach(course?.category==='Progression'?course.name:'')}
@@ -2367,11 +2374,23 @@
   ['p2ClassSearch','p2YearFilter','p2CourseFilter','p2StatusFilter'].forEach(id=>{const e=$(id);if(e)e.addEventListener(id==='p2ClassSearch'?'input':'change',p2RenderClasses)});
   $('p2AcharyaMasterSearch').oninput=p2RenderAcharyas;$('p2StudentSearch').oninput=p2RenderStudents;$('p2StudentStage').onchange=p2RenderStudents;
   $('p2ProgressSearch').oninput=()=>{const q=$('p2ProgressSearch').value.toLowerCase();const matches=state.students.filter(s=>[s.name,s.mobile].join(' ').toLowerCase().includes(q));$('p2ProgressSelect').innerHTML='<option value="">Select student</option>'+matches.map(s=>`<option value="${s.id}">${esc(s.name)} · ${esc(s.mobile||'No mobile')}</option>`).join('')};$('p2OpenSelectedStudent').onclick=()=>p2RenderProgressDetail($('p2ProgressSelect').value);$('p2ProgressSelect').onchange=()=>{if($('p2ProgressSelect').value)p2RenderProgressDetail($('p2ProgressSelect').value)};
-  $('p2StudentForm').onsubmit=e=>{e.preventDefault();const id=$('p2StudentId').value,name=$('p2StudentName').value.trim(),mobile=normMobile($('p2StudentMobile').value);if(mobile.length!==10){toast('Student mobile must be exactly 10 digits');return}const duplicate=state.students.find(s=>s.id!==id&&normMobile(s.mobile)===mobile);if(duplicate){toast(`Mobile already belongs to student ${duplicate.name}`);return}let s=id?p2FindStudent(id):{id:uid('stu'),cloudId:uid('sync'),createdAt:new Date().toISOString()};Object.assign(s,{name,mobile,kriyaDate:$('p2StudentKriyaDate').value,kriyaYear:$('p2StudentKriyaYear').value.trim(),notes:$('p2StudentNotes').value.trim()});if(!id)state.students.push(s);p2LinkStudent(s);if(s.kriyaDate||s.kriyaYear)p2EnsureKriyaban(s,s.kriyaDate);$('p2StudentModal').classList.remove('open');save();toast(id?'Student updated':'Student added')};
+  $('p2StudentForm').onsubmit=e=>{e.preventDefault();const id=$('p2StudentId').value,name=$('p2StudentName').value.trim(),mobile=normMobile($('p2StudentMobile').value);if(mobile.length!==10){toast('Student mobile must be exactly 10 digits');return}
+    const acharyaConflict=state.acharyas.find(a=>
+      (mobile&&normMobile(a.mobile)===mobile)||
+      (name&&normName(a.name)===normName(name)&&!mobile&&!a.mobile));
+    if(acharyaConflict){toast('This person is already registered as an Acharya.');return}
+    const duplicate=state.students.find(s=>s.id!==id&&normMobile(s.mobile)===mobile);if(duplicate){toast(`Mobile already belongs to student ${duplicate.name}`);return}let s=id?p2FindStudent(id):{id:uid('stu'),cloudId:uid('sync'),createdAt:new Date().toISOString()};Object.assign(s,{name,mobile,kriyaDate:$('p2StudentKriyaDate').value,kriyaYear:$('p2StudentKriyaYear').value.trim(),notes:$('p2StudentNotes').value.trim()});if(!id)state.students.push(s);p2LinkStudent(s);if(s.kriyaDate||s.kriyaYear)p2EnsureKriyaban(s,s.kriyaDate);$('p2StudentModal').classList.remove('open');save();toast(id?'Student updated':'Student added')};
   $('p2DeleteStudent').onclick=()=>{const id=$('p2StudentId').value;if(!id||!confirm('Delete this Student Master record? Class enrolments for this student will also be deleted.'))return;state.students=state.students.filter(s=>s.id!==id);state.classEnrollments=state.classEnrollments.filter(e=>e.studentId!==id);state.outreach=state.outreach.filter(r=>r.studentId!==id);$('p2StudentModal').classList.remove('open');save();toast('Student deleted')};
   $('p2CourseForm').onsubmit=e=>{e.preventDefault();const id=$('p2CourseId').value,name=$('p2CourseName').value.trim();if(!name)return;const dup=state.courseTypes.find(c=>c.id!==id&&normName(c.name)===normName(name));if(dup){toast('A course with this name already exists');return}let c=id?p2Course(id):{id:uid('course'),progressionOrder:null,locked:false};Object.assign(c,{name,category:$('p2CourseCategory').value,defaultSchedule:$('p2CourseSchedule').value,defaultDay:Number($('p2CourseDay').value),notes:$('p2CourseNotes').value.trim(),active:$('p2CourseActive').checked});if(!id)state.courseTypes.push(c);$('p2CourseModal').classList.remove('open');save();toast(id?'Course updated':'Course added')};
   $('p2DeleteCourse').onclick=()=>{const id=$('p2CourseId').value,c=p2Course(id);if(!c||c.locked)return;if(state.classBatches.some(b=>b.courseId===id)){toast('This course is already used by a batch. Mark it inactive instead.');return}if(confirm(`Delete course ${c.name}?`)){state.courseTypes=state.courseTypes.filter(x=>x.id!==id);$('p2CourseModal').classList.remove('open');save()}};
-  $('p2AcharyaForm').onsubmit=e=>{e.preventDefault();const id=$('p2AcharyaId').value,name=$('p2AcharyaName').value.trim(),mobile=normMobile($('p2AcharyaMobile').value);if(mobile&&mobile.length!==10){toast('Acharya mobile must be 10 digits or left blank');return}let a=id?state.acharyas.find(x=>x.id===id):{id:uid('ach')};Object.assign(a,{name,mobile,notes:$('p2AcharyaNotes').value.trim(),active:$('p2AcharyaActive').checked});if(!id)state.acharyas.push(a);$('p2AcharyaModal').classList.remove('open');save();toast(id?'Acharya updated':'Acharya added')};
+  $('p2AcharyaForm').onsubmit=e=>{e.preventDefault();const id=$('p2AcharyaId').value,name=$('p2AcharyaName').value.trim(),mobile=normMobile($('p2AcharyaMobile').value);if(mobile&&mobile.length!==10){toast('Acharya mobile must be 10 digits or left blank');return}
+    const studentConflict=state.students.find(st=>
+      (mobile&&normMobile(st.mobile)===mobile)||
+      (!mobile&&name&&normName(st.name)===normName(name)&&!st.mobile));
+    if(studentConflict){toast('This person is already registered as a Student.');return}
+    const existingAcharya=state.acharyas.find(a=>a.id!==id&&mobile&&normMobile(a.mobile)===mobile);
+    if(existingAcharya){toast('Mobile already belongs to Acharya '+existingAcharya.name);return}
+    let a=id?state.acharyas.find(x=>x.id===id):{id:uid('ach')};Object.assign(a,{name,mobile,notes:$('p2AcharyaNotes').value.trim(),active:$('p2AcharyaActive').checked});if(!id)state.acharyas.push(a);$('p2AcharyaModal').classList.remove('open');save();toast(id?'Acharya updated':'Acharya added')};
   $('p2DeleteAcharya').onclick=()=>{const id=$('p2AcharyaId').value;if(!id)return;if(state.classBatches.some(b=>(b.acharyaIds||[]).includes(id))){toast('This Acharya is assigned to a batch. Mark inactive instead.');return}if(confirm('Delete this Acharya record?')){state.acharyas=state.acharyas.filter(a=>a.id!==id);$('p2AcharyaModal').classList.remove('open');save()}};
   $('p2BatchCourse').onchange=()=>{const c=p2Course($('p2BatchCourse').value);if(!c)return;$('p2BatchScheduleType').value=c.defaultSchedule||'custom';$('p2BatchDay').value=String(c.defaultDay??0)};
   $('p2GenerateSchedule').onclick=()=>{const dates=p2GenerateDates($('p2BatchStart').value,$('p2BatchEnd').value,$('p2BatchScheduleType').value,$('p2BatchDay').value);$('p2BatchSessions').value=dates.join('\n');toast(`${dates.length} session date${dates.length===1?'':'s'} generated`)};
@@ -2451,7 +2470,11 @@
     });
   }
   function p2cStudentFromCandidate(c,name,mobile){
-    mobile=normMobile(mobile||'');let s=c?.studentId?p2FindStudent(c.studentId):null;
+    mobile=normMobile(mobile||'');
+    if(state.acharyas.some(a=>(mobile&&normMobile(a.mobile)===mobile)||
+       (!mobile&&name&&normName(a.name)===normName(name)&&!a.mobile))){
+      toast('This person is already registered as an Acharya.');return null;
+    }let s=c?.studentId?p2FindStudent(c.studentId):null;
     if(!s&&mobile)s=state.students.find(x=>normMobile(x.mobile)===mobile)||null;
     if(!s&&name)s=state.students.find(x=>normName(x.name)===normName(name)&&(!mobile||normMobile(x.mobile)===mobile))||null;
     if(!s){
@@ -4669,8 +4692,24 @@ function p2v58BindPhoneListener(){
     </div>`);
     $('p2v514PaymentStatus').onchange=p2v514RefreshPaymentUi
   }
+  function p2v563FreeBatch(b){
+    if(!b||b.courseFee===null||b.courseFee===undefined||String(b.courseFee).trim()==='')return false;
+    const n=Number(String(b.courseFee).replace(/[,₹\s]/g,''));
+    return Number.isFinite(n)&&n===0;
+  }
+  function p2v563PaymentLabel(en,b){
+    if(p2v563FreeBatch(b))return 'N.A.';
+    return en?.paymentStatus==='Paid'?'Paid':'Unpaid';
+  }
   function p2v514RefreshPaymentUi(){
-    const paid=$('p2v514PaymentStatus')?.value==='Paid';
+    const free=p2v563FreeBatch(p2ActiveBatch());
+    const status=$('p2v514PaymentStatus');
+    if(status){
+      if(![...status.options].some(o=>o.value==='N.A.'))status.add(new Option('N.A.','N.A.'));
+      status.value=free?'N.A.':status.value==='N.A.'?'Unpaid':status.value;
+      status.disabled=free;
+    }
+    const paid=!free&&status?.value==='Paid';
     if($('p2v514PaymentDate'))$('p2v514PaymentDate').disabled=!paid;
     if($('p2v514PaymentMode'))$('p2v514PaymentMode').disabled=!paid
   }
@@ -4684,9 +4723,11 @@ function p2v58BindPhoneListener(){
   }
   function p2v514ApplyPayment(en){
     if(!en)return false;p2v514EnsurePaymentUi();
-    const paid=$('p2v514PaymentStatus')?.value==='Paid',mode=$('p2v514PaymentMode')?.value||'',date=$('p2v514PaymentDate')?.value||today(),b=p2ActiveBatch();
+    const b=p2ActiveBatch(),free=p2v563FreeBatch(b);
+    const paid=!free&&$('p2v514PaymentStatus')?.value==='Paid',
+      mode=$('p2v514PaymentMode')?.value||'',date=$('p2v514PaymentDate')?.value||today();
     if(paid&&!mode){toast('Choose payment mode');$('p2v514PaymentMode')?.focus();return false}
-    en.paymentStatus=paid?'Paid':'Unpaid';
+    en.paymentStatus=free?'N.A.':paid?'Paid':'Unpaid';
     en.paymentDate=paid?date:'';
     en.paymentMode=paid?mode:'';
     if(b?.courseFee!==undefined&&b.courseFee!==''&&!en.feeAmount)en.feeAmount=String(b.courseFee);
@@ -6927,7 +6968,7 @@ function p2v58BindPhoneListener(){
         // Enrollment administration overrides are NOT attendance waivers.
         // A distinct recorded, approved Acharya attendance exception is needed.
         const a=en?.acharyaException||en?.attendanceException;
-        if(!a||a.approved!==true||!a.approvedAt||!a.approvedBy||!a.reason)return false;
+        if(!a||a.approved!==true||!a.approvedAt||!a.approvedBy)return false;
         if(a.batchId&&String(a.batchId)!==String(b?.id))return false;
         if(a.expiresAt&&String(a.expiresAt)<today())return false;
         if(a.revokedAt)return false;
@@ -7365,9 +7406,17 @@ function p2v58BindPhoneListener(){
             event.preventDefault();
             if(index<4&&student){
               const previous=p2FullChain[index-1];
-              const en=p2StudentEnrollments(student.id).find(e=>
-                p2v550Stage(state.classBatches.find(b=>b.id===e.batchId))===previous &&
-                !p2v546ApprovedException(e,state.classBatches.find(b=>b.id===e.batchId)));
+              const candidates=p2StudentEnrollments(student.id).filter(e=>{
+                const source=state.classBatches.find(b=>b.id===e.batchId);
+                return source&&p2v550Stage(source)===previous&&
+                  !p2v546ApprovedException(e,source);
+              }).sort((a,z)=>{
+                const first=state.classBatches.find(b=>b.id===a.batchId);
+                const last=state.classBatches.find(b=>b.id===z.batchId);
+                return String(last?.endedAt||last?.end||last?.start||'').localeCompare(
+                  String(first?.endedAt||first?.end||first?.start||''));
+              });
+              const en=candidates[0];
               if(en){p2v557OpenReviewApproval(student.id,en.batchId,batch.id);return}
             }
             if(index>=4&&student&&p2v550Completed(student.id,p2FullChain[index-1])&&
@@ -7548,35 +7597,28 @@ function p2v58BindPhoneListener(){
         if(!source||!target||!student||!en||!['Level 2','Level 3','Level 4'].includes(level)){
           toast('Select the student and their preceding class for review.');return;
         }
-        const acharyas=state.acharyas.filter(a=>a.active!==false);
-        if(!acharyas.length){toast('Add an Acharya in Acharya Master before approving an exception.');return}
         if(!$('p2v557ReviewModal')){
           document.body.insertAdjacentHTML('beforeend',
             '<div id="p2v557ReviewModal" class="modal-backdrop"><form id="p2v557ReviewForm" class="modal" style="max-width:480px">'+
-            '<div class="modal-head"><h3>Review Required · Acharya exception</h3><button class="x" type="button" data-close="p2v557ReviewModal">×</button></div>'+
+            '<div class="modal-head"><h3>Review Required</h3><button class="x" type="button" data-close="p2v557ReviewModal">×</button></div>'+
             '<p id="p2v557ReviewInfo" class="p2-note"></p>'+
-            '<div class="field"><label>Approving Acharya *</label><select id="p2v557ReviewAcharya" required></select></div>'+
-            '<div class="field"><label>Reason for exception *</label><textarea id="p2v557ReviewReason" required></textarea></div>'+
+            '<div class="field"><label for="p2v557ReviewReason">Notes (optional)</label><textarea id="p2v557ReviewReason"></textarea></div>'+
             '<div class="actions"><button class="btn secondary" type="button" data-close="p2v557ReviewModal">Cancel</button>'+
-            '<button class="btn" type="submit">Record exception</button></div></form></div>');
+            '<button class="btn" type="submit">Accept</button></div></form></div>');
           $('p2v557ReviewModal').querySelectorAll('[data-close]').forEach(button=>
             button.onclick=()=>$('p2v557ReviewModal').classList.remove('open'));
         }
         $('p2v557ReviewInfo').textContent=student.name+' · '+p2v550Stage(source)+' → '+level+
           '. Approval must be recorded before enrolment.';
-        $('p2v557ReviewAcharya').innerHTML='<option value="">Select Acharya</option>'+
-          acharyas.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('');
         $('p2v557ReviewReason').value='';
         $('p2v557ReviewForm').onsubmit=event=>{
           event.preventDefault();
-          const acharya=state.acharyas.find(a=>a.id===$('p2v557ReviewAcharya').value&&a.active!==false);
           const reason=$('p2v557ReviewReason').value.trim();
-          if(!acharya||!reason){toast('Select an Acharya and provide the exception reason.');return}
           v51RequireAdmin(()=>{
             const prior=state.classEnrollments.find(x=>x.id===en.id),batch=state.classBatches.find(x=>x.id===source.id);
             if(!prior||!batch)return;
             const now=new Date().toISOString();
-            const record={approved:true,approvedAt:now,approvedBy:acharya.id,acharyaName:acharya.name,
+            const record={approved:true,approvedAt:now,approvedBy:'administrator',approverRole:'Administrator',
               reason,batchId:batch.id,targetCourse:level};
             prior.acharyaExceptionHistory=Array.isArray(prior.acharyaExceptionHistory)?prior.acharyaExceptionHistory:[];
             if(prior.acharyaException)prior.acharyaExceptionHistory.push({...prior.acharyaException});
@@ -8042,8 +8084,17 @@ function p2v58BindPhoneListener(){
           '<div class="p2v526-results">'+(p2v526Search.trim()?hits.map(x=>'<button type="button" class="p2v526-result" data-id="'+esc(x.id)+'">'+esc(x.name)+' · '+esc(x.mobile||'')+'</button>').join(''):'Type a name or mobile number')+
           '</div><div id="p2v520History" class="p2v520-history"></div>';
         $('p2v526Search').oninput=e=>{
-          const n=e.target.selectionStart;p2v526Search=e.target.value;p2v520History='';p2v526StudentWise(body);
-          $('p2v526Search').focus();$('p2v526Search').setSelectionRange(n,n);
+          p2v526Search=e.target.value;
+          const matches=state.students.filter(x=>[x.name,x.mobile].some(v=>
+            String(v||'').toLowerCase().includes(p2v526Search.toLowerCase())))
+            .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).slice(0,50);
+          const list=body.querySelector('.p2v526-results');
+          list.innerHTML=p2v526Search.trim()?matches.map(x=>
+            '<button type="button" class="p2v526-result" data-id="'+esc(x.id)+'">'+
+            esc(x.name)+' · '+esc(x.mobile||'')+'</button>').join(''):'Type a name or mobile number';
+          list.querySelectorAll('.p2v526-result').forEach(btn=>btn.onclick=()=>{
+            p2v520History=btn.dataset.id;p2v520ShowHistory();
+          });
         };
         body.querySelectorAll('.p2v526-result').forEach(btn=>btn.onclick=()=>{
           p2v520History=btn.dataset.id;p2v520ShowHistory();
@@ -8333,7 +8384,7 @@ function p2v58BindPhoneListener(){
         return result;
       };
       p2v553DateNote();
-      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.57';
+      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.63';
     })();
 
 
