@@ -57,7 +57,26 @@ async function main(){
     }
     assert.equal(await run(`document.getElementById('p2v526Search')?.value`),'Urvash','typing must accumulate');
     assert.equal(await run(`document.querySelectorAll('#p2v526Search').length`),1,'Search must not be replaced');
-    console.log('PASS packaged Windows physical-like typing in Student Wise: focus retained across every keystroke');
+    // Refresh while typing should retain both the input and keyboard focus.
+    assert.equal(await run(`(()=>{renderAll();const field=document.getElementById('p2v526Search');return !!field&&document.activeElement===field&&field.value==='Urvash'})()`),true,'Search remains focused after a full data refresh');
+    await send('Input.insertText',{text:'i'});
+    assert.equal(await run(`document.getElementById('p2v526Search')?.value`),'Urvashi','Typing must continue after full refresh');
+    // Also test a separate student entry form.
+    assert.equal(await run(`(()=>{
+      document.getElementById('p2AddStudent')?.click();
+      const field=document.getElementById('p2StudentName');
+      if(!field)return false;
+      field.value='';field.focus();return document.activeElement===field;
+    })()`),true,'Student Master form focus');
+    for(const character of 'Meditation student'){
+      await send('Input.insertText',{text:character});
+      assert.equal(await run(`document.activeElement?.id==='p2StudentName'`),true,'Student form focus after typing '+character);
+    }
+    assert.equal(await run(`document.getElementById('p2StudentName')?.value`),'Meditation student');
+    assert.equal(await run(`(()=>{renderAll();return document.activeElement?.id==='p2StudentName'&&document.getElementById('p2StudentName')?.value==='Meditation student'})()`),true,'Student form must retain focus and text after rerender');
+    await send('Input.insertText',{text:' test'});
+    assert.equal(await run(`document.getElementById('p2StudentName')?.value`),'Meditation student test');
+    console.log('PASS packaged Windows typing: Student Wise and Student Master retain focus and text after rerender');
   }finally{ws.close()}
 }
 main().catch(e=>{console.error('FAIL Student Wise typing '+e.stack);process.exitCode=1});
