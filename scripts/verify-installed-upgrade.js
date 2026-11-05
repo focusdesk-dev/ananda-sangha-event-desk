@@ -21,7 +21,7 @@ async function run(){
  });
  ws.close();
  assert.equal(value?.ok,true,'Upgrade lost an existing student from offline data');
- if(mode==='verify')assert.ok(String(value.version).includes('5.57'),'Installed title is stale: '+value.version);
+ if(mode==='verify')assert.ok(String(value.version).includes('5.63'),'Installed title is stale: '+value.version);
  console.log('PASS installed app '+mode+': '+JSON.stringify(value));
 }
 run().catch(e=>{console.error('FAIL installed upgrade: '+e.message);process.exitCode=1});
