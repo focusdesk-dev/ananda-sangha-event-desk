@@ -4208,13 +4208,34 @@ function p2v58BindPhoneListener(){
     p2v565RenderAllBase();
     p2v565RestoreTyping(focus);
   };
-  document.addEventListener('input',event=>{
-    const target=event.target;
+  // Input events can run a microtask checkpoint before later event listeners
+  // remove the field. Observe the actual replacement rather than relying only
+  // on input-handler timing.
+  let p2v565LastTyping=null;
+  function p2v565RememberTyping(target){
     if(!target?.id||!target.matches?.('input:not([type="hidden"]),textarea,[contenteditable="true"]'))return;
-    const snapshot={id:target.id,element:target,value:target.value,modal:target.closest('.modal-backdrop.open')?.id||'',start:null,end:null};
-    try{snapshot.start=target.selectionStart;snapshot.end=target.selectionEnd}catch{}
+    let start=null,end=null;
+    try{start=target.selectionStart;end=target.selectionEnd}catch{}
+    p2v565LastTyping={id:target.id,element:target,value:target.value,
+      modal:target.closest('.modal-backdrop.open')?.id||'',start,end};
+  }
+  document.addEventListener('focusin',event=>p2v565RememberTyping(event.target),true);
+  document.addEventListener('beforeinput',event=>p2v565RememberTyping(event.target),true);
+  document.addEventListener('input',event=>{
+    p2v565RememberTyping(event.target);
+    const snapshot=p2v565LastTyping;
+    if(!snapshot)return;
     queueMicrotask(()=>p2v565RestoreTyping(snapshot));
+    // A bubble-phase handler may replace the input after the capture microtask.
+    setTimeout(()=>p2v565RestoreTyping(snapshot),0);
   },true);
+  new MutationObserver(()=>{
+    const snapshot=p2v565LastTyping;
+    if(snapshot&&!snapshot.element.isConnected){
+      p2v565RestoreTyping(snapshot);
+      if(p2v565LastTyping===snapshot)p2v565LastTyping=null;
+    }
+  }).observe(document.body,{childList:true,subtree:true});
 
   let p2v510EventView='landing';
   let p2v510EventYear='';
