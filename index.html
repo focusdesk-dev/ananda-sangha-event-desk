@@ -4188,7 +4188,7 @@ function p2v58BindPhoneListener(){
     if(!el||!el.id||!el.matches?.('input:not([type="hidden"]),textarea,[contenteditable="true"]'))return null;
     let start=null,end=null;
     try{start=el.selectionStart;end=el.selectionEnd}catch{}
-    return{id:el.id,element:el,value:el.value,start,end,modal:el.closest('.modal-backdrop.open')?.id||''};
+    return{id:el.id,element:el,value:el.value,start,end,modal:document.querySelector('.modal-backdrop.open')?.id||''};
   }
   function p2v565RestoreTyping(snapshot){
     if(!snapshot||snapshot.element.isConnected)return;
@@ -4217,7 +4217,7 @@ function p2v58BindPhoneListener(){
     let start=null,end=null;
     try{start=target.selectionStart;end=target.selectionEnd}catch{}
     p2v565LastTyping={id:target.id,element:target,value:target.value,
-      modal:target.closest('.modal-backdrop.open')?.id||'',start,end};
+      modal:document.querySelector('.modal-backdrop.open')?.id||'',start,end};
   }
   document.addEventListener('focusin',event=>p2v565RememberTyping(event.target),true);
   document.addEventListener('beforeinput',event=>p2v565RememberTyping(event.target),true);
