@@ -88,6 +88,8 @@ jobs:
             node scripts/verify-desktop-kriya-journey.js
             node scripts/verify-release-ui.js
             if ($LASTEXITCODE -ne 0) { throw 'Release UI regression failed' }
+            node scripts/verify-beta563-keyboard.js
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.63 keyboard interaction regression failed' }
             node scripts/verify-reset-preserves-ai.js
             if ($LASTEXITCODE -ne 0) { throw "Desktop Kriya UI regression failed" }
           } finally {
