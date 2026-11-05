@@ -277,7 +277,13 @@ async function run(){
   ws.send(JSON.stringify({id,method,params}));
  });
  const runCode=async fn=>{
-  const r=await cmd('Runtime.evaluate',{expression:'('+fn.toString()+')()',returnByValue:true,awaitPromise:true});
+  // Hold async CI evaluations on window until settled. Chromium can collect
+  // otherwise unreferenced promises during a lengthy screen update.
+  const r=await cmd('Runtime.evaluate',{
+    expression:'(window.__anandaCiPending=('+fn.toString()+')())',
+    returnByValue:true,awaitPromise:true
+  });
+  await cmd('Runtime.evaluate',{expression:'delete window.__anandaCiPending',returnByValue:true});
   return r.result?.value;
  };
  const screenshot=async name=>{
