@@ -66,7 +66,7 @@ jobs:
         run: node scripts/verify-beta563.js
       - name: Verify batch deletion and student retention scenarios
         run: node scripts/verify-batch-delete-students.js
-      - name: Verify stability fixes: Acharya, one-click review and focus
+      - name: 'Verify stability fixes - Acharya, one-click review and focus'
         run: node scripts/verify-beta565-stability.js
       - name: Audit 32 approved acceptance cases
         run: npm run test:release32
