@@ -2326,32 +2326,50 @@
   function p2RenderSelectedPeople(){if($('p2BatchAcharyaSelected'))$('p2BatchAcharyaSelected').innerHTML=p2EditingAcharyaIds.map(id=>{const a=state.acharyas.find(x=>x.id===id);return a?`<span class="p2-selected">${esc(a.name)}<button type="button" class="p2-remove-ach" data-id="${id}">×</button></span>`:''}).join('');if($('p2BatchVolunteerSelected'))$('p2BatchVolunteerSelected').innerHTML=p2EditingVolunteerIds.map(id=>{const v=state.volunteers.find(x=>x.id===id);return v?`<span class="p2-selected">${esc(volName(v))}<button type="button" class="p2-remove-vol" data-id="${id}">×</button></span>`:''}).join('');document.querySelectorAll('.p2-remove-ach').forEach(x=>x.onclick=()=>{p2EditingAcharyaIds=p2EditingAcharyaIds.filter(id=>id!==x.dataset.id);p2RenderSelectedPeople()});document.querySelectorAll('.p2-remove-vol').forEach(x=>x.onclick=()=>{p2EditingVolunteerIds=p2EditingVolunteerIds.filter(id=>id!==x.dataset.id);p2RenderSelectedPeople()})}
   function p2PopulateCourseSelect(selected=''){const sel=$('p2BatchCourse');sel.innerHTML=state.courseTypes.filter(c=>c.active!==false||c.id===selected).sort((a,b)=>p2CourseRank(a.name)-p2CourseRank(b.name)||a.name.localeCompare(b.name)).map(c=>`<option value="${c.id}">${esc(c.name)} · ${esc(c.category)}</option>`).join('');if(selected&&[...sel.options].some(o=>o.value===selected))sel.value=selected}
   function p2OpenBatch(id=''){const b=state.classBatches.find(x=>x.id===id),course=b?p2CourseForBatch(b):state.courseTypes.find(c=>c.name==='Level 1');$('p2BatchId').value=b?.id||'';p2PopulateCourseSelect(course?.id||'');$('p2BatchName').value=b?.name||'';$('p2BatchStart').value=b?.start||today();$('p2BatchEnd').value=b?.end||'';$('p2BatchStatus').value=b?.status||'Upcoming';$('p2BatchScheduleType').value=b?.scheduleType||course?.defaultSchedule||'weekly';$('p2BatchDay').value=String(b?.usualDay??course?.defaultDay??0);$('p2BatchSessions').value=(b?.sessionDates||[]).join('\n');$('p2BatchNotes').value=b?.notes||'';p2EditingAcharyaIds=[...(b?.acharyaIds||[])];p2EditingVolunteerIds=[...(b?.volunteerIds||[])];$('p2BatchAcharyaSearch').value='';$('p2BatchVolunteerSearch').value='';$('p2BatchAcharyaSuggestions').classList.add('hidden');$('p2BatchVolunteerSuggestions').classList.add('hidden');p2RenderSelectedPeople();$('p2BatchModalTitle').textContent=b?'Edit class batch':'New class batch';$('p2DeleteBatch').classList.toggle('hidden',!b);$('p2BatchModal').classList.add('open');setTimeout(()=>{const dialog=$('p2BatchModal'),active=document.activeElement;if(dialog.classList.contains('open')&&(!active||active===document.body||active===dialog))$('p2BatchName').focus()},40)}
+  // Delete a batch and only student profiles with no remaining course enrolments.
+  // Other batches, their records and the event/volunteer masters remain untouched.
+  function p2DeleteBatchRecords(id){
+    const removed=state.classEnrollments.filter(en=>en.batchId===id);
+    const enrollmentIds=new Set(removed.map(en=>en.id));
+    const affectedStudentIds=new Set(removed.map(en=>en.studentId));
+    state.classEnrollments=state.classEnrollments.filter(en=>en.batchId!==id);
+    state.classBatches=state.classBatches.filter(batch=>batch.id!==id);
+    if(state.activeClassBatchId===id)state.activeClassBatchId='';
+    const retainedStudentIds=new Set(state.classEnrollments.map(en=>en.studentId));
+    const removedStudentIds=new Set([...affectedStudentIds].filter(studentId=>!retainedStudentIds.has(studentId)));
+    // Drop only approvals that used the deleted batch as their source.
+    for(const student of state.students){
+      for(const [level,decision] of Object.entries(student.acharyaProgressionApprovals||{})){
+        if(decision&&decision.sourceBatchId===id)delete student.acharyaProgressionApprovals[level];
+      }
+      if(Array.isArray(student.acharyaProgressionHistory))
+        student.acharyaProgressionHistory=student.acharyaProgressionHistory.filter(d=>d.sourceBatchId!==id);
+    }
+    state.students=state.students.filter(s=>!removedStudentIds.has(s.id));
+    if(Array.isArray(state.outreach))
+      state.outreach=state.outreach.filter(x=>x.batchId!==id&&x.sourceBatchId!==id&&!enrollmentIds.has(x.enrollmentId)&&!removedStudentIds.has(x.studentId));
+    return{enrolments:removed.length,students:removedStudentIds.size};
+  }
   $('p2DeleteBatch').onclick=()=>{
     const b=state.classBatches.find(x=>x.id===$('p2BatchId').value);if(!b)return;
     const fromActiveClasses=typeof page!=='undefined'&&page==='activeClasses';
-    v51RequireAdmin(()=>{
+    v51RequireAdmin(async()=>{
       const label=p2CourseName(b)+' · '+b.name;
-      if(!confirm('Permanently delete '+label+' and ALL its student enrolments, attendance, outcomes and progression history? This cannot be undone. Student Master profiles and other batches will be preserved.'))return;
-      const id=b.id;
-      const deletedEnrollments=state.classEnrollments.filter(en=>en.batchId===id);
-      const deletedIds=new Set(deletedEnrollments.map(en=>en.id));
-      state.classEnrollments=state.classEnrollments.filter(en=>en.batchId!==id);
-      state.classBatches=state.classBatches.filter(batch=>batch.id!==id);
-      if(state.activeClassBatchId===id)state.activeClassBatchId='';
-      // Approval based on a deleted source course must not survive in student history.
-      for(const student of state.students){
-        for(const [level,decision] of Object.entries(student.acharyaProgressionApprovals||{})){
-          if(decision&&decision.sourceBatchId===id)delete student.acharyaProgressionApprovals[level];
-        }
-        if(Array.isArray(student.acharyaProgressionHistory))
-          student.acharyaProgressionHistory=student.acharyaProgressionHistory.filter(d=>d.sourceBatchId!==id);
-      }
-      if(Array.isArray(state.outreach))
-        state.outreach=state.outreach.filter(x=>x.batchId!==id&&x.sourceBatchId!==id&&!deletedIds.has(x.enrollmentId));
+      const enrolled=state.classEnrollments.filter(en=>en.batchId===b.id);
+      const affected=new Set(enrolled.map(en=>en.studentId));
+      const onlyHere=[...affected].filter(studentId=>!state.classEnrollments.some(en=>en.studentId===studentId&&en.batchId!==b.id)).length;
+      if(!confirm('Delete '+label+'?\\n\\n'+enrolled.length+' enrolment(s) and '+onlyHere+' student record(s) will be deleted. Students in other batches will be kept.\\n\\nThis cannot be undone.'))return;
+      // An irreversible action must have a verified on-disk backup first.
+      try{
+        if(typeof window.anandaDesktop?.manualBackupState!=='function')throw Error('Desktop backup is unavailable');
+        const backup=await window.anandaDesktop.manualBackupState(JSON.stringify(state));
+        if(!backup?.ok)throw Error(backup?.error||'Backup failed');
+      }catch(error){toast('Deletion cancelled: backup failed. '+(error?.message||''));return}
+      const removed=p2DeleteBatchRecords(b.id);
       $('p2BatchModal').classList.remove('open');save();
       switchPage(fromActiveClasses?'activeClasses':'classes');
       if(fromActiveClasses)p2RenderClasses();
-      toast('Batch and linked history permanently deleted.');
+      toast('Batch, '+removed.enrolments+' enrolment(s) and '+removed.students+' student record(s) deleted.');
     },'permanently delete class batch');
   };
   function p2RegisterNext(studentId,fromLevel){const next=p2NextLevel(fromLevel);if(next==='Kriya'){const s=p2FindStudent(studentId);if(confirm(`Mark Kriya received for ${s.name}?`)){p2EnsureKriyaban(s,'');const r=p2OutreachRecord(studentId,fromLevel);r.status='Registered';r.contactDate=today();save();toast('Kriyaban Master updated')}return}const batches=state.classBatches.filter(b=>p2CourseName(b)===next&&b.status!=='Completed').sort((a,b)=>String(a.start).localeCompare(String(b.start)));if(!batches.length){toast(`Create an upcoming/current ${next} batch first`);return}let batch=batches[0];if(batches.length>1){const answer=prompt(`Choose ${next} batch:\n`+batches.map((b,i)=>`${i+1}. ${b.name} (${b.start})`).join('\n'),'1');const idx=Number(answer)-1;if(!Number.isInteger(idx)||!batches[idx])return;batch=batches[idx]}p2CreateEnrollment(studentId,batch.id);const r=p2OutreachRecord(studentId,fromLevel);r.status='Registered';r.contactDate=today();save();toast(`Registered for ${p2CourseName(batch)} — ${batch.name}`)}
