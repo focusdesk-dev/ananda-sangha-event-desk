@@ -1922,14 +1922,69 @@
   const v87QuickRegistrationBase=$('registrationForm')?.onsubmit;
   if(v87QuickRegistrationBase)$('registrationForm').onsubmit=function(event){v36RosterOnly=false;return v87QuickRegistrationBase.call(this,event)};
 
-  // Protected master reset: the administrator must enter the same password twice and confirm the destructive action.
+  // Beta 5.61: one deliberate, administrator-authorised reset. AI key is separate,
+  // encrypted in System/ai-api-key.bin, and must not be removed with NGO data.
   function v87InstallMasterReset(){
-    const grid=document.querySelector('#settings .grid.two');if(!grid||$('v87MasterResetCard'))return;
-    grid.insertAdjacentHTML('beforeend','<div id="v87MasterResetCard" class="card v87-danger-card"><div class="card-head"><div><h3>Master reset</h3><div class="card-sub">Delete event, volunteer, attendee, Kriyaban and VIP data and start fresh.</div></div></div><div class="security-warning">This keeps the administrator password but permanently clears all registration data on this device.</div><button id="v87MasterResetButton" class="btn danger" type="button">RESET ALL APP DATA</button></div>');
-    document.body.insertAdjacentHTML('beforeend','<div id="v87MasterResetModal" class="modal-backdrop"><form id="v87MasterResetForm" class="modal" style="max-width:520px"><div class="modal-head"><h3>CONFIRM MASTER RESET</h3><button id="v87MasterResetClose" class="x" type="button">×</button></div><div class="security-warning">Enter the administrator password twice. This cannot be undone.</div><div class="field full" style="margin-top:14px"><label>ADMINISTRATOR PASSWORD *</label><input id="v87ResetPassword" type="password" required autocomplete="current-password"></div><div class="field full" style="margin-top:12px"><label>RETYPE PASSWORD *</label><input id="v87ResetPasswordConfirm" type="password" required autocomplete="current-password"></div><div id="v87ResetError" class="review-note" style="margin-top:10px"></div><div class="actions" style="margin-top:18px"><button class="btn danger" type="submit">DELETE ALL DATA</button><button id="v87MasterResetCancel" class="btn ghost" type="button">CANCEL</button></div></form></div>');
-    $('v87MasterResetButton').onclick=()=>{if(!v51SecurityRecord()){$('v87ResetError').textContent='Create an administrator password first.';return}$('v87ResetError').textContent='';$('v87MasterResetModal').classList.add('open');setTimeout(()=>$('v87ResetPassword').focus(),0)};
-    const close=()=>{$('v87MasterResetModal').classList.remove('open');$('v87ResetPassword').value='';$('v87ResetPasswordConfirm').value='';$('v87ResetError').textContent=''};$('v87MasterResetClose').onclick=close;$('v87MasterResetCancel').onclick=close;
-    $('v87MasterResetForm').onsubmit=async event=>{event.preventDefault();const first=$('v87ResetPassword').value,second=$('v87ResetPasswordConfirm').value,error=$('v87ResetError');error.textContent='';if(!first||first!==second){error.textContent='The two password entries must match.';return}const record=v51SecurityRecord();try{const hash=await v51PasswordHash(first,record.salt);if(hash!==record.hash){error.textContent='Incorrect administrator password.';return}}catch(err){error.textContent=err.message||'Password verification failed.';return}if(!confirm('Delete ALL events, registrations and master records from this device?'))return;localStorage.removeItem(KEY);v51MasterUnlocked=false;close();location.reload()};
+    // The existing Settings "Reset All Data" button is the only reset entry point.
+    $('v87MasterResetCard')?.remove();
+    if(!$('v87MasterResetModal'))document.body.insertAdjacentHTML('beforeend',
+      '<div id="v87MasterResetModal" class="modal-backdrop">'+
+        '<form id="v87MasterResetForm" class="modal" style="max-width:470px">'+
+          '<div class="modal-head"><h3>Reset All Data</h3><button id="v87MasterResetClose" class="x" type="button" aria-label="Close">×</button></div>'+
+          '<p>Deletes all student, class, attendance, event and master records on this computer. This cannot be undone.</p>'+
+          '<p class="security-warning">Your saved AI API key and administrator password will be kept. Existing backups are not deleted.</p>'+
+          '<p class="hint">Make a backup before resetting if you need these records later.</p>'+
+          '<div class="field full"><label for="v87ResetPassword">Administrator password</label>'+
+            '<input id="v87ResetPassword" type="password" required autocomplete="current-password"></div>'+
+          '<div class="field full"><label for="v87ResetConfirm">Type DELETE to confirm</label>'+
+            '<input id="v87ResetConfirm" type="text" required autocomplete="off" spellcheck="false"></div>'+
+          '<div id="v87ResetError" class="review-note" role="alert" aria-live="polite"></div>'+
+          '<div class="actions"><button class="btn danger" type="submit" id="v87ResetSubmit">Reset All Data</button>'+
+            '<button id="v87MasterResetCancel" class="btn ghost" type="button">Cancel</button></div>'+
+        '</form></div>');
+    const dialog=$('v87MasterResetModal'),form=$('v87MasterResetForm');
+    const close=()=>{dialog.classList.remove('open');form.reset();$('v87ResetError').textContent='';};
+    $('v87MasterResetClose').onclick=close;
+    $('v87MasterResetCancel').onclick=close;
+    $('v123ResetSettings').onclick=()=>{
+      if(!v51SecurityRecord()){toast('Create an administrator password before resetting data.');return}
+      $('v87ResetError').textContent='';
+      dialog.classList.add('open');
+      setTimeout(()=>$('v87ResetPassword').focus(),0);
+    };
+    form.onsubmit=async event=>{
+      event.preventDefault();
+      const error=$('v87ResetError'),button=$('v87ResetSubmit');
+      error.textContent='';
+      if($('v87ResetConfirm').value.trim()!=='DELETE'){
+        error.textContent='Type DELETE exactly to confirm.';return;
+      }
+      const record=v51SecurityRecord();
+      if(!record){error.textContent='Administrator password is not configured.';return}
+      try{
+        const hash=await v51PasswordHash($('v87ResetPassword').value,record.salt);
+        if(hash!==record.hash){error.textContent='Incorrect administrator password.';return}
+      }catch(problem){error.textContent=problem.message||'Password check failed.';return}
+      // Do not rely on unsupported window.prompt. A second real confirmation
+      // prevents a mistaken submit on this destructive operation.
+      if(!window.confirm('Permanently delete ALL application records on this computer? Your AI key will be kept.'))return;
+      if(!window.anandaDesktop?.resetDataKeepAiKey){
+        error.textContent='Secure reset is only available in the Windows desktop app.';return;
+      }
+      button.disabled=true;
+      try{
+        const result=await window.anandaDesktop.resetDataKeepAiKey();
+        if(!result?.ok){error.textContent=result?.error||'Reset failed. Records were not changed.';return}
+        // Preserve only administrator security configuration; no NGO data or
+        // attendance cached keys survive the reset.
+        const security=localStorage.getItem(V51_SECURITY_KEY);
+        localStorage.clear();
+        if(security)localStorage.setItem(V51_SECURITY_KEY,security);
+        v51MasterUnlocked=false;
+        location.reload();
+      }catch(problem){error.textContent=problem.message||'Reset failed. Please retry.'}
+      finally{button.disabled=false}
+    };
   }
   v87InstallMasterReset();
 
