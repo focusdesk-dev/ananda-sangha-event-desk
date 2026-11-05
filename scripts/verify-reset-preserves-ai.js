@@ -38,17 +38,16 @@ assert.equal(await run(function(){
 assert.equal(await run(async function(){
  document.getElementById('v123ResetSettings').click();
  document.getElementById('v87ResetPassword').value='wrong';
- document.getElementById('v87ResetConfirm').value='DELETE';
- document.getElementById('v87ResetSubmit').click();
+ document.getElementById('v87MasterResetForm').requestSubmit();
  await new Promise(r=>setTimeout(r,550));
  return /incorrect administrator password/i.test(document.getElementById('v87ResetError').textContent)&&
    JSON.parse(localStorage.getItem('annualEventRegistration.v1')).students.length===1;
 }),true,'wrong password rejected');
 assert.equal(await run(function(){
  document.getElementById('v87ResetPassword').value='CI-reset-password';
- document.getElementById('v87ResetConfirm').value='DELETE';
  window.confirm=()=>true;
- setTimeout(()=>document.getElementById('v87ResetSubmit').click(),50);
+ if(document.getElementById('v87ResetConfirm'))throw Error('Old confirmation field remains');
+ document.getElementById('v87MasterResetForm').requestSubmit();
  return true;
 }),true);
 await wait(2600);
