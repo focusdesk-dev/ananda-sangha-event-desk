@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.60 Setup
+name: Build Ananda Event Desk beta 5.61 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-60-student-progress-followups]
+    branches: [beta-5-61-reset-preserve-ai-key]
 permissions:
   contents: write
   actions: read
@@ -85,6 +85,8 @@ jobs:
             if (!$found) { throw "Packaged app did not expose a loaded Ananda window within the smoke check." }
             node scripts/verify-desktop-kriya-journey.js
             node scripts/verify-release-ui.js
+            if ($LASTEXITCODE -ne 0) { throw 'Release UI regression failed' }
+            node scripts/verify-reset-preserves-ai.js
             if ($LASTEXITCODE -ne 0) { throw "Desktop Kriya UI regression failed" }
           } finally {
             Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Ananda Sangha Event Desk.exe' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
@@ -142,24 +144,24 @@ jobs:
           if ($proc.ExitCode -ne 0) { throw "Uninstall failed" }
           $data = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK\Data'
           if (!(Test-Path $data)) { throw "Uninstall removed offline data" }
-          Write-Host "PASS real install, 5.52 to 5.60 upgrade, persistent NGO test student, shortcut and uninstall"
+          Write-Host "PASS real install, 5.52 to 5.61 upgrade, persistent NGO test student, shortcut and uninstall"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Ananda-beta-5.60-verification-evidence
+          name: Ananda-beta-5.61-verification-evidence
           path: verification/
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.60-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.61-Setup
           path: dist/*.exe
           if-no-files-found: error
 
       - name: Publish single-file installer to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ananda-beta-5.60
-          name: Ananda Sangha Event Desk Beta 5.60
+          tag_name: ananda-beta-5.61
+          name: Ananda Sangha Event Desk Beta 5.61
           prerelease: true
           files: dist/*.exe
           body: "Windows installer, successful packaged Windows UI and NSIS upgrade checks. Installer is unsigned; Smart App Control may block it."
