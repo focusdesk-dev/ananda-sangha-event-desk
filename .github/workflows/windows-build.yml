@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.68 Setup
+name: Build Ananda Event Desk beta 5.69 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-68-kriya-fee-stability]
+    branches: [beta-5-69-keyboard-navigation]
 permissions:
   contents: write
   actions: read
@@ -68,11 +68,11 @@ jobs:
         run: node scripts/verify-batch-delete-students.js
       - name: 'Verify stability fixes - Acharya, one-click review and focus'
         run: node scripts/verify-beta565-stability.js
-      - name: Verify Beta 5.68 correction and diagnostics
+      - name: Verify Beta 5.69 correction and diagnostics
         run: node scripts/verify-beta566.js
-      - name: 'Verify Beta 5.68 Kriya Master and In Progress workflow'
+      - name: 'Verify Beta 5.69 Kriya Master and In Progress workflow'
         run: node scripts/verify-beta567.js
-      - name: Verify Beta 5.68 existing Kriya approval and repeat-fee policy
+      - name: Verify Beta 5.69 existing Kriya approval and repeat-fee policy
         run: node scripts/verify-beta568.js
       - name: Audit 32 approved acceptance cases
         run: npm run test:release32
@@ -99,7 +99,9 @@ jobs:
             node scripts/verify-release-ui.js
             if ($LASTEXITCODE -ne 0) { throw 'Release UI regression failed' }
             node scripts/verify-beta563-keyboard.js
-            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.68 keyboard interaction regression failed' }
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.69 keyboard interaction regression failed' }
+            node scripts/verify-beta569-typing-navigation.js
+            if ($LASTEXITCODE -ne 0) { throw '100-cycle keyboard/navigation regression failed' }
             node scripts/verify-reset-preserves-ai.js
             if ($LASTEXITCODE -ne 0) { throw "Desktop Kriya UI regression failed" }
           } finally {
@@ -158,24 +160,24 @@ jobs:
           if ($proc.ExitCode -ne 0) { throw "Uninstall failed" }
           $data = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK\Data'
           if (!(Test-Path $data)) { throw "Uninstall removed offline data" }
-          Write-Host "PASS real install, 5.52 to 5.68 upgrade, persistent NGO test student, shortcut and uninstall"
+          Write-Host "PASS real install, 5.52 to 5.69 upgrade, persistent NGO test student, shortcut and uninstall"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Ananda-beta-5.68-verification-evidence
+          name: Ananda-beta-5.69-verification-evidence
           path: verification/
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.68-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.69-Setup
           path: dist/*.exe
           if-no-files-found: error
 
       - name: Publish single-file installer to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ananda-beta-5.68
-          name: Ananda Sangha Event Desk Beta 5.68
+          tag_name: ananda-beta-5.69
+          name: Ananda Sangha Event Desk Beta 5.69
           prerelease: true
           files: dist/*.exe
           body: "Windows installer, successful packaged Windows UI and NSIS upgrade checks. Installer is unsigned; Smart App Control may block it."
