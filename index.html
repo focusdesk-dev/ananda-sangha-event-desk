@@ -178,7 +178,7 @@
       <button class="nav-btn" data-page="phase2Reports"><span>05</span> Reports</button>
       <button class="nav-btn" data-page="settings"><span>06</span> Settings</button>
     </nav>
-    <div class="aside-foot"><strong>ANANDA EVENT DESK · BETA 5.66</strong><br>Offline records · Automatic backup every 5 days.</div>
+    <div class="aside-foot"><strong>ANANDA EVENT DESK · BETA 5.67</strong><br>Offline records · Automatic backup every 5 days.</div>
   </aside>
 
   <main>
@@ -1140,7 +1140,14 @@
     return volunteer&&attendee?'Volunteer + Attendee':volunteer?'Volunteer':attendee?'Attendee':'Kriyaban only'
   }
   function v46OpenKriyaban(id=''){
-    const person=state.kriyabans.find(k=>k.id===id);$('kriyabanModalTitle').textContent=person?'Edit Kriyaban':'Add Kriyaban';$('kriyabanId').value=person?.id||'';$('kriyabanName').value=person?.name||'';$('kriyabanMobile').value=person?.mobile||'';$('kriyabanNotes').value=person?.notes||'';$('deleteKriyaban').classList.toggle('hidden',!person);$('kriyabanModal').classList.add('open');setTimeout(()=>$('kriyabanName').focus(),0)
+    const person=state.kriyabans.find(k=>k.id===id);
+    if(!$('p2v567InitiationDate')){
+      const field=document.createElement('div');field.className='field';
+      field.innerHTML='<label for="p2v567InitiationDate">Kriya initiation date (if recorded)</label><input id="p2v567InitiationDate" type="date">';
+      $('kriyabanNotes').closest('.field')?.insertAdjacentElement('afterend',field);
+    }
+    $('p2v567InitiationDate').value=person?.kriyaDate||'';
+    $('kriyabanModalTitle').textContent=person?'Edit Kriyaban':'Add Kriyaban';$('kriyabanId').value=person?.id||'';$('kriyabanName').value=person?.name||'';$('kriyabanMobile').value=person?.mobile||'';$('kriyabanNotes').value=person?.notes||'';$('deleteKriyaban').classList.toggle('hidden',!person);$('kriyabanModal').classList.add('open');setTimeout(()=>$('kriyabanName').focus(),0)
   }
   function v46RenderKriyabans(){
     const list=v46KriyabanQueryMatches($('kriyabanSearch').value).sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base'}));
@@ -1152,7 +1159,11 @@
     event.preventDefault();const id=$('kriyabanId').value,name=$('kriyabanName').value.trim(),mobile=normMobile($('kriyabanMobile').value),notes=$('kriyabanNotes').value.trim();
     if(!name){toast('Enter the Kriyaban name');return}if(mobile.length!==10){toast('Enter a valid 10-digit mobile number');return}
     const duplicate=state.kriyabans.find(k=>k.id!==id&&(normMobile(k.mobile)===mobile||(normName(k.name)===normName(name)&&normMobile(k.mobile)===mobile)));if(duplicate){toast('This Kriyaban already exists in the master');return}
-    const old=state.kriyabans.find(k=>k.id===id),person={id:id||uid('kriyaban'),name,mobile,notes,createdAt:old?.createdAt||new Date().toISOString()};
+    const old=state.kriyabans.find(k=>k.id===id),date=$('p2v567InitiationDate')?.value||'';
+    const person={...old,id:id||uid('kriyaban'),name,mobile,notes,
+      kriyaDate:date,kriyaYear:date?date.slice(0,4):'',createdAt:old?.createdAt||new Date().toISOString()};
+    if(person.studentId){const student=p2FindStudent(person.studentId);
+      if(student){student.kriyaDate=date;student.kriyaYear=date?date.slice(0,4):'';student.kriyabanId=person.id}}
     if(old)state.kriyabans[state.kriyabans.findIndex(k=>k.id===id)]=person;else state.kriyabans.push(person);$('kriyabanModal').classList.remove('open');save();toast(old?'Kriyaban updated':'Kriyaban added to permanent master')
   };
   $('deleteKriyaban').onclick=()=>{const id=$('kriyabanId').value,person=state.kriyabans.find(k=>k.id===id);if(!person||!confirm(`Delete ${person.name} from Kriyaban Master?`))return;state.kriyabans=state.kriyabans.filter(k=>k.id!==id);$('kriyabanModal').classList.remove('open');save();toast('Kriyaban removed')};
@@ -7722,34 +7733,9 @@ function p2v58BindPhoneListener(){
         $('p2v557ReviewModal').classList.add('open');
       }
       function p2v550RenderApprovals(){
-        const current=p2ActiveBatch(),from=p2v550Stage(current),
-          next=p2NextLevel(from),qualifies=p2FullChain.indexOf(next)>=4;
+        // Progression decisions belong in Student Wise or the actual enrolment
+        // workflow, never as a duplicate class-batch approval table.
         $('p2v550ApprovalCard')?.remove();
-        if(!qualifies||page!=='classWorkspace')return;
-        const enrollments=state.classEnrollments.filter(e=>e.batchId===current.id);
-        const host=document.createElement('section');
-        host.className='card';host.id='p2v550ApprovalCard';
-        host.innerHTML='<div class="card-head"><div><h3>Acharya approval · '+esc(next)+'</h3>'+
-          '<div class="card-sub">Approval is recorded separately from attendance and is required before enrollment in '+esc(next)+'.</div></div></div>'+
-          (enrollments.length?'<div class="table-wrap"><table><thead><tr><th>Student</th><th>Previous course</th><th>Acharya decision</th><th></th></tr></thead><tbody>'+
-          enrollments.map(en=>{
-            const student=p2FindStudent(en.studentId);
-            if(!student)return'';
-            const ready=p2v550Completed(student.id,from);
-            const decision=p2v550Decision(student,next);
-            const denied=student.acharyaProgressionApprovals?.[next]?.status==='Not approved';
-            return'<tr><td><strong>'+esc(student.name)+'</strong></td><td>'+esc(from)+
-              ' · '+esc(en.outcome||'In Progress')+'</td><td>'+
-              (decision?'Approved by '+esc(decision.acharyaName):
-                denied?'Not approved':ready?'Pending Acharya decision':'Course not completed')+
-              '</td><td><button class="btn secondary small p2v550-approve" data-student="'+esc(student.id)+'" '+
-              (!ready?'disabled':'')+'>Record decision</button></td></tr>';
-          }).join('')+'</tbody></table></div>':
-          '<div class="p2-empty">No student enrolments in this batch.</div>');
-        const anchor=$('p2ClassRoster');
-        if(anchor)anchor.insertAdjacentElement('afterend',host);
-        host.querySelectorAll('.p2v550-approve').forEach(button=>button.onclick=()=>
-          p2v550OpenApproval(button.dataset.student,current.id));
       }
       const p2v550WorkspaceBase=p2RenderClassWorkspace;
       p2RenderClassWorkspace=function(){
@@ -7829,6 +7815,51 @@ function p2v58BindPhoneListener(){
         }
         return{key:'Unassessed',label:'Not assessed'};
       }
+      // A completed Kriya class appears in Kriya Master without duplicate entry.
+      // Course completion is NOT evidence of initiation on a particular date.
+      function p2v567SyncKriyaMaster(){
+        let changed=false;
+        for(const en of state.classEnrollments){
+          if(en.outcome!=='Completed'||!en.studentId)continue;
+          const batch=state.classBatches.find(b=>b.id===en.batchId);
+          if(!batch?.endedAt||p2v550Stage(batch)!=='Kriya')continue;
+          const student=p2FindStudent(en.studentId);
+          if(!student)continue;
+          const mobile=normMobile(student.mobile||'');
+          let kriya=state.kriyabans.find(k=>k.studentId===student.id)||
+            (student.kriyabanId?state.kriyabans.find(k=>k.id===student.kriyabanId):null);
+          if(!kriya&&mobile.length===10){
+            const matches=state.kriyabans.filter(k=>normMobile(k.mobile)===mobile);
+            if(matches.length===1)kriya=matches[0];
+          }
+          if(!kriya){
+            const name=normName(student.name||'');
+            // No name-only matching when distinct people may share a name.
+            const matches=!mobile&&name?state.kriyabans.filter(k=>normName(k.name)===name):[];
+            if(matches.length===1)kriya=matches[0];
+          }
+          if(!kriya){
+            kriya={id:uid('kriyaban'),studentId:student.id,name:student.name,
+              mobile:student.mobile||'',notes:'Linked from completed Kriya course',
+              kriyaDate:student.kriyaDate||'',kriyaYear:student.kriyaYear||'',
+              createdAt:new Date().toISOString()};
+            state.kriyabans.push(kriya);changed=true;
+          }
+          if(!kriya.studentId){kriya.studentId=student.id;changed=true}
+          if(student.kriyabanId!==kriya.id){student.kriyabanId=kriya.id;changed=true}
+          if(!kriya.kriyaDate&&student.kriyaDate){kriya.kriyaDate=student.kriyaDate;changed=true}
+          if(!student.kriyaDate&&kriya.kriyaDate){student.kriyaDate=kriya.kriyaDate;changed=true}
+          const realYear=String(student.kriyaDate||kriya.kriyaDate||'').slice(0,4);
+          if(realYear&&student.kriyaYear!==realYear){student.kriyaYear=realYear;changed=true}
+          if(realYear&&kriya.kriyaYear!==realYear){kriya.kriyaYear=realYear;changed=true}
+          const completion=en.completionDate||batch.end||String(batch.endedAt).slice(0,10);
+          if(completion&&!kriya.kriyaCourseCompletionDate){
+            kriya.kriyaCourseCompletionDate=completion;changed=true;
+          }
+          // Existing manually entered initiation dates always take precedence.
+        }
+        return changed;
+      }
       function p2v519Finalise(b){
         if(!b||b.endedAt)return;
         const rows=state.classEnrollments.filter(en=>en.batchId===b.id);
@@ -7869,6 +7900,7 @@ function p2v58BindPhoneListener(){
         b.endedAt=new Date().toISOString();
         b.status='Completed';
         b.end=b.end||dates.at(-1)?.date||today();
+        if(level==='Kriya')p2v567SyncKriyaMaster();
         save();toast('Batch ended; outcomes and approvals preserved.');
         p2v519RenderSummary();
       }
@@ -7942,6 +7974,7 @@ function p2v58BindPhoneListener(){
               after:{studentId:en.studentId,outcome:en.outcome,attendance:{...en.attendance},
                 progressionFinalStatus:en.progressionFinalStatus?{...en.progressionFinalStatus}:null}});
             modal.classList.remove('open');
+            if(p2v519Stage(batch)==='Kriya')p2v567SyncKriyaMaster();
             save();
             toast('Student correction saved. Batch remains ended.');
             p2v519RenderSummary();
@@ -8033,6 +8066,7 @@ function p2v58BindPhoneListener(){
           switchPage('studentProgress');
         });
       }
+      if(p2v567SyncKriyaMaster())localStorage.setItem(KEY,JSON.stringify(state));
       const p2v519WorkspaceBase=p2RenderClassWorkspace;
       p2RenderClassWorkspace=function(){
         const b=p2ActiveBatch();
@@ -8089,7 +8123,7 @@ function p2v58BindPhoneListener(){
 
       // CORRECTION 20 — One query, all years. The four student-group options
       // are operational sets, not new student/master or attendance records.
-      const p2v520Groups=['All','Incomplete / Withdrawn','Eligible',
+      const p2v520Groups=['All','In Progress','Incomplete / Withdrawn','Eligible',
         'Eligible + Incomplete / Withdrawn'];
       let p2v520Course='',p2v520Batch='__all__',p2v520Year='__all__',
         p2v520Group='All',p2v520View='overview',p2v520History='',
@@ -8207,6 +8241,12 @@ function p2v58BindPhoneListener(){
           state.students.map(s=>p2v520EligibleFromPrevious(s,courseId)).filter(Boolean):[])
           .filter(x=>yearOK(x.year));
         const prospects=new Map(eligible.map(x=>[x.student.id,x]));
+        if(group==='In Progress')return current.filter(x=>!x.b.endedAt&&
+          !['Completed','Withdrawn','Did Not Complete','Incomplete','Paused','Course paused'].includes(x.en.outcome))
+          .map(x=>{const a=p2v519Attendance(x.b,x.en);return{
+            student:x.student,en:x.en,b:x.b,year:String(p2BatchYear(x.b)||''),
+            group:'In Progress',action:'—',pct:a.pct,
+            detail:p2CourseName(x.b)+' · '+x.b.name}}).sort(p2v520SortRows);
         if(group==='Eligible')return [...prospects.values()].sort(p2v520SortRows);
         if(group==='Incomplete / Withdrawn')return unfinished.sort(p2v520SortRows);
         if(group==='Eligible + Incomplete / Withdrawn'){
@@ -8216,7 +8256,8 @@ function p2v58BindPhoneListener(){
         const overview=current.map(x=>{
           const a=p2v519Attendance(x.b,x.en);
           return{student:x.student,en:x.en,b:x.b,year:String(p2BatchYear(x.b)||''),
-            group:p2v520OutcomeIsUnfinished(x.en,x.b)?'Incomplete / Withdrawn':
+            group:x.b.endedAt?(x.en.outcome==='Completed'?'Completed':'Incomplete / Withdrawn'):
+              p2v520OutcomeIsUnfinished(x.en,x.b)?'Incomplete / Withdrawn':
               x.en.outcome==='Completed'?'Completed':'In Progress',
             action:'—',pct:a.pct,detail:p2CourseName(x.b)+' · '+x.b.name};
         });
@@ -8395,12 +8436,18 @@ function p2v58BindPhoneListener(){
             return{event:event?.name||event?.title||'Event',date:event?.start||r.registeredAt||'',role:r.role||r.duty||'Volunteer'};
           }).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
         const nextStages=['Kriya','Kriya 2','Kriya 3','Kriya 4'];
+        const completedKriya=lessons.some(x=>x.stage==='Kriya'&&x.en.outcome==='Completed');
+        const linkedKriyaban=state.kriyabans.find(k=>k.id===student.kriyabanId||k.studentId===student.id);
+        const initiationDate=student.kriyaDate||linkedKriyaban?.kriyaDate||'';
+        // Never show duplicate reviews for completed Kriya or speculative
+        // "Review Required" for Kriya 2. Approval is requested on enrolment.
         const reviews=nextStages.map(target=>{
           const i=p2FullChain.indexOf(target),from=p2FullChain[i-1];
           const source=lessons.filter(x=>x.stage===from&&x.en.outcome==='Completed').slice(-1)[0];
           const decision=student.acharyaProgressionApprovals?.[target];
           return{target,source,decision};
-        }).filter(x=>x.source||x.decision);
+        }).filter(x=>x.source&&x.target!=='Kriya'&&
+          x.target!=='Kriya 2'&&!x.decision);
         host.innerHTML='<div class="p2v520-history-head"><strong>'+esc(student.name)+
           ' · Student journey</strong><button type="button" id="p2v520CloseHistory">Close</button></div>'+
           '<div class="p2v558-journey-tabs"><button id="p2v558Journey">Journey</button>'+
@@ -8415,6 +8462,8 @@ function p2v58BindPhoneListener(){
             '<td>'+esc(en.outcome==='Withdrawn'||en.outcome==='Did Not Complete'?'Paused':
               en.outcome||'In Progress')+'</td></tr>').join('')+
           '</tbody></table>':'<div>No course history found.</div>')+
+          (completedKriya?'<div class="p2v558-review-row"><strong>Kriya initiation</strong> · '+
+            (initiationDate?'On '+esc(fmt(initiationDate)):'Date not recorded')+'</div>':'')+
           (reviews.length?'<div class="p2v558-review-list">'+reviews.map((x,i)=>
             '<div class="p2v558-review-row"><strong>'+esc(x.target)+'</strong> · '+
             esc(x.decision?.status||'Review required')+
@@ -8548,7 +8597,7 @@ function p2v58BindPhoneListener(){
         return result;
       };
       p2v553DateNote();
-      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.66';
+      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.67';
     })();
 
 

@@ -82,7 +82,7 @@ test(16,'Kriya 2 session edits preserve existing records',()=>has('p2v547SavePla
 test(17,'Saved schedules and attendance dates guarded',()=>has('An existing attendance date would be lost'));
 test(18,'Student Progress page has no duplicate inner title',()=>absent("'<h3>Student Progress</h3><div class=\"p2v520-tabs\">'"));
 test(19,'Redundant Student Progress and Class Batch subtitles removed',()=>{has("studentProgress:['Student Progress',''],classWorkspace:['Class Batch','']")});
-test(20,'Student Progress four exact groups in order',()=>has("const p2v520Groups=['All','Incomplete / Withdrawn','Eligible',"));
+test(20,'Student Progress five exact groups in order',()=>has("const p2v520Groups=['All','In Progress','Incomplete / Withdrawn','Eligible',"));
 test(21,'Student Wise is second main tab, not Follow-Ups',()=>has('<button id="p2v520Followups">Student Wise</button>'));
 test(22,'Student Wise search accepts student name or mobile',()=>{has("function p2v526StudentWise(body)");has('Search by name or mobile')});
 test(23,'Student Wise shows complete historical batches and attendance',()=>{has('p2v56ChatStudentEnrollments(student.id)');has('p2v520ShowHistory()')});
@@ -97,7 +97,7 @@ test(31,'Contextual enrol shortcut and save shortcut remain',()=>{assert.ok(main
 test(32,'Offline backup and installer identity/shortcuts',()=>{
  assert.ok(main.includes('FIVE_DAYS_MS'));assert.ok(main.includes('DATA_ROOT'));
  assert.ok(pkg.build.nsis.createDesktopShortcut&&pkg.build.nsis.createStartMenuShortcut);
- assert.equal(pkg.version,'2.0.0-beta.5.66');assert.ok(main.includes('app.getVersion()'));});
+ assert.equal(pkg.version,'2.0.0-beta.5.67');assert.ok(main.includes('app.getVersion()'));});
 const failed=results.filter(x=>x.status==='FAIL');
 fs.mkdirSync('verification',{recursive:true});
 fs.writeFileSync('verification/acceptance-32.json',JSON.stringify({
