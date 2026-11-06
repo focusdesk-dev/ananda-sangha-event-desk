@@ -63,13 +63,14 @@ async function main(){
      await visit('studentProgress');
      assert.equal(await run("(()=>{const tab=document.getElementById('p2v520Followups');if(!tab)return false;tab.click();return !!document.getElementById('p2v526Search')})()"),true,'Student Wise tab opened');
      await type('p2v526Search','Student '+cycle);
-     await visit('students');
-     assert.equal(await run("(()=>{document.getElementById('p2AddStudent')?.click();return document.getElementById('p2StudentModal')?.classList.contains('open')===true})()"),true,'New Student opened');
-     await type('p2StudentName','Volunteer '+cycle);
-     await run("document.querySelector('[data-close=\"p2StudentModal\"]')?.click()");
+     // Return to Classes without opening password-protected master screens.
+     await visit('classes');
+     assert.equal(await run("(()=>{document.getElementById('p2AddBatch')?.click();return document.getElementById('p2BatchModal')?.classList.contains('open')===true})()"),true,'New Batch reopened');
+     await type('p2BatchName','Return '+cycle);
+     await run("document.querySelector('[data-close=\"p2BatchModal\"]')?.click()");
      if(cycle%25===24)console.log('Keyboard regression cycles passed: '+(cycle+1));
    }
-   console.log('PASS actual packaged Windows app: 100 New Batch close -> Student Wise type -> Student Master type navigation cycles, without restart');
+   console.log('PASS actual packaged Windows app: 100 New Batch close -> Student Wise type -> New Batch reopen/type cycles, without restart');
  }finally{ws.close()}
 }
 main().catch(error=>{console.error('FAIL application-wide keyboard navigation regression: '+error.stack);process.exitCode=1});
