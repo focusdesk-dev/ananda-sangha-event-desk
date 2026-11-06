@@ -178,7 +178,7 @@
       <button class="nav-btn" data-page="phase2Reports"><span>05</span> Reports</button>
       <button class="nav-btn" data-page="settings"><span>06</span> Settings</button>
     </nav>
-    <div class="aside-foot"><strong>ANANDA EVENT DESK · BETA 5.68</strong><br>Offline records · Automatic backup every 5 days.</div>
+    <div class="aside-foot"><strong>ANANDA EVENT DESK · BETA 5.69</strong><br>Offline records · Automatic backup every 5 days.</div>
   </aside>
 
   <main>
@@ -622,7 +622,13 @@
     return [...vols,...atts];
   }
   function pendingPeople(){return peopleToday().map(p=>({p,a:allocation(p.type,p.id)})).filter(x=>(x.a.badgeIssued&&!x.a.badgeReturned)||(x.a.scarfIssued&&!x.a.scarfReturned))}
-  function switchPage(id){if(['eventWorkspace','daily','checkin','register','items','reports','eventRecord'].includes(id)&&!activeEvent()){toast('Create or open an event first');id='events'}page=id;document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.page===id));$('workingDateChip').classList.toggle('hidden',!['eventWorkspace','daily','checkin','register','items','reports'].includes(id));const meta={dashboard:['Dashboard','ANANDA SANGHA GURGAON event registration'],events:['Create / Open Event','Each event keeps its own permanent record'],settings:['Settings','Administrator password and security'],volunteers:['Volunteer Master','Permanent volunteer database'],attendeeMaster:['Attendee Master','Permanent family and outside-attendee database'],eventWorkspace:['Event Workspace','All tasks for the selected event'],daily:["Today's Volunteers",'Choose only the volunteers present on this date'],checkin:['Online Import & Check-in','Import everybody, then search by name or mobile'],register:['Counter Registration & Check-in','Register and check in walk-in individuals or families'],items:['Badge & Scarf','Issue and receive both items independently'],reports:["Today's Reports",'Actual headcount and pending returns'],eventRecord:['Permanent Event Record','Everything saved for the selected annual event'],classes:['Classes','Courses, batches, attendance and progression'],permanentRecords:['Permanent Records','Volunteer, attendee, Kriyaban, VIP, student and Acharya masters'],courseMaster:['Course Master','Level 1–4, STT, Kriya 2 and future courses'],acharyas:['Acharya Master','Permanent Acharya database'],students:['Student Master','Permanent meditation student database'],studentProgress:['Student Progress',''],classWorkspace:['Class Batch',''],phase2Reports:['Reports','Event, class, student, master and annual reports']}[id]||['Dashboard','ANANDA SANGHA GURGAON event registration'];$('pageTitle').textContent=meta[0];$('pageSubtitle').textContent=meta[1];renderAll()}
+  function switchPage(id){if(id!==page){
+    document.dispatchEvent(new Event('ananda:before-navigation'));
+    document.querySelectorAll('.modal-backdrop.open').forEach(modal=>{
+      if(modal.contains(document.activeElement))document.activeElement.blur();
+      modal.classList.remove('open');
+    });
+  }if(['eventWorkspace','daily','checkin','register','items','reports','eventRecord'].includes(id)&&!activeEvent()){toast('Create or open an event first');id='events'}page=id;document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.page===id));$('workingDateChip').classList.toggle('hidden',!['eventWorkspace','daily','checkin','register','items','reports'].includes(id));const meta={dashboard:['Dashboard','ANANDA SANGHA GURGAON event registration'],events:['Create / Open Event','Each event keeps its own permanent record'],settings:['Settings','Administrator password and security'],volunteers:['Volunteer Master','Permanent volunteer database'],attendeeMaster:['Attendee Master','Permanent family and outside-attendee database'],eventWorkspace:['Event Workspace','All tasks for the selected event'],daily:["Today's Volunteers",'Choose only the volunteers present on this date'],checkin:['Online Import & Check-in','Import everybody, then search by name or mobile'],register:['Counter Registration & Check-in','Register and check in walk-in individuals or families'],items:['Badge & Scarf','Issue and receive both items independently'],reports:["Today's Reports",'Actual headcount and pending returns'],eventRecord:['Permanent Event Record','Everything saved for the selected annual event'],classes:['Classes','Courses, batches, attendance and progression'],permanentRecords:['Permanent Records','Volunteer, attendee, Kriyaban, VIP, student and Acharya masters'],courseMaster:['Course Master','Level 1–4, STT, Kriya 2 and future courses'],acharyas:['Acharya Master','Permanent Acharya database'],students:['Student Master','Permanent meditation student database'],studentProgress:['Student Progress',''],classWorkspace:['Class Batch',''],phase2Reports:['Reports','Event, class, student, master and annual reports']}[id]||['Dashboard','ANANDA SANGHA GURGAON event registration'];$('pageTitle').textContent=meta[0];$('pageSubtitle').textContent=meta[1];renderAll()}
   document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));document.querySelectorAll('.go').forEach(b=>b.onclick=()=>switchPage(b.dataset.go));
   $('workingDate').onchange=renderAll;
 
@@ -4208,10 +4214,10 @@ function p2v58BindPhoneListener(){
     if(!el||!el.id||!el.matches?.('input:not([type="hidden"]),textarea,[contenteditable="true"]'))return null;
     let start=null,end=null;
     try{start=el.selectionStart;end=el.selectionEnd}catch{}
-    return{id:el.id,element:el,value:el.value,start,end,modal:document.querySelector('.modal-backdrop.open')?.id||''};
+    return{id:el.id,element:el,value:el.value,start,end,page,modal:document.querySelector('.modal-backdrop.open')?.id||''};
   }
   function p2v565RestoreTyping(snapshot){
-    if(!snapshot||snapshot.element.isConnected)return;
+    if(!snapshot||snapshot.page!==page||snapshot.element.isConnected)return;
     const current=document.activeElement;
     if(current&&current!==document.body&&current!==snapshot.element&&current.isConnected)return;
     const el=document.getElementById(snapshot.id);
@@ -4233,12 +4239,14 @@ function p2v58BindPhoneListener(){
   // on input-handler timing.
   let p2v565LastTyping=null;
   function p2v565RememberTyping(target){
+    if(!target?.isConnected)return;
     if(!target?.id||!target.matches?.('input:not([type="hidden"]),textarea,[contenteditable="true"]'))return;
     let start=null,end=null;
     try{start=target.selectionStart;end=target.selectionEnd}catch{}
     p2v565LastTyping={id:target.id,element:target,value:target.value,
-      modal:document.querySelector('.modal-backdrop.open')?.id||'',start,end};
+      modal:document.querySelector('.modal-backdrop.open')?.id||'',page,start,end};
   }
+  document.addEventListener('ananda:before-navigation',()=>{p2v565LastTyping=null});
   document.addEventListener('focusin',event=>p2v565RememberTyping(event.target),true);
   document.addEventListener('beforeinput',event=>p2v565RememberTyping(event.target),true);
   document.addEventListener('input',event=>{
