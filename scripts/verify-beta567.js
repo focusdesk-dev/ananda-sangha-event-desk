@@ -11,7 +11,7 @@ assert(h.includes("Date not recorded"),'Never substitute course completion date 
 assert(h.includes("id=\"p2v567InitiationDate\""));
 assert(h.includes("const p2v520Groups=['All','In Progress','Incomplete / Withdrawn','Eligible',"));
 assert(h.includes("if(group==='In Progress')return current.filter(x=>!x.b.endedAt"));
-assert(h.includes('BETA 5.67</strong>'));
+assert(h.includes('BETA 5.68</strong>'));
 const start=h.indexOf('      function p2v567SyncKriyaMaster(){'),end=h.indexOf('      function p2v519Finalise(',start);
 assert(start>=0&&end>start,'Kriya sync source not found');
 const mock={
@@ -30,4 +30,4 @@ assert.equal(mock.students[0].kriyabanId,mock.kriyabans[0].id);
 assert.equal(ctx.sync(),false);assert.equal(mock.kriyabans.length,1,'Repeat end/sync must not duplicate');
 mock.kriyabans[0].kriyaDate='2026-10-25';assert.equal(ctx.sync(),true);
 assert.equal(mock.students[0].kriyaDate,'2026-10-25');
-console.log('PASS Beta 5.67: remove card, no fabricated initiation, idempotent Kriya Master, real initiation, In Progress');
+console.log('PASS Beta 5.68: remove card, no fabricated initiation, idempotent Kriya Master, real initiation, In Progress');

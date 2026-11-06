@@ -97,7 +97,7 @@ test(31,'Contextual enrol shortcut and save shortcut remain',()=>{assert.ok(main
 test(32,'Offline backup and installer identity/shortcuts',()=>{
  assert.ok(main.includes('FIVE_DAYS_MS'));assert.ok(main.includes('DATA_ROOT'));
  assert.ok(pkg.build.nsis.createDesktopShortcut&&pkg.build.nsis.createStartMenuShortcut);
- assert.equal(pkg.version,'2.0.0-beta.5.67');assert.ok(main.includes('app.getVersion()'));});
+ assert.equal(pkg.version,'2.0.0-beta.5.68');assert.ok(main.includes('app.getVersion()'));});
 const failed=results.filter(x=>x.status==='FAIL');
 fs.mkdirSync('verification',{recursive:true});
 fs.writeFileSync('verification/acceptance-32.json',JSON.stringify({

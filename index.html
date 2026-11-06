@@ -178,7 +178,7 @@
       <button class="nav-btn" data-page="phase2Reports"><span>05</span> Reports</button>
       <button class="nav-btn" data-page="settings"><span>06</span> Settings</button>
     </nav>
-    <div class="aside-foot"><strong>ANANDA EVENT DESK · BETA 5.67</strong><br>Offline records · Automatic backup every 5 days.</div>
+    <div class="aside-foot"><strong>ANANDA EVENT DESK · BETA 5.68</strong><br>Offline records · Automatic backup every 5 days.</div>
   </aside>
 
   <main>
@@ -2782,21 +2782,30 @@
     $('p2v5EditStudentName').textContent=[p.name,p.mobile].filter(Boolean).join(' · ');
     const status=$('p2v5PaymentStatus');
     if(![...status.options].some(x=>x.value==='N.A.'))status.add(new Option('N.A.','N.A.'));
-    status.value=free?'N.A.':en.paymentStatus==='Paid'?'Paid':'Unpaid';
-    status.disabled=free;
+    if(![...status.options].some(x=>x.value==='Waived — Repeat'))
+      status.add(new Option('Waived — Repeat','Waived — Repeat'));
+    status.value=free?'N.A.':en.paymentStatus==='Waived — Repeat'?'Waived — Repeat':
+      en.paymentStatus==='Paid'?'Paid':'Unpaid';
+    status.disabled=free||en.paymentStatus==='Waived — Repeat';
     $('p2v5PaymentDate').value=en.paymentDate||'';
     $('p2v5PaymentMode').value=['Cash','Card','UPI'].includes(en.paymentMode)?en.paymentMode:'';
     p2v5RefreshPaymentEditFields();
     $('p2v5StudentEditModal').classList.add('open');
   };
   p2v5SaveStudentDetails=function(ev){
-    ev.preventDefault();const en=state.classEnrollments.find(e=>e.id===$('p2v5EditEnrollmentId').value);if(!en)return;const b=state.classBatches.find(x=>x.id===en.batchId),free=p2v563FreeBatch(b),paid=!free&&$('p2v5PaymentStatus').value==='Paid';en.paymentStatus=free?'N.A.':paid?'Paid':'Unpaid';en.paymentDate=paid?($('p2v5PaymentDate').value||today()):'';en.paymentMode=paid?$('p2v5PaymentMode').value:'';if(paid&&!en.paymentMode){toast('Choose payment mode');return}$('p2v5StudentEditModal').classList.remove('open');save();toast('Student payment status saved')
+    ev.preventDefault();const en=state.classEnrollments.find(e=>e.id===$('p2v5EditEnrollmentId').value);if(!en)return;const b=state.classBatches.find(x=>x.id===en.batchId),free=p2v563FreeBatch(b);
+    if(en.paymentStatus==='Waived — Repeat'){
+      $('p2v5StudentEditModal').classList.remove('open');
+      toast('Repeat course fee remains waived.');return;
+    }
+    const paid=!free&&$('p2v5PaymentStatus').value==='Paid';en.paymentStatus=free?'N.A.':paid?'Paid':'Unpaid';en.paymentDate=paid?($('p2v5PaymentDate').value||today()):'';en.paymentMode=paid?$('p2v5PaymentMode').value:'';if(paid&&!en.paymentMode){toast('Choose payment mode');return}$('p2v5StudentEditModal').classList.remove('open');save();toast('Student payment status saved')
   };
 
   const p2v5FixRenderStudentBase=p2v5RenderStudentDetails;
   p2v5RenderStudentDetails=function(b,en){
-    p2v5FixRenderStudentBase(b,en);if(!en)return;const box=$('p2v5StudentDetails')?.querySelector('.p2v5-payment');if(!box)return;const batch=state.classBatches.find(b=>b.id===en.batchId),free=p2v563FreeBatch(batch),paid=!free&&en.paymentStatus==='Paid';
-    box.classList.toggle('pending',!paid&&!free);box.innerHTML=`<div class="p2v5-payment-head"><span>Payment / Fee Status</span><span class="p2v5-status-pill ${paid?'paid':''}">${free?'N.A.':paid?'PAID':'UNPAID'}</span></div>${paid?`<div class="p2v5-payment-grid" style="grid-template-columns:1fr 1fr"><div>Payment Date<b>${en.paymentDate?fmt(en.paymentDate):'—'}</b></div><div>Mode<b>${esc(en.paymentMode||'—')}</b></div></div>`:'<div class="p2v5-payment-grid" style="grid-template-columns:1fr"><div>Status<b>'+ (free?'N.A.':'UNPAID') +'</b></div></div>'}`
+    p2v5FixRenderStudentBase(b,en);if(!en)return;const box=$('p2v5StudentDetails')?.querySelector('.p2v5-payment');if(!box)return;const batch=state.classBatches.find(b=>b.id===en.batchId),free=p2v563FreeBatch(batch),
+      waived=en.paymentStatus==='Waived — Repeat',paid=!free&&!waived&&en.paymentStatus==='Paid';
+    box.classList.toggle('pending',!paid&&!free&&!waived);box.innerHTML=`<div class="p2v5-payment-head"><span>Payment / Fee Status</span><span class="p2v5-status-pill ${paid?'paid':''}">${free?'N.A.':waived?'WAIVED — REPEAT':paid?'PAID':'UNPAID'}</span></div>${paid?`<div class="p2v5-payment-grid" style="grid-template-columns:1fr 1fr"><div>Payment Date<b>${en.paymentDate?fmt(en.paymentDate):'—'}</b></div><div>Mode<b>${esc(en.paymentMode||'—')}</b></div></div>`:'<div class="p2v5-payment-grid" style="grid-template-columns:1fr"><div>Status<b>'+ (free?'N.A.':waived?'Waived — Repeat':'UNPAID') +'</b></div></div>'}`
   };
 
   const p2v5FixPrepareBase=p2v5PrepareWorkspace;
@@ -4801,6 +4810,28 @@ function p2v58BindPhoneListener(){
     </div>`);
     $('p2v514PaymentStatus').onchange=p2v514RefreshPaymentUi
   }
+  // Beta 5.68: a previously completed *same* course is free to repeat.
+  // A subsequent level always remains chargeable; historical payment is untouched.
+  function p2v568RepeatFee(en,b){
+    if(!en?.studentId||!b||p2v563FreeBatch(b))return false;
+    const level=p2v550Stage(b),course=String(b.courseId||'');
+    return state.classEnrollments.some(prior=>{
+      if(prior.id===en.id||prior.studentId!==en.studentId||prior.outcome!=='Completed')return false;
+      const oldBatch=state.classBatches.find(x=>x.id===prior.batchId);
+      if(!oldBatch)return false;
+      if(course&&oldBatch.courseId&&String(oldBatch.courseId)===course)return true;
+      const previousLevel=p2v550Stage(oldBatch);
+      return !!level&&previousLevel===level;
+    });
+  }
+  function p2v568ApplyRepeatWaiver(en,b){
+    if(!p2v568RepeatFee(en,b))return false;
+    en.paymentStatus='Waived — Repeat';
+    en.feeAmount='0';
+    en.feeWaiverReason='Previously completed same course';
+    en.paymentDate='';en.paymentMode='';en.dueDate='';
+    return true;
+  }
   function p2v563FreeBatch(b){
     if(!b||b.courseFee===null||b.courseFee===undefined||String(b.courseFee).trim()==='')return false;
     const n=Number(String(b.courseFee).replace(/[,₹\s]/g,''));
@@ -4808,19 +4839,27 @@ function p2v58BindPhoneListener(){
   }
   function p2v563PaymentLabel(en,b){
     if(p2v563FreeBatch(b))return 'N.A.';
-    return en?.paymentStatus==='Paid'?'Paid':'Unpaid';
+    return en?.paymentStatus==='Waived — Repeat'?'Waived — Repeat':
+      en?.paymentStatus==='Paid'?'Paid':'Unpaid';
   }
   function p2v514RefreshPaymentUi(){
-    const free=p2v563FreeBatch(p2ActiveBatch());
+    const b=p2ActiveBatch(),free=p2v563FreeBatch(b);
+    const studentId=p2cEnrollSelection?.studentId||'';
+    const repeat=!free&&!!studentId&&p2v568RepeatFee({studentId},b);
     const status=$('p2v514PaymentStatus');
     if(status){
-      if(![...status.options].some(o=>o.value==='N.A.'))status.add(new Option('N.A.','N.A.'));
-      status.value=free?'N.A.':status.value==='N.A.'?'Unpaid':status.value;
-      status.disabled=free;
+      for(const value of ['N.A.','Waived — Repeat'])
+        if(![...status.options].some(o=>o.value===value))status.add(new Option(value,value));
+      status.value=free?'N.A.':repeat?'Waived — Repeat':
+        ['N.A.','Waived — Repeat'].includes(status.value)?'Unpaid':status.value;
+      status.disabled=free||repeat;
     }
-    const paid=!free&&status?.value==='Paid';
+    if($('p2v514FeeAmount')&&repeat)$('p2v514FeeAmount').value='₹ 0 · Repeat';
+    else if($('p2v514FeeAmount')&&b)
+      $('p2v514FeeAmount').value=free?'Free':b.courseFee?('₹ '+b.courseFee):'Not set';
+    const paid=!free&&!repeat&&status?.value==='Paid';
     if($('p2v514PaymentDate'))$('p2v514PaymentDate').disabled=!paid;
-    if($('p2v514PaymentMode'))$('p2v514PaymentMode').disabled=!paid
+    if($('p2v514PaymentMode'))$('p2v514PaymentMode').disabled=!paid;
   }
   function p2v514ResetPayment(){
     p2v514EnsurePaymentUi();const b=p2ActiveBatch(),fee=String(b?.courseFee??'').trim();
@@ -4833,6 +4872,7 @@ function p2v58BindPhoneListener(){
   function p2v514ApplyPayment(en){
     if(!en)return false;p2v514EnsurePaymentUi();
     const b=p2ActiveBatch(),free=p2v563FreeBatch(b);
+    if(p2v568ApplyRepeatWaiver(en,b))return true;
     const paid=!free&&$('p2v514PaymentStatus')?.value==='Paid',
       mode=$('p2v514PaymentMode')?.value||'',date=$('p2v514PaymentDate')?.value||today();
     if(paid&&!mode){toast('Choose payment mode');$('p2v514PaymentMode')?.focus();return false}
@@ -4884,6 +4924,10 @@ function p2v58BindPhoneListener(){
   }
 
   p2v514EnsurePaymentUi();
+  // Existing name-suggestion selection updates the existing payment row.
+  document.addEventListener('click',event=>{
+    if(event.target?.closest?.('.p2c-enrol-pick'))p2v514RefreshPaymentUi();
+  });
   if($('p2EnrollStudentSearch')){
     $('p2EnrollStudentSearch').placeholder='Type student / volunteer / attendee / Kriyaban / Acharya name or mobile'
   }
@@ -8067,6 +8111,19 @@ function p2v58BindPhoneListener(){
         });
       }
       if(p2v567SyncKriyaMaster())localStorage.setItem(KEY,JSON.stringify(state));
+  // Direct/programmatic enrollment paths use the same repeat policy.
+  const p2v568CreateEnrollmentBase=p2CreateEnrollment;
+  p2CreateEnrollment=function(studentId,batchId){
+    const en=p2v568CreateEnrollmentBase(studentId,batchId);
+    if(en)p2v568ApplyRepeatWaiver(en,state.classBatches.find(b=>b.id===batchId));
+    return en;
+  };
+  const p2v568DirectEnrollmentBase=p2cDirectEnrollment;
+  p2cDirectEnrollment=function(candidate,name,mobile,b){
+    const en=p2v568DirectEnrollmentBase(candidate,name,mobile,b);
+    if(en)p2v568ApplyRepeatWaiver(en,b);
+    return en;
+  };
       const p2v519WorkspaceBase=p2RenderClassWorkspace;
       p2RenderClassWorkspace=function(){
         const b=p2ActiveBatch();
@@ -8446,8 +8503,9 @@ function p2v58BindPhoneListener(){
           const source=lessons.filter(x=>x.stage===from&&x.en.outcome==='Completed').slice(-1)[0];
           const decision=student.acharyaProgressionApprovals?.[target];
           return{target,source,decision};
-        }).filter(x=>x.source&&x.target!=='Kriya'&&
-          x.target!=='Kriya 2'&&!x.decision);
+        }).filter(x=>x.source&&!p2v550Decision(student,x.target)&&
+          (x.target==='Kriya'?!completedKriya:
+           x.target==='Kriya 2'?false:true));
         host.innerHTML='<div class="p2v520-history-head"><strong>'+esc(student.name)+
           ' · Student journey</strong><button type="button" id="p2v520CloseHistory">Close</button></div>'+
           '<div class="p2v558-journey-tabs"><button id="p2v558Journey">Journey</button>'+
@@ -8466,8 +8524,9 @@ function p2v58BindPhoneListener(){
             (initiationDate?'On '+esc(fmt(initiationDate)):'Date not recorded')+'</div>':'')+
           (reviews.length?'<div class="p2v558-review-list">'+reviews.map((x,i)=>
             '<div class="p2v558-review-row"><strong>'+esc(x.target)+'</strong> · '+
-            esc(x.decision?.status||'Review required')+
-            (x.source?'<button type="button" class="btn secondary small p2v558-review" data-index="'+i+'">Review</button>':'')+
+            esc(x.target==='Kriya'?'Level 4 completed · Approval pending':x.decision?.status||'Review required')+
+            (x.source?'<button type="button" class="btn secondary small p2v558-review" data-index="'+i+'">'+
+              (x.target==='Kriya'?'Approve':'Review')+'</button>':'')+
             '</div>').join('')+'</div>':'')+'</div>'+
           '<div id="p2v558VolunteerPanel" class="hidden"><strong>Volunteer Record</strong>'+
           (volunteering.length?'<table class="p2v520-table"><thead><tr><th>Event</th><th>Date</th><th>Role</th></tr></thead><tbody>'+
@@ -8597,7 +8656,7 @@ function p2v58BindPhoneListener(){
         return result;
       };
       p2v553DateNote();
-      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.67';
+      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.68';
     })();
 
 

@@ -224,6 +224,26 @@ async function approvalCheck(){
  yes(el('p2v550ApprovalInfo').textContent.includes('Level 4'),'Kriya approval should reference Level 4');
  return {pass:true,review,kriya};
 }
+async function studentWiseKriyaCheck(){
+ const yes=(v,m)=>{if(!v)throw Error(m)};
+ const route=document.querySelector('.go[data-go="studentProgress"]');
+ route.click();await new Promise(r=>setTimeout(r,250));
+ document.getElementById('p2v520Followups').click();
+ const search=document.getElementById('p2v526Search');
+ search.value='CI Kriya Student';search.dispatchEvent(new Event('input',{bubbles:true}));
+ const student=[...document.querySelectorAll('.p2v526-result')].find(x=>x.textContent.includes('CI Kriya Student'));
+ yes(student,'Level 4 student not selectable in Student Wise');student.click();
+ const review=[...document.querySelectorAll('.p2v558-review-row')].find(x=>x.textContent.includes('Kriya'));
+ yes(review,'Level 4 completed but Kriya approval action missing');
+ const btn=review.querySelector('.p2v558-review');
+ yes(btn&&btn.textContent.trim()==='Approve','Kriya must use existing Approve action');
+ btn.click();
+ yes(document.getElementById('p2v550ApprovalModal').classList.contains('open'),'Existing approval modal failed to open');
+ yes(document.getElementById('p2v550ApprovalInfo').textContent.includes('Level 4'),'Wrong approval prerequisite');
+ yes(document.getElementById('p2v566Password'),'Administrator password field missing');
+ document.getElementById('p2v550Cancel').click();
+ return{pass:true,action:'Existing Kriya approval',source:'Completed Level 4'};
+}
 async function progressCheck(){
  const yes=(v,m)=>{if(!v)throw Error(m)};
  const route=document.querySelector('.go[data-go="studentProgress"]');
@@ -313,6 +333,7 @@ async function run(){
   await cmd('Runtime.evaluate',{expression:"(()=>{document.getElementById('p2v550ApprovalModal').classList.remove('open');document.getElementById('p2cEnrollName').focus();return true})()",returnByValue:true});
   await cmd('Input.dispatchKeyEvent',{type:'keyDown',key:'A',code:'KeyA',text:'A',unmodifiedText:'A',windowsVirtualKeyCode:65,nativeVirtualKeyCode:65});
   await cmd('Input.dispatchKeyEvent',{type:'keyUp',key:'A',code:'KeyA',windowsVirtualKeyCode:65,nativeVirtualKeyCode:65});
+  const entryPoint=await runCode(studentWiseKriyaCheck);assert.ok(entryPoint?.pass,'Student Wise Kriya approval hidden');
   const entered=await cmd('Runtime.evaluate',{expression:"document.getElementById('p2cEnrollName').value",returnByValue:true});
   assert.ok(String(entered.result?.value||'').includes('A'),'Physical keyboard input stopped in Enrol Student form');
   console.log('PASS packaged Windows UI, Acharya gates and keyboard '+JSON.stringify({batch,progress,approval,enrollTyping:true}));
