@@ -126,6 +126,17 @@ async function run(){
   ws.send(JSON.stringify({id,method:'Runtime.evaluate',params:{expression,returnByValue:true,awaitPromise:true}}));
  });
  try{
+  // Chromium exposes a DevTools target before the application's startup
+  // script necessarily finishes. Wait for real persisted NGO state.
+  let ready=false;
+  for(let attempt=0;attempt<45;attempt++){
+    try{
+      ready=Boolean(await evaluate("(()=>{try{return document.readyState==='complete'&&Array.isArray(JSON.parse(localStorage.getItem('annualEventRegistration.v1')||'{}').courseTypes)}catch{return false}})()"));
+      if(ready)break;
+    }catch{}
+    await wait(350);
+  }
+  assert.ok(ready,'Application did not finish initialising its persistent course state');
   const result=await evaluate('('+journey.toString()+')()');
   assert.equal(result?.pass,true,'Desktop journey returned unsuccessful result');
   console.log('PASS desktop UI: '+result.checks.join(' | '));

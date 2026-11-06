@@ -242,6 +242,9 @@ async function studentWiseKriyaCheck(){
  yes(document.getElementById('p2v550ApprovalInfo').textContent.includes('Level 4'),'Wrong approval prerequisite');
  yes(document.getElementById('p2v566Password'),'Administrator password field missing');
  document.getElementById('p2v550Cancel').click();
+ // Leave the keyboard test's existing search empty; don't carry CI fixture text.
+ const searchAgain=document.getElementById('p2v526Search');
+ searchAgain.value='';searchAgain.dispatchEvent(new Event('input',{bubbles:true}));
  return{pass:true,action:'Existing Kriya approval',source:'Completed Level 4'};
 }
 async function progressCheck(){
