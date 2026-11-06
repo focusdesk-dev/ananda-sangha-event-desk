@@ -27,6 +27,23 @@ app.setName('Ananda Sangha Event Desk');
 if (process.platform === 'win32') app.setAppUserModelId(APP_ID);
 
 let mainWindow = null;
+// Record only timestamps and machine health. Never log personal data or text.
+const HEALTH_LOG=path.join(SYSTEM_ROOT,'hang-diagnostics.log');
+function anandaHealthLog(reason,extra={}){
+  try{
+    const record=JSON.stringify({at:new Date().toISOString(),reason,...extra})+'\\n';
+    if(fs.existsSync(HEALTH_LOG)&&fs.statSync(HEALTH_LOG).size>128000){
+      fs.renameSync(HEALTH_LOG,HEALTH_LOG+'.old');
+    }
+    fs.appendFileSync(HEALTH_LOG,record,'utf8');
+  }catch{}
+}
+let anandaLastHeartbeat=0,anandaMissReported=false,anandaHealthTimer=null;
+ipcMain.on('ananda-renderer-heartbeat',event=>{
+  if(!mainWindow||event.sender!==mainWindow.webContents)return;
+  anandaLastHeartbeat=Date.now();anandaMissReported=false;
+});
+
 
 function safeTimestamp() {
   const d = new Date();
@@ -137,6 +154,20 @@ function createWindow() {
     }
   });
 
+  mainWindow.on('unresponsive',()=>anandaHealthLog('window-unresponsive'));
+  mainWindow.on('responsive',()=>anandaHealthLog('window-responsive'));
+  mainWindow.webContents.on('render-process-gone',(_event,details)=>
+    anandaHealthLog('renderer-exited',{reason:details?.reason||'unknown',exitCode:details?.exitCode||0}));
+  anandaLastHeartbeat=Date.now();anandaMissReported=false;
+  if(anandaHealthTimer)clearInterval(anandaHealthTimer);
+  anandaHealthTimer=setInterval(()=>{
+    if(!mainWindow||mainWindow.isDestroyed())return;
+    const delta=Date.now()-anandaLastHeartbeat;
+    if(delta>30000&&!anandaMissReported){
+      anandaMissReported=true;
+      anandaHealthLog('renderer-heartbeat-missing',{elapsedSeconds:Math.round(delta/1000)});
+    }
+  },5000);
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
   mainWindow.webContents.on('did-finish-load', () => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.setTitle(`ANANDA SANGHA GURGAON Event Desk — Phase 2 ${APP_VERSION}`);
@@ -610,7 +641,7 @@ app.whenReady().then(() => {
   });
 });
 
-app.on('before-quit', () => { try { anandaAttendanceServer?.close(); } catch {} });
+app.on('before-quit', () => { try { if(anandaHealthTimer)clearInterval(anandaHealthTimer);anandaAttendanceServer?.close(); } catch {} });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

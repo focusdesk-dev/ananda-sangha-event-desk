@@ -241,6 +241,8 @@ ipcRenderer.on('ananda-shortcut', (_event, action) => {
 
 window.addEventListener('DOMContentLoaded', () => {
   setTimeout(runAutoBackup, 1200);
+  // Independent renderer liveness signal, without personally identifying data.
+  setInterval(()=>ipcRenderer.send('ananda-renderer-heartbeat'),3000);
 });
 
 contextBridge.exposeInMainWorld('anandaDesktop', {
