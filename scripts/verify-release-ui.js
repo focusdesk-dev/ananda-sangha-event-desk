@@ -242,8 +242,8 @@ async function progressCheck(){
  const filters=['p2v520Course','p2v520Batch','p2v520Year','p2v520Group'];
  yes(filters.every(id=>!!document.getElementById(id)),'Student Progress missing four filters');
  const groups=[...document.getElementById('p2v520Group').options].map(o=>o.textContent.trim());
- yes(JSON.stringify(groups)===JSON.stringify(['All','Incomplete / Withdrawn','Eligible','Eligible + Incomplete / Withdrawn']),
-   'Student Progress group filters differ from four approved choices');
+ yes(JSON.stringify(groups)===JSON.stringify(['All','In Progress','Incomplete / Withdrawn','Eligible','Eligible + Incomplete / Withdrawn']),
+   'Student Progress group filters differ from five approved choices');
  const exportButton=document.getElementById('p2v520Export');
  yes(exportButton&&exportButton.textContent.includes('Export Selected'),'Export Selected missing inside Student Progress');
  const selectAll=document.getElementById('p2v520All');
