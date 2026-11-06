@@ -35,7 +35,11 @@ async function main(){
  });
  const run=async expression=>(await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true})).result.value;
  const visit=async page=>{
-   const ok=await run("(()=>{if(typeof switchPage!=='function')return false;switchPage("+JSON.stringify(page)+");return document.querySelector('#"+page+"')?.classList.contains('active')===true})()");
+   const ok=await run("(()=>{const click=sel=>{const el=document.querySelector(sel);if(!el)return false;el.click();return true;};"+
+    "if("+JSON.stringify(page)+"==='classes'){if(!click('.nav-btn[data-page=\\\"classes\\\"]'))return false;}"+
+    "else if("+JSON.stringify(page)+"==='studentProgress'){if(!click('.nav-btn[data-page=\\\"classes\\\"]'))return false;if(!click('.go[data-go=\\\"studentProgress\\\"]'))return false;}"+
+    "else if("+JSON.stringify(page)+"==='students'){if(!click('.nav-btn[data-page=\\\"permanentRecords\\\"]'))return false;if(!click('.go[data-go=\\\"students\\\"]'))return false;}"+
+    "else return false;return document.getElementById("+JSON.stringify(page)+")?.classList.contains('active')===true})()");
    assert.equal(ok,true,'navigate to '+page);
  };
  const type=async (field,value)=>{
