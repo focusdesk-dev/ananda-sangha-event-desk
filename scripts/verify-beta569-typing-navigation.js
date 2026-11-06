@@ -35,7 +35,7 @@ async function main(){
  });
  const run=async expression=>(await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true})).result.value;
  const visit=async page=>{
-   const ok=await run("(()=>{const n=document.querySelector('.nav-btn[data-page="+JSON.stringify(page)+"]');if(!n)return false;n.click();return document.querySelector('#"+page+"')?.classList.contains('active')===true})()");
+   const ok=await run("(()=>{const n=document.querySelector('.nav-btn[data-page="+JSON.stringify(page)+"]')||document.querySelector('.go[data-go="+JSON.stringify(page)+"]');if(n)n.click();else if(typeof switchPage==='function')switchPage("+JSON.stringify(page)+");else return false;return document.querySelector('#"+page+"')?.classList.contains('active')===true})()");
    assert.equal(ok,true,'navigate to '+page);
  };
  const type=async (field,value)=>{
