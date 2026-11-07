@@ -165,7 +165,88 @@
   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
 </style>
-<style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{background:#164e94;color:#fff}#p2v531ReviewInside .p2v58-list-head{margin-top:10px}@media(max-width:700px){#classAttendanceHub .p2v531-step{min-height:74px}}@media(max-width:550px){#p2v530Panel .p2v531-step small{font-size:9px}}</style></head>
+<style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{background:#164e94;color:#fff}#p2v531ReviewInside .p2v58-list-head{margin-top:10px}@media(max-width:700px){#classAttendanceHub .p2v531-step{min-height:74px}}@media(max-width:550px){#p2v530Panel .p2v531-step small{font-size:9px}}</style>
+<style id="p2v570FrozenStyles">
+/* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
+:root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
+body{background:#f8fafc}
+aside{background:linear-gradient(180deg,#082d65 0%,#06265a 100%);border-top:0}
+aside .brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:22px 5px 30px}
+aside .brand-logo{width:76px;height:76px;flex-basis:76px;background:transparent;border-radius:50%}
+aside .brand-logo img{width:90px;left:-7px;top:-7px}
+aside .brand h1{font-size:16px;line-height:1.35;font-weight:670;text-transform:none;letter-spacing:0;color:#fff}
+aside .brand small{display:none!important}
+aside nav{gap:6px}
+aside .nav-btn{border-left:4px solid transparent;border-radius:9px;padding:12px 13px;color:#e1eafa;font-size:14px;font-weight:500;gap:13px}
+aside .nav-btn span{height:20px;width:22px;display:flex;align-items:center;justify-content:center}
+aside .nav-btn span svg{height:19px;width:19px;stroke:currentColor;fill:none;stroke-width:1.85;stroke-linecap:round;stroke-linejoin:round}
+aside .nav-btn.active{background:#fff;color:#092f6d;border-left-color:var(--ananda-gold);font-weight:680}
+aside .nav-btn:hover:not(.active){background:#15447d;color:white}
+aside .aside-foot{padding-top:12px;border-top:1px solid rgba(255,255,255,.24);font-size:11px;line-height:1.5;color:#d4e0f3}
+aside .aside-foot strong{display:none}
+main{background:#f8fafc}
+.app:has(#classes.page.active) .topbar,
+.app:has(#activeClasses.page.active) .topbar{border-bottom:4px solid var(--ananda-gold);padding-bottom:18px;margin-bottom:30px;align-items:center}
+.app:has(#classes.page.active) #pageTitle,
+.app:has(#activeClasses.page.active) #pageTitle{font-size:30px;font-weight:720;letter-spacing:-.035em;color:#082e65;text-transform:none;margin-bottom:5px}
+.app:has(#classes.page.active) #pageSubtitle{font-size:13px;color:#546a84;margin-top:4px}
+.app:has(#activeClasses.page.active) #pageSubtitle{display:none}
+.app:has(#classes.page.active) #v51SecurityButton,
+.app:has(#activeClasses.page.active) #v51SecurityButton{display:none!important}
+.app:has(#activeClasses.page.active .p2v510-year-open-head) #backButton{display:none!important}
+.app:has(#classes.page.active) #classes>.event-banner,
+.app:has(#activeClasses.page.active) #activeClasses>.event-banner{display:none!important}
+#classes .p2-home-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:4px 0 24px!important}
+#classes .p2-home-card{display:flex!important;align-items:center;gap:15px;min-height:142px;padding:22px 20px;background:#fff;border:1px solid #dfe7f0;border-radius:15px;color:#082e65;text-align:left;box-shadow:0 2px 10px rgba(9,45,95,.022);transition:border-color .12s,box-shadow .12s,transform .12s}
+#classes .p2-home-card:hover{background:#fff;border-color:#a9bfdb;box-shadow:0 7px 20px rgba(8,43,96,.07);transform:translateY(-1px)}
+#classes .p2-home-card:focus-visible{outline:3px solid var(--ananda-gold);outline-offset:2px}
+#classes .p2-home-card .no{display:none}
+#classes .p2-home-card .p2v570-tile-icon{width:62px;height:62px;min-width:62px;display:grid;place-items:center;background:#fff3c7;border-radius:50%;color:#0b3975}
+#classes .p2-home-card .p2v570-tile-icon svg{width:29px;height:29px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#classes .p2-home-card>div{min-width:0;flex:1}
+#classes .p2-home-card strong{display:block;font-size:17px;font-weight:720;letter-spacing:-.01em;margin-bottom:6px;line-height:1.25}
+#classes .p2-home-card small{display:block;font-size:12px;line-height:1.5;color:#506784;font-weight:400}
+#classes .p2-home-card .p2v570-chevron{font-size:26px;font-weight:400;line-height:1;color:#123c7d;margin-left:auto}
+#activeClasses #p2BatchListCard{background:transparent!important;border:0!important;padding:0!important;box-shadow:none!important}
+#activeClasses #p2BatchListCard>.card-head{display:none!important}
+#activeClasses #p2BatchListCard .p2-toolbar{display:flex;align-items:center;justify-content:flex-start;gap:14px;margin-bottom:23px}
+#activeClasses .p2v570-course-label{font-size:13px;font-weight:650;color:#233f64}
+#activeClasses #p2CourseFilter{min-width:235px;height:43px;border:1px solid #cbd9e8;border-radius:10px;background:#fff;color:#133764;font-size:14px;padding:0 14px}
+#activeClasses #p2ClassSearch{display:none!important}
+#activeClasses .p2v510-year-grid{display:grid;grid-template-columns:1fr;gap:14px}
+#activeClasses .p2v510-year-card.p2v570-year-card{width:100%;padding:0;min-height:135px;display:grid;grid-template-columns:minmax(175px,23%) 1fr 1fr 60px;align-items:stretch;text-align:left;background:#fff;border:1px solid #cbd9e8;border-left:7px solid var(--ananda-gold);border-radius:15px;overflow:hidden;box-shadow:0 2px 9px rgba(8,43,96,.025);color:#0a2e66}
+#activeClasses .p2v510-year-card.p2v570-year-card:hover{transform:translateY(-1px);box-shadow:0 8px 23px rgba(10,38,88,.08);border-color:#acc1de;border-left-color:var(--ananda-gold)}
+#activeClasses .p2v570-year-left{display:flex;align-items:center;justify-content:center;background:linear-gradient(120deg,#235785,#153e73);color:#fff;padding:15px 24px;font-size:40px;font-weight:730}
+#activeClasses .p2v570-metric{display:flex;flex-direction:column;justify-content:center;padding:17px 30px;gap:6px}
+#activeClasses .p2v570-metric+.p2v570-metric{border-left:1px solid #e4eaf1;margin:22px 0;padding-top:0;padding-bottom:0}
+#activeClasses .p2v570-metric b{font-size:31px;line-height:1;font-weight:720;color:#092e64}
+#activeClasses .p2v570-metric small{font-size:13px;color:#586d87}
+#activeClasses .p2v570-year-arrow{display:flex;align-items:center;justify-content:center;font-size:30px;color:#143e7b}
+#activeClasses .p2v510-year-open-head.p2v570-detail{display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid #cdd8e8;border-left:7px solid var(--ananda-gold);border-radius:15px;background:#fff;padding:0;overflow:hidden;margin-bottom:24px}
+#activeClasses .p2v570-detail-inner{display:flex;align-items:stretch;flex:1;min-height:126px}
+#activeClasses .p2v570-detail-year{background:linear-gradient(120deg,#235785,#153e73);display:grid;place-items:center;min-width:205px;color:#fff;font-size:39px;font-weight:740;padding:20px}
+#activeClasses .p2v570-detail-metric{display:flex;flex-direction:column;justify-content:center;min-width:190px;padding:16px 28px;gap:6px}
+#activeClasses .p2v570-detail-metric strong{font-size:29px;color:#082f66;line-height:1}
+#activeClasses .p2v570-detail-metric span{font-size:13px;color:#536e8c}
+#activeClasses #p2v510BackClassYears{background:transparent;border:0;color:#0e407c;border-radius:8px;padding:12px 14px;font-size:12px;font-weight:700;white-space:nowrap;margin-right:17px}
+#activeClasses #p2v510BackClassYears:hover{background:#f0f5fa}
+#activeClasses .p2v56-chat-section-title{font-size:17px;font-weight:690;text-transform:none;margin:17px 0 13px;color:#0c2f65}
+#activeClasses .p2v56-chat-section-title.muted{margin-top:21px}
+#activeClasses .p2v570-empty-inline{margin:0 0 14px;font-size:13px;color:#637890;padding:0}
+#activeClasses .p2v56-chat-class-list{display:grid;gap:11px}
+#activeClasses .p2v56-chat-class{padding:18px 198px 18px 20px;min-height:103px;border:1px solid #dde6ef;border-radius:14px;box-shadow:0 2px 9px rgba(8,45,98,.025);background:#fff}
+#activeClasses .p2v56-chat-class:hover{box-shadow:0 6px 17px rgba(8,45,98,.06);transform:none;border-color:#b9cde3}
+#activeClasses .p2v56-chat-class h4{font-size:16px;color:#092f65;font-weight:720;letter-spacing:-.01em;margin:7px 0 6px}
+#activeClasses .p2v56-chat-class p{font-size:12px;color:#536d8a;line-height:1.5;margin:2px 0}
+#activeClasses .p2v56-chat-chip{background:#e5f5ed;color:#12644c;font-size:10px;font-weight:700;padding:4px 9px;letter-spacing:0;text-transform:capitalize}
+#activeClasses .p2v56-chat-actions{right:18px;top:19px;gap:8px}
+#activeClasses .p2v56-chat-actions button{font-size:12px!important;border:1px solid #d6e1ee!important;border-radius:9px!important;padding:8px 11px!important;background:#fff;color:#174277;font-weight:600}
+#activeClasses .p2v56-chat-actions .p2v56-chat-delete{color:#7d4252}
+#activeClasses .p2v56-chat-year{background:transparent;padding:0}
+@media(max-width:1120px){#classes .p2-home-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#activeClasses .p2v510-year-card.p2v570-year-card{grid-template-columns:190px 1fr 1fr 45px}}
+@media(max-width:800px){#classes .p2-home-grid{grid-template-columns:1fr}#activeClasses .p2v510-year-card.p2v570-year-card{grid-template-columns:160px 1fr 1fr 34px}#activeClasses .p2v570-metric{padding:15px}#activeClasses .p2v570-detail-inner{flex-wrap:wrap}#activeClasses .p2v570-detail-year{min-width:150px}}
+</style>
+</head>
 <body>
 <div class="app">
   <aside>
@@ -178,7 +259,7 @@
       <button class="nav-btn" data-page="phase2Reports"><span>05</span> Reports</button>
       <button class="nav-btn" data-page="settings"><span>06</span> Settings</button>
     </nav>
-    <div class="aside-foot"><strong>ANANDA EVENT DESK · BETA 5.69</strong><br>Offline records · Automatic backup every 5 days.</div>
+    <div class="aside-foot"><strong>ANANDA EVENT DESK · BETA 5.70</strong><br>Offline records · Automatic backup every 5 days.</div>
   </aside>
 
   <main>
@@ -8664,7 +8745,7 @@ function p2v58BindPhoneListener(){
         return result;
       };
       p2v553DateNote();
-      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.69';
+      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.70';
     })();
 
 
@@ -8797,6 +8878,116 @@ function p2v58BindPhoneListener(){
     '#classReportsHub .p2v621-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:18px 0}'+
     '@media(max-width:850px){#classReportsHub .p2v621-filter-row{grid-template-columns:repeat(2,minmax(0,1fr))}}';
   document.head.appendChild(p2v621Style);
+
+
+  // FROZEN CLASSES DESIGN — Beta 5.70.
+  // Presentation only: reuse existing state, keyboard focus guards, edit/delete approvals.
+  const p2v570Icons={
+    classes:'<path d="m3 9 9-6 9 6-9 6-9-6Z"/><path d="m3 15 9 6 9-6"/><path d="m3 12 9 6 9-6"/>',
+    events:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
+    permanentRecords:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><circle cx="18" cy="9" r="2"/><path d="M17 16a5 5 0 0 1 4 5"/>',
+    phase2Reports:'<path d="M4 20V12h4v8M10 20V7h4v13M16 20V3h4v17"/>',
+    settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.05.06-2.86 2.86-.06-.05A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-3 0 1.7 1.7 0 0 0-3 0 1.7 1.7 0 0 0-1.87.34l-.06.05-2.86-2.86.05-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0 0-3 1.7 1.7 0 0 0 0-3 1.7 1.7 0 0 0-.34-1.87l-.05-.06 2.86-2.86.06.05A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 3 0 1.7 1.7 0 0 0 3 0 1.7 1.7 0 0 0 1.87-.34l.06-.05 2.86 2.86-.05.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 0 3 1.7 1.7 0 0 0 0 3Z"/>',
+    batch:'<path d="m2 10 10-6 10 6-10 6-10-6Z"/><path d="M6 12v6c3 2 9 2 12 0v-6"/><path d="M22 10v7"/>',
+    active:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/>',
+    attendance:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M19 8v7m-3-3h6"/>',
+    progress:'<path d="M4 20V14h4v6M10 20V10h4v10M16 20V4h4v16"/>',
+    reports:'<path d="M6 2h9l5 5v15H6Z"/><path d="M15 2v6h5M9 17h8M9 13h5"/>',
+    courses:'<path d="M12 6c-4-3-8-2-10-1v14c4-2 7-1 10 1V6ZM12 6c4-3 8-2 10-1v14c-4-2-7-1-10 1V6Z"/>'
+  };
+  const p2v570Svg=(key)=>'<svg viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">'+(p2v570Icons[key]||p2v570Icons.classes)+'</svg>';
+  function p2v570Brand(){
+    const org=document.querySelector('aside .brand small');if(org)org.textContent='';
+    const foot=document.querySelector('aside .aside-foot');
+    if(foot)foot.textContent='Offline records · Automatic backup every 5 days';
+    document.querySelectorAll('aside .nav-btn[data-page]').forEach(button=>{
+      const icon=button.querySelector('span');
+      if(icon&&!icon.dataset.p2v570Icon){icon.innerHTML=p2v570Svg(button.dataset.page);icon.dataset.p2v570Icon='1'}
+    });
+  }
+  const p2v570Home=[
+    ['p2AddBatch','batch','New Class Batch','Create a new class batch'],
+    ['p2ClassBatches','active','Active Classes','View and manage class batches'],
+    ['p2ClassesAttendance','attendance','Attendance','Mark, print or upload attendance'],
+    ['studentProgress','progress','Student Progress','History, eligibility and follow-up'],
+    ['p2ClassesReports','reports','Class Reports','Roster, attendance and completion'],
+    ['p2v548ManageCourseNames','courses','Courses','Add or edit courses']
+  ];
+  function p2v570DecorateHome(){
+    const grid=document.querySelector('#classes .p2-home-grid');if(!grid)return;
+    p2v570Home.forEach(([name,icon,title,desc],index)=>{
+      const card=name==='studentProgress'?grid.querySelector('.p2-home-card[data-go="studentProgress"]'):document.getElementById(name);
+      if(!card)return;
+      const contents=card.querySelector('div');
+      if(contents)contents.innerHTML='<strong>'+title+'</strong><small>'+desc+'</small>';
+      let glyph=card.querySelector('.p2v570-tile-icon');
+      if(!glyph){glyph=document.createElement('span');glyph.className='p2v570-tile-icon';card.insertBefore(glyph,card.querySelector('div'))}
+      glyph.innerHTML=p2v570Svg(icon);
+      if(!card.querySelector('.p2v570-chevron'))card.insertAdjacentHTML('beforeend','<span class="p2v570-chevron" aria-hidden="true">›</span>');
+      card.style.order=String(index);
+    });
+  }
+  function p2v570DecorateYears(){
+    const host=document.getElementById('p2ClassList'),toolbar=document.querySelector('#activeClasses #p2BatchListCard .p2-toolbar');
+    if(!host)return;
+    const course=document.getElementById('p2CourseFilter');
+    if(toolbar&&course&&!toolbar.querySelector('.p2v570-course-label')){
+      const label=document.createElement('label');label.className='p2v570-course-label';label.htmlFor='p2CourseFilter';label.textContent='Course';toolbar.insertBefore(label,course);
+    }
+    const selected=course?.value||'all';
+    const visible=state.classBatches.filter(b=>!b.archivedAt&&(selected==='all'||String(b.courseId)===selected));
+    host.querySelectorAll('.p2v510-class-year').forEach(card=>{
+      const year=card.dataset.year;
+      const list=visible.filter(b=>String(p2BatchYear(b)||'Unknown')===year);
+      const active=list.filter(p2v56ChatActive).length;
+      card.classList.add('p2v570-year-card');
+      card.innerHTML='<span class="p2v570-year-left">'+esc(year)+'</span>'+
+        '<span class="p2v570-metric"><b>'+list.length+'</b><small>Class Batches</small></span>'+
+        '<span class="p2v570-metric"><b>'+active+'</b><small>Active / Upcoming</small></span>'+
+        '<span class="p2v570-year-arrow" aria-hidden="true">›</span>';
+      card.setAttribute('aria-label',year+': '+list.length+' class batches, '+active+' active or upcoming. Open year');
+    });
+    const details=host.querySelector('.p2v510-year-open-head');
+    if(details){
+      const year=p2v510ClassYear;
+      const list=visible.filter(b=>String(p2BatchYear(b)||'Unknown')===year),active=list.filter(p2v56ChatActive).length;
+      const inner=details.querySelector('div');
+      if(inner){
+        inner.className='p2v570-detail-inner';
+        inner.innerHTML='<div class="p2v570-detail-year">'+esc(year)+'</div>'+
+          '<div class="p2v570-detail-metric"><strong>'+list.length+'</strong><span>Class Batches</span></div>'+
+          '<div class="p2v570-detail-metric"><strong>'+active+'</strong><span>Active / Upcoming</span></div>';
+      }
+      details.classList.add('p2v570-detail');
+      const back=details.querySelector('#p2v510BackClassYears');
+      if(back)back.textContent='← All Years';
+      const activeLabel=host.querySelector('.p2v56-chat-section-title:not(.muted)');
+      if(activeLabel?.nextElementSibling?.classList.contains('p2-empty')){
+        activeLabel.style.display='none';
+        const empty=activeLabel.nextElementSibling;
+        empty.className='p2v570-empty-inline';
+        empty.textContent='No active or upcoming classes.';
+      }
+    }
+  }
+  const p2v570OriginalRenderClasses=p2RenderClasses;
+  p2RenderClasses=function(){
+    const result=p2v570OriginalRenderClasses();
+    p2v570DecorateYears();
+    return result;
+  };
+  const p2v570OriginalSwitch=switchPage;
+  switchPage=function(id){
+    const result=p2v570OriginalSwitch.apply(this,arguments);
+    if(id==='classes')p2v570DecorateHome();
+    if(id==='activeClasses')p2v570DecorateYears();
+    if(id==='classes')document.getElementById('pageSubtitle').textContent='Courses, batches, attendance and student progress';
+    if(id==='activeClasses')document.getElementById('pageSubtitle').textContent='';
+    return result;
+  };
+  p2v570Brand();
+  p2v570DecorateHome();
+  p2v570DecorateYears();
 
   resetEventForm();
   renderAll();
