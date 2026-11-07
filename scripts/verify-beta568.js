@@ -8,7 +8,7 @@ assert(h.includes("function p2v568RepeatFee(en,b)"));
 assert(h.includes("en.paymentStatus='Waived — Repeat'"));
 assert(h.includes("const p2v568CreateEnrollmentBase=p2CreateEnrollment"));
 assert(h.includes("p2v514RefreshPaymentUi"));
-assert(h.includes('BETA 5.70</strong>'));
+assert(h.includes('BETA 5.71</strong>'));
 const begin=h.indexOf("  function p2v568RepeatFee(en,b){"),
       end=h.indexOf("  function p2v563FreeBatch",begin);
 assert(begin>0&&end>begin);
