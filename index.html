@@ -189,6 +189,8 @@ main{background:#f8fafc}
 .app:has(#activeClasses.page.active) .topbar{border-bottom:4px solid var(--ananda-gold);padding-bottom:18px;margin-bottom:30px;align-items:center}
 .app:has(#classes.page.active) #pageTitle,
 .app:has(#activeClasses.page.active) #pageTitle{font-size:30px;font-weight:720;letter-spacing:-.035em;color:#082e65;text-transform:none;margin-bottom:5px}
+.app:has(#classes.page.active) #pageTitle{text-transform:uppercase}
+aside .nav-btn[data-page="classes"]{text-transform:uppercase}
 .app:has(#classes.page.active) #pageSubtitle{font-size:13px;color:#546a84;margin-top:4px}
 .app:has(#activeClasses.page.active) #pageSubtitle{display:none}
 .app:has(#classes.page.active) #v51SecurityButton,
@@ -214,19 +216,19 @@ main{background:#f8fafc}
 #activeClasses #p2CourseFilter{min-width:235px;height:43px;border:1px solid #cbd9e8;border-radius:10px;background:#fff;color:#133764;font-size:14px;padding:0 14px}
 #activeClasses #p2ClassSearch{display:none!important}
 #activeClasses .p2v510-year-grid{display:grid;grid-template-columns:1fr;gap:14px}
-#activeClasses .p2v510-year-card.p2v570-year-card{width:100%;padding:0;min-height:135px;display:grid;grid-template-columns:minmax(175px,23%) 1fr 1fr 60px;align-items:stretch;text-align:left;background:#fff;border:1px solid #cbd9e8;border-left:7px solid var(--ananda-gold);border-radius:15px;overflow:hidden;box-shadow:0 2px 9px rgba(8,43,96,.025);color:#0a2e66}
+#activeClasses .p2v510-year-card.p2v570-year-card{width:100%;padding:0;min-height:122px;display:grid;grid-template-columns:minmax(175px,23%) 1fr 1fr 60px;align-items:stretch;text-align:left;background:#fff;border:1px solid #cbd9e8;border-left:7px solid var(--ananda-gold);border-radius:15px;overflow:hidden;box-shadow:0 2px 9px rgba(8,43,96,.025);color:#0a2e66}
 #activeClasses .p2v510-year-card.p2v570-year-card:hover{transform:translateY(-1px);box-shadow:0 8px 23px rgba(10,38,88,.08);border-color:#acc1de;border-left-color:var(--ananda-gold)}
-#activeClasses .p2v570-year-left{display:flex;align-items:center;justify-content:center;background:linear-gradient(120deg,#235785,#153e73);color:#fff;padding:15px 24px;font-size:40px;font-weight:730}
+#activeClasses .p2v570-year-left{display:flex;align-items:center;justify-content:center;background:linear-gradient(120deg,#ecf3fc,#dce8f6);color:#0b3268;padding:14px 22px;font-size:35px;font-weight:630}
 #activeClasses .p2v570-metric{display:flex;flex-direction:column;justify-content:center;padding:17px 30px;gap:6px}
 #activeClasses .p2v570-metric+.p2v570-metric{border-left:1px solid #e4eaf1;margin:22px 0;padding-top:0;padding-bottom:0}
-#activeClasses .p2v570-metric b{font-size:31px;line-height:1;font-weight:720;color:#092e64}
-#activeClasses .p2v570-metric small{font-size:13px;color:#586d87}
-#activeClasses .p2v570-year-arrow{display:flex;align-items:center;justify-content:center;font-size:30px;color:#143e7b}
+#activeClasses .p2v570-metric b{font-size:27px;line-height:1.1;font-weight:620;color:#092e64}
+#activeClasses .p2v570-metric small{font-size:13px;color:#586d87;text-transform:none;font-weight:400}
+#activeClasses .p2v570-year-arrow{display:flex;align-items:center;justify-content:center;font-size:25px;color:#31547f}
 #activeClasses .p2v510-year-open-head.p2v570-detail{display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid #cdd8e8;border-left:7px solid var(--ananda-gold);border-radius:15px;background:#fff;padding:0;overflow:hidden;margin-bottom:24px}
-#activeClasses .p2v570-detail-inner{display:flex;align-items:stretch;flex:1;min-height:126px}
-#activeClasses .p2v570-detail-year{background:linear-gradient(120deg,#235785,#153e73);display:grid;place-items:center;min-width:205px;color:#fff;font-size:39px;font-weight:740;padding:20px}
+#activeClasses .p2v570-detail-inner{display:flex;align-items:stretch;flex:1;min-height:116px}
+#activeClasses .p2v570-detail-year{background:linear-gradient(120deg,#ecf3fc,#dce8f6);display:grid;place-items:center;min-width:205px;color:#0b3268;font-size:35px;font-weight:630;padding:18px}
 #activeClasses .p2v570-detail-metric{display:flex;flex-direction:column;justify-content:center;min-width:190px;padding:16px 28px;gap:6px}
-#activeClasses .p2v570-detail-metric strong{font-size:29px;color:#082f66;line-height:1}
+#activeClasses .p2v570-detail-metric strong{font-size:27px;color:#082f66;line-height:1.1;font-weight:620}
 #activeClasses .p2v570-detail-metric span{font-size:13px;color:#536e8c}
 #activeClasses #p2v510BackClassYears{background:transparent;border:0;color:#0e407c;border-radius:8px;padding:12px 14px;font-size:12px;font-weight:700;white-space:nowrap;margin-right:17px}
 #activeClasses #p2v510BackClassYears:hover{background:#f0f5fa}
@@ -259,7 +261,7 @@ main{background:#f8fafc}
       <button class="nav-btn" data-page="phase2Reports"><span>05</span> Reports</button>
       <button class="nav-btn" data-page="settings"><span>06</span> Settings</button>
     </nav>
-    <div class="aside-foot"><strong>ANANDA EVENT DESK · BETA 5.70</strong><br>Offline records · Automatic backup every 5 days.</div>
+    <div class="aside-foot"><strong>ANANDA EVENT DESK · BETA 5.71</strong><br>Offline records · Automatic backup every 5 days.</div>
   </aside>
 
   <main>
@@ -8745,7 +8747,7 @@ function p2v58BindPhoneListener(){
         return result;
       };
       p2v553DateNote();
-      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.70';
+      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.71';
     })();
 
 
