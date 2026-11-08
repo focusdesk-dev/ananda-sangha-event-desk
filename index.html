@@ -196,7 +196,7 @@ aside .nav-btn[data-page="classes"]{text-transform:uppercase}
 .app:has(#activeClasses.page.active) #pageSubtitle{display:none}
 .app:has(#classes.page.active) #v51SecurityButton,
 .app:has(#activeClasses.page.active) #v51SecurityButton{display:none!important}
-.app:has(#activeClasses.page.active .p2v510-year-open-head) #backButton{display:none!important}
+/* Keep the top-level Back button visible in year details. */
 .app:has(#classes.page.active) #classes>.event-banner,
 .app:has(#activeClasses.page.active) #activeClasses>.event-banner{display:none!important}
 #classes .p2-home-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:4px 0 24px!important}
@@ -262,7 +262,7 @@ aside .nav-btn[data-page="classes"]{text-transform:uppercase}
       <button class="nav-btn" data-page="phase2Reports"><span>05</span> Reports</button>
       <button class="nav-btn" data-page="settings"><span>06</span> Settings</button>
     </nav>
-    <div class="aside-foot"><strong>ANANDA EVENT DESK · BETA 5.72</strong><br>Offline records · Automatic backup every 5 days.</div>
+    <div class="aside-foot"><strong>ANANDA EVENT DESK · BETA 5.73</strong><br>Offline records · Automatic backup every 5 days.</div>
   </aside>
 
   <main>
@@ -8455,6 +8455,51 @@ function p2v58BindPhoneListener(){
         });
         if(p2v520History)p2v520ShowHistory();
       }
+      function p2v573ExportProgressXlsx(rows){
+        if(!rows.length){toast('No students match the selected filters.');return}
+        // The existing writer stores all strings, including mobile numbers,
+        // as Excel inlineStr cells. Leading zeros are preserved.
+        const data=[['Student','Mobile Number','Course','Batch','Year','Attendance %','Status'],
+          ...rows.map(x=>[String(x.student.name||''),String(x.student.mobile||''),
+            String(x.b?p2CourseName(x.b):p2v520CourseName(p2v520Course)),
+            String(x.b?.name||''),String(x.year||''),
+            x.pct===null?'Not assessed':String(x.pct)+'%',String(x.group||'')])];
+        const widths=[26,20,19,24,12,19,28];
+        const cols='<cols>'+widths.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols>';
+        const sheet=v51SheetXml(data).replace('<sheetData>',cols+'<sheetData>');
+        const types='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+          '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+          '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+          '<Default Extension="xml" ContentType="application/xml"/>'+
+          '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+
+          '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+
+          '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>';
+        const rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+          '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+          '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+        const workbook='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+          '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+          '<sheets><sheet name="Student Progress" sheetId="1" r:id="rId1"/></sheets></workbook>';
+        const workbookRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+          '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+          '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'+
+          '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+        const styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+          '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+          '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font>'+
+          '<font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'+
+          '<fills count="1"><fill><patternFill patternType="none"/></fill></fills>'+
+          '<borders count="1"><border/></borders>'+
+          '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'+
+          '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'+
+          '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs></styleSheet>';
+        const files=[{name:'[Content_Types].xml',data:types},{name:'_rels/.rels',data:rels},
+          {name:'xl/workbook.xml',data:workbook},{name:'xl/_rels/workbook.xml.rels',data:workbookRels},
+          {name:'xl/styles.xml',data:styles},{name:'xl/worksheets/sheet1.xml',data:sheet}];
+        const filename='Ananda_Student_Progress_'+(p2v520CourseName(p2v520Course)||'All').replace(/[^a-z0-9]+/gi,'_')+'.xlsx';
+        v51DownloadBlob(filename,v51Zip(files));
+        toast(rows.length+' filtered records exported to Excel.');
+      }
       function p2v520Render(){
         const body=$('p2v56ChatProgressBody');if(!body)return;
         if(p2v520View==='student'){p2v526StudentWise(body);return;}
@@ -8469,8 +8514,6 @@ function p2v58BindPhoneListener(){
         if(p2v520Year!=='__all__'&&!years.has(p2v520Year))p2v520Year='__all__';
         const rows=p2v520Rows(p2v520Course,p2v520Group,p2v520Year,p2v520Batch);
         const actionable=rows.filter(x=>x.action!=='—').length;
-        const displayedIds=new Set(rows.map(x=>x.student.id));
-        for(const id of p2v520Selected)if(!displayedIds.has(id))p2v520Selected.delete(id);
         const uniqueStudents=new Set(rows.map(x=>x.student.id)).size;
         const countCompleted=rows.filter(x=>x.en?.outcome==='Completed').length;
         const countPaused=rows.filter(x=>x.en?.outcome==='Withdrawn').length;
@@ -8503,26 +8546,25 @@ function p2v58BindPhoneListener(){
           '</strong><small>'+rows.length+' records'+
           (p2v520View==='followup'?' · '+actionable+' actionable':'')+
           '</small></div>'+
-          '<button class="btn secondary small" id="p2v520Export">Export Selected ('+p2v520Selected.size+')</button>'+
+          '<button class="btn secondary small" id="p2v520Export" '+(!rows.length?'disabled':'')+'>Export List</button>'+
           '</div><div class="p2v520-hint">'+esc(help)+'</div>'+
           '<div class="p2v520-scroll"><table class="p2v520-table"><thead><tr>'+
-          '<th><input type="checkbox" id="p2v520All" aria-label="Select all students"></th>'+
-          '<th>Student</th><th>Previous level / batch</th><th>Year</th>'+
-          '<th>Attendance</th><th>Student Group</th><th>Suggested action</th><th>History</th>'+
+          '<th>Student</th><th>Mobile Number</th><th>Course</th><th>Batch</th><th>Year</th>'+
+          '<th>Attendance %</th><th>Status</th><th>History</th>'+
           '</tr></thead><tbody>'+
           (rows.length?rows.map(x=>
-            '<tr><td><input class="p2v520-pick" type="checkbox" data-id="'+esc(x.student.id)+'" '+
-            (p2v520Selected.has(x.student.id)?'checked':'')+'></td>'+
-            '<td><strong>'+esc(x.student.name||'Unnamed')+'</strong></td>'+
-            '<td>'+esc(x.detail)+'</td><td>'+esc(x.year)+'</td>'+
+            '<tr><td><strong>'+esc(x.student.name||'Unnamed')+'</strong></td>'+
+            '<td>'+esc(String(x.student.mobile||''))+'</td>'+
+            '<td>'+esc(x.b?p2CourseName(x.b):p2v520CourseName(p2v520Course))+'</td>'+
+            '<td>'+esc(x.b?.name||'')+'</td><td>'+esc(x.year)+'</td>'+
             '<td>'+(x.pct===null?'Not assessed':x.pct+'%')+'</td>'+
-            '<td>'+esc(x.group)+'</td><td>'+esc(x.action)+'</td>'+
+            '<td>'+esc(x.group)+'</td>'+
             '<td><button class="p2v520-history-btn" data-id="'+esc(x.student.id)+'">View</button></td></tr>'
           ).join(''):'<tr><td colspan="8">No students match the selected filters.</td></tr>')+
           '</tbody></table></div><div id="p2v520History" class="p2v520-history"></div>';
         $('p2v520Course').onchange=e=>{
           p2v520Course=e.target.value;p2v520Batch='__all__';p2v520Year='__all__';
-          p2v520Selected.clear();p2v520Render();
+          p2v520Render();
         };
         $('p2v520Batch').onchange=e=>{
           p2v520Batch=e.target.value;p2v520Render();
@@ -8531,42 +8573,20 @@ function p2v58BindPhoneListener(){
         $('p2v520Group').onchange=e=>{
           p2v520Group=e.target.value;
           if(p2v520Group.includes('Eligible'))p2v520Batch='__all__';
-          p2v520Selected.clear();p2v520Render();
+          p2v520Render();
         };
         body.querySelectorAll('.p2v520-history-btn').forEach(btn=>btn.onclick=()=>{
           p2v520History=btn.dataset.id;p2v520ShowHistory();
         });
-        body.querySelectorAll('.p2v520-pick').forEach(input=>input.onchange=()=>{
-          if(input.checked)p2v520Selected.add(input.dataset.id);
-          else p2v520Selected.delete(input.dataset.id);
-          const button=$('p2v520Export');if(button)button.textContent='Export Selected ('+p2v520Selected.size+')';
-        });
-        if($('p2v520All'))$('p2v520All').onchange=e=>{
-          body.querySelectorAll('.p2v520-pick').forEach(x=>{
-            x.checked=e.target.checked;
-            if(x.checked)p2v520Selected.add(x.dataset.id);
-            else p2v520Selected.delete(x.dataset.id);
-          });
-          const button=$('p2v520Export');if(button)button.textContent='Export Selected ('+p2v520Selected.size+')';
-        };
         $('p2v520Export')?.addEventListener('click',()=>{
-          const selected=new Map();
-          rows.filter(x=>p2v520Selected.has(x.student.id)).forEach(x=>{
-            if(!selected.has(x.student.id))selected.set(x.student.id,x);
-          });
-          const list=[...selected.values()];
-          if(!list.length){toast('Select students to export.');return}
-          v51RequireAdmin(()=>p2Csv(list.map(x=>({
-            Name:x.student.name||'',Mobile:x.student.mobile||'',
-            Target_Course:p2v520CourseName(p2v520Course),
-            Source_Course_and_Batch:x.detail,Year:x.year,
-            Student_Group:x.group,Attendance:x.pct===null?'Not assessed':x.pct+'%'
-          })),'Ananda_Student_Progress_Selected_Followups.csv'),
-          'export selected Student Progress follow-ups');
+          if(!rows.length)return;
+          // rows already includes every record matching Course, Batch, Year and Group.
+          v51RequireAdmin(()=>p2v573ExportProgressXlsx(rows),
+            'export the filtered Student Progress list');
         });
         if(p2v520History)p2v520ShowHistory();
       }
-      // The 4 filters, totals and selected follow-up export remain in Student Progress → Progress Overview.
+      // Four filters and full-list Excel export remain in Student Progress → Progress Overview.
       const p2v560ScopedStyle=document.createElement('style');
       p2v560ScopedStyle.id='p2v560StudentProgressExport';
       p2v560ScopedStyle.textContent='#studentProgress .p2v520-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px}'+
@@ -8748,7 +8768,7 @@ function p2v58BindPhoneListener(){
         return result;
       };
       p2v553DateNote();
-      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.72';
+      document.title='ANANDA SANGHA GURGAON Event Desk — Beta 5.73';
     })();
 
 
