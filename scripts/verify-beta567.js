@@ -11,7 +11,7 @@ assert(h.includes("Date not recorded"),'Never substitute course completion date 
 assert(h.includes("id=\"p2v567InitiationDate\""));
 assert(h.includes("const p2v520Groups=['All','In Progress','Incomplete / Withdrawn','Eligible',"));
 assert(h.includes("if(group==='In Progress')return current.filter(x=>!x.b.endedAt"));
-assert(h.includes('BETA 5.72</strong>'));
+assert(h.includes('BETA 5.73</strong>'));
 const start=h.indexOf('      function p2v567SyncKriyaMaster(){'),end=h.indexOf('      function p2v519Finalise(',start);
 assert(start>=0&&end>start,'Kriya sync source not found');
 const mock={
