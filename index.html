@@ -9092,6 +9092,223 @@ function p2v58BindPhoneListener(){
       }
     },true);
   })();
+  (function anandaV574(){
+  // Version 5.74: one Class Reports content panel. Never edit the frozen sidebar.
+  const r={course:'',batch:'*',year:'*',group:'All',session:'',search:'',page:1};
+  const groups=['All','Incomplete / Withdrawn','Eligible','Eligible + Incomplete / Withdrawn'];
+  const g=id=>document.getElementById(id);
+  const show=v=>esc(String(v??''));
+  const currentBatches=()=>state.classBatches.filter(b=>!b.archivedAt);
+  const nameOf=b=>p2CourseName(b);
+  function courseOptions(){
+    const m=new Map();
+    (state.courseTypes||[]).forEach(c=>m.set(String(c.id||c.name),c.name));
+    currentBatches().forEach(b=>m.set(String(b.courseId||nameOf(b)),nameOf(b)));
+    return [...m].map(([id,name])=>({id,name})).sort((a,b)=>{
+      const rank=x=>/^Level\s+(\d)$/i.test(x.name)?Number(x.name.match(/\d/)[0]):100;
+      return rank(a)-rank(b)||a.name.localeCompare(b.name);
+    });
+  }
+  function normalize(){
+    const courses=courseOptions();
+    if(!r.course || (r.course!=='*'&&!courses.some(c=>c.id===r.course)))r.course=courses.find(c=>/^Level 1$/i.test(c.name))?.id||courses[0]?.id||'*';
+    const years=[...new Set(currentBatches().map(b=>String(p2BatchYear(b))).filter(Boolean))].sort().reverse();
+    if(r.year!=='*'&&!years.includes(r.year))r.year='*';
+    const batches=currentBatches().filter(b=>(r.course==='*'||String(b.courseId||nameOf(b))===r.course)&&(r.year==='*'||String(p2BatchYear(b))===r.year)).sort((a,b)=>String(b.start||'').localeCompare(String(a.start||'')));
+    if(r.batch!=='*'&&!batches.some(b=>String(b.id)===r.batch))r.batch='*';
+    const batch=batches.find(b=>String(b.id)===r.batch);
+    const dates=batch?p2v5ValidDates(batch):[];
+    if(!dates.includes(r.session))r.session='';
+    return {courses,years,batches,dates};
+  }
+  function status(en,b){
+    if(en.outcome==='Completed')return 'Completed';
+    if(/withdraw|pause/i.test(String(en.outcome||'')))return 'Paused';
+    if(/incomplete|did not complete/i.test(String(en.outcome||'')))return 'Incomplete';
+    return p2v5IsEnded(b)?'Review Required':'In Progress';
+  }
+  function payment(en,b,student){
+    const historical=student?p2StudentEnrollments(student.id):[];
+    if(historical.some(x=>x.id!==en.id&&x.level===en.level&&x.outcome==='Completed'))return 'N.A.';
+    const fee=Number(b.courseFee??en.feeAmount??0);
+    if(!fee)return 'N.A.';
+    return en.paymentStatus==='Paid'?'Paid':'Pending';
+  }
+  function entry(b,en){
+    const p=p2v5Person(en),a=p2v53AttendanceSummary(b,en),student=en.studentId?p2FindStudent(en.studentId):null,st=status(en,b);
+    const next=p2v54NextStatus(en,b);
+    const progress=st==='Paused'?'Paused':st==='Incomplete'?'Review Required':st==='In Progress'?'In Progress':next.label||st;
+    return {b,en,p,a,student,status:st,progress,course:nameOf(b),type:'enrolled'};
+  }
+  function records(){
+    normalize();
+    const matched=currentBatches().filter(b=>(r.course==='*'||String(b.courseId||nameOf(b))===r.course)&&(r.year==='*'||String(p2BatchYear(b))===r.year)&&(r.batch==='*'||String(b.id)===r.batch));
+    const base=matched.flatMap(b=>state.classEnrollments.filter(en=>String(en.batchId)===String(b.id)).map(en=>entry(b,en)));
+    let eligible=[];
+    // Destination-course filter: Level 2 / All / All / Eligible means completed
+    // Level 1 students who have NOT enrolled in Level 2.
+    if(r.batch==='*'){
+      const targets=courseOptions().filter(c=>r.course==='*'||c.id===r.course).filter(c=>/^Level [234]$/i.test(c.name));
+      for(const target of targets){
+        const level=Number(target.name.match(/\d/)[0]),previous='Level '+(level-1);
+        for(const student of state.students){
+          const history=p2StudentEnrollments(student.id);
+          if(history.some(en=>en.level===target.name))continue;
+          const completed=history.filter(en=>en.level===previous&&en.outcome==='Completed').map(en=>{
+            const b=currentBatches().find(b=>String(b.id)===String(en.batchId));
+            return b?{en,b}:null;
+          }).filter(Boolean);
+          if(!completed.length)continue;
+          const last=completed[completed.length-1];
+          if(r.year!=='*'&&String(p2BatchYear(last.b))!==r.year)continue;
+          eligible.push({...entry(last.b,last.en),student,p:p2v5Person(last.en),type:'eligible',course:target.name,progress:'Eligible for '+target.name});
+        }
+      }
+    }
+    const incompleteMap=new Map();
+    for(const item of base){
+      if(!['Paused','Incomplete','Review Required'].includes(item.status))continue;
+      if(item.student){
+        const history=p2StudentEnrollments(item.student.id);
+        if(history.some(en=>en.level===item.en.level&&en.outcome==='Completed'))continue;
+        const next=p2NextLevel(item.en.level);
+        if(next&&history.some(en=>en.level===next))continue;
+      }
+      const key=(item.student?.id||item.p.mobile||item.p.name)+'|'+item.course;
+      const prior=incompleteMap.get(key);
+      if(!prior||String(prior.en.enrolledAt||'')<=String(item.en.enrolledAt||''))incompleteMap.set(key,item);
+    }
+    const incomplete=[...incompleteMap.values()];
+    let rows=r.group==='All'?base:r.group==='Eligible'?eligible:r.group==='Incomplete / Withdrawn'?incomplete:[...eligible,...incomplete];
+    const q=r.search.toLocaleLowerCase().trim();
+    if(q)rows=rows.filter(x=>[x.p.name,x.p.mobile,x.course,x.b.name,x.progress,x.status].join(' ').toLocaleLowerCase().includes(q));
+    return rows.sort((a,b)=>(a.p.name||'').localeCompare(b.p.name||'',undefined,{sensitivity:'base'})||String(a.en.enrolledAt||'').localeCompare(String(b.en.enrolledAt||'')));
+  }
+  function detail(x){
+    const side=g('v574Detail');
+    if(!x){side.hidden=true;side.innerHTML='';return;}
+    const student=x.student,history=student?p2StudentEnrollments(student.id):[x.en];
+    side.hidden=false;
+    side.innerHTML=`<div class="v574-detail-head"><div><strong>${show(x.p.name)}</strong><small>${show(x.p.mobile||'No phone number')}</small></div><button id="v574Close" type="button" aria-label="Close details">×</button></div>
+      <p><b>${show(x.course)}</b> · ${show(x.b.name)} · ${show(p2BatchYear(x.b))}</p>
+      <h4>Attendance sessions</h4>
+      <table><thead><tr><th>Date</th><th>Attendance</th></tr></thead><tbody>${p2v5ValidDates(x.b).map(date=>{const a=p2cAttendanceStatus(x.en,date);return `<tr><td>${show(fmt(date))}</td><td>${a===true?'Present':a===false?'Absent':'Not marked'}</td></tr>`}).join('')||'<tr><td colspan="2">No sessions</td></tr>'}</tbody></table>
+      <h4>Course history</h4>${history.map(en=>{const b=currentBatches().find(b=>String(b.id)===String(en.batchId));return b?`<div class="v574-history"><b>${show(nameOf(b))} · ${show(b.name)}</b><span>${show(p2BatchYear(b))} · ${show(status(en,b))} · ${p2v53AttendanceSummary(b,en).pct}%</span></div>`:''}).join('')}`;
+    g('v574Close').onclick=()=>detail(null);
+  }
+  function csvEntry(x){
+    const s=r.session?p2cAttendanceStatus(x.en,r.session):null;
+    return {Student:x.p.name||'',Phone:x.p.mobile||'',Course:x.course,Batch:x.b.name||'',Year:String(p2BatchYear(x.b)),Present:x.a.present,Absent:x.a.absent,Not_Marked:x.a.blank,Attendance_Percent:x.a.pct,Session_Date:r.session||'',Session_Attendance:r.session?(s===true?'Present':s===false?'Absent':'Not marked'):'',Payment:payment(x.en,x.b,x.student),Progression:x.progress};
+  }
+  function update(){
+    const rows=records(),total=rows.length,per=25,pages=Math.max(1,Math.ceil(total/per));
+    r.page=Math.max(1,Math.min(r.page,pages));
+    const current=rows.slice((r.page-1)*per,r.page*per);
+    const unique=new Set(rows.map(x=>x.student?.id||x.p.mobile||x.p.name));
+    const finished=rows.filter(x=>x.status==='Completed').length;
+    const pending=rows.filter(x=>['Paused','Incomplete','Review Required'].includes(x.status)).length;
+    const eligible=rows.filter(x=>x.type==='eligible'||x.progress.startsWith('Eligible')).length;
+    const avg=total?Math.round(rows.reduce((s,x)=>s+x.a.pct,0)/total):0;
+    g('v574Summary').innerHTML=`<span><b>${unique.size}</b> Students</span><span><b>${finished}</b> Completed</span><span><b>${pending}</b> Review / Paused</span><span><b>${eligible}</b> Eligible</span><span><b>${avg}%</b> Attendance</span>`;
+    g('v574Tbody').innerHTML=current.map((x,i)=>{
+      const s=r.session?p2cAttendanceStatus(x.en,r.session):null;
+      const attendance=r.session?(s===true?'Present':s===false?'Absent':'Not marked'):x.a.pct+'%';
+      return `<tr><td><button class="v574-name" type="button" data-report-index="${(r.page-1)*per+i}">${show(x.p.name)}</button></td><td>${show(x.p.mobile)}</td><td>${show(x.course)}</td><td>${show(x.b.name)}</td><td>${show(attendance)}</td><td>${show(payment(x.en,x.b,x.student))}</td><td>${show(x.progress)}</td></tr>`;
+    }).join('')||'<tr><td colspan="7" class="v574-empty">No matching students.</td></tr>';
+    g('v574Count').textContent=total?`Showing ${(r.page-1)*per+1}–${Math.min(total,r.page*per)} of ${total}`:'No matching records';
+    g('v574Prev').disabled=r.page===1;
+    g('v574Next').disabled=r.page>=pages;
+    g('v574Tbody').querySelectorAll('button[data-report-index]').forEach(btn=>btn.onclick=()=>detail(rows[Number(btn.dataset.reportIndex)]));
+    const annual=g('v574Annual');
+    if(r.year!=='*'){
+      const selected=currentBatches().filter(b=>(r.course==='*'||String(b.courseId||nameOf(b))===r.course)&&(r.year===String(p2BatchYear(b)))&&(r.batch==='*'||String(b.id)===r.batch));
+      const ids=new Set(selected.map(b=>String(b.id))),enrol=state.classEnrollments.filter(e=>ids.has(String(e.batchId)));
+      annual.hidden=false;annual.textContent=`${r.year} annual summary · ${selected.length} batches · ${enrol.length} enrolments · ${enrol.filter(e=>e.outcome==='Completed').length} completed`;
+    }else{annual.hidden=true;annual.textContent='';}
+    // Export contains every matching row, not only the current page.
+    g('v574Export').onclick=()=>v51RequireAdmin(()=>p2Csv(records().map(csvEntry),'Ananda_Class_Reports_Filtered_List.csv'),'export the Class Reports list');
+  }
+  function render(){
+    const panel=g('p2v59ClassReportsPanel');if(!panel)return;
+    const d=normalize(),opts=(values,selected)=>values.map(o=>`<option value="${show(o.id)}" ${selected===o.id?'selected':''}>${show(o.name)}</option>`).join('');
+    panel.innerHTML=`<div class="v574-panel">
+      <div class="v574-filters">
+       <label>Course<select id="v574Course">${opts([{id:'*',name:'All Courses'},...d.courses],r.course)}</select></label>
+       <label>Batch<select id="v574Batch">${opts([{id:'*',name:'All Batches'},...d.batches.map(b=>({id:String(b.id),name:b.name}))],r.batch)}</select></label>
+       <label>Year<select id="v574Year">${opts([{id:'*',name:'All Years'},...d.years.map(y=>({id:y,name:y}))],r.year)}</select></label>
+       <label>Student Group<select id="v574Group">${opts(groups.map(x=>({id:x,name:x})),r.group)}</select></label>
+      </div>
+      <div id="v574Annual" class="v574-annual" hidden></div>
+      <div id="v574Summary" class="v574-summary"></div>
+      <div class="v574-toolbar">
+        <input id="v574Search" type="search" placeholder="Search student or phone" aria-label="Search student or phone" value="${show(r.search)}">
+        <div class="v574-actions">${r.batch!=='*'?`<label>Session<select id="v574Session">${opts([{id:'',name:'All Sessions'},...d.dates.map(date=>({id:date,name:fmt(date)}))],r.session)}</select></label>`:''}
+          <button class="btn" id="v574Export" type="button">Export List</button>
+        </div>
+      </div>
+      <div class="v574-layout"><div class="v574-list">
+      <div class="v574-table-scroll"><table><thead><tr><th>Student</th><th>Phone</th><th>Course</th><th>Batch</th><th>Attendance</th><th>Payment</th><th>Progression</th></tr></thead><tbody id="v574Tbody"></tbody></table></div>
+      <div class="v574-pagination"><span id="v574Count"></span><div><button id="v574Prev" type="button">Previous</button><button id="v574Next" type="button">Next</button></div></div>
+      </div><div class="v574-detail" id="v574Detail" hidden></div></div></div>`;
+    g('v574Course').onchange=e=>{r.course=e.target.value;r.batch='*';r.session='';r.page=1;render()};
+    g('v574Batch').onchange=e=>{r.batch=e.target.value;r.session='';r.page=1;render()};
+    g('v574Year').onchange=e=>{r.year=e.target.value;r.batch='*';r.session='';r.page=1;render()};
+    g('v574Group').onchange=e=>{r.group=e.target.value;r.page=1;render()};
+    g('v574Search').oninput=e=>{r.search=e.target.value;r.page=1;update()};
+    if(g('v574Session'))g('v574Session').onchange=e=>{r.session=e.target.value;r.page=1;update()};
+    g('v574Prev').onclick=()=>{r.page--;update()};
+    g('v574Next').onclick=()=>{r.page++;update()};
+    update();
+  }
+  const style=document.createElement('style');style.id='v574ReportOnlyStyle';
+  style.textContent=`
+  #classReportsHub .p2v59-class-report-title{display:none!important}
+  #classReportsHub .p2v59-class-reports{padding:0!important;background:transparent!important}
+  #classReportsHub .v574-panel{background:#fff;border:1px solid #e0e8f0;border-radius:10px;padding:20px;min-height:480px}
+  #classReportsHub .v574-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:15px}
+  #classReportsHub .v574-filters label,#classReportsHub .v574-actions label{font-size:12px;font-weight:650;color:#193b6c}
+  #classReportsHub .v574-filters select,#classReportsHub .v574-actions select{display:block;width:100%;background:#fff;border:1px solid #cedbe8;border-radius:7px;padding:9px 8px;margin-top:5px;font-size:12px;color:#163c6e}
+  #classReportsHub .v574-summary{background:#f4f8fc;display:flex;gap:15px;flex-wrap:wrap;border-radius:7px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#537089}
+  #classReportsHub .v574-summary b{color:#113d80;font-size:17px;margin-right:4px}
+  #classReportsHub .v574-toolbar{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:14px}
+  #classReportsHub .v574-toolbar input{width:min(300px,50%);padding:9px 11px;border:1px solid #cedbe8;border-radius:7px;background:#fff}
+  #classReportsHub .v574-actions{display:flex;align-items:end;gap:12px}
+  #classReportsHub .v574-actions button{white-space:nowrap;background:#124c91;color:#fff}
+  #classReportsHub .v574-annual{padding:10px 14px;margin-bottom:12px;border-radius:7px;background:#fff8e3;color:#725109;font-size:12px}
+  #classReportsHub .v574-annual[hidden],#classReportsHub .v574-detail[hidden]{display:none!important}
+  #classReportsHub .v574-layout{display:flex;gap:15px;align-items:flex-start}
+  #classReportsHub .v574-list{flex:1;min-width:0}
+  #classReportsHub .v574-table-scroll{border:1px solid #e2e9f0;border-radius:7px;overflow:auto}
+  #classReportsHub table{border-collapse:collapse;width:100%;font-size:12px;text-align:left}
+  #classReportsHub th{background:#edf3fa;color:#214163;white-space:nowrap;padding:11px 9px;font-weight:650}
+  #classReportsHub td{padding:10px 9px;border-top:1px solid #e6ecf2;color:#365371}
+  #classReportsHub .v574-name{border:0;background:none;color:#11488b;font-weight:700;cursor:pointer;text-align:left;padding:0}
+  #classReportsHub .v574-empty{text-align:center;padding:22px;color:#667b91}
+  #classReportsHub .v574-pagination{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#5b738a;padding-top:13px}
+  #classReportsHub .v574-pagination button{padding:7px 11px;margin-left:8px;border:1px solid #cedbe8;border-radius:6px;background:#fff;color:#134b87;cursor:pointer}
+  #classReportsHub .v574-pagination button:disabled{opacity:.45;cursor:default}
+  #classReportsHub .v574-detail{width:280px;flex:none;background:#fbfdff;border:1px solid #e0e9f0;border-radius:8px;padding:13px;max-height:580px;overflow:auto;font-size:12px}
+  #classReportsHub .v574-detail-head{display:flex;justify-content:space-between;align-items:start;gap:7px}
+  #classReportsHub .v574-detail-head strong{font-size:16px;color:#103f7b}
+  #classReportsHub .v574-detail-head small{display:block;color:#6c8298;margin-top:4px}
+  #classReportsHub .v574-detail-head button{border:0;background:none;font-size:23px;color:#385d7b;cursor:pointer}
+  #classReportsHub .v574-detail h4{margin:16px 0 7px;font-size:13px}
+  #classReportsHub .v574-detail th,#classReportsHub .v574-detail td{font-size:11px;padding:7px 5px}
+  #classReportsHub .v574-history{padding:8px 0;border-bottom:1px solid #e5edf5}
+  #classReportsHub .v574-history span{display:block;color:#57718a;margin-top:4px}
+  body:has(#classReportsHub.page.active) .topbar #pageSubtitle,
+  body:has(#classReportsHub.page.active) .topbar #v51SecurityButton{display:none!important}
+  @media(max-width:1050px){#classReportsHub .v574-filters{grid-template-columns:repeat(2,minmax(0,1fr))}#classReportsHub .v574-layout{flex-wrap:wrap}#classReportsHub .v574-detail{width:100%}}
+  `;document.head.appendChild(style);
+  p2v54ClassReportHome=function(){render()};
+  p2v59OpenClassReports=function(){
+    p2v59EnsureClassReportsPage();
+    switchPage('classReportsHub');
+    g('pageTitle').textContent='CLASS REPORTS';
+    g('pageSubtitle').textContent='';
+    render();
+  };
+})();
   resetEventForm();
   renderAll();
 })();

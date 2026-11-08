@@ -1,0 +1,12 @@
+<aside>
+    <div class="brand"><div class="brand-logo"><img src="logo-128.png" alt="Ananda Sangha Gurgaon circular emblem"></div><div><h1 id="brandName">ANANDA SANGHA GURGAON</h1><small>Event registration</small></div></div>
+    <nav>
+      <button class="nav-btn active" data-page="dashboard"><span>01</span> Dashboard</button>
+      <button class="nav-btn" data-page="classes"><span>02</span> Classes</button>
+      <button class="nav-btn" data-page="events"><span>03</span> Events</button>
+      <button class="nav-btn" data-page="permanentRecords"><span>04</span> Permanent Records</button>
+      <button class="nav-btn" data-page="phase2Reports"><span>05</span> Reports</button>
+      <button class="nav-btn" data-page="settings"><span>06</span> Settings</button>
+    </nav>
+    <div class="aside-foot"><strong>ANANDA EVENT DESK · BETA 5.73</strong><br>Offline records · Automatic backup every 5 days.</div>
+  </aside>
