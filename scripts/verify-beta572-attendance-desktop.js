@@ -57,13 +57,19 @@ async function main(){
   assert.equal(ui.total,9);assert.equal(ui.present,5);assert.equal(ui.absent,4);
   assert.equal(ui.absentColor,'rgb(255, 240, 241)','Absent rows must be pale red');
   assert.equal(ui.rowBorder,'solid','Student boundaries missing');
-  assert.ok(ui.notice?.includes('5 present')&&ui.notice.includes('4 absent'),"Saved status not shown");
-  assert.equal(ui.noticeHidden,false);
+  const noticeDisplay=await run("getComputedStyle(document.getElementById('p2v510AttendanceNotice')).display");
+  assert.equal(noticeDisplay,'none','Persistent saved attendance banner must be removed');
   assert.equal(ui.statusHidden,'none','Repeated status panel should be hidden for saved attendance');
   assert.equal(ui.actions,true);assert.equal(ui.listSearch,true);
+  const popup=await run("(()=>{const old=window.confirm;window.confirm=()=>true;try{document.getElementById('p2v58Confirm').click()}finally{window.confirm=old}const m=document.getElementById('p2v573AttendanceSaved');return {open:!!m?.classList.contains('open'),title:m?.querySelector('h3')?.textContent,button:m?.querySelector('button')?.textContent};})()");
+  assert.deepEqual(popup,{open:true,title:'Attendance saved',button:'OK'},
+    'Successful attendance save must display a single OK dialog');
+  const closed=await run("(()=>{document.getElementById('p2v573AttendanceOK').click();return !document.getElementById('p2v573AttendanceSaved').classList.contains('open')})()");
+  assert.equal(closed,true,'OK button must close attendance confirmation');
+
   fs.mkdirSync('verification',{recursive:true});
   const jpg=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
-  if(jpg?.data)fs.writeFileSync('verification/class-attendance-beta-5.72.png',Buffer.from(jpg.data,'base64'));
+  if(jpg?.data)fs.writeFileSync('verification/class-attendance-beta-5.73.png',Buffer.from(jpg.data,'base64'));
   console.log('PASS packaged Attendance design, blue list, 9 rows, 4 subtle-red absences, saved notice, navigation',JSON.stringify(ui));
  }finally{
    if(saved!==undefined)try{await run('(()=>{const key='+JSON.stringify(KEY)+',previous='+JSON.stringify(saved)+';if(previous===null)localStorage.removeItem(key);else localStorage.setItem(key,previous);return true})()')}catch(e){console.error('Fixture restore failed',e.message)}
