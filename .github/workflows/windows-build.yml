@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.74 Setup
+name: Build Ananda Event Desk beta 5.75 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-74-unified-class-reports]
+    branches: [beta-5-75-clean-masters]
 permissions:
   contents: write
   actions: read
@@ -68,13 +68,13 @@ jobs:
         run: node scripts/verify-batch-delete-students.js
       - name: 'Verify stability fixes - Acharya, one-click review and focus'
         run: node scripts/verify-beta565-stability.js
-      - name: Verify Beta 5.74 correction and diagnostics
+      - name: Verify Beta 5.75 correction and diagnostics
         run: node scripts/verify-beta566.js
-      - name: 'Verify Beta 5.74 Kriya Master and In Progress workflow'
+      - name: 'Verify Beta 5.75 Kriya Master and In Progress workflow'
         run: node scripts/verify-beta567.js
-      - name: Verify Beta 5.74 existing Kriya approval and repeat-fee policy
+      - name: Verify Beta 5.75 existing Kriya approval and repeat-fee policy
         run: node scripts/verify-beta568.js
-      - name: Verify Beta 5.74 approved corrections
+      - name: Verify Beta 5.75 approved corrections
         run: node scripts/verify-beta573-source.js
       - name: Verify approved Class Attendance source
         run: node scripts/verify-beta572-frozen-attendance.js
@@ -82,8 +82,10 @@ jobs:
         run: node scripts/verify-frozen-classes-source.js
       - name: Audit 32 approved acceptance cases
         run: npm run test:release32
-      - name: Verify beta 5.74 unified Class Reports source and frozen sidebar
+      - name: Verify beta 5.75 unified Class Reports source and frozen sidebar
         run: node scripts/verify-beta574-unified-source.js
+      - name: Verify beta 5.75 ten master screens, stages and frozen sidebar
+        run: node scripts/verify-beta575-masters-source.js
       - run: npm run dist:win
       - name: Smoke test - launch packaged Windows desktop application
         shell: pwsh
@@ -107,15 +109,17 @@ jobs:
             node scripts/verify-release-ui.js
             if ($LASTEXITCODE -ne 0) { throw 'Release UI regression failed' }
             node scripts/verify-beta563-keyboard.js
-            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.74 keyboard interaction regression failed' }
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.75 keyboard interaction regression failed' }
             node scripts/verify-frozen-classes-desktop.js
             if ($LASTEXITCODE -ne 0) { throw 'Frozen Classes packaged UI regression failed' }
             node scripts/verify-beta572-attendance-desktop.js
             if ($LASTEXITCODE -ne 0) { throw 'Frozen Attendance desktop verification failed' }
             node scripts/verify-beta573-progress-desktop.js
-            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.74 Excel Student Progress desktop regression failed' }
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.75 Excel Student Progress desktop regression failed' }
             node scripts/verify-beta574-reports-desktop.js
             if ($LASTEXITCODE -ne 0) { throw 'Unified Class Reports desktop verification failed' }
+            node scripts/verify-beta575-masters-desktop.js
+            if ($LASTEXITCODE -ne 0) { throw "Beta 5.75 master-list desktop check failed" }
             node scripts/verify-beta569-typing-navigation.js
             if ($LASTEXITCODE -ne 0) { throw '100-cycle keyboard/navigation regression failed' }
             node scripts/verify-reset-preserves-ai.js
@@ -176,24 +180,24 @@ jobs:
           if ($proc.ExitCode -ne 0) { throw "Uninstall failed" }
           $data = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK\Data'
           if (!(Test-Path $data)) { throw "Uninstall removed offline data" }
-          Write-Host "PASS real install, 5.52 to 5.74 upgrade, persistent NGO test student, shortcut and uninstall"
+          Write-Host "PASS real install, 5.52 to 5.75 upgrade, persistent NGO test student, shortcut and uninstall"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Ananda-beta-5.74-verification-evidence
+          name: Ananda-beta-5.75-verification-evidence
           path: verification/
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.74-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.75-Setup
           path: dist/*.exe
           if-no-files-found: error
 
       - name: Publish single-file installer to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ananda-beta-5.74
-          name: Ananda Sangha Event Desk Beta 5.74
+          tag_name: ananda-beta-5.75
+          name: Ananda Sangha Event Desk Beta 5.75
           prerelease: true
           files: dist/*.exe
           body: "Windows installer, successful packaged Windows UI and NSIS upgrade checks. Installer is unsigned; Smart App Control may block it."

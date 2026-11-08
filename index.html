@@ -9309,6 +9309,314 @@ function p2v58BindPhoneListener(){
     render();
   };
 })();
+  (function anandaV575(){
+  // 5.75: all Master-page changes live in main content. Frozen aside untouched.
+  const g=id=>document.getElementById(id), E=value=>esc(String(value??'')), masterIds=['volunteers','attendeeMaster','vips','kriyabans','students','acharyas','courseMaster'];
+  const stageSpecs=[
+    {key:'kriya2Master',name:'Kriya 2'},
+    {key:'kriya3Master',name:'Kriya 3'},
+    {key:'kriya4Master',name:'Kriya 4'},
+    {key:'sttMaster',name:'STT'}
+  ];
+  const stageIds=stageSpecs.map(x=>x.key);
+  const activeClassBatches=()=>state.classBatches.filter(b=>!b.archivedAt);
+  const sortNames=(a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'});
+  const empty=message=>`<div class="v575-empty">${E(message)}</div>`;
+  const table=(heads,body)=>body.length?`<div class="v575-table-scroll"><table class="v575-table"><thead><tr>${heads.map(s=>`<th>${E(s)}</th>`).join('')}<th></th></tr></thead><tbody>${body.join('')}</tbody></table></div>`:empty('No records found.');
+  const edit=(cls,id)=>`<button type="button" class="btn ghost small ${cls}" data-id="${E(id)}">EDIT</button>`;
+  const prettyDate=date=>date?fmt(String(date).slice(0,10)):'—';
+  const bind=(container,cls,fn)=>g(container)?.querySelectorAll('.'+cls).forEach(button=>button.onclick=()=>fn(button.dataset.id));
+
+  // A single heading comes from the application header, not a second card heading.
+  // Keep the Add, Options, Import/Export and existing dialogs functional.
+  const style=document.createElement('style');
+  style.id='v575MastersOnlyStyle';
+  style.textContent=`
+    body:has(.page.active:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster)) .topbar #pageSubtitle,
+    body:has(.page.active:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster)) .topbar #v51SecurityButton{display:none!important}
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster){padding-top:0!important}
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster)>.card{
+      background:#fff!important;border:1px solid #dce6ef!important;border-radius:11px!important;
+      box-shadow:none!important;padding:18px 20px!important;min-height:250px!important;
+    }
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster)>.card:before{
+      content:"";display:block;background:#ffc329;height:3px;margin:-18px -20px 15px;border-radius:10px 10px 0 0;
+    }
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans) .card-head{justify-content:flex-end!important;margin-bottom:14px!important;gap:12px!important}
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans) .card-head>div:first-child{display:none!important}
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans) .card-head .actions{margin-left:auto!important}
+    .page:is(#courseMaster,#acharyas,#students)>.event-banner{
+      background:transparent!important;border:0!important;box-shadow:none!important;
+      padding:0 0 12px!important;min-height:0!important;display:flex!important;justify-content:flex-end!important;
+      margin:0!important;
+    }
+    .page:is(#courseMaster,#acharyas,#students)>.event-banner>div{display:none!important}
+    .page:is(#courseMaster,#acharyas,#students)>.event-banner button{background:#193e7f!important;color:#fff!important}
+    .page:is(#courseMaster,#acharyas,#students)>.card{margin-top:0!important}
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster) :is(.toolbar,.p2-toolbar){
+      display:flex!important;gap:12px!important;align-items:center!important;margin:0 0 16px!important;flex-wrap:wrap;
+    }
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster) :is(.toolbar,.p2-toolbar) input{
+      flex:1!important;min-width:220px!important;width:auto!important;background:#fff!important;
+    }
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster) .v575-table-scroll{
+      overflow-x:auto;border:0;background:#fff;
+    }
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster) .v575-table{
+      width:100%;border-collapse:collapse;font-size:13px;background:#fff;
+    }
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster) .v575-table th{
+      text-align:left;background:#f2f6fa;color:#385573;padding:10px 13px;font-size:12px;font-weight:650;
+      border-bottom:1px solid #dae4ee;white-space:nowrap
+    }
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster) .v575-table td{
+      border-bottom:1px solid #e4ebf3;padding:10px 13px;text-align:left;vertical-align:middle;color:#1d3655;
+    }
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster) .v575-table td:last-child{
+      text-align:right;white-space:nowrap
+    }
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster) .v575-empty{
+      text-align:center;padding:55px 16px;color:#687d93;font-size:13px
+    }
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster) .v575-name{
+      font-weight:650;color:#173b71
+    }
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster) .v575-name-button{
+      background:transparent;color:#173b71;font-weight:650;border:0;cursor:pointer;text-align:left;padding:3px 0
+    }
+    #vips .v575-photo{width:40px;height:40px;object-fit:cover;border-radius:50%;display:block}
+    #vips .v575-photo-empty{height:40px;width:40px;border-radius:50%;background:#edf2f6;color:#688198;display:grid;place-items:center;font-size:20px}
+    #vips .v575-photo-button{border:0;background:transparent;padding:0;cursor:pointer}
+    #vips .v575-vip-name{display:flex;align-items:center;gap:12px}
+    #courseMaster #p2CourseList .p2-course-row{margin:0!important;padding:13px 10px!important;border:0!important;
+      border-bottom:1px solid #e4ebf3!important;border-radius:0!important;background:#fff!important;box-shadow:none!important}
+    #courseMaster #p2CourseList .p2-course-row h4{margin:0!important;font-size:14px!important}
+    #courseMaster #p2CourseList .p2-course-row p{display:none!important}
+    #kriyabanModal .field:has(#kriyabanNotes){display:none!important}
+    #v575VipPreview{position:fixed;inset:0;z-index:5000;background:rgba(20,35,56,.68);display:grid;
+      place-items:center;padding:30px;cursor:pointer}
+    #v575VipPreview[hidden]{display:none!important}
+    #v575VipPreview img{max-width:min(90vw,680px);max-height:78vh;object-fit:contain;border-radius:10px;background:white}
+    #v575VipPreview button{position:absolute;right:22px;top:18px;color:#fff;font-size:30px;background:none;border:0;cursor:pointer}
+    #kriya2Master .v575-stage-actions,#kriya3Master .v575-stage-actions,
+    #kriya4Master .v575-stage-actions,#sttMaster .v575-stage-actions{display:flex;justify-content:flex-end;margin-bottom:15px}
+    #permanentRecords .p2-master-card.v575-added-master{min-height:105px}
+  `;
+  document.head.appendChild(style);
+
+  // Keep the approved course names as one simple list; categories/schedule remain data.
+  const beforeCourses=p2RenderCourses;
+  p2RenderCourses=function(){
+    beforeCourses();
+    const host=g('p2CourseList');if(!host)return;
+    host.innerHTML=state.courseTypes.slice().sort((a,b)=>p2CourseRank(a.name)-p2CourseRank(b.name)||String(a.name).localeCompare(String(b.name),undefined,{numeric:true,sensitivity:'base'}))
+      .map(c=>`<div class="p2-course-row"><div><h4>${E(c.name)}${c.active===false?' <span class="p2-chip bad">Inactive</span>':''}</h4></div>${edit('p2-edit-course',c.id)}</div>`).join('');
+    bind('p2CourseList','p2-edit-course',p2OpenCourse);
+  };
+  if(g('p2AddCourse'))g('p2AddCourse').textContent='+ ADD COURSE';
+
+  const beforeVolunteers=renderVolunteers;
+  renderVolunteers=function(){
+    beforeVolunteers();if(!v51MasterUnlocked)return;
+    const q=String(g('volunteerSearch')?.value||'').toLowerCase().trim();
+    const list=state.volunteers.filter(v=>[volName(v),v.mobile,v.birthday].join(' ').toLowerCase().includes(q)).sort((a,b)=>sortNames({name:volName(a)},{name:volName(b)}));
+    g('volunteerTable').innerHTML=table(['Name','Phone','Birthday'],list.map(v=>`<tr><td class="v575-name">${E(volName(v))}</td><td>${E(v.mobile||'—')}</td><td>${prettyDate(v.birthday)}</td><td>${edit('edit-vol',v.id)}</td></tr>`));
+    bind('volunteerTable','edit-vol',id=>{openVolunteer(id);if(typeof v92WireMobileLimit==='function')v92WireMobileLimit()});
+  };
+
+  const beforeAttendees=renderAttendeeMaster;
+  renderAttendeeMaster=function(){
+    beforeAttendees();if(!v51MasterUnlocked)return;
+    const q=normName(g('attendeeMasterSearch')?.value||''),filter=g('attendeeMasterFilter')?.value||'all';
+    let list=state.attendeeMaster.filter(a=>[a.name,a.mobile].join(' ').toLowerCase().includes(q));
+    if(filter==='family')list=list.filter(a=>a.category==='family');
+    if(filter==='outside')list=list.filter(a=>a.category!=='family');
+    if(filter==='review')list=list.filter(a=>a.needsReview);
+    if(filter==='referrer')list=list.filter(a=>attendeeReferralCount(a.id)>0);
+    list.sort(sortNames);
+    g('attendeeMasterTable').innerHTML=table(['Name','Phone','Type'],list.map(a=>`<tr><td class="v575-name">${E(a.name)}</td><td>${E(a.mobile||'—')}</td><td>${E(a.category==='family'?'Family':'Attendee')}${a.needsReview?' · Review':''}</td><td>${edit('edit-attendee-master',a.id)}</td></tr>`));
+    bind('attendeeMasterTable','edit-attendee-master',openAttendeeMaster);
+  };
+
+  const beforeKriyabans=v46RenderKriyabans;
+  v46RenderKriyabans=function(){
+    beforeKriyabans();if(!v51MasterUnlocked)return;
+    const list=v46KriyabanQueryMatches(g('kriyabanSearch')?.value||'').sort(sortNames);
+    g('kriyabanTable').innerHTML=table(['Name','Phone','Kriya Initiation Date'],list.map(k=>`<tr><td class="v575-name">${E(k.name)}</td><td>${E(k.mobile||'—')}</td><td>${prettyDate(k.kriyaDate)}</td><td>${edit('v46-edit-kriyaban',k.id)}</td></tr>`));
+    bind('kriyabanTable','v46-edit-kriyaban',v46OpenKriyaban);
+  };
+  // The old note stays stored for audit, but never appears in the master table
+  // or the master edit form.
+  g('kriyabanNotes')?.closest('.field')?.setAttribute('hidden','');
+
+  const beforeVips=v47RenderVips;
+  const beforeVipOpen=v47OpenVip;
+  v47OpenVip=function(id=''){
+    beforeVipOpen(id);
+    const vip=state.vips.find(v=>v.id===id);
+    if(g('v575VipMobile'))g('v575VipMobile').value=vip?.mobile||'';
+    if(g('v575VipCategory'))g('v575VipCategory').value=vip?.category||'';
+  };
+  // Additional fields are optional, so existing name-only VIP records survive.
+  const vipNameField=g('vipName')?.closest('.field');
+  if(vipNameField&&!g('v575VipMobile')){
+    vipNameField.insertAdjacentHTML('afterend',
+      '<div class="field"><label for="v575VipMobile">Phone (optional)</label><input id="v575VipMobile" type="tel" inputmode="numeric" maxlength="14" placeholder="Phone number"></div>'+
+      '<div class="field"><label for="v575VipCategory">Category (optional)</label><select id="v575VipCategory"><option value="">Not specified</option><option>Guest</option><option>Speaker</option><option>Special Guest</option><option>Other</option></select></div>');
+  }
+  g('vipForm').onsubmit=event=>{
+    event.preventDefault();
+    const id=g('vipId').value,name=g('vipName').value.trim(),photo=g('vipPhotoData').value||'';
+    const mobile=normMobile(g('v575VipMobile')?.value||''),category=g('v575VipCategory')?.value||'';
+    if(!name){toast('Enter the VIP name');return}
+    if(mobile&&mobile.length!==10){toast('Enter a valid 10-digit phone number');return}
+    if(state.vips.some(v=>v.id!==id&&normName(v.name)===normName(name))){toast('This VIP name already exists in the master');return}
+    const old=state.vips.find(v=>v.id===id);
+    const record={...old,id:id||uid('vip'),name,mobile,category,photo,createdAt:old?.createdAt||new Date().toISOString()};
+    if(old)state.vips[state.vips.findIndex(v=>v.id===id)]=record;else state.vips.push(record);
+    g('vipModal').classList.remove('open');
+    save();toast(old?'VIP updated':'VIP added to permanent master');
+  };
+  const photoViewer=document.createElement('div');
+  photoViewer.id='v575VipPreview';photoViewer.hidden=true;
+  photoViewer.setAttribute('role','dialog');photoViewer.setAttribute('aria-label','VIP photograph preview');
+  photoViewer.innerHTML='<button type="button" aria-label="Close photograph">×</button><img alt="VIP photograph">';
+  photoViewer.onclick=()=>{photoViewer.hidden=true;};
+  document.body.appendChild(photoViewer);
+  v47RenderVips=function(){
+    beforeVips();if(!v51MasterUnlocked)return;
+    const q=String(g('vipSearch')?.value||'').toLowerCase().trim();
+    const list=state.vips.filter(v=>[v.name,v.mobile,v.category].join(' ').toLowerCase().includes(q)).sort(sortNames);
+    g('vipTable').innerHTML=table(['VIP','Phone','Category'],list.map(v=>`<tr><td><div class="v575-vip-name">
+        <button class="v575-photo-button" data-photo-id="${E(v.id)}" type="button" aria-label="View ${E(v.name)} photograph">
+         ${v.photo?`<img class="v575-photo" src="${E(v.photo)}" alt="">`:'<span class="v575-photo-empty">◌</span>'}
+        </button><span class="v575-name">${E(v.name)}</span></div></td><td>${E(v.mobile||'—')}</td><td>${E(v.category||'—')}</td><td>${edit('v47-edit-vip',v.id)}</td></tr>`));
+    bind('vipTable','v47-edit-vip',v47OpenVip);
+    g('vipTable').querySelectorAll('.v575-photo-button').forEach(b=>b.onclick=()=>{
+      const v=state.vips.find(x=>x.id===b.dataset.photoId);
+      if(!v?.photo){v47OpenVip(v?.id);return;}
+      photoViewer.querySelector('img').src=v.photo;
+      photoViewer.hidden=false;
+    });
+  };
+
+  const beforeStudents=p2RenderStudents;
+  p2RenderStudents=function(){
+    beforeStudents();
+    const list=p2StudentRows();
+    g('p2StudentTable').innerHTML=table(['Name','Phone','Latest Course','Status'],list.map(s=>{
+      const en=p2StudentEnrollments(s.id).filter(e=>state.classBatches.some(b=>b.id===e.batchId)).at(-1);
+      const b=en?state.classBatches.find(b=>b.id===en.batchId):null;
+      const status=!en?'Not enrolled':en.outcome==='Completed'?'Completed':/withdraw|pause/i.test(en.outcome||'')?'Paused':b?.endedAt?'Review Required':'In Progress';
+      return `<tr><td class="v575-name">${E(s.name)}</td><td>${E(s.mobile||'—')}</td><td>${E(b?p2CourseName(b):'—')}</td><td>${E(status)}</td><td>${edit('p2-edit-student',s.id)} <button type="button" class="btn ghost small v575-student-history" data-id="${E(s.id)}">HISTORY</button></td></tr>`;
+    }));
+    bind('p2StudentTable','p2-edit-student',p2OpenStudent);
+    bind('p2StudentTable','v575-student-history',openHistory);
+  };
+
+  function openHistory(id){
+    if(!id)return;
+    switchPage('studentProgress');
+    if(g('p2ProgressSelect'))g('p2ProgressSelect').value=id;
+    p2RenderProgressDetail(id);
+  }
+
+  const beforeAcharyas=p2RenderAcharyas;
+  p2RenderAcharyas=function(){
+    beforeAcharyas();
+    const q=String(g('p2AcharyaMasterSearch')?.value||'').toLowerCase();
+    const list=state.acharyas.filter(a=>[a.name,a.mobile].join(' ').toLowerCase().includes(q)).sort(sortNames);
+    g('p2AcharyaTable').innerHTML=table(['Name','Phone','Assigned Classes'],list.map(a=>{
+      const assigned=activeClassBatches().filter(b=>(b.acharyaIds||[]).includes(a.id));
+      return `<tr><td class="v575-name">${E(a.name)}</td><td>${E(a.mobile||'—')}</td><td>${assigned.length?E(assigned.length+' '+(assigned.length===1?'class':'classes')):'—'}</td><td>${edit('p2-edit-acharya',a.id)}</td></tr>`;
+    }));
+    bind('p2AcharyaTable','p2-edit-acharya',p2OpenAcharya);
+  };
+
+  // New masters are derived views of stored ended-batch completions.
+  // They NEVER create another student, approval or enrolment record.
+  function stageOf(batch){
+    const byId={'course-kriya2':'Kriya 2','course-kriya3':'Kriya 3','course-kriya4':'Kriya 4','course-stt':'STT'};
+    const key=String(batch?.courseId||'').toLowerCase();
+    if(byId[key])return byId[key];
+    const name=String(p2CourseForBatch(batch)?.name||batch?.courseName||batch?.level||'').toLowerCase().replace(/\s+/g,' ').trim();
+    return {'kriya 2':'Kriya 2','kriya2':'Kriya 2','kriya 3':'Kriya 3','kriya3':'Kriya 3','kriya 4':'Kriya 4','kriya4':'Kriya 4','stt':'STT'}[name]||'';
+  }
+  function stageRows(stage){
+    const unique=new Map();
+    for(const en of state.classEnrollments){
+      if(en.outcome!=='Completed')continue;
+      const batch=state.classBatches.find(b=>String(b.id)===String(en.batchId));
+      if(!batch||!batch.endedAt||batch.archivedAt||stageOf(batch)!==stage)continue;
+      const person=p2v5Person(en);
+      const key=en.studentId?'student:'+en.studentId:person.mobile?'mobile:'+normMobile(person.mobile):'enrolment:'+en.id;
+      const date=String(en.completionDate||batch.end||batch.endedAt).slice(0,10);
+      const record={name:person.name,mobile:person.mobile||'',date,studentId:en.studentId||'',enrollmentId:en.id,course:stage};
+      const earlier=unique.get(key);
+      if(!earlier||record.date>earlier.date)unique.set(key,record);
+    }
+    return [...unique.values()].sort(sortNames);
+  }
+  function stageRender(spec){
+    const host=g(spec.key+'Table');if(!host)return;
+    const q=String(g(spec.key+'Search')?.value||'').toLowerCase().trim();
+    const list=stageRows(spec.name).filter(x=>[x.name,x.mobile].join(' ').toLowerCase().includes(q));
+    host.innerHTML=table(['Name','Phone','Completion Date'],list.map(x=>`<tr>
+      <td class="v575-name">${E(x.name)}</td><td>${E(x.mobile||'—')}</td><td>${prettyDate(x.date)}</td>
+      <td>${x.studentId?`<button class="btn ghost small v575-stage-history" type="button" data-id="${E(x.studentId)}">HISTORY</button>`:''}</td>
+    </tr>`));
+    bind(spec.key+'Table','v575-stage-history',openHistory);
+    const out=g(spec.key+'Export');
+    if(out)out.onclick=()=>v51RequireAdmin(()=>{
+      const rows=stageRows(spec.name).filter(x=>[x.name,x.mobile].join(' ').toLowerCase().includes(g(spec.key+'Search').value.toLowerCase().trim()));
+      p2Csv(rows.map(x=>({Name:x.name,Phone:String(x.mobile),Course:spec.name,Completion_Date:x.date})),`Ananda_${spec.name.replaceAll(' ','_')}_Master.csv`);
+    },'export '+spec.name+' Master');
+  }
+  const masters=g('permanentRecords')?.querySelector('.p2-master-grid');
+  const main=document.querySelector('main');
+  stageSpecs.forEach((spec,index)=>{
+    if(masters&&!masters.querySelector(`[data-go="${spec.key}"]`)){
+      const button=document.createElement('button');
+      button.className='p2-master-card v575-added-master';
+      button.dataset.go=spec.key;
+      button.innerHTML=`<span class="action-no">${String(index+7).padStart(2,'0')}</span><strong>${E(spec.name)} Master</strong>`;
+      button.onclick=()=>v51RequireAdmin(()=>openStage(spec),'open '+spec.name+' Master');
+      masters.appendChild(button);
+    }
+    if(main&&!g(spec.key)){
+      const sec=document.createElement('section');
+      sec.id=spec.key;sec.className='page';
+      sec.innerHTML=`<div class="card">
+        <div class="v575-stage-actions"><button class="btn" type="button" id="${spec.key}Export">Export List</button></div>
+        <div class="toolbar"><input type="search" class="search" id="${spec.key}Search" placeholder="Search name or phone"></div>
+        <div id="${spec.key}Table"></div></div>`;
+      main.appendChild(sec);
+      g(spec.key+'Search').oninput=()=>stageRender(spec);
+    }
+  });
+  function openStage(spec){
+    switchPage(spec.key);
+    g('pageTitle').textContent=spec.name.toUpperCase()+' MASTER';
+    g('pageSubtitle').textContent='';
+    stageRender(spec);
+  }
+  // Existing master searches must reference their new, security-preserving renderers.
+  if(g('volunteerSearch'))g('volunteerSearch').oninput=renderVolunteers;
+  if(g('attendeeMasterSearch'))g('attendeeMasterSearch').oninput=renderAttendeeMaster;
+  if(g('attendeeMasterFilter'))g('attendeeMasterFilter').onchange=renderAttendeeMaster;
+  if(g('kriyabanSearch'))g('kriyabanSearch').oninput=v46RenderKriyabans;
+  if(g('vipSearch'))g('vipSearch').oninput=v47RenderVips;
+  if(g('p2StudentSearch'))g('p2StudentSearch').oninput=p2RenderStudents;
+  if(g('p2StudentStage'))g('p2StudentStage').onchange=p2RenderStudents;
+  if(g('p2AcharyaMasterSearch'))g('p2AcharyaMasterSearch').oninput=p2RenderAcharyas;
+
+  // Refresh derived masters after normal save/render, preserving the app's stored data.
+  const oldRenderAll=renderAll;
+  renderAll=function(){
+    oldRenderAll();
+    if(v51MasterUnlocked)stageSpecs.forEach(stageRender);
+  };
+})();
   resetEventForm();
   renderAll();
 })();
