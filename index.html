@@ -251,7 +251,7 @@ aside .nav-btn[data-page="classes"]{text-transform:uppercase}
 </style>
 <style id="p2v573Corrections">
 body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important}
-#classAttendanceHub #p2v510AttendanceNotice{display:none!important}
+#classAttendanceHub #p2v510AttendanceNotice.p2v573-saved{display:none!important}
 #studentProgress .p2v520-table td,#studentProgress .p2v520-table th{white-space:nowrap}
 </style>
 </head>
@@ -4446,6 +4446,7 @@ function p2v58BindPhoneListener(){
     const s=p2v510AttendanceSummary(),complete=s.total>0&&s.recorded===s.total;
     const visible=p2v541SavedReview&&(s.recorded>0||s.changed);
     n.classList.toggle('hidden',!visible);
+    n.classList.toggle('p2v573-saved',visible&&complete&&!s.changed);
     n.style.background=(!complete||s.changed)?'#fff8ec':'#edf9f1';
     n.style.borderColor=(!complete||s.changed)?'#edd7a8':'#cbead5';
     n.style.color=(!complete||s.changed)?'#745219':'#16723f';
@@ -8306,8 +8307,7 @@ function p2v58BindPhoneListener(){
       const p2v520Groups=['All','In Progress','Incomplete / Withdrawn','Eligible',
         'Eligible + Incomplete / Withdrawn'];
       let p2v520Course='',p2v520Batch='__all__',p2v520Year='__all__',
-        p2v520Group='All',p2v520View='overview',p2v520History='',
-        p2v520Selected=new Set();
+        p2v520Group='All',p2v520View='overview',p2v520History='';
       function p2v520CourseName(courseId){
         return state.courseTypes.find(c=>String(c.id)===String(courseId))?.name||'';
       }
