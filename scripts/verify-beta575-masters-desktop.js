@@ -86,15 +86,17 @@ async function main(){
    const kr=await run(`(()=>{
      document.querySelector('[data-go="permanentRecords"]').click();
      document.querySelector('#permanentRecords [data-go="kriyabans"]').click();
-     return {text:document.getElementById('kriyabanTable').innerText,
+     const search=document.getElementById('kriyabanSearch');search.value='';search.dispatchEvent(new Event('input',{bubbles:true}));
+     return {active:document.getElementById('kriyabans').classList.contains('active'),filter:search.value,text:document.getElementById('kriyabanTable').innerText,
        headers:[...document.querySelectorAll('#kriyabanTable th')].map(x=>x.textContent.trim())};
    })()`);
-   assert.ok(kr.text.includes('Kriyaban Test 575'));
+   assert.ok(kr.text.includes('Kriyaban Test 575'),JSON.stringify(kr));
    assert.ok(!kr.text.includes('Linked from completed Kriya course'),'Kriyaban notes are still visible');
    assert.deepEqual(kr.headers.slice(0,3),['Name','Phone','Kriya Initiation Date']);
    const vip=await run(`(()=>{
      document.querySelector('[data-go="permanentRecords"]').click();
      document.querySelector('#permanentRecords [data-go="vips"]').click();
+     const query=document.getElementById('vipSearch');query.value='';query.dispatchEvent(new Event('input',{bubbles:true}));
      const tr=[...document.querySelectorAll('#vipTable tbody tr')].find(x=>x.textContent.includes('Photo VIP 575'));
      tr?.querySelector('.v575-photo-button')?.click();
      const shown=!document.getElementById('v575VipPreview').hidden;
