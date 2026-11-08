@@ -16,7 +16,7 @@ assert(overview.includes("(!rows.length?'disabled':'')"),'Empty filtered export 
 assert(overview.includes('v51RequireAdmin(()=>p2v573ExportProgressXlsx(rows)'),'Export must capture all filtered records and retain authorization');
 assert(html.includes('p2v573ShowAttendanceSaved()'),'Saved attendance must show confirmation');
 assert(html.includes("id='p2v573AttendanceSaved'"),'Attendance OK modal missing');
-assert(html.includes('#classAttendanceHub #p2v510AttendanceNotice{display:none!important}'),'Persistent saved banner not removed');
+assert(html.includes('#classAttendanceHub #p2v510AttendanceNotice.p2v573-saved{display:none!important}'),'Persistent saved banner not removed');
 assert(html.includes("document.querySelector('#p2ClassList .p2v570-detail')"),'Detail Back handler missing');
 assert(!html.includes(".app:has(#activeClasses.page.active .p2v510-year-open-head) #backButton{display:none!important}"),'Detail Back still hidden');
 assert(html.includes('body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important}'),'Master Lists still visible');
