@@ -28,7 +28,10 @@ async function main(){
    "localStorage.setItem(key,JSON.stringify(o));return {course:course.id,students:2}})()");
   assert.ok(seed?.course,JSON.stringify(seed));
   await call('Page.reload',{ignoreCache:true});await sleep(1400);
-  const overview=await run("(()=>{document.querySelector('.nav-btn[data-page=\"classes\"]')?.click();document.querySelector('#classes .p2-home-card[data-go=\"studentProgress\"]')?.click();"+
+  const opened=await run("(()=>{document.querySelector('.nav-btn[data-page=\"classes\"]')?.click();const route=document.querySelector('.go[data-go=\"studentProgress\"]');if(!route)return false;route.click();return true})()");
+  assert.equal(opened,true,'Student Progress navigation unavailable');
+  await sleep(500);
+  const overview=await run("(()=>{document.getElementById('p2v520Overview')?.click();"+
     "const course=document.getElementById('p2v520Course');if(course){course.value="+JSON.stringify(seed.course)+";course.dispatchEvent(new Event('change',{bubbles:true}))}"+
     "const batch=document.getElementById('p2v520Batch');if(batch){batch.value="+JSON.stringify(BATCH)+";batch.dispatchEvent(new Event('change',{bubbles:true}))}"+
     "const headers=[...document.querySelectorAll('#studentProgress .p2v520-table thead th')].map(x=>x.textContent.trim());"+
