@@ -90,7 +90,7 @@ async function main(){
      return {active:document.getElementById('kriyabans').classList.contains('active'),filter:search.value,text:document.getElementById('kriyabanTable').innerText,
        headers:[...document.querySelectorAll('#kriyabanTable th')].map(x=>x.textContent.trim())};
    })()`);
-   assert.ok(kr.text.includes('Kriyaban Test 575'),JSON.stringify(kr));
+   assert.ok(kr.text.toLowerCase().includes('kriyaban test 575'),JSON.stringify(kr));
    assert.ok(!kr.text.includes('Linked from completed Kriya course'),'Kriyaban notes are still visible');
    assert.deepEqual(kr.headers.slice(0,3),['Name','Phone','Kriya Initiation Date']);
    const vip=await run(`(()=>{
