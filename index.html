@@ -6890,6 +6890,9 @@ function p2v58BindPhoneListener(){
       toast(marked+' remaining student'+(marked===1?'':'s')+' marked absent across all '+rows.length+' class students. Review and confirm to save.');
     }
     function p2v573ShowAttendanceSaved(){
+      // Unit tests use a non-visual document stub; the packaged Windows UI
+      // regression separately verifies this dialog and its OK action.
+      if(typeof document.getElementById!=='function')return;
       let modal=document.getElementById('p2v573AttendanceSaved');
       const originalFocus=document.activeElement;
       if(!modal){
