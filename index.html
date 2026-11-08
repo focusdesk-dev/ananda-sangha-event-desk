@@ -249,6 +249,11 @@ aside .nav-btn[data-page="classes"]{text-transform:uppercase}
 @media(max-width:1120px){#classes .p2-home-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#activeClasses .p2v510-year-card.p2v570-year-card{grid-template-columns:190px 1fr 1fr 45px}}
 @media(max-width:800px){#classes .p2-home-grid{grid-template-columns:1fr}#activeClasses .p2v510-year-card.p2v570-year-card{grid-template-columns:160px 1fr 1fr 34px}#activeClasses .p2v570-metric{padding:15px}#activeClasses .p2v570-detail-inner{flex-wrap:wrap}#activeClasses .p2v570-detail-year{min-width:150px}}
 </style>
+<style id="p2v573Corrections">
+body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important}
+#classAttendanceHub #p2v510AttendanceNotice{display:none!important}
+#studentProgress .p2v520-table td,#studentProgress .p2v520-table th{white-space:nowrap}
+</style>
 </head>
 <body>
 <div class="app">
@@ -6883,6 +6888,32 @@ function p2v58BindPhoneListener(){
       if(pending)throw Error('Attendance review is incomplete: '+pending+' students still unmarked.');
       toast(marked+' remaining student'+(marked===1?'':'s')+' marked absent across all '+rows.length+' class students. Review and confirm to save.');
     }
+    function p2v573ShowAttendanceSaved(){
+      let modal=document.getElementById('p2v573AttendanceSaved');
+      const originalFocus=document.activeElement;
+      if(!modal){
+        modal=document.createElement('div');
+        modal.id='p2v573AttendanceSaved';
+        modal.className='modal-backdrop';
+        modal.setAttribute('role','dialog');
+        modal.setAttribute('aria-modal','true');
+        modal.setAttribute('aria-label','Attendance saved');
+        modal.innerHTML='<div class="modal" style="max-width:365px;padding:24px;text-align:center">'+
+          '<h3 style="margin:0 0 20px;color:#0b3167;font-size:19px;font-weight:670">Attendance saved</h3>'+
+          '<button type="button" class="btn" id="p2v573AttendanceOK" style="min-width:100px">OK</button></div>';
+        document.body.appendChild(modal);
+        modal.querySelector('#p2v573AttendanceOK').addEventListener('click',()=>{
+          modal.classList.remove('open');
+          if(modal._returnFocus?.isConnected)modal._returnFocus.focus();
+        });
+        modal.addEventListener('keydown',e=>{
+          if(e.key==='Escape'){e.preventDefault();modal.querySelector('#p2v573AttendanceOK').click()}
+        });
+      }
+      modal._returnFocus=originalFocus;
+      modal.classList.add('open');
+      modal.querySelector('#p2v573AttendanceOK').focus();
+    }
     function p2v536ConfirmAttendance(){
       p2v536EnsureSession();
       const b=p2v58CurrentBatch();if(!b||!p2v58Date){toast('Choose a batch and class date.');return}
@@ -6897,8 +6928,8 @@ function p2v58BindPhoneListener(){
       rows.forEach(r=>{r.en.attendance=r.en.attendance||{};r.en.attendance[p2v58Date]=p2v536Draft[r.en.id]===true});
       save();p2v536Confirmed=true;p2v541SavedReview=true;
       p2v530SetStatus('');
-      toast('Complete class attendance saved.');
       p2v536RenderFullRoster();
+      p2v573ShowAttendanceSaved();
     }
 
     // Simplify visible UI without breaking QR photo receipt or settings.
@@ -9030,8 +9061,8 @@ function p2v58BindPhoneListener(){
       const title=(status.querySelector('strong')?.textContent||'').trim();
       const detail=(status.querySelector('small')?.textContent||'').trim();
       status.classList.toggle('p2v572-redundant',
-        !status.querySelector('.p2v537-error')&&!detail&&
-        (title==='Process attendance'||title==='Attendance saved'));
+        !status.querySelector('.p2v537-error')&&
+        (title==='Attendance saved'||(!detail&&title==='Process attendance')));
     };
     if(status){
       new MutationObserver(classify).observe(status,{childList:true,subtree:true,characterData:true});
@@ -9046,6 +9077,18 @@ function p2v58BindPhoneListener(){
     if(confirm&&confirm.textContent.toLowerCase()==='confirm attendance')confirm.textContent='Confirm attendance';
   })();
 
+  (function p2v573YearDetailBack(){
+    const back=document.getElementById('backButton');
+    if(!back||back.dataset.p2v573Bound)return;
+    back.dataset.p2v573Bound='1';
+    back.addEventListener('click',event=>{
+      if(document.getElementById('activeClasses')?.classList.contains('active')&&
+         document.querySelector('#p2ClassList .p2v570-detail')){
+        event.preventDefault();event.stopImmediatePropagation();
+        switchPage('classes');
+      }
+    },true);
+  })();
   resetEventForm();
   renderAll();
 })();
