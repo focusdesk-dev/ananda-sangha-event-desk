@@ -9,6 +9,9 @@ permissions:
 jobs:
   windows-installer:
     runs-on: windows-latest
+    env:
+      ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+      ELECTRON_BUILDER_BINARIES_MIRROR: https://mirrors.huaweicloud.com/electron-builder-binaries/
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
