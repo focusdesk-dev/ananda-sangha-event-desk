@@ -4,7 +4,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pkg.version,'2.0.0-beta.5.79');
+assert.equal(pkg.version,'2.0.0-beta.5.80');
 const baseline=fs.readFileSync('scripts/frozen-sidebar-beta573.txt','utf8');
 const side=html.slice(html.indexOf('<aside'),html.indexOf('</aside>')+8);
 assert.equal(side,baseline,'Approved left-hand taskbar markup must remain unchanged');
