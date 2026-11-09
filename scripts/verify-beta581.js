@@ -14,6 +14,8 @@ assert.equal(I.searchMatch(member,'987654'),true,'A family contact can still loc
 assert.ok(I.searchMatch({name:'Sahil Malhotra',mobile:'9822276210',detail:'Level 2 · Batch 1'},'Sahil'));
 assert.ok(!I.searchMatch({name:'Sahil Malhotra',mobile:'9822276210'},'Rahul'));
 assert.ok(I.searchMatch({name:'Sahil Malhotra',mobile:'9822276210'},'Sahil 98222'));
+assert.ok(html.includes('masterId:row.dataset.masterId'), 'Family master link must survive repeated edits');
+assert.ok(html.includes('m.masterId=master.id'), 'Saving family must reuse the member’s permanent master');
 assert.ok(html.includes('identity-beta581.js'),'Identity library must load before the main program');
 assert.ok(html.includes("v36EnsureMaster(m.name,m.mobile||'',m.mobile"),'Family contact must not be duplicated into each member personal mobile');
 assert.ok(html.includes("mobile:m.mobile||'',contactMobile:mainMobile"),'Family row must distinguish shared contact from personal mobile');
