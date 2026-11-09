@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.77 Setup
+name: Build Ananda Event Desk beta 5.78 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-77-permanent-records-cards]
+    branches: [beta-5-78-regression-recovery]
 permissions:
   contents: write
   actions: read
@@ -68,13 +68,13 @@ jobs:
         run: node scripts/verify-batch-delete-students.js
       - name: 'Verify stability fixes - Acharya, one-click review and focus'
         run: node scripts/verify-beta565-stability.js
-      - name: Verify Beta 5.77 correction and diagnostics
+      - name: Verify Beta 5.78 correction and diagnostics
         run: node scripts/verify-beta566.js
-      - name: 'Verify Beta 5.77 Kriya Master and In Progress workflow'
+      - name: 'Verify Beta 5.78 Kriya Master and In Progress workflow'
         run: node scripts/verify-beta567.js
-      - name: Verify Beta 5.77 existing Kriya approval and repeat-fee policy
+      - name: Verify Beta 5.78 existing Kriya approval and repeat-fee policy
         run: node scripts/verify-beta568.js
-      - name: Verify Beta 5.77 approved corrections
+      - name: Verify Beta 5.78 approved corrections
         run: node scripts/verify-beta573-source.js
       - name: Verify approved Class Attendance source
         run: node scripts/verify-beta572-frozen-attendance.js
@@ -82,14 +82,16 @@ jobs:
         run: node scripts/verify-frozen-classes-source.js
       - name: Audit 32 approved acceptance cases
         run: npm run test:release32
-      - name: Verify beta 5.77 unified Class Reports source and frozen sidebar
+      - name: Verify beta 5.78 unified Class Reports source and frozen sidebar
         run: node scripts/verify-beta574-unified-source.js
-      - name: Verify beta 5.77 ten master screens, stages and frozen sidebar
+      - name: Verify beta 5.78 ten master screens, stages and frozen sidebar
         run: node scripts/verify-beta575-masters-source.js
-      - name: Verify beta 5.77 consistent headers, permanent list, attendance icon and frozen sidebar
+      - name: Verify beta 5.78 consistent headers, permanent list, attendance icon and frozen sidebar
         run: node scripts/verify-beta576-consistency-source.js
-      - name: Verify 5.77 permanent card design and frozen navigation
+      - name: Verify 5.78 permanent card design and frozen navigation
         run: node scripts/verify-beta577-master-cards-source.js
+      - name: Audit original 5.77 source immutability and recovered workflows
+        run: node scripts/verify-beta578-recovery-source.js
       - run: npm run dist:win
       - name: Smoke test - launch packaged Windows desktop application
         shell: pwsh
@@ -113,19 +115,21 @@ jobs:
             node scripts/verify-release-ui.js
             if ($LASTEXITCODE -ne 0) { throw 'Release UI regression failed' }
             node scripts/verify-beta563-keyboard.js
-            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.77 keyboard interaction regression failed' }
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.78 keyboard interaction regression failed' }
             node scripts/verify-frozen-classes-desktop.js
             if ($LASTEXITCODE -ne 0) { throw 'Frozen Classes packaged UI regression failed' }
             node scripts/verify-beta572-attendance-desktop.js
             if ($LASTEXITCODE -ne 0) { throw 'Frozen Attendance desktop verification failed' }
             node scripts/verify-beta573-progress-desktop.js
-            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.77 Excel Student Progress desktop regression failed' }
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.78 Excel Student Progress desktop regression failed' }
             node scripts/verify-beta574-reports-desktop.js
             if ($LASTEXITCODE -ne 0) { throw 'Unified Class Reports desktop verification failed' }
             node scripts/verify-beta575-masters-desktop.js
-            if ($LASTEXITCODE -ne 0) { throw "Beta 5.77 master-list desktop check failed" }
+            if ($LASTEXITCODE -ne 0) { throw "Beta 5.78 master-list desktop check failed" }
             node scripts/verify-beta577-master-cards-desktop.js
-            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.77 Permanent Records card acceptance failed' }
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.78 Permanent Records card acceptance failed' }
+            node scripts/verify-beta578-full-journey.js
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.78 functional recovery journey failed' }
             node scripts/verify-beta569-typing-navigation.js
             if ($LASTEXITCODE -ne 0) { throw '100-cycle keyboard/navigation regression failed' }
             node scripts/verify-reset-preserves-ai.js
@@ -186,24 +190,24 @@ jobs:
           if ($proc.ExitCode -ne 0) { throw "Uninstall failed" }
           $data = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK\Data'
           if (!(Test-Path $data)) { throw "Uninstall removed offline data" }
-          Write-Host "PASS real install, 5.52 to 5.77 upgrade, persistent NGO test student, shortcut and uninstall"
+          Write-Host "PASS real install, 5.52 to 5.78 upgrade, persistent NGO test student, shortcut and uninstall"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Ananda-beta-5.77-verification-evidence
+          name: Ananda-beta-5.78-verification-evidence
           path: verification/
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.77-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.78-Setup
           path: dist/*.exe
           if-no-files-found: error
 
       - name: Publish single-file installer to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ananda-beta-5.77
-          name: Ananda Sangha Event Desk Beta 5.77
+          tag_name: ananda-beta-5.78
+          name: Ananda Sangha Event Desk Beta 5.78
           prerelease: true
           files: dist/*.exe
           body: "Windows installer, successful packaged Windows UI and NSIS upgrade checks. Installer is unsigned; Smart App Control may block it."

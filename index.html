@@ -9924,6 +9924,235 @@ function p2v58BindPhoneListener(){
   };
   decorate();
 })();
+  (function anandaV578(){
+  // Recovery only: do not edit the frozen aside, Classes, attendance, progression,
+  // Kriya approvals, database structure or existing master-navigation functions.
+  const g=id=>document.getElementById(id),E=v=>esc(String(v??'')),N=v=>String(v??'').toLowerCase().trim();
+  const sorter=(a,b)=>String(a.name||'').localeCompare(String(b.name||''),undefined,{sensitivity:'base'});
+  const panel=(cols,records)=>records.length?
+    `<div class="v575-table-scroll"><table class="v575-table"><thead><tr>${cols.map(h=>`<th>${E(h)}</th>`).join('')}<th></th></tr></thead><tbody>${records.join('')}</tbody></table></div>`:
+    '<div class="v575-empty">No records found.</div>';
+  const action=(cls,id,text='EDIT')=>`<button type="button" class="btn ghost small ${cls}" data-id="${E(id)}">${E(text)}</button>`;
+  const bind=(id,cls,fn)=>g(id)?.querySelectorAll('.'+cls).forEach(b=>b.onclick=()=>fn(b.dataset.id));
+
+  // Restore the duplicate-mobile warning that the 5.75 volunteer renderer hid.
+  const oldVolunteers=renderVolunteers;
+  renderVolunteers=function(){
+    oldVolunteers();
+    if(!v51MasterUnlocked)return;
+    const counts=new Map();
+    state.volunteers.forEach(v=>{
+      const number=normMobile(v.mobile||'');
+      if(number)counts.set(number,(counts.get(number)||0)+1);
+    });
+    const q=N(g('volunteerSearch')?.value);
+    const rows=state.volunteers.filter(v=>[volName(v),v.mobile,v.birthday].join(' ').toLowerCase().includes(q))
+      .sort((a,b)=>volName(a).localeCompare(volName(b),undefined,{sensitivity:'base'}))
+      .map(v=>{
+        const number=normMobile(v.mobile||''),duplicate=number&&counts.get(number)>1;
+        return `<tr${duplicate?' class="v92-duplicate-row"':''}><td class="v575-name">${E(volName(v))}${duplicate?'<div class="v92-duplicate-warning">DUPLICATE MOBILE — EDIT TO CORRECT</div>':''}</td>
+          <td>${E(v.mobile||'—')}</td><td>${v.birthday?E(fmt(v.birthday)):'<span class="v578-review">Birthday required</span>'}</td>
+          <td>${action('v578-edit-volunteer',v.id)}</td></tr>`;
+      });
+    g('volunteerTable').innerHTML=panel(['Name','Phone','Birthday'],rows);
+    bind('volunteerTable','v578-edit-volunteer',id=>{openVolunteer(id);v92WireMobileLimit()});
+  };
+
+  // Restore searches across linked references/review notes, and visible review state.
+  const oldAttendees=renderAttendeeMaster;
+  renderAttendeeMaster=function(){
+    oldAttendees();
+    if(!v51MasterUnlocked)return;
+    const q=normName(g('attendeeMasterSearch')?.value||''),filter=g('attendeeMasterFilter')?.value||'all';
+    let list=state.attendeeMaster.filter(a=>!q||normName([
+      a.name,a.mobile,a.personalMobile,a.reviewNotes,
+      a.originalReferenceType&&a.originalReferenceId?masterPersonName(a.originalReferenceType,a.originalReferenceId):'',
+      a.category
+    ].join(' ')).includes(q));
+    if(filter==='family')list=list.filter(a=>a.category==='family');
+    if(filter==='outside')list=list.filter(a=>a.category!=='family');
+    if(filter==='review')list=list.filter(a=>a.needsReview);
+    if(filter==='referrer')list=list.filter(a=>attendeeReferralCount(a.id)>0);
+    list.sort(sorter);
+    const rows=list.map(a=>`<tr${a.needsReview?' class="review-row"':''}>
+      <td class="v575-name">${E(a.name)}${a.needsReview?`<div class="v578-review">Review: ${E(a.reviewNotes||'Check imported details')}</div>`:''}</td>
+      <td>${E(a.mobile||'—')}</td><td>${E(a.category==='family'?'Family':'Attendee')}</td>
+      <td>${action('v578-edit-attendee',a.id,a.needsReview?'REVIEW':'EDIT')}</td></tr>`);
+    g('attendeeMasterTable').innerHTML=panel(['Name','Phone','Type'],rows);
+    bind('attendeeMasterTable','v578-edit-attendee',openAttendeeMaster);
+  };
+
+  // Existing VIP photos/categories remain, but do not erase cross-master associations.
+  const oldVips=v47RenderVips;
+  v47RenderVips=function(){
+    oldVips();
+    if(!v51MasterUnlocked)return;
+    g('vipTable')?.querySelectorAll('button.v47-edit-vip').forEach(button=>{
+      const vip=state.vips.find(v=>String(v.id)===String(button.dataset.id));
+      const status=vip?v47VipConnections(vip):'';
+      if(!status||status==='VIP only')return;
+      const row=button.closest('tr'),name=row?.querySelector('.v575-name');
+      if(name&&!name.querySelector('.v578-linked')){
+        const text=document.createElement('small');text.className='v578-linked';
+        text.textContent='Also: '+status;
+        name.appendChild(text);
+      }
+    });
+  };
+
+  // Restore Acharya Active/Inactive status and notes-based search.
+  const oldAcharya=p2RenderAcharyas;
+  p2RenderAcharyas=function(){
+    oldAcharya();
+    const q=N(g('p2AcharyaMasterSearch')?.value);
+    const rows=state.acharyas.filter(a=>[a.name,a.mobile,a.notes].join(' ').toLowerCase().includes(q))
+      .sort(sorter).map(a=>{
+        const assigned=state.classBatches.filter(b=>!b.archivedAt&&(b.acharyaIds||[]).includes(a.id)).length;
+        return `<tr><td class="v575-name">${E(a.name)}</td><td>${E(a.mobile||'—')}</td>
+          <td>${a.active===false?'<span class="v578-review">Inactive</span>':'Active'}</td>
+          <td>${assigned?E(assigned+' '+(assigned===1?'class':'classes')):'—'}</td>
+          <td>${action('v578-edit-acharya',a.id)}</td></tr>`;
+      });
+    g('p2AcharyaTable').innerHTML=panel(['Name','Phone','Status','Assigned Classes'],rows);
+    bind('p2AcharyaTable','v578-edit-acharya',p2OpenAcharya);
+  };
+
+  // Historical outcomes must not be mislabelled In Progress.
+  const oldStudents=p2RenderStudents;
+  p2RenderStudents=function(){
+    oldStudents();
+    const rows=g('p2StudentTable')?.querySelectorAll('tbody tr')||[];
+    const list=p2StudentRows();
+    rows.forEach((tr,i)=>{
+      const s=list[i];if(!s)return;
+      const history=p2StudentEnrollments(s.id).filter(en=>state.classBatches.some(b=>b.id===en.batchId));
+      const last=history[history.length-1];
+      if(!last)return;
+      if(/^(withdrew|withdrawn|paused|did not complete|incomplete)$/i.test(String(last.outcome||''))){
+        const status=tr.children[3];
+        if(status)status.textContent='Paused';
+      }
+    });
+  };
+
+  // Selecting an existing attendee suggestion must reuse that person, not only
+  // fill their name/mobile and then block them as a duplicate.
+  const chooseSuggestionBase=v86ChooseMasterSuggestion;
+  v86ChooseMasterSuggestion=function(person,box){
+    if(!person){chooseSuggestionBase(person,box);return}
+    if(box)box.classList.add('hidden');
+    v93UseExistingPerson(person.id);
+  };
+
+  // Apply the same approved visual grammar as Classes only to the Event landing.
+  const art={
+    create:'<path d="M24 5v38M5 24h38"/><rect x="11" y="10" width="26" height="29" rx="3"/><path d="M17 17h14M17 23h14M17 29h10"/>',
+    open:'<path d="M7 15V9a3 3 0 0 1 3-3h10l4 5h14a3 3 0 0 1 3 3v6"/><path d="M5 22h38l-5 19H10L5 22Z"/><path d="M19 31h10"/>'
+  };
+  function decorateLanding(){
+    for(const [id,kind] of [['p2v510CreateEvent','create'],['p2v510OpenEvent','open']]){
+      const button=g(id);if(!button||button.querySelector('.v578-event-icon'))continue;
+      // Keep the exact button and its click handler, changing only its children.
+      const title=kind==='create'?'CREATE EVENT':'OPEN EVENT';
+      const desc=kind==='create'?'CREATE A NEW EVENT':'FIND OR EDIT AN EXISTING EVENT';
+      button.innerHTML=`<span class="v578-event-icon" aria-hidden="true"><svg viewBox="0 0 48 48">${art[kind]}</svg></span><strong>${title}</strong><small>${desc}</small><span class="v578-event-arrow" aria-hidden="true">›</span>`;
+    }
+  }
+  let eventQuery='';
+  function applyEventFilter(){
+    const input=g('v578EventSearch'),host=g('eventList');
+    if(!input||!host||p2v510EventView!=='open')return;
+    const q=N(input.value);eventQuery=input.value;
+    if(!q)return;
+    const matches=state.events.filter(ev=>[ev.name,ev.venue,(eventDates(ev)||[]).join(' ')].join(' ').toLowerCase().includes(q))
+      .sort((a,b)=>String(eventDates(b)[0]||'').localeCompare(String(eventDates(a)[0]||'')));
+    host.innerHTML=matches.length?`<div class="p2v510-event-list">${matches.map(ev=>`
+      <div class="p2v510-event-row"><div><div class="name">${E(ev.name)}</div>
+      <div class="sub">${E(eventDateText(ev))} · ${E(ev.venue||'No venue')}</div></div>
+      <div class="actions"><button class="btn secondary small v578-open-event" data-id="${E(ev.id)}">Open Event</button>
+      <button class="btn ghost small v578-edit-event" data-id="${E(ev.id)}">Edit Settings</button></div></div>`).join('')}</div>`:
+      '<div class="v575-empty">No matching events.</div>';
+    bind('eventList','v578-open-event',id=>{state.activeEventId=id;save();switchPage('eventWorkspace')});
+    bind('eventList','v578-edit-event',id=>editEvent(id));
+  }
+  function enhanceEvents(){
+    decorateLanding();
+    const card=g('eventList')?.closest('.card');
+    if(card&&p2v510EventView==='open'){
+      if(!g('v578EventSearch')){
+        const input=document.createElement('input');
+        input.id='v578EventSearch';input.className='search';
+        input.type='search';input.placeholder='Search event name, venue or date';
+        input.setAttribute('aria-label','Search events by name, venue or date');
+        card.insertBefore(input,g('eventList'));
+        input.oninput=()=>{
+          if(input.value.trim()){applyEventFilter();return}
+          eventQuery='';renderEvents();
+        };
+      }
+      const search=g('v578EventSearch');
+      if(search){search.value=eventQuery;if(eventQuery)applyEventFilter()}
+      g('eventList')?.querySelectorAll('.p2v510-year-card').forEach(b=>b.onclick=()=>{
+        p2v510EventYear=b.dataset.year;eventQuery='';renderEvents();
+      });
+    }
+  }
+  const eventRenderBase=renderEvents;
+  renderEvents=function(){eventRenderBase();enhanceEvents()};
+  const eventViewBase=p2v510RenderEventView;
+  p2v510RenderEventView=function(){eventViewBase();enhanceEvents()};
+  const switchBase=switchPage;
+  switchPage=function(id){
+    const outcome=switchBase.apply(this,arguments);
+    if(id==='events')enhanceEvents();
+    return outcome;
+  };
+  const oldBack=g('backButton')?.onclick;
+  if(oldBack)g('backButton').onclick=function(){
+    if(page==='events')eventQuery='';
+    return oldBack.apply(this,arguments);
+  };
+  const style=document.createElement('style');
+  style.id='v578RecoveryOnlyStyle';
+  style.textContent=`
+    .v578-review{color:#a33b2a;font-weight:650;font-size:11px;display:block;margin-top:5px}
+    .v578-linked{display:block;color:#657e98;font-size:11px;font-weight:400;margin-top:4px}
+    body:has(#events.page.active) .topbar{
+      border-bottom:4px solid #ffc329!important;padding-bottom:18px!important;margin-bottom:26px!important
+    }
+    body:has(#events.page.active) .topbar #v51SecurityButton,
+    body:has(#events.page.active) .topbar #pageSubtitle{display:none!important}
+    #events #p2v510EventLanding>.p2-home-grid{
+      display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important
+    }
+    #events #p2v510EventLanding .p2-home-card{
+      display:flex!important;flex-direction:column!important;align-items:center!important;
+      text-align:center!important;position:relative!important;justify-content:flex-start!important;
+      background:white!important;border:1px solid #dce6f0!important;border-radius:14px!important;
+      padding:28px 12px 38px!important;min-height:205px!important;box-shadow:none!important
+    }
+    #events #p2v510EventLanding .p2-home-card .no{display:none!important}
+    #events #p2v510EventLanding .p2-home-card .v578-event-icon{
+      display:grid;place-items:center;width:62px;height:62px;margin:0 auto 17px;
+      border-radius:50%;background:#fff2c6;color:#0b3b7b
+    }
+    #events #p2v510EventLanding .p2-home-card .v578-event-icon svg{
+      width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round
+    }
+    #events #p2v510EventLanding .p2-home-card strong{font-size:16px!important;color:#082e65!important}
+    #events #p2v510EventLanding .p2-home-card small{font-size:11px!important;margin-top:8px!important;color:#57718a}
+    #events #p2v510EventLanding .p2-home-card .v578-event-arrow{
+      position:absolute;right:18px;bottom:13px;font-size:21px;color:#0b3b7b
+    }
+    #events #v578EventSearch{
+      width:100%;background:#fff;border:1px solid #cbd9e8;border-radius:8px;
+      padding:12px;margin:0 0 16px;font-size:13px
+    }
+    @media(max-width:700px){#events #p2v510EventLanding>.p2-home-grid{grid-template-columns:1fr!important}}
+  `;
+  document.head.appendChild(style);
+  decorateLanding();
+})();
   resetEventForm();
   renderAll();
 })();
