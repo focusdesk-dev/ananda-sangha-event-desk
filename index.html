@@ -10151,6 +10151,15 @@ function p2v58BindPhoneListener(){
     @media(max-width:700px){#events #p2v510EventLanding>.p2-home-grid{grid-template-columns:1fr!important}}
   `;
   document.head.appendChild(style);
+  // Rebind searches after replacing renderers, otherwise the 5.75 handlers
+  // hide recovered warning, review and linked-record indicators on input.
+  if(g('volunteerSearch'))g('volunteerSearch').oninput=renderVolunteers;
+  if(g('attendeeMasterSearch'))g('attendeeMasterSearch').oninput=renderAttendeeMaster;
+  if(g('attendeeMasterFilter'))g('attendeeMasterFilter').onchange=renderAttendeeMaster;
+  if(g('vipSearch'))g('vipSearch').oninput=v47RenderVips;
+  if(g('p2AcharyaMasterSearch'))g('p2AcharyaMasterSearch').oninput=p2RenderAcharyas;
+  if(g('p2StudentSearch'))g('p2StudentSearch').oninput=p2RenderStudents;
+  if(g('p2StudentStage'))g('p2StudentStage').onchange=p2RenderStudents;
   decorateLanding();
 })();
   resetEventForm();
