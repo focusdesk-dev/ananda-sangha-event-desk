@@ -40,7 +40,17 @@ jobs:
           foreach ($file in @("package.json","index.html","main.js","preload.js","omr-scanner.js","logo-128.png","ananda-icon.ico","scripts/prepare-assets.js")) {
             if (!(Test-Path $file)) { throw "Missing source file: $file" }
           }
-      - run: npm install
+      - name: Install Electron dependencies with retry
+        shell: pwsh
+        run: |
+          $success = $false
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            Write-Host "npm install attempt $attempt of 5"
+            npm install
+            if ($LASTEXITCODE -eq 0) { $success = $true; break }
+            if ($attempt -lt 5) { Start-Sleep -Seconds (8 * $attempt) }
+          }
+          if (-not $success) { throw 'Dependency download failed after 5 attempts' }
       - run: npm run test:attendance
       - run: npm run test:ai
       - run: node scripts/verify-phone-ai-route.js
@@ -92,7 +102,17 @@ jobs:
         run: node scripts/verify-beta577-master-cards-source.js
       - name: Audit original 5.77 source immutability and recovered workflows
         run: node scripts/verify-beta578-recovery-source.js
-      - run: npm run dist:win
+      - name: Package Windows installer with retry
+        shell: pwsh
+        run: |
+          $success = $false
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            Write-Host "Windows installer build attempt $attempt of 5"
+            npm run dist:win
+            if ($LASTEXITCODE -eq 0) { $success = $true; break }
+            if ($attempt -lt 5) { Start-Sleep -Seconds (8 * $attempt) }
+          }
+          if (-not $success) { throw 'Electron / NSIS packaging failed after 5 attempts' }
       - name: Smoke test - launch packaged Windows desktop application
         shell: pwsh
         run: |
