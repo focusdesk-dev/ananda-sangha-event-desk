@@ -4,7 +4,7 @@
 const fs=require('node:fs'),assert=require('node:assert/strict');
 const html=fs.readFileSync('index.html','utf8');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pkg.version,'2.0.0-beta.5.80');
+assert.equal(pkg.version,'2.0.0-beta.5.80.1');
 const frozen=fs.readFileSync('scripts/frozen-sidebar-beta573.txt','utf8');
 const aside=html.slice(html.indexOf('<aside'),html.indexOf('</aside>')+8);
 assert.equal(aside,frozen,'Frozen left taskbar markup differs from the approved baseline');
