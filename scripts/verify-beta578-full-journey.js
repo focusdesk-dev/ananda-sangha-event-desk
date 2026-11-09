@@ -103,30 +103,32 @@ async function main(){
      return {open,warning,before,after:s2.attendees.length,stillOpen:document.getElementById('v36RegistrationModal')?.classList.contains('open')};
    })()`);
    assert.equal(dup.open,true,'New registration modal did not open');
-   assert.ok(/MOBILE NUMBER ALREADY EXISTS/i.test(dup.warning),'Duplicate mobile warning missing');
+   assert.ok(/MOBILE ALREADY USED/i.test(dup.warning),'Compact duplicate mobile warning missing');
    assert.equal(dup.after,dup.before,'Duplicate mobile was allowed to register');
    assert.equal(dup.stillOpen,true,'Duplicate registration must not close modal');
+   // 5.81: selecting an existing person opens their record; it does NOT create a second person.
    const reuse=await js(`(()=>{
      const name=document.getElementById('v36MainName'),mobile=document.getElementById('v36MainMobile');
      mobile.value='';mobile.dispatchEvent(new Event('input',{bubbles:true}));
      name.value='Ishana Rec';name.dispatchEvent(new Event('input',{bubbles:true}));
-     const suggestions=[...document.querySelectorAll('#v86AttendeeSuggestions .v86-master-suggestion')].map(x=>x.textContent.trim());
-     document.querySelector('#v86AttendeeSuggestions .v86-master-suggestion')?.click();
-     const box=document.getElementById('v80MobileDuplicate');
-     const afterSelect={name:name.value,mobile:mobile.value,warning:box?.textContent||'',severity:box?.className};
-     const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1')||'{}'),countBefore=s.attendeeMaster.filter(a=>a.mobile==='9876543201').length;
-     const submit=document.querySelector('#v36RegistrationForm button[type="submit"][data-mode="register"]');
-     document.getElementById('v36RegistrationForm').requestSubmit(submit);
-     const data=JSON.parse(localStorage.getItem('annualEventRegistration.v1')||'{}');
-     return {suggestions,afterSelect,countBefore,countAfter:data.attendeeMaster.filter(a=>a.mobile==='9876543201').length,
-       eventPeople:data.attendees.filter(x=>x.eventId===data.activeEventId&&x.mobile==='9876543201').length,
-       modalOpen:document.getElementById('v36RegistrationModal').classList.contains('open')};
+     const suggestions=[...document.querySelectorAll('#v86AttendeeSuggestions .v581-choice')].map(x=>x.textContent.trim());
+     const before=JSON.parse(localStorage.getItem('annualEventRegistration.v1')||'{}');
+     const countBefore=before.attendeeMaster.filter(a=>a.mobile==='9876543201').length;
+     document.querySelector('#v86AttendeeSuggestions .v581-choice')?.click();
+     const opened=document.getElementById('attendeeMasterModal')?.classList.contains('open');
+     const selectedId=document.getElementById('attendeeMasterId')?.value;
+     const after=JSON.parse(localStorage.getItem('annualEventRegistration.v1')||'{}');
+     document.getElementById('attendeeMasterModal')?.classList.remove('open');
+     return {suggestions,opened,selectedId,registrationModalOpen:document.getElementById('v36RegistrationModal')?.classList.contains('open'),
+       countBefore,countAfter:after.attendeeMaster.filter(a=>a.mobile==='9876543201').length,
+       eventPeople:after.attendees.filter(x=>x.eventId===after.activeEventId&&x.mobile==='9876543201').length};
    })()`);
-   assert.ok(reuse.suggestions.some(x=>/ISHANA RECOVERY QA/i.test(x)),'Name lookup suggestions missing');
-   assert.equal(reuse.afterSelect.mobile,'9876543201','Search selection did not fill existing phone');
-   assert.equal(reuse.afterSelect.name,'ISHANA RECOVERY QA','Search selection did not reuse existing name');
+   assert.ok(reuse.suggestions.some(x=>/Ishana Recovery QA/i.test(x)),'Unified name lookup suggestions missing');
+   assert.equal(reuse.opened,true,'Choosing an existing person must open their master record');
+   assert.equal(reuse.selectedId,'beta578-qa-existing','Wrong person record was opened');
+   assert.equal(reuse.registrationModalOpen,false,'New registration must close after opening an existing person');
    assert.equal(reuse.countAfter,reuse.countBefore,'Existing person was duplicated in master');
-   assert.equal(reuse.eventPeople,1,'Using existing person did not register them for this event');
+   assert.equal(reuse.eventPeople,0,'Viewing an existing person must not silently register them for the event');
    const master=await js(`(()=>{
      document.querySelector('aside .nav-btn[data-page="permanentRecords"]').click();
      const nav=document.querySelector('aside');
@@ -184,7 +186,7 @@ async function main(){
    fs.mkdirSync('verification',{recursive:true});
    const png=await call('Page.captureScreenshot',{format:'png',fromSurface:true});
    if(png?.data)fs.writeFileSync('verification/beta578-classes-frozen.png',Buffer.from(png.data,'base64'));
-   console.log('PASS Beta 5.78 full journey: Create Event, name search, open Event, duplicate phone rejected, name lookup/reuse, restored volunteer warnings, attendee review search, VIP links, Acharya status and byte-frozen Classes/sidebar',JSON.stringify({create,search,dup,reuse,mastersSummary:{warnings:masters.volunteers.dup,attendeeRows:masters.attendees.rows,vipLinks:masters.vips.links},classCount:classes.classes.length}));
+   console.log('PASS Beta 5.78 full journey: Create Event, name search, open Event, duplicate phone rejected, unified person lookup opening existing profile, restored volunteer warnings, attendee review search, VIP links, Acharya status and byte-frozen Classes/sidebar',JSON.stringify({create,search,dup,reuse,mastersSummary:{warnings:masters.volunteers.dup,attendeeRows:masters.attendees.rows,vipLinks:masters.vips.links},classCount:classes.classes.length}));
  }finally{
    try{await js('(()=>{const prior='+JSON.stringify(previous)+',key='+JSON.stringify(KEY)+';if(prior===null)localStorage.removeItem(key);else localStorage.setItem(key,prior);return true})()')}catch(e){console.error('QA restore error:',e.message)}
    ws.close();
