@@ -56,11 +56,12 @@ async function main(){
    row?.querySelector('.v578-open-event')?.click();
    document.querySelector('#eventWorkspace .v36-go[data-page="checkin"]')?.click();
    const side=document.querySelector('aside');
-   return {workspace:document.getElementById('eventWorkspace')?.classList.contains('active'),
+   return {checkin:document.getElementById('checkin')?.classList.contains('active'),
+    activePage:document.querySelector('.page.active')?.id,
     search:!!document.getElementById('v36AttendeeSearch'),
     nav:{width:Math.round(side.getBoundingClientRect().width),labels:[...side.querySelectorAll('nav button')].map(b=>b.textContent.trim())}};
   });
-  assert.ok(opened.workspace&&opened.search,'Original 5.80 event check-in failed to open: '+JSON.stringify(opened));
+  assert.ok(opened.checkin&&opened.search,'Original 5.80 check-in page failed to open: '+JSON.stringify(opened));
   const family=await run(function(){
    const input=document.getElementById('v36AttendeeSearch');input.value='Sahil Malhotra';
    input.dispatchEvent(new Event('input',{bubbles:true}));
