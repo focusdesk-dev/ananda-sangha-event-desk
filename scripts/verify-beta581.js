@@ -1,0 +1,24 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const I=require('../identity-beta581.js'),html=fs.readFileSync('index.html','utf8');
+const a={name:'Sahil Malhotra',mobile:'9876543210'};
+assert.equal(I.assess(a,{name:'Sahil Malhotra',mobile:'9876543210'}),'confirmed','Same person and personal mobile must be flagged');
+assert.equal(I.assess(a,{name:'Sahil Malhotra',mobile:'9811176210'}),'different','Same name and different personal mobile is a different person');
+assert.equal(I.assess({name:'Sahil Malhotra',mobile:''},{name:'Sahil Malhotra',mobile:'9811176210'}),'possible','A name alone cannot block registration');
+assert.equal(I.assess({name:'Sahil Malhotra',mobile:'9876543210'},{name:'Rahul Malhotra',mobile:'9876543210'}),'phone-conflict','A personal phone must not silently belong to two people');
+const member={name:'Sahil Malhotra',kind:'family',mobile:'',personalMobile:'',contactMobile:'9876543210'};
+assert.equal(I.personal(member),'','A family contact is not the member personal mobile');
+assert.equal(I.assess(a,member),'possible','Shared family mobile must not become a confirmed duplicate');
+assert.equal(I.assess({name:'Divya Malhotra',mobile:'9876543210'},member),'different','Different named family member is never the same person by contact alone');
+assert.equal(I.searchMatch(member,'987654'),true,'A family contact can still locate family records');
+assert.ok(I.searchMatch({name:'Sahil Malhotra',mobile:'9822276210',detail:'Level 2 · Batch 1'},'Sahil'));
+assert.ok(!I.searchMatch({name:'Sahil Malhotra',mobile:'9822276210'},'Rahul'));
+assert.ok(I.searchMatch({name:'Sahil Malhotra',mobile:'9822276210'},'Sahil 98222'));
+assert.ok(html.includes('identity-beta581.js'),'Identity library must load before the main program');
+assert.ok(html.includes("v36EnsureMaster(m.name,m.mobile||'',m.mobile"),'Family contact must not be duplicated into each member personal mobile');
+assert.ok(html.includes("mobile:m.mobile||'',contactMobile:mainMobile"),'Family row must distinguish shared contact from personal mobile');
+assert.ok(html.includes('window.ananda581Warning?.'),'Registration must use identity guard');
+for(const text of ['Already Registered','Mobile Already Used','Open record','ALL RECORDS','Family Member','Student','Kriyaban','Volunteer','Event Attendee','Attendee Master','Acharya','VIP','classEnrollments','familyGroups'])
+  assert.ok(html.includes(text),'Missing unified identity element '+text);
+assert.ok(!html.includes('v36EnsureMaster(m.name,groupMobile,m.mobile'),'Legacy family contact conflation remains');
+console.log('PASS Beta 5.81: personal vs family contact, same-name ambiguity, phone conflicts, cross-module lookup and compact warning guards');
