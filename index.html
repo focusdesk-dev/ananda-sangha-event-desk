@@ -10151,8 +10151,7 @@ function p2v58BindPhoneListener(){
     @media(max-width:700px){#events #p2v510EventLanding>.p2-home-grid{grid-template-columns:1fr!important}}
   `;
   document.head.appendChild(style);
-  // Rebind searches after replacing renderers, otherwise the 5.75 handlers
-  // hide recovered warning, review and linked-record indicators on input.
+  // Keep the recovered indicators visible while the user types.
   if(g('volunteerSearch'))g('volunteerSearch').oninput=renderVolunteers;
   if(g('attendeeMasterSearch'))g('attendeeMasterSearch').oninput=renderAttendeeMaster;
   if(g('attendeeMasterFilter'))g('attendeeMasterFilter').onchange=renderAttendeeMaster;

@@ -4,7 +4,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),crypto=require('node:crypto');
 const html=fs.readFileSync('index.html','utf8').replace(/\r\n/g,'\n');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pkg.version,'2.0.0-beta.5.78');
+assert.equal(pkg.version,'2.0.0-beta.5.79');
 const start=html.indexOf('  (function anandaV578(){'),end=html.indexOf('  resetEventForm();\n  renderAll();\n})();',start);
 assert.ok(start>0&&end>start,'Recovery patch missing or incorrectly placed');
 const original=html.slice(0,start)+html.slice(end);
@@ -13,6 +13,15 @@ assert.equal(gitHash,'eca2a2836a82dcf52f8ffc286e627cdd6b538bac','Original Beta 5
 const side=html.slice(html.indexOf('<aside'),html.indexOf('</aside>')+8);
 assert.equal(side,fs.readFileSync('scripts/frozen-sidebar-beta573.txt','utf8').replace(/\r\n/g,'\n'),'Frozen sidebar changed');
 const recovery=html.slice(start,end);
+for(const [field,handler] of [
+ ['volunteerSearch','renderVolunteers'],
+ ['attendeeMasterSearch','renderAttendeeMaster'],
+ ['vipSearch','v47RenderVips'],
+ ['p2AcharyaMasterSearch','p2RenderAcharyas'],
+ ['p2StudentSearch','p2RenderStudents']
+])assert(recovery.includes("if(g('"+field+"'))g('"+field+"').oninput="+handler),
+'Live search regression: '+field+' not bound to recovered renderer');
+
 for(const x of [
  'v86ChooseMasterSuggestion=function(person,box)',
  'v93UseExistingPerson(person.id)',
