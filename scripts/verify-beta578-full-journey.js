@@ -89,7 +89,7 @@ async function main(){
    assert.ok(search.rows.some(x=>x.includes('Recovery QA Annual Event 2026')),'Search Event by name failed');
    assert.equal(search.opened,true,'Open Event via search result failed');
    const dup=await js(`(()=>{
-     document.querySelector('#eventWorkspace .go[data-go="register"]').click();
+     document.querySelector('#eventWorkspace .v36-go[data-page="checkin"]').click();
      document.getElementById('v36NewRegistration')?.click();
      const open=document.getElementById('v36RegistrationModal')?.classList.contains('open');
      const name=document.getElementById('v36MainName'),phone=document.getElementById('v36MainMobile');
