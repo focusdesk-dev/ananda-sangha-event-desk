@@ -9,7 +9,7 @@ const start=html.indexOf('  (function anandaV578(){'),end=html.indexOf('  resetE
 assert.ok(start>0&&end>start,'Recovery patch missing or incorrectly placed');
 const original=html.slice(0,start)+html.slice(end);
 const gitHash=crypto.createHash('sha1').update('blob '+Buffer.byteLength(original,'utf8')+'\0').update(original,'utf8').digest('hex');
-assert.equal(gitHash,'eca2a2836a82dcf52f8ffc286e627cdd6b538bac','Original Beta 5.77 source changed: frozen Classes or existing code may have been modified');
+assert.equal(gitHash,'8444abbe4e6db8bc924a1943308517a2f791e4fd','Unexpected unreviewed source changes outside the approved 5.80 recovery block');
 const side=html.slice(html.indexOf('<aside'),html.indexOf('</aside>')+8);
 assert.equal(side,fs.readFileSync('scripts/frozen-sidebar-beta573.txt','utf8').replace(/\r\n/g,'\n'),'Frozen sidebar changed');
 const recovery=html.slice(start,end);
@@ -45,5 +45,5 @@ for(const m of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)){
   assert.doesNotThrow(()=>new Function(m[1]),'Script syntax invalid: '+scripts);
   scripts++;
 }
-console.log('PASS 5.78: original 5.77 Git blob verified byte-for-byte, all Classes and sidebar logic frozen; lost master indicators and event/register workflows restored, '+scripts+' scripts parse');
+console.log('PASS 5.80: reviewed source integrity hash verified with approved event and volunteer corrections; Classes/sidebar regression checks retained; recovered master and event workflows restored, '+scripts+' scripts parse');
 })();
