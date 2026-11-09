@@ -2,7 +2,7 @@ name: Build Ananda Event Desk beta 5.80 Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-79-regression-search-final]
+    branches: [fix-event-checkin-dedupe-volunteer-history-20261109]
 permissions:
   contents: write
   actions: read
