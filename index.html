@@ -665,6 +665,7 @@ body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important
 <div id="v51SecurityModal" class="modal-backdrop"><form id="v51SecurityForm" class="modal" style="width:min(470px,100%)"><div class="modal-head"><h3 id="v51SecurityTitle">Unlock master lists</h3><button id="v51SecurityClose" type="button" class="x">×</button></div><div id="v51SecurityText" class="security-warning" style="margin-bottom:15px"></div><div class="field full"><label>ADMINISTRATOR PASSWORD *</label><input id="v51Password" type="password" autocomplete="current-password" required></div><div id="v51ConfirmField" class="field full" style="margin-top:12px"><label>CONFIRM PASSWORD *</label><input id="v51PasswordConfirm" type="password" autocomplete="new-password"></div><div id="v51SecurityError" class="review-note" style="margin-top:10px"></div><div class="actions" style="margin-top:18px"><button id="v51SecuritySubmit" class="btn" type="submit">Unlock</button><button id="v51SecurityCancel" class="btn ghost" type="button">Cancel</button></div></form></div>
 <div id="toast" class="toast"></div>
 
+<script src="identity-beta581.js"></script>
 <script>
 (() => {
   const KEY='annualEventRegistration.v1';
@@ -687,7 +688,7 @@ body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important
   function normName(value){return String(value??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ' ).replace(/\s+/g,' ').trim()}
   function masterPersonName(type,id){if(type==='volunteer'){const v=state.volunteers.find(x=>x.id===id);return v?volName(v):''}const a=state.attendeeMaster.find(x=>x.id===id);return a?.name||''}
   function referenceName(record){const type=record.referenceType||(record.referenceVolunteerId?'volunteer':null),id=record.referenceId||record.referenceVolunteerId;return type&&id?masterPersonName(type,id)||'Reference not found':'No reference'}
-  function findAttendeeMaster(name,mobile,personalMobile=''){const n=normName(name),m=normMobile(mobile),pm=normMobile(personalMobile);if(!n)return null;return state.attendeeMaster.find(p=>(pm&&normMobile(p.personalMobile)===pm)||(normName(p.name)===n&&m&&normMobile(p.mobile)===m))||null}
+  function findAttendeeMaster(name,mobile,personalMobile=''){const I=window.AnandaIdentity581,n=normName(name),phone=normMobile(personalMobile||mobile);if(!n||phone.length!==10)return null;return state.attendeeMaster.find(p=>normName(p.name)===n&&I.personal(p)===phone)||null}
   function findVolunteerMatch(name,mobile,typeHint=''){const n=normName(name),m=normMobile(mobile),byName=state.volunteers.filter(v=>normName(volName(v))===n),exact=byName.find(v=>!m||normMobile(v.mobile)===m);if(exact)return exact;if(/volunteer/i.test(typeHint)&&byName.length===1)return byName[0];return null}
   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state.attendees.forEach(person=>{const volunteer=duplicateMasters.get(person.masterId);if(!volunteer)return;let registration=state.volunteerRegistrations.find(r=>r.eventId===person.eventId&&r.volunteerId===volunteer.id);if(!registration){registration={id:uid('vreg'),eventId:person.eventId,volunteerId:volunteer.id,source:person.source||'counter',registeredAt:person.importedAt||new Date().toISOString(),checkins:[]};state.volunteerRegistrations.push(registration)}const dates=[...new Set([...(registration.checkins||[]),...attendeeDates(person)])].sort();registration.checkins=dates;dates.forEach(date=>{const key=`${person.eventId}|${date}`;state.daily[key]=[...new Set([...(state.daily[key]||[]),volunteer.id])]});Object.keys(state.allocations).filter(key=>key.endsWith(`|attendee|${person.id}`)).forEach(oldKey=>{const parts=oldKey.split('|'),newKey=`${parts[0]}|${parts[1]}|volunteer|${volunteer.id}`,oldAllocation=state.allocations[oldKey],newAllocation=state.allocations[newKey]||(state.allocations[newKey]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false});['badgeIssued','badgeReturned','scarfIssued','scarfReturned'].forEach(field=>newAllocation[field]=!!(newAllocation[field]||oldAllocation[field]));delete state.allocations[oldKey]});volunteer.notes=[...new Set([volunteer.notes,state.attendeeMaster.find(x=>x.id===person.masterId)?.notes,person.notes].filter(Boolean))].join(' · ');removeAttendance.add(person.id);changed=true});state.attendees.forEach(a=>{const volunteer=duplicateMasters.get(a.referenceId);if(a.referenceType==='attendee'&&volunteer){a.referenceType='volunteer';a.referenceId=volunteer.id;a.referenceVolunteerId=volunteer.id;changed=true}});state.attendeeMaster.forEach(a=>{const volunteer=duplicateMasters.get(a.originalReferenceId);if(a.originalReferenceType==='attendee'&&volunteer){a.originalReferenceType='volunteer';a.originalReferenceId=volunteer.id;changed=true}});state.attendees=state.attendees.filter(a=>!removeAttendance.has(a.id));state.attendeeMaster=state.attendeeMaster.filter(a=>!duplicateMasters.has(a.id));if(changed)localStorage.setItem(KEY,JSON.stringify(state))}
@@ -1077,37 +1078,43 @@ body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important
     $('v36AttendeeSearch').oninput=v36RenderAttendees;$('v36FindAttendee').onclick=v36RenderAttendees;$('v36NewRegistration').onclick=()=>v36OpenRegistration();
     $('v36ImportGoogle').onclick=()=>$('googleCsv').click();$('v36ImportExcel').onclick=()=>$('excelFile').click();$('v36DownloadTemplate').onclick=()=>$('downloadTemplate').click();
     $('v36RegistrationType').onchange=()=>v36UpdateRegistrationFields(true);$('v36FamilyCount').onchange=()=>v36UpdateRegistrationFields(true);
-  // Registration safeguard: one person, one event registration, regardless of
-  // whether they appear individually or under any family/group.
+  // Event-wide identity guard: compare personal phones, NEVER shared family contacts.
   const vNewOriginalSaveRegistration=v36SaveRegistration;
   v36SaveRegistration=function(event){
-    const type=$('v36RegistrationType').value,edit=v36RegistrationEditKey||'',
-      mainName=String($('v36MainName')?.value||'').trim(),
-      mainMobile=normMobile($('v36MainMobile')?.value||''),
-      memberEntries=/family/.test(type)?v36CurrentMemberInputs().map(m=>({name:m.name,mobile:normMobile(m.mobile||'')})):[];
-    const proposed=(type==='volunteer-family'?[]:[{name:mainName,mobile:mainMobile}]).concat(memberEntries);
+    const I=window.AnandaIdentity581,type=$('v36RegistrationType').value,
+      edit=v36RegistrationEditKey||'',name=$('v36MainName').value.trim(),
+      mobile=normMobile($('v36MainMobile').value);
+    const members=/family/.test(type)?v36CurrentMemberInputs().filter(m=>m.name):[];
+    const proposed=(type==='volunteer-family'?[]:[{name,mobile}]).concat(members.map(m=>({name:m.name,mobile:m.mobile})));
     const rows=v36AllAttendeeRows().filter(row=>
       !(edit.startsWith('attendee|')&&row.kind==='attendee'&&row.id===edit.split('|')[1])&&
       !(edit.startsWith('family|')&&row.kind==='family'&&row.groupId===edit.split('|')[1]));
-    for(const candidate of proposed){
-      const name=normName(candidate.name||'');
-      if(!name)continue;
-      const existing=rows.find(row=>{
-        if(normName(row.record?.name||'')!==name)return false;
-        const theirPersonal=normMobile(row.personalMobile||'');
-        // A shared household mobile is not a unique personal identifier.
-        return !candidate.mobile||!theirPersonal||candidate.mobile===theirPersonal||
-          candidate.mobile===normMobile(row.mobile||'');
-      });
-      if(existing){
+    // An assigned/registered volunteer is also an existing event person.
+    const volunteers=(state.volunteerRegistrations||[]).filter(r=>r.eventId===state.activeEventId)
+      .map(r=>state.volunteers.find(v=>v.id===r.volunteerId)).filter(Boolean)
+      .map(v=>({kind:'volunteer',id:v.id,name:volName(v),mobile:v.mobile,personalMobile:v.mobile}));
+    const existing=rows.concat(volunteers);
+    for(let i=0;i<proposed.length;i++){
+      const candidate=proposed[i];
+      if(!I.name(candidate.name))continue;
+      const matches=existing.map(row=>({row,kind:I.assess(candidate,{
+        name:row.name,
+        mobile:row.kind==='family'?row.personalMobile:(row.personalMobile||row.mobile),
+        personalMobile:row.personalMobile||'',kind:row.kind==='family'?'family':'individual'
+      })}));
+      const blocked=matches.find(x=>x.kind==='confirmed'||x.kind==='phone-conflict');
+      if(blocked){
         event.preventDefault();
-        event.stopImmediatePropagation?.();
-        $('v36RegistrationModal').classList.remove('open');
-        $('v36AttendeeSearch').value=candidate.name.trim();
-        v36RenderAttendees();
-        if(typeof v56RenderGroupPlanning==='function')v56RenderGroupPlanning();
-        toast('Already Pre-Registered: '+candidate.name.trim()+'. View the existing registration below.');
-        $('v36AttendeeSearch').focus();
+        window.ananda581Warning?.(blocked.kind,candidate.name,blocked.row);
+        return;
+      }
+      const within=proposed.slice(0,i).find(previous=>{
+        const result=I.assess(candidate,previous);
+        return result==='confirmed'||result==='phone-conflict';
+      });
+      if(within){
+        event.preventDefault();
+        window.ananda581Warning?.('phone-conflict',candidate.name,null);
         return;
       }
     }
@@ -1130,9 +1137,9 @@ body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important
   function v36UpdateRegistrationFields(preserve=false){const type=$('v36RegistrationType').value,isFamily=/family/.test(type),needsVolunteer=type==='volunteer-family'||type==='friend',mainNeeded=type!=='volunteer-family',current=preserve?v36CurrentMemberInputs():[];$('v36VolunteerLinkField').classList.toggle('hidden',!needsVolunteer);$('v36MainRegistrationFields').classList.toggle('hidden',!mainNeeded);$('v36FamilyCountField').classList.toggle('hidden',!isFamily);$('v36FamilyMemberSection').classList.toggle('hidden',!isFamily);$('v36MainName').required=mainNeeded;$('v36MainMobile').required=mainNeeded;$('v36RegistrationVolunteer').required=needsVolunteer;$('v36FamilyCountLabel').textContent=type==='volunteer-family'?'NUMBER OF FAMILY MEMBERS *':'TOTAL PEOPLE IN FAMILY / GROUP *';if(isFamily)v36RenderMemberRows($('v36FamilyCount').value,current)}
   function v36OpenRegistration(editKey=''){v36RegistrationEditKey=editKey;$('v36RegistrationForm').reset();$('v36RegistrationVolunteer').innerHTML=v36RegistrationVolunteerOptions();$('v36RegistrationType').value='individual';$('v36FamilyCount').value='1';$('v36RegistrationNotes').value='';$('v36DeleteRegistration').classList.toggle('hidden',!editKey);$('v36RegistrationTitle').textContent=editKey?'Edit registration':'New registration';let existingMembers=[];if(editKey){const[kind,id]=editKey.split('|');if(kind==='attendee'){const a=state.attendees.find(x=>x.id===id);if(a){$('v36RegistrationType').value=a.referenceVolunteerId?'friend':'individual';$('v36MainName').value=a.name||'';$('v36MainMobile').value=a.mobile||'';$('v36RegistrationVolunteer').innerHTML=v36RegistrationVolunteerOptions(a.referenceVolunteerId||'');$('v36RegistrationNotes').value=a.notes||''}}else{const g=state.familyGroups.find(x=>x.id===id);if(g){$('v36RegistrationType').value=g.type;$('v36RegistrationVolunteer').innerHTML=v36RegistrationVolunteerOptions(g.volunteerId||'');$('v36MainName').value=g.contactName||'';$('v36MainMobile').value=g.mobile||'';$('v36FamilyCount').value=g.members.length;$('v36RegistrationNotes').value=g.notes||'';existingMembers=g.type==='outside-family'?g.members.slice(1):g.members}}}v36UpdateRegistrationFields(false);if(existingMembers.length)v36RenderMemberRows($('v36FamilyCount').value,existingMembers);$('v36RegistrationModal').classList.add('open')}
   function v36EnsureMaster(name,mobile,personalMobile,category,linkedVolunteerId,notes){if(!name)return null;let master=findAttendeeMaster(name,mobile,personalMobile);if(!master){master={id:uid('person'),name,mobile,personalMobile:personalMobile||'',city:'',category,linkedVolunteerId:linkedVolunteerId||null,originalReferenceType:linkedVolunteerId?'volunteer':null,originalReferenceId:linkedVolunteerId||null,notes:notes||'',needsReview:false,reviewNotes:'',createdAt:new Date().toISOString()};state.attendeeMaster.push(master)}else{master.name=name;master.mobile=mobile||master.mobile;master.personalMobile=personalMobile||master.personalMobile||'';if(category==='family')master.category='family';if(linkedVolunteerId)master.linkedVolunteerId=linkedVolunteerId;if(notes)master.notes=[...new Set([master.notes,notes].filter(Boolean))].join(' · ')}return master}
-  function v36SaveRegistration(e){e.preventDefault();if(!e.submitter){toast('Click a Register button to save');return}const mode=e.submitter.dataset.mode||'register',type=$('v36RegistrationType').value,date=$('workingDate').value,volunteerId=$('v36RegistrationVolunteer').value,name=$('v36MainName').value.trim(),mobile=normMobile($('v36MainMobile').value),notes=$('v36RegistrationNotes').value.trim(),isFamily=/family/.test(type),needsVolunteer=type==='volunteer-family'||type==='friend';if(needsVolunteer&&!volunteerId){toast('Select the linked or referring volunteer');return}if(type!=='volunteer-family'&&(!name||mobile.length!==10)){toast('Enter the attendee/contact name and a valid 10-digit mobile');return}if(!isFamily){if(findVolunteerIdentity(name,mobile)){toast('This person already exists in Volunteer Master');return}const existing=v36RegistrationEditKey.startsWith('attendee|')?state.attendees.find(a=>a.id===v36RegistrationEditKey.split('|')[1]):null,duplicate=allEventAttendees().find(a=>a.id!==existing?.id&&normName(a.name)===normName(name)&&normMobile(a.mobile)===mobile);if(duplicate){toast('This attendee is already registered for this event');return}const master=v36EnsureMaster(name,mobile,'','outside',null,notes),record=existing||{id:uid('att'),regNo:nextRegNo(),eventId:state.activeEventId,masterId:master.id,source:'counter',checkins:[],importedAt:new Date().toISOString()};record.masterId=master.id;record.name=name;record.mobile=mobile;record.personalMobile='';record.registrationDate=record.registrationDate||date;record.date=record.registrationDate;record.notes=notes;record.referenceType=type==='friend'?'volunteer':null;record.referenceId=type==='friend'?volunteerId:null;record.referenceVolunteerId=type==='friend'?volunteerId:null;if(mode==='checkin')record.checkins=[...new Set([...attendeeDates(record),date])];record.checkedIn=attendeeDates(record).length>0;if(!existing)state.attendees.push(record)}else{const count=Math.max(1,Math.min(20,Number($('v36FamilyCount').value)||1)),volunteer=state.volunteers.find(v=>v.id===volunteerId),groupMobile=type==='volunteer-family'?normMobile(volunteer?.mobile):mobile,current=v36RegistrationEditKey.startsWith('family|')?state.familyGroups.find(g=>g.id===v36RegistrationEditKey.split('|')[1]):null;if(type==='volunteer-family'&&!current){const duplicate=state.familyGroups.find(g=>g.eventId===state.activeEventId&&g.type==='volunteer-family'&&g.volunteerId===volunteerId);if(duplicate){toast('This volunteer family is already registered. Edit the existing family registration.');v36OpenRegistration(`family|${duplicate.id}`);return}}const inputMembers=v36CurrentMemberInputs(),oldMembers=current?.members||[],members=[];if(type==='outside-family'){const first=oldMembers[0]||{id:uid('fam'),checkins:[]};members.push({...first,relationship:first.relationship||'Main contact',name,mobile,checkins:mode==='checkin'?[...new Set([...(first.checkins||[]),date])]:(first.checkins||[])});inputMembers.slice(0,count-1).forEach((m,index)=>{const old=oldMembers[index+1]||m;members.push({...old,...m,id:old.id||m.id||uid('fam'),checkins:mode==='checkin'?[...new Set([...(old.checkins||[]),date])]:(old.checkins||[])})})}else inputMembers.slice(0,count).forEach((m,index)=>{const old=oldMembers[index]||m;members.push({...old,...m,id:old.id||m.id||uid('fam'),checkins:mode==='checkin'?[...new Set([...(old.checkins||[]),date])]:(old.checkins||[])})});const removed=oldMembers.filter(old=>!members.some(m=>m.id===old.id)),removedChecked=removed.some(m=>(m.checkins||[]).length);if(removedChecked&&!confirm('Reducing this family will remove a member who was already checked in. Continue?'))return;const group=current||{id:uid('family'),eventId:state.activeEventId,registeredAt:new Date().toISOString(),source:'counter'};group.type=type;group.volunteerId=type==='volunteer-family'?volunteerId:null;group.contactName=type==='outside-family'?name:'';group.mobile=groupMobile;group.registrationDate=group.registrationDate||date;group.notes=notes;group.members=members;if(!current)state.familyGroups.push(group);members.filter(m=>m.name).forEach(m=>{const master=v36EnsureMaster(m.name,groupMobile,m.mobile,type==='volunteer-family'?'family':'outside',type==='volunteer-family'?volunteerId:null,notes);if(master&&m.relationship)master.relationship=m.relationship})}$('v36RegistrationModal').classList.remove('open');save();toast(mode==='checkin'?'Registration saved and checked in':'Registration saved')}
+  function v36SaveRegistration(e){e.preventDefault();if(!e.submitter){toast('Click a Register button to save');return}const mode=e.submitter.dataset.mode||'register',type=$('v36RegistrationType').value,date=$('workingDate').value,volunteerId=$('v36RegistrationVolunteer').value,name=$('v36MainName').value.trim(),mobile=normMobile($('v36MainMobile').value),notes=$('v36RegistrationNotes').value.trim(),isFamily=/family/.test(type),needsVolunteer=type==='volunteer-family'||type==='friend';if(needsVolunteer&&!volunteerId){toast('Select the linked or referring volunteer');return}if(type!=='volunteer-family'&&(!name||mobile.length!==10)){toast('Enter the attendee/contact name and a valid 10-digit mobile');return}if(!isFamily){if(findVolunteerIdentity(name,mobile)){toast('This person already exists in Volunteer Master');return}const existing=v36RegistrationEditKey.startsWith('attendee|')?state.attendees.find(a=>a.id===v36RegistrationEditKey.split('|')[1]):null,duplicate=allEventAttendees().find(a=>a.id!==existing?.id&&normName(a.name)===normName(name)&&normMobile(a.mobile)===mobile);if(duplicate){toast('This attendee is already registered for this event');return}const master=v36EnsureMaster(name,mobile,'','outside',null,notes),record=existing||{id:uid('att'),regNo:nextRegNo(),eventId:state.activeEventId,masterId:master.id,source:'counter',checkins:[],importedAt:new Date().toISOString()};record.masterId=master.id;record.name=name;record.mobile=mobile;record.personalMobile='';record.registrationDate=record.registrationDate||date;record.date=record.registrationDate;record.notes=notes;record.referenceType=type==='friend'?'volunteer':null;record.referenceId=type==='friend'?volunteerId:null;record.referenceVolunteerId=type==='friend'?volunteerId:null;if(mode==='checkin')record.checkins=[...new Set([...attendeeDates(record),date])];record.checkedIn=attendeeDates(record).length>0;if(!existing)state.attendees.push(record)}else{const count=Math.max(1,Math.min(20,Number($('v36FamilyCount').value)||1)),volunteer=state.volunteers.find(v=>v.id===volunteerId),groupMobile=type==='volunteer-family'?normMobile(volunteer?.mobile):mobile,current=v36RegistrationEditKey.startsWith('family|')?state.familyGroups.find(g=>g.id===v36RegistrationEditKey.split('|')[1]):null;if(type==='volunteer-family'&&!current){const duplicate=state.familyGroups.find(g=>g.eventId===state.activeEventId&&g.type==='volunteer-family'&&g.volunteerId===volunteerId);if(duplicate){toast('This volunteer family is already registered. Edit the existing family registration.');v36OpenRegistration(`family|${duplicate.id}`);return}}const inputMembers=v36CurrentMemberInputs(),oldMembers=current?.members||[],members=[];if(type==='outside-family'){const first=oldMembers[0]||{id:uid('fam'),checkins:[]};members.push({...first,relationship:first.relationship||'Main contact',name,mobile,checkins:mode==='checkin'?[...new Set([...(first.checkins||[]),date])]:(first.checkins||[])});inputMembers.slice(0,count-1).forEach((m,index)=>{const old=oldMembers[index+1]||m;members.push({...old,...m,id:old.id||m.id||uid('fam'),checkins:mode==='checkin'?[...new Set([...(old.checkins||[]),date])]:(old.checkins||[])})})}else inputMembers.slice(0,count).forEach((m,index)=>{const old=oldMembers[index]||m;members.push({...old,...m,id:old.id||m.id||uid('fam'),checkins:mode==='checkin'?[...new Set([...(old.checkins||[]),date])]:(old.checkins||[])})});const removed=oldMembers.filter(old=>!members.some(m=>m.id===old.id)),removedChecked=removed.some(m=>(m.checkins||[]).length);if(removedChecked&&!confirm('Reducing this family will remove a member who was already checked in. Continue?'))return;const group=current||{id:uid('family'),eventId:state.activeEventId,registeredAt:new Date().toISOString(),source:'counter'};group.type=type;group.volunteerId=type==='volunteer-family'?volunteerId:null;group.contactName=type==='outside-family'?name:'';group.mobile=groupMobile;group.registrationDate=group.registrationDate||date;group.notes=notes;group.members=members;if(!current)state.familyGroups.push(group);members.filter(m=>m.name).forEach(m=>{const master=v36EnsureMaster(m.name,m.mobile||'',m.mobile,type==='volunteer-family'?'family':'outside',type==='volunteer-family'?volunteerId:null,notes);if(master){master.familyContactMobile=groupMobile;if(m.relationship)master.relationship=m.relationship}})}$('v36RegistrationModal').classList.remove('open');save();toast(mode==='checkin'?'Registration saved and checked in':'Registration saved')}
   function v36DeleteCurrentRegistration(){if(!v36RegistrationEditKey)return;const[kind,id]=v36RegistrationEditKey.split('|');if(!confirm('Delete this registration? This cannot be undone.'))return;if(kind==='attendee'){state.attendees=state.attendees.filter(a=>a.id!==id);Object.keys(state.allocations).filter(key=>key.endsWith(`|attendee|${id}`)).forEach(key=>delete state.allocations[key])}else{const group=state.familyGroups.find(g=>g.id===id);const memberIds=new Set(group?.members.map(m=>m.id)||[]);state.familyGroups=state.familyGroups.filter(g=>g.id!==id);Object.keys(state.allocations).filter(key=>[...memberIds].some(memberId=>key.endsWith(`|attendee|${memberId}`))).forEach(key=>delete state.allocations[key])}$('v36RegistrationModal').classList.remove('open');save();toast('Registration deleted')}
-  function v36AllAttendeeRows(){const attendees=allEventAttendees().map(a=>{const master=state.attendeeMaster.find(m=>m.id===a.masterId),volunteer=state.volunteers.find(v=>v.id===(a.referenceVolunteerId||master?.linkedVolunteerId));return{kind:'attendee',id:a.id,name:a.name,mobile:a.mobile||'',personalMobile:a.personalMobile||'',type:master?.category==='family'?'Volunteer family':a.referenceVolunteerId?'Friend / referred':'Outside / general',group:volunteer?volName(volunteer):a.groupName||'',registrationDate:a.registrationDate||a.date||null,checkins:attendeeDates(a),record:a}}),families=state.familyGroups.filter(g=>g.eventId===state.activeEventId).flatMap(g=>{const volunteer=state.volunteers.find(v=>v.id===g.volunteerId),mainMobile=g.mobile||volunteer?.mobile||'';return g.members.map((m,index)=>({kind:'family',id:m.id,groupId:g.id,name:m.name||m.relationship||`Family member ${index+1}`,relationship:m.relationship||'',mobile:m.mobile||mainMobile,personalMobile:m.mobile||'',type:g.type==='volunteer-family'?'Volunteer family':'Outside family / group',group:g.type==='volunteer-family'?`${volunteer?volName(volunteer):'Volunteer'} family`:g.contactName||'Family / group',registrationDate:g.registrationDate||null,checkins:m.checkins||[],record:m,family:g,searchExtra:[volunteer?volName(volunteer):'',volunteer?.mobile||'',g.contactName||'',g.mobile||''].join(' ')}))});return[...attendees,...families]}
+  function v36AllAttendeeRows(){const attendees=allEventAttendees().map(a=>{const master=state.attendeeMaster.find(m=>m.id===a.masterId),volunteer=state.volunteers.find(v=>v.id===(a.referenceVolunteerId||master?.linkedVolunteerId));return{kind:'attendee',id:a.id,name:a.name,mobile:a.mobile||'',personalMobile:a.personalMobile||'',type:master?.category==='family'?'Volunteer family':a.referenceVolunteerId?'Friend / referred':'Outside / general',group:volunteer?volName(volunteer):a.groupName||'',registrationDate:a.registrationDate||a.date||null,checkins:attendeeDates(a),record:a}}),families=state.familyGroups.filter(g=>g.eventId===state.activeEventId).flatMap(g=>{const volunteer=state.volunteers.find(v=>v.id===g.volunteerId),mainMobile=g.mobile||volunteer?.mobile||'';return g.members.map((m,index)=>({kind:'family',id:m.id,groupId:g.id,name:m.name||m.relationship||`Family member ${index+1}`,relationship:m.relationship||'',mobile:m.mobile||'',contactMobile:mainMobile,personalMobile:m.mobile||'',type:g.type='volunteer-family'?'Volunteer family':'Outside family / group',group:g.type==='volunteer-family'?`${volunteer?volName(volunteer):'Volunteer'} family`:g.contactName||'Family / group',registrationDate:g.registrationDate||null,checkins:m.checkins||[],record:m,family:g,searchExtra:[volunteer?volName(volunteer):'',volunteer?.mobile||'',g.contactName||'',g.mobile||''].join(' ')}))});return[...attendees,...families]}
   function v36RowsForDate(date=$('workingDate').value){return v36AllAttendeeRows().filter(row=>!row.registrationDate||row.registrationDate===date||row.checkins.includes(date))}
   function v36SetAttendeeCheckin(row,checked){const date=$('workingDate').value;if(row.kind==='family'&&checked&&!row.record.name&&!row.record.relationship){const label=prompt('Optional: enter a relationship or name such as Mom, Wife or Dad. Leave blank to continue.');if(label)row.record.relationship=label.trim()}if(checked)row.record.checkins=[...new Set([...(row.record.checkins||[]),date])];else row.record.checkins=(row.record.checkins||[]).filter(d=>d!==date);if(row.kind==='attendee'){row.record.checkedIn=row.record.checkins.length>0;row.record.date=row.record.registrationDate||row.record.date;if(checked)row.record.checkInAt=new Date().toISOString()}save();toast(checked?'Attendee checked in':'Attendee check-in undone')}
   function v36DeleteAttendeeRow(row){if(row.kind==='family'){v36OpenRegistration(`family|${row.groupId}`);return}if(!confirm(`Delete ${row.name} from this event registration?`))return;state.attendees=state.attendees.filter(a=>a.id!==row.id);Object.keys(state.allocations).filter(key=>key.endsWith(`|attendee|${row.id}`)).forEach(key=>delete state.allocations[key]);save();toast('Registration deleted')}
@@ -10237,6 +10244,196 @@ function p2v58BindPhoneListener(){
   if(g('p2StudentStage'))g('p2StudentStage').onchange=p2RenderStudents;
   decorateLanding();
 })();
+
+  // Beta 5.81: unified person lookup, compact registration messages and family-contact separation.
+  (function anandaV581(){
+    const I=window.AnandaIdentity581,g=id=>document.getElementById(id);
+    if(!I)throw new Error('Beta 5.81 identity helper missing');
+    const eventName=id=>{const e=(state.events||[]).find(item=>String(item.id)===String(id));return e?.name||e?.title||'Previous event'};
+    const shortPhone=x=>{const p=I.personal(x);return p||((x.contactMobile)?'Family contact: '+I.mobile(x.contactMobile):'No personal mobile')};
+    function allRecords(){
+      const out=[],add=(role,id,name,mobile,detail='',extra={})=>{
+        if(!I.name(name))return;
+        out.push({role,id:String(id||''),name:String(name||''),mobile:mobile||'',detail:String(detail||''),...extra});
+      };
+      (state.students||[]).forEach(person=>{
+        const history=(state.classEnrollments||[]).filter(e=>e.studentId===person.id)
+          .map(en=>{const b=(state.classBatches||[]).find(x=>x.id===en.batchId);
+            return b?[p2BatchYear(b),p2CourseName(b),b.name||b.batchNumber||'',en.outcome||'In Progress'].filter(Boolean).join(' · '):''})
+          .filter(Boolean);
+        add('Student',person.id,person.name,person.mobile,history.length?history.slice(-4).join(' | '):'Student master',{studentId:person.id});
+      });
+      (state.kriyabans||[]).forEach(p=>add('Kriyaban',p.id,p.name,p.mobile,
+        p.kriyaDate?'Kriya '+p.kriyaDate:'Kriyaban master',{studentId:p.studentId||''}));
+      (state.volunteers||[]).forEach(p=>{
+        const reg=(state.volunteerRegistrations||[]).filter(r=>r.volunteerId===p.id);
+        const attended=reg.filter(r=>(r.checkins||[]).some(day=>
+          (state.daily?.[String(r.eventId)+'|'+String(day)]||[]).includes(p.id))).length;
+        add('Volunteer',p.id,volName(p),p.mobile,
+          attended+' checked-in event'+(attended===1?'':'s')+' · '+reg.length+' assigned',{volunteerId:p.id});
+      });
+      (state.attendeeMaster||[]).forEach(p=>add('Attendee Master',p.id,p.name,p.mobile,
+        p.category==='family'?'Family record':'Permanent attendee',{category:p.category||'',
+        personalMobile:p.personalMobile||'',contactMobile:p.familyContactMobile||(p.category==='family'?p.mobile:''),
+        masterId:p.id}));
+      (state.attendees||[]).forEach(p=>add('Event Attendee',p.id,p.name,p.mobile,
+        eventName(p.eventId)+' · '+(p.registrationDate||p.date||'Registered'),
+        {eventId:p.eventId,masterId:p.masterId||'',personalMobile:p.personalMobile||''}));
+      (state.familyGroups||[]).forEach(group=>{
+        const v=(state.volunteers||[]).find(p=>p.id===group.volunteerId);
+        const head=v?volName(v):group.contactName||'Family';
+        const contact=group.mobile||v?.mobile||'';
+        (group.members||[]).forEach(m=>add('Family Member',m.id,m.name,m.mobile||'',
+          head+"'s family · "+eventName(group.eventId),
+          {kind:'family',personalMobile:m.mobile||'',contactMobile:contact,
+          eventId:group.eventId,groupId:group.id,head}));
+      });
+      (state.vips||[]).forEach(p=>add('VIP',p.id,p.name,p.mobile,'VIP Master'));
+      (state.acharyas||[]).forEach(p=>add('Acharya',p.id,p.name,p.mobile,'Acharya Master'));
+      return out;
+    }
+    function groups(query){
+      const found=new Map();
+      allRecords().forEach(r=>{
+        if(!I.searchMatch(r,query))return;
+        const phone=I.personal(r),key=phone?(I.name(r.name)+'|'+phone):r.role+'|'+r.id+'|'+(r.eventId||'');
+        let person=found.get(key);
+        if(!person){person={name:r.name,mobile:phone,contactMobile:r.contactMobile||'',items:[]};found.set(key,person)}
+        person.items.push(r);
+        if(!person.contactMobile&&r.contactMobile)person.contactMobile=r.contactMobile;
+      });
+      return [...found.values()].sort((a,b)=>{
+        const aCurrent=a.items.some(x=>String(x.eventId)===String(state.activeEventId)),
+          bCurrent=b.items.some(x=>String(x.eventId)===String(state.activeEventId));
+        return Number(bCurrent)-Number(aCurrent)||a.name.localeCompare(b.name,undefined,{sensitivity:'base'});
+      });
+    }
+    function currentRegistration(person){
+      return person.items.find(x=>String(x.eventId)===String(state.activeEventId)&&
+        (x.role==='Family Member'||x.role==='Event Attendee'))||
+        person.items.find(x=>x.role==='Volunteer'&&
+          (state.volunteerRegistrations||[]).some(r=>r.eventId===state.activeEventId&&r.volunteerId===x.id));
+    }
+    function details(person){
+      return [...new Set(person.items.map(item=>item.detail).filter(Boolean))].slice(0,4).join(' · ');
+    }
+    function roles(person){return [...new Set(person.items.map(x=>x.role))].join(' · ')}
+    function showHistory(person){
+      let modal=g('v581ReadOnlyHistory');
+      if(!modal){
+        modal=document.createElement('div');modal.id='v581ReadOnlyHistory';modal.className='modal-backdrop';
+        modal.innerHTML='<div class="modal" style="max-width:540px"><div class="modal-head"><h3>Existing person</h3><button type="button" class="x v581-close">×</button></div><div class="v581-history-content"></div><div class="actions"><button type="button" class="btn secondary v581-close">Close</button></div></div>';
+        document.body.appendChild(modal);
+        modal.querySelectorAll('.v581-close').forEach(x=>x.onclick=()=>modal.classList.remove('open'));
+      }
+      modal.querySelector('.v581-history-content').innerHTML='<strong>'+esc(person.name)+'</strong>'+
+        person.items.map(x=>'<div class="v581-row"><small>'+esc(x.role)+'</small><span>'+esc(x.detail||'Existing record')+'</span></div>').join('');
+      modal.classList.add('open');
+    }
+    function openRecord(person,selected){
+      const source=selected||currentRegistration(person)||person.items.find(x=>x.role==='Student')||person.items.find(x=>x.role==='Kriyaban')||
+        person.items.find(x=>x.role==='Volunteer')||person.items.find(x=>x.role==='Attendee Master')||person.items[0];
+      g('v36RegistrationModal')?.classList.remove('open');
+      g('v86AttendeeSuggestions')?.classList.add('hidden');
+      if(source.role==='Family Member'&&String(source.eventId)===String(state.activeEventId))return v36OpenRegistration('family|'+source.groupId);
+      if(source.role==='Event Attendee'&&String(source.eventId)===String(state.activeEventId))return v36OpenRegistration('attendee|'+source.id);
+      if(source.role==='Student')return p2OpenStudent(source.id);
+      if(source.role==='Kriyaban')return v46OpenKriyaban(source.id);
+      if(source.role==='Volunteer')return openVolunteer(source.id);
+      if(source.role==='Attendee Master')return openAttendeeMaster(source.id);
+      if(source.role==='Acharya')return p2OpenAcharya(source.id);
+      if(source.role==='VIP')return v47OpenVip(source.id);
+      const master=person.items.find(x=>x.role==='Attendee Master');
+      if(master)return openAttendeeMaster(master.id);
+      showHistory(person);
+    }
+    const style=document.createElement('style');
+    style.id='v581IdentityStyle';
+    style.textContent='#v581IdentityNote{border-radius:7px;background:#fff2f1;color:#9e3434;border:1px solid #efcecb;padding:10px 13px;font-size:12px;margin-top:12px;display:flex;gap:10px;align-items:center;justify-content:space-between}'+
+      '#v581IdentityNote.hidden{display:none}#v581IdentityNote button{white-space:nowrap;border:0;background:transparent;color:#8f3030;font-weight:700;cursor:pointer}'+
+      '#v581UnifiedSearch{margin-top:14px;border-top:1px solid #e1e8ee;padding-top:10px}#v581UnifiedSearch .v581-row,#v581ReadOnlyHistory .v581-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:9px 2px;border-bottom:1px solid #edf1f5}'+
+      '#v581UnifiedSearch .v581-row strong{display:block;font-size:13px}#v581UnifiedSearch small,#v581ReadOnlyHistory small{display:block;color:#66798b;font-size:11px;margin-top:2px}'+
+      '#v581UnifiedSearch .v581-row button{flex-shrink:0}#v86AttendeeSuggestions .v581-choice{width:100%;display:block;text-align:left;padding:8px 11px;border:0;border-bottom:1px solid #edf1f5;background:#fff;cursor:pointer}'+
+      '#v86AttendeeSuggestions .v581-choice.active,#v86AttendeeSuggestions .v581-choice:hover{background:#f3f7fb}#v86AttendeeSuggestions .v581-choice span{display:block;color:#66798b;font-size:11px}';
+    document.head.appendChild(style);
+    function note(kind,name,row){
+      const form=g('v36RegistrationForm');
+      if(!form)return;
+      let el=g('v581IdentityNote');
+      if(!el){el=document.createElement('div');el.id='v581IdentityNote';el.setAttribute('role','alert');
+        g('v36MainRegistrationFields').insertAdjacentElement('afterend',el)}
+      const already=kind==='confirmed',group=row?.kind==='family'?(row.group||'family'):row?.kind==='volunteer'?'Volunteer Master':'';
+      const label=already?'Already Registered':'Mobile Already Used';
+      const message=already?(name+(group?' · '+group:'')):'Check the personal mobile number';
+      el.innerHTML='<div><strong>'+esc(label)+'</strong><div>'+esc(message)+'</div></div>';
+      if(row){const button=document.createElement('button');button.type='button';button.textContent='Open record';
+        button.onclick=()=>{if(row.kind==='family')v36OpenRegistration('family|'+row.groupId);
+          else if(row.kind==='attendee')v36OpenRegistration('attendee|'+row.id);
+          else if(row.kind==='volunteer')openVolunteer(row.id)};el.appendChild(button)}
+      el.classList.remove('hidden');
+    }
+    window.ananda581Warning=note;
+    function clearNote(){g('v581IdentityNote')?.classList.add('hidden')}
+    function paintSuggestions(){
+      const box=g('v86AttendeeSuggestions'),name=g('v36MainName'),phone=g('v36MainMobile');
+      if(!box||!name||!phone)return;
+      const typedName=name.value.trim(),digits=I.mobile(phone.value),query=typedName||digits;
+      const candidates=groups(query).slice(0,9);
+      if(!query||!candidates.length){box.innerHTML='';box.classList.add('hidden');return}
+      box.innerHTML=candidates.map((person,i)=>{
+        const reg=currentRegistration(person),personal=person.mobile;
+        const tag=reg?' · Registered for this event':'';
+        return '<button type="button" class="v581-choice'+(i===0?' active':'')+'" data-index="'+i+'"><strong>'+esc(person.name)+'</strong><span>'+
+          esc(roles(person)+tag+' · '+(personal||shortPhone(person)))+'</span></button>';
+      }).join('');
+      box.dataset.activeIndex='0';box.classList.remove('hidden');
+      box.querySelectorAll('.v581-choice').forEach(b=>{
+        b.onmousedown=e=>e.preventDefault();b.onclick=()=>openRecord(candidates[Number(b.dataset.index)]);
+      });
+    }
+    function setupSuggestions(){
+      v86InstallMasterSuggestions();
+      if(!g('v36MainName')||g('v36MainName').dataset.v581Unified)return;
+      g('v36MainName').dataset.v581Unified='1';
+      [g('v36MainName'),g('v36MainMobile')].forEach(input=>{
+        input.addEventListener('input',()=>{clearNote();paintSuggestions()});
+        input.addEventListener('keydown',event=>{
+          const box=g('v86AttendeeSuggestions');
+          if(!box||box.classList.contains('hidden')||!['ArrowUp','ArrowDown','Enter'].includes(event.key))return;
+          const options=[...box.querySelectorAll('.v581-choice')];
+          if(!options.length)return;
+          event.preventDefault();event.stopImmediatePropagation();
+          let i=Number(box.dataset.activeIndex||0);
+          if(event.key==='Enter'){options[i]?.click();return}
+          i=(i+(event.key==='ArrowDown'?1:-1)+options.length)%options.length;
+          box.dataset.activeIndex=String(i);options.forEach((b,n)=>b.classList.toggle('active',n===i));
+        },true);
+      });
+    }
+    function paintSearch(){
+      const input=g('v36AttendeeSearch'),table=g('v36AttendeeTable');
+      if(!input||!table)return;
+      let host=g('v581UnifiedSearch');
+      if(!host){host=document.createElement('div');host.id='v581UnifiedSearch';
+        const anchor=g('vNewVolunteerQuickResults')||table;anchor.insertAdjacentElement('afterend',host)}
+      const q=input.value.trim();
+      if(!q){host.innerHTML='';host.style.display='none';return}
+      const people=groups(q).slice(0,40);
+      host.style.display='';
+      host.innerHTML='<div class="card-sub"><strong>ALL RECORDS</strong> · Students, Kriya, volunteers, events and history</div>'+
+        (people.length?people.map((person,i)=>'<div class="v581-row"><div><strong>'+esc(person.name)+'</strong><small>'+
+          esc(roles(person)+' · '+(person.mobile||shortPhone(person)))+'</small><small>'+esc(details(person))+
+          '</small></div><button type="button" class="btn ghost small v581-open" data-index="'+i+'">View</button></div>').join(''):
+          '<div class="card-sub">No existing records found.</div>');
+      host.querySelectorAll('.v581-open').forEach(b=>b.onclick=()=>openRecord(people[Number(b.dataset.index)]));
+    }
+    const previous=v36RenderAttendees;
+    v36RenderAttendees=function(){previous();paintSearch();setupSuggestions()};
+    setupSuggestions();
+    if(g('v36RegistrationType'))g('v36RegistrationType').addEventListener('change',clearNote);
+    if(g('v36RegistrationForm'))g('v36RegistrationForm').addEventListener('click',event=>{
+      if(event.target.closest('#v36CancelRegistration,#v36CloseRegistration'))clearNote()});
+  })();
   resetEventForm();
   renderAll();
 })();

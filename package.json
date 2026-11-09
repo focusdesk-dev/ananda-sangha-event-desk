@@ -1,6 +1,6 @@
 {
   "name": "ananda-sangha-event-desk",
-  "version": "2.0.0-beta.5.80",
+  "version": "2.0.0-beta.5.81",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -27,7 +27,8 @@
     "test:corrections21-26": "node scripts/verify-corrections-21-26.js",
     "test:release32": "node scripts/verify-release-32.js",
     "test:correction21a": "node scripts/verify-correction-21a.js",
-    "test:four-fixes": "node scripts/verify-event-four-fixes.js"
+    "test:four-fixes": "node scripts/verify-event-four-fixes.js",
+    "test:identity581": "node scripts/verify-beta581.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4",
@@ -52,7 +53,8 @@
       "ananda-icon.ico",
       "qrcode-client.js",
       "jsqr-client.js",
-      "omr-scanner.js"
+      "omr-scanner.js",
+      "identity-beta581.js"
     ],
     "win": {
       "target": [
