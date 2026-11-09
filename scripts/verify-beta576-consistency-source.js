@@ -1,0 +1,27 @@
+'use strict';
+(function verify576Source(){
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8');
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+assert.equal(pkg.version,'2.0.0-beta.5.76');
+const baseline=fs.readFileSync('scripts/frozen-sidebar-beta573.txt','utf8');
+const side=html.slice(html.indexOf('<aside'),html.indexOf('</aside>')+8);
+assert.equal(side,baseline,'Approved left-hand taskbar markup must remain unchanged');
+assert(html.includes('function anandaV576()'),'One-heading / one-master-list correction missing');
+assert(html.includes("const content=attendance.querySelector(':scope > div')"),'Attendance icon still gets deleted on navigation');
+assert(html.includes('if(content)content.innerHTML='),'Attendance icon not preserved while updating its text');
+const content=html.slice(html.indexOf('function anandaV576()'),html.indexOf('  resetEventForm();',html.indexOf('function anandaV576()')));
+assert(content.includes('border-bottom:4px solid #ffc329!important'),'Full-width yellow header rule is missing');
+for(const page of ['studentProgress','classReportsHub','courseMaster','permanentRecords','vips','kriyabans','kriya2Master','kriya3Master','kriya4Master','sttMaster'])assert(content.includes('#'+page),'Missing screen from shared header rule '+page);
+assert(content.includes('#permanentRecords .p2-master-grid {'),'Permanent records not consolidated into one list');
+assert(content.includes('display:block!important;'),'Vertical list display missing');
+assert(content.includes('grid.appendChild(button)'),'Original master button navigation was not preserved');
+assert(content.includes('document.head.appendChild(style)'),'Master layout CSS not installed');
+const all=['attendeeMaster','volunteers','vips','students','acharyas','kriyabans','kriya2Master','kriya3Master','kriya4Master','sttMaster'];
+for(const id of all)assert(content.includes("['"+id+"'"),'Missing master row '+id);
+assert(!html.includes('content:"";display:block;background:#ffc329;height:3px;margin:-18px -20px 15px'),'Stray master-card yellow band was not removed');
+const tags=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
+for(const [index,match] of tags.entries())assert.doesNotThrow(()=>new Function(match[1]),'Inline script invalid '+index);
+console.log('PASS 5.76 10-row minimalist Permanent Records, consistent full-width yellow headers, attendance icon retention, identical sidebar and 11 JS scripts');
+})();

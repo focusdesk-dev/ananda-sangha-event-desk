@@ -4055,7 +4055,11 @@ body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important
       attendance.innerHTML='<span class="no">03</span><div><strong>Attendance</strong><br><small>Manual attendance, print QR attendance sheet, scan/upload attendance sheet.</small></div>';
       if(student)grid.insertBefore(attendance,student);else if(reports)grid.insertBefore(attendance,reports);else grid.appendChild(attendance)
     }else{
-      attendance.innerHTML='<span class="no">03</span><div><strong>Attendance</strong><br><small>Manual attendance, print QR attendance sheet, scan/upload attendance sheet.</small></div>'
+      // Keep the approved circular icon and chevron when navigating to Attendance.
+      // Replacing the entire tile would delete the rendered SVG after a click.
+      const content=attendance.querySelector(':scope > div');
+      if(content)content.innerHTML='<strong>Attendance</strong><small>Manual attendance, print QR attendance sheet, scan/upload attendance sheet.</small>';
+      else attendance.innerHTML='<span class="no">03</span><div><strong>Attendance</strong><small>Manual attendance, print QR attendance sheet, scan/upload attendance sheet.</small></div>';
     }
     if(student){const n=student.querySelector('.no');if(n)n.textContent='04';const strong=student.querySelector('strong');if(strong)strong.textContent='Student Progress';const sm=student.querySelector('small');if(sm)sm.textContent='Search a student and view class history, progress and next-stage follow-up.'}
     if(reports){const n=reports.querySelector('.no');if(n)n.textContent='05';reports.onclick=()=>p2v59OpenClassReports()}
@@ -9339,9 +9343,6 @@ function p2v58BindPhoneListener(){
       background:#fff!important;border:1px solid #dce6ef!important;border-radius:11px!important;
       box-shadow:none!important;padding:18px 20px!important;min-height:250px!important;
     }
-    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,#courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster)>.card:before{
-      content:"";display:block;background:#ffc329;height:3px;margin:-18px -20px 15px;border-radius:10px 10px 0 0;
-    }
     .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans) .card-head{justify-content:flex-end!important;margin-bottom:14px!important;gap:12px!important}
     .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans) .card-head>div:first-child{display:none!important}
     .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans) .card-head .actions{margin-left:auto!important}
@@ -9616,6 +9617,117 @@ function p2v58BindPhoneListener(){
     oldRenderAll();
     if(v51MasterUnlocked)stageSpecs.forEach(stageRender);
   };
+})();
+  (function anandaV576(){
+  // Single restrained accent beneath the main page title, never on cards.
+  // No change to the already-frozen blue sidebar, its layout or its events.
+  const style=document.createElement('style');
+  style.id='v576OneHeaderOneMasterList';
+  style.textContent=`
+    body:has(.page.active:is(
+      #studentProgress,#classReportsHub,#courseMaster,#permanentRecords,
+      #volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,
+      #kriya2Master,#kriya3Master,#kriya4Master,#sttMaster
+    )) .topbar {
+      border-bottom:4px solid #ffc329!important;
+      padding-bottom:18px!important;
+      margin-bottom:26px!important;
+      align-items:center!important;
+    }
+    body:has(.page.active:is(
+      #studentProgress,#classReportsHub,#courseMaster,#permanentRecords,
+      #volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,
+      #kriya2Master,#kriya3Master,#kriya4Master,#sttMaster
+    )) .topbar #pageTitle {
+      color:#082e65!important;
+      font-size:29px!important;
+      font-weight:700!important;
+      letter-spacing:-.03em!important;
+      text-transform:uppercase!important;
+    }
+    body:has(#permanentRecords.page.active) .topbar #pageSubtitle,
+    body:has(#permanentRecords.page.active) .topbar #v51SecurityButton,
+    body:has(#studentProgress.page.active) .topbar #pageSubtitle {display:none!important}
+    #permanentRecords #eventBanner,
+    #permanentRecords>.rams-meta {display:none!important}
+    #permanentRecords .p2-master-grid {
+      display:block!important;
+      background:#fff!important;
+      border:1px solid #dfe8f1!important;
+      border-radius:10px!important;
+      padding:0 19px!important;
+      margin:0!important;
+      box-shadow:none!important;
+    }
+    #permanentRecords .p2-master-grid>.p2-master-card {
+      display:flex!important;
+      align-items:center!important;
+      justify-content:space-between!important;
+      gap:12px!important;
+      width:100%!important;
+      min-height:48px!important;
+      margin:0!important;
+      padding:13px 9px!important;
+      background:#fff!important;
+      border:0!important;
+      border-radius:0!important;
+      border-bottom:1px solid #e7edf4!important;
+      box-shadow:none!important;
+      text-align:left!important;
+      cursor:pointer;
+    }
+    #permanentRecords .p2-master-grid>.p2-master-card:last-child{border-bottom:0!important}
+    #permanentRecords .p2-master-grid>.p2-master-card:hover{background:#f8fafd!important}
+    #permanentRecords .p2-master-grid>.p2-master-card:focus-visible{
+      outline:2px solid #d6a610!important;
+      outline-offset:-2px!important;
+    }
+    #permanentRecords .p2-master-card .action-no,
+    #permanentRecords .p2-master-card small {display:none!important}
+    #permanentRecords .p2-master-card strong {
+      margin:0!important;
+      display:block!important;
+      font-size:14px!important;
+      font-weight:650!important;
+      letter-spacing:0!important;
+      line-height:1.4!important;
+      color:#0d376f!important;
+    }
+    #permanentRecords .p2-master-card::after {
+      content:"›";
+      font-size:22px;
+      font-weight:400;
+      line-height:1;
+      color:#5e7b9c;
+      flex:none;
+    }
+    /* The approved list screens have one plain panel; no gold bands on cards. */
+    .page:is(#volunteers,#attendeeMaster,#vips,#kriyabans,#students,#acharyas,
+      #courseMaster,#kriya2Master,#kriya3Master,#kriya4Master,#sttMaster)>.card::before {
+      content:none!important;
+      display:none!important;
+    }
+  `;
+  document.head.appendChild(style);
+  // Reuse the same ten existing navigation buttons, preserving their listeners
+  // and all stored data. This is only the directory order and visible titles.
+  const ordered=[
+    ['attendeeMaster','ATTENDEES'],['volunteers','VOLUNTEERS'],
+    ['vips','VIPS'],['students','STUDENTS'],['acharyas','ACHARYAS'],
+    ['kriyabans','KRIYABANS'],['kriya2Master','KRIYA 2'],
+    ['kriya3Master','KRIYA 3'],['kriya4Master','KRIYA 4'],
+    ['sttMaster','STT']
+  ];
+  const grid=document.querySelector('#permanentRecords .p2-master-grid');
+  if(grid){
+    for(const [id,title]of ordered){
+      const button=grid.querySelector(`button[data-go="${id}"]`);
+      if(!button)continue;
+      const label=button.querySelector('strong');
+      if(label)label.textContent=title;
+      grid.appendChild(button);
+    }
+  }
 })();
   resetEventForm();
   renderAll();
