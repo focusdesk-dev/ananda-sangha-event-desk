@@ -50,6 +50,8 @@ async function main(){
   const opened=await run(function(){
    document.querySelector('aside .nav-btn[data-page="events"]')?.click();
    document.getElementById('p2v510OpenEvent')?.click();
+   const filter=document.getElementById('v578EventSearch');
+   if(filter){filter.value='Hotfix 5801 Test Event';filter.dispatchEvent(new Event('input',{bubbles:true}))}
    const row=[...document.querySelectorAll('#eventList .p2v510-event-row')].find(x=>x.textContent.includes('Hotfix 5801 Test Event'));
    row?.querySelector('.v578-open-event')?.click();
    document.querySelector('#eventWorkspace .v36-go[data-page="checkin"]')?.click();
@@ -58,7 +60,7 @@ async function main(){
     search:!!document.getElementById('v36AttendeeSearch'),
     nav:{width:Math.round(side.getBoundingClientRect().width),labels:[...side.querySelectorAll('nav button')].map(b=>b.textContent.trim())}};
   });
-  assert.ok(opened.workspace&&opened.search,'Original 5.80 event check-in failed to open');
+  assert.ok(opened.workspace&&opened.search,'Original 5.80 event check-in failed to open: '+JSON.stringify(opened));
   const family=await run(function(){
    const input=document.getElementById('v36AttendeeSearch');input.value='Sahil Malhotra';
    input.dispatchEvent(new Event('input',{bubbles:true}));
