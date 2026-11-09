@@ -81,7 +81,7 @@ async function main(){
    document.getElementById('v36RegistrationForm').requestSubmit(document.querySelector('#v36RegistrationForm button[type="submit"][data-mode="register"]'));
    const after=JSON.parse(localStorage.getItem('annualEventRegistration.v1')).attendees.length;
    const link=document.querySelector('#v80MobileDuplicate button');link?.click();
-   return {warning,before,after,link:!!link,editType:document.getElementById('v36RegistrationType').value};
+   return {warning,before,after,link:!!link,editType:document.getElementById('v36RegistrationType').value,diagnostic:{name:name.value,phone:mobile.value,hasHotfix:typeof window.ananda580ShowDuplicate==='function',hasScopedStyle:!!document.getElementById('v580NarrowSearchStyle'),warningClass:document.getElementById('v80MobileDuplicate')?.className,formOpen:document.getElementById('v36RegistrationModal')?.classList.contains('open'),activePage:document.querySelector('.page.active')?.id}};
   });
   assert.ok(duplicate.warning.includes('Already Registered')&&duplicate.warning.includes('Ankit Kohli family'),JSON.stringify(duplicate));
   assert.ok(!duplicate.warning.includes('Rahul Malhotra')&&!duplicate.warning.includes('Divya Malhotra'),'Red warning includes unrelated family members');
