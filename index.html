@@ -1076,7 +1076,45 @@ body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important
     $('v36VolSearch').oninput=renderDaily;$('v36ClearVolSearch').onclick=()=>{$('v36VolSearch').value='';renderDaily()};$('v36VolunteerImport').onchange=v36ImportVolunteerRoster;
     $('v36AttendeeSearch').oninput=v36RenderAttendees;$('v36FindAttendee').onclick=v36RenderAttendees;$('v36NewRegistration').onclick=()=>v36OpenRegistration();
     $('v36ImportGoogle').onclick=()=>$('googleCsv').click();$('v36ImportExcel').onclick=()=>$('excelFile').click();$('v36DownloadTemplate').onclick=()=>$('downloadTemplate').click();
-    $('v36RegistrationType').onchange=()=>v36UpdateRegistrationFields(true);$('v36FamilyCount').onchange=()=>v36UpdateRegistrationFields(true);$('v36RegistrationForm').onsubmit=v36SaveRegistration;$('v36RegistrationForm').onkeydown=v42RegistrationEnterMovesNext;$('v36CloseRegistration').onclick=$('v36CancelRegistration').onclick=()=>$('v36RegistrationModal').classList.remove('open');$('v36DeleteRegistration').onclick=v36DeleteCurrentRegistration;
+    $('v36RegistrationType').onchange=()=>v36UpdateRegistrationFields(true);$('v36FamilyCount').onchange=()=>v36UpdateRegistrationFields(true);
+  // Registration safeguard: one person, one event registration, regardless of
+  // whether they appear individually or under any family/group.
+  const vNewOriginalSaveRegistration=v36SaveRegistration;
+  v36SaveRegistration=function(event){
+    const type=$('v36RegistrationType').value,edit=v36RegistrationEditKey||'',
+      mainName=String($('v36MainName')?.value||'').trim(),
+      mainMobile=normMobile($('v36MainMobile')?.value||''),
+      memberEntries=/family/.test(type)?v36CurrentMemberInputs().map(m=>({name:m.name,mobile:normMobile(m.mobile||'')})):[];
+    const proposed=(type==='volunteer-family'?[]:[{name:mainName,mobile:mainMobile}]).concat(memberEntries);
+    const rows=v36AllAttendeeRows().filter(row=>
+      !(edit.startsWith('attendee|')&&row.kind==='attendee'&&row.id===edit.split('|')[1])&&
+      !(edit.startsWith('family|')&&row.kind==='family'&&row.groupId===edit.split('|')[1]));
+    for(const candidate of proposed){
+      const name=normName(candidate.name||'');
+      if(!name)continue;
+      const existing=rows.find(row=>{
+        if(normName(row.record?.name||'')!==name)return false;
+        const theirPersonal=normMobile(row.personalMobile||'');
+        // A shared household mobile is not a unique personal identifier.
+        return !candidate.mobile||!theirPersonal||candidate.mobile===theirPersonal||
+          candidate.mobile===normMobile(row.mobile||'');
+      });
+      if(existing){
+        event.preventDefault();
+        event.stopImmediatePropagation?.();
+        $('v36RegistrationModal').classList.remove('open');
+        $('v36AttendeeSearch').value=candidate.name.trim();
+        v36RenderAttendees();
+        if(typeof v56RenderGroupPlanning==='function')v56RenderGroupPlanning();
+        toast('Already Pre-Registered: '+candidate.name.trim()+'. View the existing registration below.');
+        $('v36AttendeeSearch').focus();
+        return;
+      }
+    }
+    return vNewOriginalSaveRegistration(event);
+  };
+
+    $('v36RegistrationForm').onsubmit=v36SaveRegistration;$('v36RegistrationForm').onkeydown=v42RegistrationEnterMovesNext;$('v36CloseRegistration').onclick=$('v36CancelRegistration').onclick=()=>$('v36RegistrationModal').classList.remove('open');$('v36DeleteRegistration').onclick=v36DeleteCurrentRegistration;
     $('v36ExportPending').onclick=()=>$('exportPending').click();$('v36ExportParticipants').onclick=v36ExportParticipants;$('v36Backup').onclick=()=>$('backupData').click();$('v36Restore').onclick=()=>$('restoreData').click();
   }
 
@@ -1623,7 +1661,8 @@ body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important
   document.head.insertAdjacentHTML('beforeend','<style>.v73-add-kriyaban{color:var(--brand)!important}.v73-add-kriyaban:hover{background:#eef5fb!important}</style>');
   // Version 75: add Kriyabans from either volunteer or attendee rows and show linked attendee families.
   function v75OpenKriyabanFromPerson(person){const name=person?.name||'';const mobile=person?.mobile||person?.personalMobile||'';if(!name)return;const open=()=>{const existing=v46KriyabanMatch(name,mobile);if(existing){v46OpenKriyaban(existing.id);toast(`${name} is already in Kriyaban Master`);return}$('kriyabanModalTitle').textContent='Add Kriyaban';$('kriyabanId').value='';$('kriyabanName').value=name;$('kriyabanMobile').value=mobile||'';$('kriyabanNotes').value='';$('deleteKriyaban').classList.add('hidden');$('kriyabanModal').classList.add('open');setTimeout(()=>$('kriyabanName').focus(),0)};v51RequireAdmin(open,'add this person to Kriyaban Master')}
-  function v75DecorateAttendeeRows(){document.querySelectorAll('#v36AttendeeTable tbody tr').forEach(row=>{if(row.querySelector('.v75-add-kriyaban'))return;const control=row.querySelector('.v36-att-delete'),person=control&&v36RowsForDate($('workingDate').value).find(item=>item.kind===control.dataset.kind&&item.id===control.dataset.id),actions=row.querySelector('.v36-att-edit')?.parentElement;if(!person||!actions)return;const button=document.createElement('button');button.type='button';button.className='btn ghost small v75-add-kriyaban';button.textContent=v46KriyabanForAttendee(person)?'Kriyaban ✓':'＋ Kriyaban';button.title='Add or edit this attendee in Kriyaban Master';button.onclick=()=>v75OpenKriyabanFromPerson(person);actions.append(button)})}
+  function v75DecorateAttendeeRows(){document.querySelectorAll('#v36AttendeeTable tbody tr').forEach(row=>{if(row.querySelector('.v75-add-kriyaban'))return;const control=row.querySelector('.v36-att-delete'),person=control&&v36RowsForDate($('workingDate').value).find(item=>item.kind===control.dataset.kind&&item.id===control.dataset.id),actions=row.querySelector('.v36-att-edit')?.parentElement;if(!person||!actions)return;// Status comes exclusively from Kriyaban Master; event check-in cannot assign it.
+    if(v46KriyabanForAttendee(person)){const label=document.createElement('span');label.className='pill green v75-add-kriyaban';label.textContent='Kriyaban';label.title='Verified in Kriyaban Master';actions.append(label)}})}
   const v75RenderAttendeesBefore=v36RenderAttendees;v36RenderAttendees=function(){v75RenderAttendeesBefore();v75DecorateAttendeeRows()};
   function v75LinkedVolunteerId(row){if(row.kind==='family')return row.family?.volunteerId||'';const record=row.record||{},master=state.attendeeMaster.find(item=>item.id===record.masterId);return record.referenceVolunteerId||(record.referenceType==='volunteer'?record.referenceId:'')||master?.linkedVolunteerId||(master?.originalReferenceType==='volunteer'?master?.originalReferenceId:'')||''}
   function v75RenderLinkedFamilyBoxes(){const box=$('v56GroupPlanning');if(!box)return;const date=$('workingDate').value,rows=v36RowsForDate(date),groups=new Map();rows.forEach(row=>{const volunteerId=v75LinkedVolunteerId(row);if(!volunteerId)return;const volunteer=state.volunteers.find(item=>item.id===volunteerId);if(!volunteer)return;if(!groups.has(volunteerId))groups.set(volunteerId,{volunteer,members:[]});groups.get(volunteerId).members.push(row)});groups.forEach((group,volunteerId)=>{if([...box.querySelectorAll('.v56-group-row')].some(row=>row.dataset.v75Volunteer===volunteerId))return;const name=volName(group.volunteer),expected=group.members.length,arrived=group.members.filter(row=>row.checkins.includes(date)).length,rowId=`v75-linked-${volunteerId}`;const row=document.createElement('div');row.className='v56-group-row v75-linked-group';row.dataset.v75Volunteer=volunteerId;row.innerHTML=`<div><div class="v56-group-name v75-linked-name" role="button" tabindex="0">${esc(name)} +${expected}</div><div class="v56-group-mobile">${expected} linked family member${expected===1?'':'s'} · click to show details</div></div><div class="v56-count"><strong>${expected}</strong>Expected people</div><div class="v56-count"><strong>${arrived}</strong>Arrived</div><div class="v56-count"><strong>${expected-arrived}</strong>Not arrived</div><button class="btn secondary small v75-linked-details" type="button">Show member details</button>`;box.append(row);const details=document.createElement('div');details.className='v66-group-members v75-linked-details-box hidden';details.id=rowId;details.innerHTML=`<strong style="color:var(--brand)">${esc(name)} family members</strong>${group.members.map(member=>`<div class="v66-member-row"><div><strong>${esc(member.name||member.relationship||'Family member')}</strong><small>${esc([member.relationship,member.mobile].filter(Boolean).join(' · ')||'Details not entered')}</small></div><div>${member.checkins.includes(date)?'<span class="pill green">Arrived</span>':'<span class="pill amber">Not arrived</span>'}</div></div>`).join('')}`;box.append(details);const toggle=()=>details.classList.toggle('hidden');row.ondblclick=toggle;row.querySelector('.v75-linked-details').onclick=toggle;row.querySelector('.v75-linked-name').onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();toggle()}}})}
@@ -2005,6 +2044,36 @@ body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important
   v36RenderAttendees=function(){v86RenderAttendeesBase();v86InstallMasterSuggestions();document.querySelectorAll('#v36AttendeeTable .v36-att-edit').forEach(button=>{if(button.dataset.kind==='attendee')button.onclick=()=>v86OpenQuickEdit(button.dataset.id)})};
   const v86OpenRegistrationBase=v36OpenRegistration;
   v36OpenRegistration=function(editKey=''){v86OpenRegistrationBase(editKey);v86InstallMasterSuggestions()};
+  
+  // One search for attendee/family entries and registered event volunteers.
+  // Quick Check-In only updates existing event assignments; it creates no new person.
+  const vNewPreviousRenderAttendees=v36RenderAttendees;
+  v36RenderAttendees=function(){
+    vNewPreviousRenderAttendees();
+    const search=$('v36AttendeeSearch'),table=$('v36AttendeeTable');
+    if(!search||!table)return;
+    let box=$('vNewVolunteerQuickResults');
+    if(!box){box=document.createElement('div');box.id='vNewVolunteerQuickResults';box.style.marginTop='12px';table.insertAdjacentElement('afterend',box)}
+    const query=search.value.trim();
+    if(!query||!state.activeEventId){box.innerHTML='';return}
+    const assigned=new Set(v36RosterIds(state.activeEventId,$('workingDate').value));
+    const registered=new Set((state.volunteerRegistrations||[]).filter(r=>r.eventId===state.activeEventId).map(r=>r.volunteerId));
+    const matching=v36VolunteerMatches(query).filter(person=>assigned.has(person.id)||registered.has(person.id)).slice(0,25);
+    const checked=new Set(v36CheckedVolunteerIds(state.activeEventId,$('workingDate').value));
+    box.innerHTML=matching.length?'<div class="card-sub"><strong>VOLUNTEERS</strong> — matching event assignments</div><div class="table-wrap"><table><thead><tr><th>Volunteer</th><th>Mobile</th><th>Check-in</th></tr></thead><tbody>'+
+      matching.map(person=>'<tr><td><strong>'+esc(volName(person))+'</strong></td><td>'+esc(person.mobile||'—')+'</td><td>'+
+        (checked.has(person.id)?'<span class="pill green">Checked in</span>':'<button type="button" class="btn small vNewVolunteerQuickCheck" data-id="'+esc(person.id)+'">Check in</button>')+'</td></tr>').join('')+'</tbody></table></div>':'';
+    box.querySelectorAll('.vNewVolunteerQuickCheck').forEach(button=>button.onclick=()=>{
+      const volunteer=state.volunteers.find(person=>person.id===button.dataset.id);
+      const date=$('workingDate').value;
+      if(!volunteer||(!v36RosterIds(state.activeEventId,date).includes(volunteer.id)&&
+        !(state.volunteerRegistrations||[]).some(r=>r.eventId===state.activeEventId&&r.volunteerId===volunteer.id)))return;
+      if(v36CheckedVolunteerIds(state.activeEventId,date).includes(volunteer.id)){v36RenderAttendees();return}
+      ensureVolunteerCheckin(volunteer,state.activeEventId,date);save();
+      toast(volName(volunteer)+' checked in');v36RenderAttendees();
+    });
+  };
+
   $('v36AttendeeSearch').oninput=()=>{v36RenderAttendees();v56RenderGroupPlanning()};
   $('v36FindAttendee').onclick=()=>{v36RenderAttendees();v56RenderGroupPlanning()};
 
@@ -8637,11 +8706,18 @@ function p2v58BindPhoneListener(){
         if(!host||!student)return;
         const list=p2v56ChatStudentEnrollments(student.id);
         const lessons=list.map(({en,b})=>({en,b,stage:p2v550Stage(b),year:String(p2BatchYear(b)||'')}));
-        const volunteering=state.volunteerRegistrations.filter(r=>
-          student.volunteerId&&r.volunteerId===student.volunteerId).map(r=>{
+        // Confirmed volunteering means actual event check-in, never registration alone.
+        // Both the event-day attendance ledger and the volunteer registration must agree.
+        const volunteering=state.volunteerRegistrations.filter(r=>student.volunteerId&&r.volunteerId===student.volunteerId)
+          .flatMap(r=>(r.checkins||[]).filter(day=>
+            Array.isArray(state.daily?.[String(r.eventId)+'|'+String(day)])?
+              state.daily[String(r.eventId)+'|'+String(day)].includes(r.volunteerId):
+              Object.entries(state.daily||{}).some(([key,ids])=>key.includes(String(r.eventId))&&key.endsWith('|'+String(day))&&Array.isArray(ids)&&ids.includes(r.volunteerId))
+          ).map(day=>{
             const event=state.events.find(e=>e.id===r.eventId);
-            return{event:event?.name||event?.title||'Event',date:event?.start||r.registeredAt||'',role:r.role||r.duty||'Volunteer'};
-          }).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+            return{event:event?.name||event?.title||'Event',date:day,role:r.role||r.duty||'Volunteer',key:String(r.eventId)+'|'+day};
+          })).filter((entry,index,list)=>list.findIndex(x=>x.key===entry.key)===index)
+          .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
         const nextStages=['Kriya','Kriya 2','Kriya 3','Kriya 4'];
         const completedKriya=lessons.some(x=>x.stage==='Kriya'&&x.en.outcome==='Completed');
         const linkedKriyaban=state.kriyabans.find(k=>k.id===student.kriyabanId||k.studentId===student.id);
