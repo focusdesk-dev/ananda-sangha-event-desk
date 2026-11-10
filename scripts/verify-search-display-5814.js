@@ -7,7 +7,7 @@ for(const x of [
  "window.ananda580ShowDuplicate?.(row,person.name)",
  "$('v5813RegistrationStatus')?.remove();",
  '#v5813RegistrationStatus.is-registered strong{color:#9b2e26}',
- 'Open registration</button>',
+ "b.textContent='Open registration';",
  "esc(p.mobile||p.contact||'—')",
  "esc(p.phone||p.items.find(x=>x.contact)?.contact||'—')",
  '<strong>Matching records</strong>',
