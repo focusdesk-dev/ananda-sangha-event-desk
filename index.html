@@ -10616,7 +10616,7 @@ function p2v58BindPhoneListener(){
   function v5813Select(person){
     if(!person)return;
     v5813Selected={...person};
-    $('v36MainName').value=person.name;
+    $('v36MainName').value=String(person.name||'').toUpperCase();
     $('v36MainMobile').value=person.mobile||'';
     $('v86AttendeeSuggestions')?.classList.add('hidden');
     // Trigger existing Kriya/mobile checks rather than bypassing them.
