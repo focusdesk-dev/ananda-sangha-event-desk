@@ -9,7 +9,7 @@ const start=html.indexOf('  (function anandaV578(){'),end=html.indexOf('  resetE
 assert.ok(start>0&&end>start,'Recovery patch missing or incorrectly placed');
 const original=html.slice(0,start)+html.slice(end);
 const gitHash=crypto.createHash('sha1').update('blob '+Buffer.byteLength(original,'utf8')+'\0').update(original,'utf8').digest('hex');
-assert.equal(gitHash,'8444abbe4e6db8bc924a1943308517a2f791e4fd','Unexpected unreviewed source changes outside the approved 5.80 recovery block');
+assert.equal(gitHash,'2438d6518fd253051ce6eee71d0cbe3c5a791c7a','Unexpected unreviewed source changes outside the approved 5.80 recovery block');
 const side=html.slice(html.indexOf('<aside'),html.indexOf('</aside>')+8);
 assert.equal(side,fs.readFileSync('scripts/frozen-sidebar-beta573.txt','utf8').replace(/\r\n/g,'\n'),'Frozen sidebar changed');
 const recovery=html.slice(start,end);

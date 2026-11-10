@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8');
+const frozen=fs.readFileSync('scripts/frozen-sidebar-beta573.txt','utf8').replace(/\r\n/g,'\n');
+assert.equal(html.slice(html.indexOf('<aside'),html.indexOf('</aside>')+8),frozen,'Frozen sidebar altered');
+assert.ok(html.includes("candidate.mobile.length===10&&personal.length===10&&candidate.mobile===personal"),'Name alone must not block');
+assert.ok(html.includes("row.kind==='family'?theirPersonal"),'Must check family member personal mobile');
+assert.ok(html.includes("mobile:m.mobile||'',contactMobile:mainMobile"),'Family contact must be separate');
+assert.ok(html.includes("m.masterId=master.id"),'Existing family master record link preserved');
+assert.ok(html.includes("Already Registered"),'Compact existing registration warning missing');
+assert.ok(html.includes("Mobile Already Used"),'Compact personal-mobile conflict warning missing');
+assert.ok(html.includes("Open registration"),'Open existing registration action missing');
+assert.ok(html.includes("const vNewPreviousRenderAttendees=v36RenderAttendees"),'Original volunteer lookup removed');
+assert.ok(html.includes("state.daily[String(r.eventId)+'|'+String(day)]"),'Volunteer check-in history changed');
+console.log('PASS: Beta 5.80 scoped corrections retained search, identity checks, master links and frozen sidebar');
