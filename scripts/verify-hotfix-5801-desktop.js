@@ -44,6 +44,11 @@ async function main(){
    s.kriyabans.push({id:id+'-kriyaban',name:'Kriya Search QA',mobile:'9822222202',kriyaDate:'2025-04-01'});
    s.students.push({id:id+'-student',name:'Bina Student Search QA',mobile:'9822222233',createdAt:'2026-01-01'});
    s.students.push({id:id+'-sahil-student',name:'Sahil Malhotra',mobile:'9812345678',createdAt:'2026-01-01'});
+   // All master types, including a single-letter Student name, must be discoverable.
+   s.students.push({id:id+'-one-letter',name:'A',mobile:'9800000001',createdAt:'2026-01-01'});
+   s.attendeeMaster.push({id:id+'-master-lookup',name:'Attendee Master Lookup QA',mobile:'9800000002',category:'outside'});
+   s.vips=s.vips||[];s.vips.push({id:id+'-vip-lookup',name:'VIP Lookup QA',mobile:'9800000003'});
+   s.acharyas=s.acharyas||[];s.acharyas.push({id:id+'-acharya-lookup',name:'Acharya Lookup QA',mobile:'9800000004'});
    s.activeEventId=id+'-event';localStorage.setItem(key,JSON.stringify(s));
    return {family:s.familyGroups.at(-1).members.map(x=>({name:x.name,personal:x.mobile}))};
   });
@@ -97,6 +102,34 @@ async function main(){
     'Sahil appears more than once in Event search: '+JSON.stringify(studentSearch));
   assert.ok(studentSearch.hasStudentLink,
     'Sahil existing student history is not linked to event registration');
+
+  const masterSearch=await run(function(){
+   const input=document.getElementById('v36AttendeeSearch');
+   const button=document.getElementById('v36FindAttendee');
+   const queries=[
+     ['student','A','9800000001','A'],
+     ['attendee','Attendee Master Lookup QA','9800000002','Attendee Master Lookup QA'],
+     ['kriyaban','Kriya Search QA','9822222202','Kriya Search QA'],
+     ['volunteer','Ankit Kohli','9876543210','Ankit Kohli'],
+     ['vip','VIP Lookup QA','9800000003','VIP Lookup QA'],
+     ['acharya','Acharya Lookup QA','9800000004','Acharya Lookup QA']
+   ],results=[];
+   for(const [kind,name,mobile,expected] of queries){
+     for(const [mode,query] of [['name',name],['mobile',mobile]]){
+       input.value=query;input.dispatchEvent(new Event('input',{bubbles:true}));
+       if(mode==='mobile')button.click();
+       const host=document.getElementById('v580OtherRecords');
+       const match=[...(host?.querySelectorAll('.v580-search-row')||[])].some(row=>{
+         const title=row.querySelector('strong')?.textContent?.trim();
+         return title===expected;
+       });
+       results.push({kind,mode,query,match});
+     }
+   }
+   return results;
+  });
+  assert.ok(masterSearch.every(row=>row.match),
+    'One or more permanent masters not found by name/mobile: '+JSON.stringify(masterSearch));
 
   const duplicate=await run(function(){
    document.getElementById('v36NewRegistration').click();
