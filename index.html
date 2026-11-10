@@ -10395,8 +10395,30 @@ function p2v58BindPhoneListener(){
       });
       (state.vips||[]).forEach(p=>add('vip',p.id,p.name,p.mobile,'VIP Master'));
       (state.acharyas||[]).forEach(p=>add('acharya',p.id,p.name,p.mobile,'Acharya Master'));
+      // Beta 5.81.1: match the same person across event and permanent records.
+      // Never join two different people merely because they share a household number.
+      const eventRows=v36RowsForDate($('workingDate').value);
+      const matchesEvent=(item,row)=>{
+        if(N(item.name)!==N(row.name))return false;
+        const personal=P(row.personalMobile),their=P(item.phone);
+        if(item.kind==='student'){
+          const student=(state.students||[]).find(p=>p.id===item.id);
+          if(student?.attendeeId&&student.attendeeId===row.id)return true;
+        }
+        if(item.kind==='master'&&row.kind==='attendee'&&row.record?.masterId===item.id)return true;
+        if(personal.length===10&&their.length===10&&personal===their)return true;
+        if(item.kind==='master'&&row.kind==='family'){
+          const master=(state.attendeeMaster||[]).find(p=>p.id===item.id);
+          if(master?.linkedVolunteerId&&master.linkedVolunteerId===row.family?.volunteerId&&
+            (!their||!personal||their===personal))return true;
+        }
+        return false;
+      };
+      // A matched registration stays in the event table. Its master/student
+      // identity is not repeated in a second search result.
+      const visible=records.filter(item=>!eventRows.some(row=>matchesEvent(item,row)));
       const grouped=new Map();
-      for(const item of records){
+      for(const item of visible){
         const key=item.phone.length===10?N(item.name)+'|'+item.phone:item.kind+'|'+item.id;
         if(!grouped.has(key))grouped.set(key,{name:item.name,phone:item.phone,items:[]});
         grouped.get(key).items.push(item);
@@ -10426,12 +10448,55 @@ function p2v58BindPhoneListener(){
       let host=el('v580OtherRecords');
       if(!host){
         host=document.createElement('div');host.id='v580OtherRecords';
-        (el('vNewVolunteerQuickResults')||table).insertAdjacentElement('afterend',host);
+        // Put student and permanent-record matches before the event table.
+        table.insertAdjacentElement('beforebegin',host);
       }
       const q=search.value.trim();
       if(!q){host.innerHTML='';host.style.display='none';return}
       const found=otherRecords(q);host.style.display='';
-      host.innerHTML=found.length?'<div class="card-sub" style="margin:10px 0 4px"><strong>Other existing records</strong></div>'+
+      // Keep one visible attendee row for each confirmed identity; never delete records.
+      const currentRows=v36RowsForDate($('workingDate').value);
+      const seen=new Map();
+      table.querySelectorAll('tbody tr').forEach(tr=>{
+        const button=tr.querySelector('.v36-att-delete');
+        if(!button)return;
+        const row=currentRows.find(r=>r.kind===button.dataset.kind&&r.id===button.dataset.id);
+        if(!row)return;
+        const phone=P(row.personalMobile);
+        const masterId=row.kind==='attendee'?row.record?.masterId:'';
+        const key=phone.length===10?N(row.name)+'|'+phone:
+          masterId?'master|'+masterId:'record|'+row.kind+'|'+row.id;
+        const previous=seen.get(key);
+        if(previous){
+          const prev=previous.row;
+          const preferRow=!!(row.checkins||[]).includes($('workingDate').value)&&
+            !(prev.checkins||[]).includes($('workingDate').value);
+          if(preferRow){previous.element.style.display='none';seen.set(key,{row,element:tr})}
+          else tr.style.display='none';
+        }else seen.set(key,{row,element:tr});
+      });
+      // Students already attending this event get one record plus a history link.
+      table.querySelectorAll('tbody tr').forEach(tr=>{
+        if(tr.style.display==='none')return;
+        const button=tr.querySelector('.v36-att-delete');
+        const row=button&&currentRows.find(r=>r.kind===button.dataset.kind&&r.id===button.dataset.id);
+        if(!row)return;
+        const student=(state.students||[]).find(p=>N(p.name)===N(row.name)&&
+          ((p.attendeeId&&p.attendeeId===row.id)||
+            (P(p.mobile).length===10&&P(row.personalMobile)===P(p.mobile))));
+        if(!student)return;
+        const sub=tr.querySelector('td:first-child .sub')||tr.querySelector('td:first-child');
+        if(!sub||sub.querySelector('.v5811-student-history'))return;
+        const link=document.createElement('button');link.type='button';
+        link.className='btn ghost small v5811-student-history';link.textContent='Student history';
+        link.onclick=()=>v51RequireAdmin(()=>p2OpenStudent(student.id),'view student history');
+        sub.appendChild(document.createTextNode(' · Student '));sub.appendChild(link);
+      });
+      if(found.length&&table.textContent.includes('No registration found.')){
+        const empty=table.querySelector('.empty');
+        if(empty)empty.firstChild.textContent='No event registration. Existing person found above. ';
+      }
+      host.innerHTML=found.length?'<div class="card-sub" style="margin:10px 0 4px"><strong>Matching students and other records</strong></div>'+
         found.map((p,i)=>'<div class="v580-search-row"><div><strong>'+esc(p.name)+'</strong><small>'+
           esc([...new Set(p.items.map(x=>x.detail))].join(' · ').slice(0,190))+
           '</small></div><button type="button" class="btn ghost small v580-view" data-index="'+i+'">View</button></div>').join(''):'';
