@@ -10,6 +10,6 @@
   assert.match(html,/p2v59OpenClassReports=function\(\)/,'Class Reports route not consolidated');
   assert(html.includes('v51RequireAdmin(()=>p2Csv(records().map(csvEntry)'), 'Full filtered-list export not protected and wired');
   const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-  assert.equal(pkg.version,'2.0.0-beta.5.81');
+  assert.equal(pkg.version,'2.0.0-beta.5.81.1');
   console.log('PASS 5.74 single Class Reports panel and byte-identical frozen sidebar');
 })();
