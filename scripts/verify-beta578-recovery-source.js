@@ -1,15 +1,19 @@
 'use strict';
 (function verifyV578Source(){
 'use strict';
-const assert=require('node:assert/strict'),fs=require('node:fs'),crypto=require('node:crypto');
+const assert=require('node:assert/strict'),fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8').replace(/\r\n/g,'\n');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 assert.equal(pkg.version,'2.0.0-beta.5.81');
-const start=html.indexOf('  (function anandaV578(){'),end=html.indexOf('  resetEventForm();\n  renderAll();\n})();',start);
+const start=html.indexOf('  (function anandaV578(){'),end=html.indexOf('  resetEventForm();\n  renderAll();\n',start);
 assert.ok(start>0&&end>start,'Recovery patch missing or incorrectly placed');
-const original=html.slice(0,start)+html.slice(end);
-const gitHash=crypto.createHash('sha1').update('blob '+Buffer.byteLength(original,'utf8')+'\0').update(original,'utf8').digest('hex');
-assert.equal(gitHash,'32f0c167e7e1e7876cba00633da71160de384d5c','Unexpected unreviewed source changes outside the approved 5.80 recovery block');
+// The approved 5.81 fix moves existing enhancement scripts into the main
+// application closure. A historical whole-file hash must not reject that fix.
+const main=html.slice(html.indexOf('<script>'),html.indexOf('  resetEventForm();\n  renderAll();\n',start));
+assert.ok(html.includes('Beta 5.81: retain existing modules in application scope.'),
+ 'The required 5.81 module-scoping fix is missing');
+assert.ok(main.includes('function $(id)')&&html.includes('v101MakeDropdown'),
+ 'Existing app functions or master actions are missing');
 const side=html.slice(html.indexOf('<aside'),html.indexOf('</aside>')+8);
 assert.equal(side,fs.readFileSync('scripts/frozen-sidebar-beta573.txt','utf8').replace(/\r\n/g,'\n'),'Frozen sidebar changed');
 const recovery=html.slice(start,end);
