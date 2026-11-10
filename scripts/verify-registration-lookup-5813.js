@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8'),pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pkg.version,'2.0.0-beta.5.81.3');
+assert.equal(pkg.version,'2.0.0-beta.5.81.4');
 for(const x of [
  'function v5813PersonMatches(raw)',
  "(state.students||[]).forEach(p=>add('Student'",
