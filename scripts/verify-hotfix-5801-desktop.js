@@ -42,6 +42,8 @@ async function main(){
     {id:id+'-rahul-master',name:'Rahul Malhotra',category:'family',linkedVolunteerId:id+'-vol',mobile:'9876543210',personalMobile:''}
    );
    s.kriyabans.push({id:id+'-kriyaban',name:'Kriya Search QA',mobile:'9822222202',kriyaDate:'2025-04-01'});
+   s.students.push({id:id+'-student',name:'Bina Student Search QA',mobile:'9822222233',createdAt:'2026-01-01'});
+   s.students.push({id:id+'-sahil-student',name:'Sahil Malhotra',mobile:'9812345678',createdAt:'2026-01-01'});
    s.activeEventId=id+'-event';localStorage.setItem(key,JSON.stringify(s));
    return {family:s.familyGroups.at(-1).members.map(x=>({name:x.name,personal:x.mobile}))};
   });
@@ -72,6 +74,30 @@ async function main(){
   });
   assert.ok(family.found,'Family member missing from check-in search');
   assert.equal(family.sharedShownAsPersonal,false,'Family contact incorrectly printed as member own phone');
+  // The Event search must show a student who is not registered for this event.
+  const studentSearch=await run(function(){
+   const input=document.getElementById('v36AttendeeSearch');
+   const checks=[];
+   for(const query of ['Bina Student Search QA','9822222233']){
+    input.value=query;input.dispatchEvent(new Event('input',{bubbles:true}));
+    const host=document.getElementById('v580OtherRecords'),table=document.getElementById('v36AttendeeTable');
+    checks.push({query,found:host?.textContent.includes('Bina Student Search QA'),
+      view:!!host?.querySelector('button.v580-view'),
+      above:!!(host&&table&&(host.compareDocumentPosition(table)&Node.DOCUMENT_POSITION_FOLLOWING))});
+   }
+   input.value='Sahil Malhotra';input.dispatchEvent(new Event('input',{bubbles:true}));
+   const eventTable=document.getElementById('v36AttendeeTable');
+   const eventRows=[...eventTable.querySelectorAll('tbody tr')].filter(tr=>tr.style.display!=='none'&&tr.textContent.includes('Sahil Malhotra'));
+   const other=[...document.querySelectorAll('#v580OtherRecords .v580-search-row')].filter(row=>row.textContent.includes('Sahil Malhotra'));
+   return{checks,eventCount:eventRows.length,otherCount:other.length,hasStudentLink:!!eventRows[0]?.querySelector('.v5811-student-history')};
+  });
+  assert.ok(studentSearch.checks.every(c=>c.found&&c.view&&c.above),
+    'Student name/mobile missing from visible Event search: '+JSON.stringify(studentSearch));
+  assert.equal(studentSearch.eventCount+studentSearch.otherCount,1,
+    'Sahil appears more than once in Event search: '+JSON.stringify(studentSearch));
+  assert.ok(studentSearch.hasStudentLink,
+    'Sahil existing student history is not linked to event registration');
+
   const duplicate=await run(function(){
    document.getElementById('v36NewRegistration').click();
    const name=document.getElementById('v36MainName'),mobile=document.getElementById('v36MainMobile');
