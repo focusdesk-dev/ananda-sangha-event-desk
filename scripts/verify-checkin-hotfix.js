@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8');
+const status=html.split('  function v5813Status(person){')[1]?.split('  function v5813Select(person){')[0]||'';
+assert.ok(status,'Missing existing registration match handler');
+const matched=status.split('    if(row){')[1]?.split('    let host=')[0]||'';
+assert.ok(matched.includes("window.ananda580ShowDuplicate?.(row,person.name)"),'Match must use the existing red warning');
+assert.ok(!matched.includes("createElement('div')"),'Duplicate second warning must not be created');
+assert.ok(!matched.includes("is-registered"),'Duplicate second red warning still rendered');
+assert.ok(html.includes("function v36SetAttendeeCheckin(row,checked){if(!row)return"),'Original one-click check-in must remain');
+assert.ok(html.includes("const kriyaban=checked&&v46KriyabanForAttendee(row);save();toast("),'Check-in must save then show Kriyaban recognition via toast');
+assert.ok(!html.includes("prompt('Optional: enter a relationship or name"),'Check-in still blocks on optional naming prompt');
+assert.ok(html.includes("row.querySelectorAll('.v75-add-kriyaban').forEach(flag=>flag.remove())"),'Kriyaban status must appear once beside name');
+assert.ok(html.includes("type:master?.category==='family'?'Volunteer family':a.referenceVolunteerId?'Friend / referred':'Outside / general'"),'Preserve original event registration categories');
+assert.ok(html.includes("v36SetAttendeeCheckin(findRow(b.dataset.kind,b.dataset.id),false)"),'Undo must remain');
+console.log('PASS: one duplicate warning, one-click attendee/volunteer Kriyaban greeting, no modal, preserved registration and undo');

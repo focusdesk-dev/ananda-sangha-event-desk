@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.81.4 Setup
+name: Build Ananda Event Desk beta 5.81.4 Check-in Hotfix Setup
 on:
   workflow_dispatch:
   push:
-    branches: [fix-5-81-4-search-display-only]
+    branches: [fix-5-81-4-checkin-single-warning]
 permissions:
   contents: write
   actions: read
@@ -59,6 +59,7 @@ jobs:
       - run: npm run test:master-search
       - run: npm run test:registration-lookup
       - run: npm run test:search-display
+      - run: node scripts/verify-checkin-hotfix.js
       - run: npm run test:hotfix5801
       - run: npm run test:attendance
       - run: npm run test:ai
@@ -225,20 +226,20 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Ananda-beta-5.81.4-verification-evidence
+          name: Ananda-beta-5.81.4-checkin-hotfix-verification-evidence
           path: verification/
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.81.4-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.81.4-checkin-hotfix-Setup
           path: dist/*.exe
           if-no-files-found: error
 
       - name: Publish single-file installer to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ananda-beta-5.81.4
-          name: Ananda Sangha Event Desk Beta 5.81.4
+          tag_name: ananda-beta-5.81.4-checkin-hotfix
+          name: Ananda Sangha Event Desk Beta 5.81.4 Check-in Hotfix
           prerelease: true
           files: dist/*.exe
           body: "Windows installer, successful packaged Windows UI and NSIS upgrade checks. Installer is unsigned; Smart App Control may block it."
