@@ -10434,12 +10434,9 @@ function p2v58BindPhoneListener(){
       const priority=['student','kriyaban','volunteer','master','historical-attendee','historical-family','vip','acharya'];
       const r=result.items.slice().sort((a,b)=>priority.indexOf(a.kind)-priority.indexOf(b.kind))[0];
       if(['student','kriyaban','volunteer','master','vip','acharya'].includes(r.kind)){
-        const action=r.kind==='student'?()=>p2OpenStudent(r.id):
-          r.kind==='kriyaban'?()=>v46OpenKriyaban(r.id):
-          r.kind==='volunteer'?()=>openVolunteer(r.id):
-          r.kind==='master'?()=>openAttendeeMaster(r.id):
-          r.kind==='vip'?()=>v47OpenVip(r.id):()=>p2OpenAcharya(r.id);
-        v51RequireAdmin(action,'open existing person');
+        // Event desk action registers an existing person; it never opens an
+        // unrelated Edit Student or other master-management modal.
+        v5813StartFromMasterRecord(r);
         return;
       }
       if(!r.eventId)return;
@@ -10504,7 +10501,7 @@ function p2v58BindPhoneListener(){
       host.innerHTML=found.length?'<div class="card-sub" style="margin:10px 0 4px"><strong>Matching students and other records</strong></div>'+
         found.map((p,i)=>'<div class="v580-search-row"><div><strong>'+esc(p.name)+'</strong><small>'+
           esc([...new Set(p.items.map(x=>x.detail))].join(' · ').slice(0,190))+
-          '</small></div><button type="button" class="btn ghost small v580-view" data-index="'+i+'">View</button></div>').join(''):'';
+          '</small></div><button type="button" class="btn ghost small v580-view" data-index="'+i+'">Register</button></div>').join(''):'';
       host.querySelectorAll('.v580-view').forEach(button=>button.onclick=()=>openRecord(found[Number(button.dataset.index)]));
     }
     const before=v36RenderAttendees;
@@ -10522,6 +10519,190 @@ function p2v58BindPhoneListener(){
       '#v80MobileDuplicate button{margin-top:5px}';
     document.head.appendChild(style);
   })();
+
+  // Beta 5.81.3 — Single registration lookup across permanent records.
+  // Match an existing person before creating an EVENT registration; never change
+  // student, class, Kriyaban, volunteer or family history merely to search.
+  let v5813Selected=null;
+  let v5813Results=[];
+  function v5813Phone(v){return normMobile(v||'')}
+  function v5813PersonMatches(raw){
+    const query=normName(String(raw||'').replace(/[+\d()[\].,\-]/g,' '));
+    const digits=v5813Phone(raw);
+    if(!query&&!digits)return[];
+    const candidates=[];
+    const add=(kind,person,name,mobile,contact='',volunteerId='',familyId='')=>{
+      if(!person||!name)return;
+      const n=normName(name),p=v5813Phone(mobile),c=v5813Phone(contact);
+      if(query&&!n.includes(query))return;
+      if(digits&&digits.length>=3&&!p.includes(digits)&&!c.includes(digits))return;
+      if(digits&&digits.length<3&&!query)return;
+      candidates.push({kind,id:person.id,name,mobile:p,contact:c,volunteerId,familyId});
+    };
+    (state.students||[]).forEach(p=>add('Student',p,p.name,p.mobile));
+    (state.volunteers||[]).forEach(p=>add('Volunteer',p,volName(p),p.mobile));
+    (state.kriyabans||[]).forEach(p=>add('Kriyaban',p,p.name,p.mobile));
+    (state.attendeeMaster||[]).forEach(p=>add('Attendee Master',p,p.name,
+      p.personalMobile||(p.category==='family'?'':p.mobile),
+      p.familyContactMobile||(p.category==='family'?p.mobile:''),p.linkedVolunteerId||''));
+    (state.vips||[]).forEach(p=>add('VIP',p,p.name,p.mobile));
+    (state.acharyas||[]).forEach(p=>add('Acharya',p,p.name,p.mobile));
+    (state.familyGroups||[]).filter(g=>g.eventId===state.activeEventId).forEach(g=>{
+      const vol=(state.volunteers||[]).find(v=>v.id===g.volunteerId);
+      (g.members||[]).filter(m=>m.name).forEach(m=>add('Family',m,m.name,m.mobile,
+        g.mobile||vol?.mobile||'',g.volunteerId||'',g.id));
+    });
+    const order=['Student','Family','Attendee Master','Kriyaban','Volunteer','VIP','Acharya'];
+    const unique=new Map();
+    for(const p of candidates){
+      // Same name and personal mobile is the same display match; no DB merge.
+      // A family without a personal phone uses its volunteer/group relationship,
+      // never the shared contact phone as an individual identity.
+      const key=p.mobile.length===10?normName(p.name)+'|'+p.mobile:
+        p.volunteerId?normName(p.name)+'|family|'+p.volunteerId:
+        p.familyId?normName(p.name)+'|group|'+p.familyId:
+        p.kind+'|'+p.id;
+      const prior=unique.get(key);
+      if(!prior||order.indexOf(p.kind)<order.indexOf(prior.kind))unique.set(key,p);
+    }
+    return [...unique.values()].sort((a,b)=>{
+      const score=p=>normName(p.name)===query?0:normName(p.name).startsWith(query)?1:2;
+      return score(a)-score(b)||a.name.localeCompare(b.name,undefined,{sensitivity:'base'});
+    }).slice(0,15);
+  }
+  function v5813RegistrationRow(person){
+    const name=normName(person.name),mobile=v5813Phone(person.mobile);
+    return v36AllAttendeeRows().find(row=>{
+      if(normName(row.record?.name||'')!==name)return false;
+      if(person.kind==='Student'){
+        const student=(state.students||[]).find(x=>x.id===person.id);
+        if(student?.attendeeId&&row.kind==='attendee'&&student.attendeeId===row.id)return true;
+      }
+      if(person.kind==='Attendee Master'&&row.kind==='attendee'&&row.record?.masterId===person.id)return true;
+      if(person.kind==='Family'&&row.kind==='family'&&row.id===person.id)return true;
+      if(person.familyId&&row.kind==='family'&&row.groupId===person.familyId)return true;
+      const their=v5813Phone(row.personalMobile||(row.kind==='attendee'?row.mobile:''));
+      if(mobile.length===10&&their.length===10&&mobile===their)return true;
+      // Historical family contact is not a personal number. Only use its
+      // confirmed linked family and matching name if the personal number is absent.
+      return !!(person.volunteerId&&row.kind==='family'&&row.family?.volunteerId===person.volunteerId
+        &&(!mobile||!their));
+    });
+  }
+  function v5813Status(person){
+    let host=$('v5813RegistrationStatus');
+    if(!host){
+      host=document.createElement('div');host.id='v5813RegistrationStatus';
+      $('v36MainRegistrationFields').insertAdjacentElement('afterend',host);
+    }
+    const row=v5813RegistrationRow(person);
+    if(row){
+      host.className='v5813-status';
+      host.innerHTML='<strong>Already Registered</strong><span>'+esc(person.name)+
+        (row.kind==='family'?' · '+esc(row.group):' · This event')+'</span>'+
+        '<button type="button" class="btn secondary small" id="v5813OpenExisting">Open registration</button>';
+      $('v5813OpenExisting').onclick=()=>v36OpenRegistration(
+        row.kind==='family'?'family|'+row.groupId:'attendee|'+row.id);
+    }else{
+      host.className='v5813-status';
+      host.innerHTML='<strong>Existing '+esc(person.kind)+' selected</strong><span>'+
+        (person.mobile?'Mobile confirmed · ':'Enter personal mobile if missing · ')+
+        'Register or check in below.</span>';
+    }
+    return row;
+  }
+  function v5813Select(person){
+    if(!person)return;
+    v5813Selected={...person};
+    $('v36MainName').value=person.name;
+    $('v36MainMobile').value=person.mobile||'';
+    $('v86AttendeeSuggestions')?.classList.add('hidden');
+    // Trigger existing Kriya/mobile checks rather than bypassing them.
+    $('v36MainName').dispatchEvent(new Event('input',{bubbles:true}));
+    $('v36MainMobile').dispatchEvent(new Event('input',{bubbles:true}));
+    $('v86AttendeeSuggestions')?.classList.add('hidden');
+    v5813Status(person);
+  }
+  v86RefreshMasterSuggestions=function(source){
+    const box=$('v86AttendeeSuggestions');
+    if(!box)return;
+    v5813Selected=null;
+    $('v5813RegistrationStatus')?.remove();
+    v5813Results=v5813PersonMatches(source?.value||'');
+    box.innerHTML=v5813Results.map((p,i)=>{
+      const row=v5813RegistrationRow(p);
+      return '<button type="button" class="v86-master-suggestion'+(i===0?' active':'')+
+        '" data-index="'+i+'"><strong>'+esc(p.name)+'</strong><span>'+
+        esc(row?'Already registered'+(row.kind==='family'?' · '+row.group:''):
+          p.kind+(p.mobile?' · '+p.mobile:p.contact?' · Family contact':' · No personal mobile'))+
+        '</span></button>';
+    }).join('');
+    box.dataset.activeIndex=v5813Results.length?'0':'-1';
+    box.classList.toggle('hidden',!v5813Results.length);
+    box.querySelectorAll('.v86-master-suggestion').forEach(button=>{
+      button.onmousedown=event=>event.preventDefault();
+      button.onclick=()=>v5813Select(v5813Results[Number(button.dataset.index)]);
+    });
+  };
+  // Existing Enter handler only understands Attendee Master. Capture Enter
+  // first so Students, Kriyabans, VIPs and family members can also be selected.
+  ['v36MainName','v36MainMobile'].forEach(id=>{
+    $(id)?.addEventListener('keydown',event=>{
+      const box=$('v86AttendeeSuggestions');
+      if(event.key!=='Enter'||!box||box.classList.contains('hidden')||!v5813Results.length)return;
+      event.preventDefault();event.stopImmediatePropagation();
+      v5813Select(v5813Results[Number(box.dataset.activeIndex||0)]||v5813Results[0]);
+    },true);
+  });
+  document.addEventListener('submit',event=>{
+    if(event.target?.id!=='v36RegistrationForm'||!v5813Selected)return;
+    const existing=v5813RegistrationRow(v5813Selected);
+    if(existing){
+      event.preventDefault();event.stopImmediatePropagation();
+      v5813Status(v5813Selected);
+      return;
+    }
+    const selected={...v5813Selected},knownIds=new Set(
+      (state.attendees||[]).filter(a=>a.eventId===state.activeEventId).map(a=>a.id));
+    const eventId=state.activeEventId;
+    // Reuse the exact original master/student ID after the ordinary validated
+    // save. An invalid form does not produce a new registration or link.
+    setTimeout(()=>{
+      const record=(state.attendees||[]).find(a=>a.eventId===eventId&&!knownIds.has(a.id)
+        &&normName(a.name)===normName(selected.name)
+        &&v5813Phone(a.mobile)===v5813Phone($('v36MainMobile').value));
+      if(!record)return;
+      if(selected.kind==='Student'){
+        const student=(state.students||[]).find(p=>p.id===selected.id);
+        if(student)student.attendeeId=record.id;
+      }
+      if(selected.kind==='Attendee Master'){
+        record.masterId=selected.id;
+        const matches=(state.attendeeMaster||[]).filter(p=>p.id!==selected.id&&
+          normName(p.name)===normName(record.name)&&
+          v5813Phone(p.mobile)===v5813Phone(record.mobile));
+        // Do not delete or merge existing master records here.
+        if(matches.length)record.needsReview=true;
+      }
+      localStorage.setItem(KEY,JSON.stringify(state));
+      v5813Selected=null;
+    },0);
+  },true);
+  // Replace "View" -> edit master with "Register" -> reuse for this event.
+  function v5813StartFromMasterRecord(r){
+    if(!r)return;
+    const match=v5813PersonMatches(r.name).find(p=>p.id===r.id)||
+      {id:r.id,name:r.name,mobile:r.phone||'',kind:r.kind};
+    v36OpenRegistration();
+    v5813Select(match);
+  }
+  document.head.insertAdjacentHTML('beforeend','<style>'+
+    '#v86AttendeeSuggestions{max-height:250px;overflow:auto}'+
+    '#v5813RegistrationStatus.v5813-status{margin:8px 0 10px;padding:9px 12px;border:1px solid #dce6ef;border-radius:8px;background:#f8fbff;display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12px}'+
+    '#v5813RegistrationStatus strong{color:#163f71}'+
+    '#v5813RegistrationStatus span{color:#526a80}'+
+    '</style>');
+
   decorateLanding();
 })();
   resetEventForm();
