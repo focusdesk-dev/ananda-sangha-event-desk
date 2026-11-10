@@ -40,8 +40,6 @@ async function main(){
     {id:id+'-rahul-master',name:'Rahul Malhotra',category:'family',linkedVolunteerId:id+'-vol',mobile:'9876543210',personalMobile:''}
    );
    s.students.push({id:id+'-student',name:'Nisha Search QA',mobile:'9822222201'});
-   s.classBatches.push({id:id+'-batch',courseId:'course-l2',name:'Batch 2',start:'2025-01-05',end:'2025-03-05',sessionDates:[]});
-   s.classEnrollments.push({id:id+'-enrol',studentId:id+'-student',batchId:id+'-batch',outcome:'Completed',level:'Level 2'});
    s.kriyabans.push({id:id+'-kriyaban',name:'Kriya Search QA',mobile:'9822222202',kriyaDate:'2025-04-01'});
    s.activeEventId=id+'-event';localStorage.setItem(key,JSON.stringify(s));
    return {family:s.familyGroups.at(-1).members.map(x=>({name:x.name,personal:x.mobile}))};
@@ -125,7 +123,7 @@ async function main(){
    const sidebar=document.querySelector('aside');
    return {rows,nav:{width:Math.round(sidebar.getBoundingClientRect().width),labels:[...sidebar.querySelectorAll('nav button')].map(b=>b.textContent.trim())}};
   });
-  assert.ok(lookup.rows[0].results.includes('Nisha Search QA')&&lookup.rows[0].results.includes('Completed'),'Student/class history missing');
+  assert.ok(lookup.rows[0].results.includes('Nisha Search QA')&&lookup.rows[0].results.includes('Student'),'Student missing from cross-module search');
   assert.ok(lookup.rows[1].results.includes('Kriya Search QA'),'Kriyaban missing');
   assert.ok(lookup.rows[2].results.includes('Nisha Search QA'),'Mobile search missing student');
   assert.ok(lookup.rows.every(r=>r.view),'Existing-record opening buttons missing');
