@@ -4,7 +4,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),crypto=require('node:crypto');
 const html=fs.readFileSync('index.html','utf8').replace(/\r\n/g,'\n');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pkg.version,'2.0.0-beta.5.80.1');
+assert.equal(pkg.version,'2.0.0-beta.5.81');
 const start=html.indexOf('  (function anandaV578(){'),end=html.indexOf('  resetEventForm();\n  renderAll();\n})();',start);
 assert.ok(start>0&&end>start,'Recovery patch missing or incorrectly placed');
 const original=html.slice(0,start)+html.slice(end);
