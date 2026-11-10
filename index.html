@@ -10500,7 +10500,7 @@ function p2v58BindPhoneListener(){
       }
       host.innerHTML=found.length?'<div class="card-sub" style="margin:10px 0 4px"><strong>Matching students and other records</strong></div>'+
         found.map((p,i)=>'<div class="v580-search-row"><div><strong>'+esc(p.name)+'</strong><small>'+
-          esc([...new Set(p.items.map(x=>x.detail))].join(' · ').slice(0,190))+
+          esc(p.phone||p.items.find(x=>x.contact)?.contact||'—')+
           '</small></div><button type="button" class="btn ghost small v580-view" data-index="'+i+'">Register</button></div>').join(''):'';
       host.querySelectorAll('.v580-view').forEach(button=>button.onclick=()=>openRecord(found[Number(button.dataset.index)]));
     }
@@ -10599,7 +10599,7 @@ function p2v58BindPhoneListener(){
     }
     const row=v5813RegistrationRow(person);
     if(row){
-      host.className='v5813-status';
+      host.className='v5813-status is-registered';
       host.innerHTML='<strong>Already Registered</strong><span>'+esc(person.name)+
         (row.kind==='family'?' · '+esc(row.group):' · This event')+'</span>'+
         '<button type="button" class="btn secondary small" id="v5813OpenExisting">Open registration</button>';
@@ -10637,8 +10637,7 @@ function p2v58BindPhoneListener(){
       const row=v5813RegistrationRow(p);
       return '<button type="button" class="v86-master-suggestion'+(i===0?' active':'')+
         '" data-index="'+i+'"><strong>'+esc(p.name)+'</strong><span>'+
-        esc(row?'Already registered'+(row.kind==='family'?' · '+row.group:''):
-          p.kind+(p.mobile?' · '+p.mobile:p.contact?' · Family contact':' · No personal mobile'))+
+        esc(p.mobile||p.contact||'—')+
         '</span></button>';
     }).join('');
     box.dataset.activeIndex=v5813Results.length?'0':'-1';
@@ -10705,6 +10704,10 @@ function p2v58BindPhoneListener(){
     '#v5813RegistrationStatus.v5813-status{margin:8px 0 10px;padding:9px 12px;border:1px solid #dce6ef;border-radius:8px;background:#f8fbff;display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12px}'+
     '#v5813RegistrationStatus strong{color:#163f71}'+
     '#v5813RegistrationStatus span{color:#526a80}'+
+    '#v5813RegistrationStatus.is-registered{background:#fff2f0;border-color:#e8b2aa}'+
+    '#v5813RegistrationStatus.is-registered strong{color:#9b2e26}'+
+    '#v5813RegistrationStatus.is-registered span{color:#813d36}'+
+    '#v5813RegistrationStatus.is-registered button{color:#9b2e26;border-color:#d9a5a0;background:#fff}'+
     '</style>');
 
   decorateLanding();
