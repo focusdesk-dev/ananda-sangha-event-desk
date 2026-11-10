@@ -29,7 +29,7 @@ async function main(){
    for(const section of ['events','volunteers','familyGroups','attendeeMaster','attendees','students','kriyabans','classBatches','classEnrollments'])
     s[section]=(s[section]||[]).filter(x=>!String(x.id).startsWith(id));
    // Isolate this registration test from older class fixtures (restored in finally).
-   s.classBatches=[];s.classEnrollments=[];s.courseTypes=[];
+   s.classBatches=[];s.classEnrollments=[];s.courseTypes=[];s.students=[];
    s.events.push({id:id+'-event',name:'Hotfix 5801 Test Event',dates:['2026-12-08'],start:'2026-12-08',end:'2026-12-08',venue:'Test Centre'});
    s.volunteers.push({id:id+'-vol',firstName:'Ankit',lastName:'Kohli',mobile:'9876543210',birthday:'1986-08-25'});
    s.familyGroups.push({id:id+'-family',eventId:id+'-event',type:'volunteer-family',volunteerId:id+'-vol',mobile:'9876543210',registrationDate:'2026-12-08',members:[
