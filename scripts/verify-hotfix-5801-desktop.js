@@ -155,7 +155,7 @@ async function main(){
     const row=data.attendees.find(a=>a.eventId===data.activeEventId&&a.name==='A'&&a.mobile==='9800000001');
     return{after:data.attendees.length,rowId:row?.id,studentLink:data.students.find(p=>p.id==='qa5801-one-letter')?.attendeeId};
   });
-  assert.equal(registrationLookup.labels[0]?.startsWith('AStudent'),true,
+  assert.equal(registrationLookup.labels[0]?.startsWith('A9800000001'),true,
     'Single-letter student not the first New Registration suggestion: '+JSON.stringify(registrationLookup));
   assert.equal(registrationLookup.selected.name,'A');
   assert.equal(registrationLookup.selected.mobile,'9800000001');
