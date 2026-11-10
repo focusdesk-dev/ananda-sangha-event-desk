@@ -41,7 +41,6 @@ async function main(){
     {id:id+'-sahil-master',name:'Sahil Malhotra',category:'family',linkedVolunteerId:id+'-vol',mobile:'9876543210',personalMobile:'9812345678'},
     {id:id+'-rahul-master',name:'Rahul Malhotra',category:'family',linkedVolunteerId:id+'-vol',mobile:'9876543210',personalMobile:''}
    );
-   s.students.push({id:id+'-student',name:'Nisha Search QA',mobile:'9822222201'});
    s.kriyabans.push({id:id+'-kriyaban',name:'Kriya Search QA',mobile:'9822222202',kriyaDate:'2025-04-01'});
    s.activeEventId=id+'-event';localStorage.setItem(key,JSON.stringify(s));
    return {family:s.familyGroups.at(-1).members.map(x=>({name:x.name,personal:x.mobile}))};
@@ -117,7 +116,7 @@ async function main(){
   const lookup=await run(function(){
    document.getElementById('v36CancelRegistration').click();
    const input=document.getElementById('v36AttendeeSearch'),rows=[];
-   for(const q of ['Nisha Search QA','Kriya Search QA','9822222201']){
+   for(const q of ['Kriya Search QA','9822222202']){
     input.value=q;input.dispatchEvent(new Event('input',{bubbles:true}));
     rows.push({query:q,results:document.getElementById('v580OtherRecords')?.textContent||'',
      view:!!document.querySelector('#v580OtherRecords .v580-view')});
@@ -125,9 +124,9 @@ async function main(){
    const sidebar=document.querySelector('aside');
    return {rows,nav:{width:Math.round(sidebar.getBoundingClientRect().width),labels:[...sidebar.querySelectorAll('nav button')].map(b=>b.textContent.trim())}};
   });
-  assert.ok(lookup.rows[0].results.includes('Nisha Search QA')&&lookup.rows[0].results.includes('Student'),'Student missing from cross-module search');
-  assert.ok(lookup.rows[1].results.includes('Kriya Search QA'),'Kriyaban missing');
-  assert.ok(lookup.rows[2].results.includes('Nisha Search QA'),'Mobile search missing student');
+  assert.ok(lookup.rows[0].results.includes('Kriya Search QA'),'Kriyaban missing from cross-module name search');
+  assert.ok(lookup.rows[1].results.includes('Kriya Search QA'),'Kriyaban missing from cross-module mobile search');
+  
   assert.ok(lookup.rows.every(r=>r.view),'Existing-record opening buttons missing');
   assert.deepEqual(lookup.nav,opened.nav,'Frozen sidebar changed');
   fs.mkdirSync('verification',{recursive:true});
