@@ -2314,7 +2314,9 @@ body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important
         if(member.relationship&&master.relationship!==member.relationship){master.relationship=member.relationship;changed=true}
       });
     });
-    if(changed)save();
+    // Backfill runs during startup, before course report state is initialized.
+    // Persist without invoking renderAll() until initialization is finished.
+    if(changed)localStorage.setItem(KEY,JSON.stringify(state));
   }
   v88BackfillFamilyMasters();
 
