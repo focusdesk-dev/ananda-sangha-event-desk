@@ -131,6 +131,41 @@ async function main(){
   assert.ok(masterSearch.every(row=>row.match),
     'One or more permanent masters not found by name/mobile: '+JSON.stringify(masterSearch));
 
+
+  // New Registration must reuse a one-letter Student, not open Edit Student.
+  const registrationLookup=await run(function(){
+    document.getElementById('v36NewRegistration').click();
+    const input=document.getElementById('v36MainName');
+    input.value='A';input.dispatchEvent(new Event('input',{bubbles:true}));
+    const box=document.getElementById('v86AttendeeSuggestions');
+    const entries=[...(box?.querySelectorAll('.v86-master-suggestion')||[])];
+    const before=JSON.parse(localStorage.getItem('annualEventRegistration.v1')).attendees.length;
+    const first=entries[0],labels=entries.map(x=>x.textContent);
+    first?.click();
+    const selected={name:input.value,mobile:document.getElementById('v36MainMobile').value,
+      hasEditStudent:document.getElementById('p2StudentModal')?.classList.contains('open')||false,
+      modalOpen:document.getElementById('v36RegistrationModal')?.classList.contains('open')};
+    const button=document.querySelector('#v36RegistrationForm button[type="submit"][data-mode="register"]');
+    if(button)document.getElementById('v36RegistrationForm').requestSubmit(button);
+    return{before,labels,selected};
+  });
+  await sleep(140);
+  const afterRegistration=await run(function(){
+    const data=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
+    const row=data.attendees.find(a=>a.eventId===data.activeEventId&&a.name==='A'&&a.mobile==='9800000001');
+    return{after:data.attendees.length,rowId:row?.id,studentLink:data.students.find(p=>p.id==='qa5801-one-letter')?.attendeeId};
+  });
+  assert.equal(registrationLookup.labels[0]?.startsWith('AStudent'),true,
+    'Single-letter student not the first New Registration suggestion: '+JSON.stringify(registrationLookup));
+  assert.equal(registrationLookup.selected.name,'A');
+  assert.equal(registrationLookup.selected.mobile,'9800000001');
+  assert.equal(registrationLookup.selected.modalOpen,true);
+  assert.equal(registrationLookup.selected.hasEditStudent,false,'New Registration incorrectly opened Edit Student');
+  assert.equal(afterRegistration.after,registrationLookup.before+1,
+    'Selecting a student did not create exactly one event registration');
+  assert.equal(afterRegistration.studentLink,afterRegistration.rowId,
+    'New event registration is not linked to original Student ID');
+
   const duplicate=await run(function(){
    document.getElementById('v36NewRegistration').click();
    const name=document.getElementById('v36MainName'),mobile=document.getElementById('v36MainMobile');
