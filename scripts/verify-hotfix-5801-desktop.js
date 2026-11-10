@@ -13,7 +13,7 @@ async function main(){
  const ws=new WebSocket(page.webSocketDebuggerUrl);
  await new Promise((resolve,reject)=>{ws.addEventListener('open',resolve,{once:true});ws.addEventListener('error',reject,{once:true})});
  let seq=0;const pending=new Map();
- ws.addEventListener('message',e=>{const m=JSON.parse(String(e.data)),cb=pending.get(m.id);if(cb){pending.delete(m.id);cb(m)}});
+ ws.addEventListener('message',e=>{const m=JSON.parse(String(e.data)),cb=pending.get(m.id);if(m.method==='Runtime.exceptionThrown')console.log('HOTFIX RUNTIME ERROR',JSON.stringify(m.params?.exceptionDetails||{}).slice(0,2800));if(cb){pending.delete(m.id);cb(m)}});
  const call=(method,params={})=>new Promise((resolve,reject)=>{
   const id=++seq,t=setTimeout(()=>{pending.delete(id);reject(Error('CDP timeout '+method))},30000);
   pending.set(id,m=>{clearTimeout(t);if(m.error||m.result?.exceptionDetails)reject(Error(JSON.stringify(m.error||m.result.exceptionDetails)));else resolve(m.result)});
@@ -21,6 +21,7 @@ async function main(){
  });
  const js=async expression=>(await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true})).result.value;
  const run=fn=>js('('+fn.toString()+')()');
+ await call('Runtime.enable');
  const key='annualEventRegistration.v1',prior=await js('localStorage.getItem('+JSON.stringify(key)+')');
  try{
   const seed=await run(function(){
