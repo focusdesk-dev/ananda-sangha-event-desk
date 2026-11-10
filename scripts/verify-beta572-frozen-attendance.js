@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.ok(['2.0.0-beta.5.79','2.0.0-beta.5.81.3'].includes(pkg.version));
+assert.ok(['2.0.0-beta.5.79','2.0.0-beta.5.81.4'].includes(pkg.version));
 for(const id of ['p2v572AttendanceStyle','p2v58Roster','p2v58Course','p2v58Batch','p2v58Date','p2v58All','p2v58Clear','p2v58Confirm','p2v531Print','p2v530Status','p2v510AttendanceNotice']){
  assert(html.includes(id),'Missing approved attendance component or handler: '+id);
 }
