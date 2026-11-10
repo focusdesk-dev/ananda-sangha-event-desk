@@ -4,7 +4,7 @@ const html=fs.readFileSync('index.html','utf8');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
 assert.equal(pkg.version,'2.0.0-beta.5.81.4');
 for(const x of [
-  'Matching students and other records',
+  'Matching records',
   "const visible=records.filter(item=>!eventRows.some(row=>matchesEvent(item,row)))",
   "table.insertAdjacentElement('beforebegin',host)",
   'v5811-student-history',
