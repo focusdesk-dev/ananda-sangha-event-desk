@@ -61,6 +61,7 @@ async function main(){
     search:!!document.getElementById('v36AttendeeSearch'),
     nav:{width:Math.round(side.getBoundingClientRect().width),labels:[...side.querySelectorAll('nav button')].map(b=>b.textContent.trim())}};
   });
+  console.log('HOTFIX DIAGNOSTIC after reload',JSON.stringify(await run(function(){return {version:document.title,hasHotfix:typeof window.ananda580ShowDuplicate==='function',style:!!document.getElementById('v580NarrowSearchStyle'),recovery:!!document.getElementById('v578RecoveryOnlyStyle'),scriptCount:document.scripts.length,mainSource:document.scripts[document.scripts.length-1]?.textContent?.length,active:document.querySelector('.page.active')?.id,hasEvent:!!document.getElementById('v578EventSearch'),hasBox:!!document.getElementById('v80MobileDuplicate'),localEvent:JSON.parse(localStorage.getItem('annualEventRegistration.v1')||'{}').activeEventId}}))); 
   assert.ok(opened.checkin&&opened.search,'Original 5.80 check-in page failed to open: '+JSON.stringify(opened));
   const family=await run(function(){
    const input=document.getElementById('v36AttendeeSearch');input.value='Sahil Malhotra';
