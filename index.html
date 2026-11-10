@@ -10423,7 +10423,12 @@ function p2v58BindPhoneListener(){
         if(!grouped.has(key))grouped.set(key,{name:item.name,phone:item.phone,items:[]});
         grouped.get(key).items.push(item);
       }
-      return [...grouped.values()].sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base'})).slice(0,35);
+      // Exact single-letter names (A, B, C) are valid; show those first.
+      return [...grouped.values()].sort((a,b)=>{
+        const an=N(a.name),bn=N(b.name);
+        const score=name=>name===n?0:name.startsWith(n)?1:2;
+        return score(an)-score(bn)||a.name.localeCompare(b.name,undefined,{sensitivity:'base'});
+      }).slice(0,100);
     }
     function openRecord(result){
       const priority=['student','kriyaban','volunteer','master','historical-attendee','historical-family','vip','acharya'];
@@ -10504,6 +10509,12 @@ function p2v58BindPhoneListener(){
     }
     const before=v36RenderAttendees;
     v36RenderAttendees=function(){before.apply(this,arguments);paintOtherRecords()};
+    // The original search controls were bound before this cross-master wrapper
+    // existed. Rebind both actions to the FINAL renderer to include all masters.
+    // These assignments run after the entire 5.80/5.81 Event UI is initialized.
+    const searchInput=el('v36AttendeeSearch'),findButton=el('v36FindAttendee');
+    if(searchInput)searchInput.oninput=()=>v36RenderAttendees();
+    if(findButton)findButton.onclick=()=>v36RenderAttendees();
     const style=document.createElement('style');style.id='v580NarrowSearchStyle';
     style.textContent='#v580OtherRecords .v580-search-row{display:flex;justify-content:space-between;gap:12px;align-items:center;border-bottom:1px solid #e5ecf3;padding:9px 0;font-size:13px}'+
       '#v580OtherRecords .v580-search-row strong{display:block;color:#193a60}'+
