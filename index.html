@@ -10561,6 +10561,8 @@ function p2v58BindPhoneListener(){
       const key=p.mobile.length===10?normName(p.name)+'|'+p.mobile:
         p.volunteerId?normName(p.name)+'|family|'+p.volunteerId:
         p.familyId?normName(p.name)+'|group|'+p.familyId:
+        p.kind==='Attendee Master'&&p.contact.length===10?
+          normName(p.name)+'|familycontact|'+p.contact:
         p.kind+'|'+p.id;
       const prior=unique.get(key);
       if(!prior||order.indexOf(p.kind)<order.indexOf(prior.kind))unique.set(key,p);
@@ -10620,6 +10622,8 @@ function p2v58BindPhoneListener(){
     // Trigger existing Kriya/mobile checks rather than bypassing them.
     $('v36MainName').dispatchEvent(new Event('input',{bubbles:true}));
     $('v36MainMobile').dispatchEvent(new Event('input',{bubbles:true}));
+    // Re-rendered name/mobile inputs may clear tentative lookup state.
+    v5813Selected={...person};
     $('v86AttendeeSuggestions')?.classList.add('hidden');
     v5813Status(person);
   }
