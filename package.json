@@ -1,6 +1,6 @@
 {
   "name": "ananda-sangha-event-desk",
-  "version": "2.0.0-beta.5.81.2",
+  "version": "2.0.0-beta.5.81.3",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -30,7 +30,8 @@
     "test:four-fixes": "node scripts/verify-event-four-fixes.js",
     "test:hotfix5801": "node scripts/verify-hotfix-5801.js",
     "test:search-dedupe": "node scripts/verify-search-dedupe-5811.js",
-    "test:master-search": "node scripts/verify-master-search-5812.js"
+    "test:master-search": "node scripts/verify-master-search-5812.js",
+    "test:registration-lookup": "node scripts/verify-registration-lookup-5813.js"
   },
   "dependencies": {
     "qrcode": "^1.5.4",
