@@ -24,7 +24,7 @@ assert.ok(html.includes("const next=!Boolean(a[item+'Issued'])"),'Independent is
 assert.ok(html.includes("if(next)v116MarkCheckedIn(type,id)"),'Issue -> automatic check-in missing');
 assert.ok(html.includes("if(action==='return'&&a[item+'Issued'])"),'Receive state missing');
 assert.ok(!html.includes("v5817AttendeeType(name,mobile){\n    if(v5817VerifiedKriyaban(name,mobile))return'STUDENT'"),'Kriyaban cannot be shown as Student');
-const live=html.split('})();\\n</script>')[0];
+const live=html.slice(0,html.indexOf('  <!-- Version 96'));
 for(const needle of ['const v5817OriginalItemPeople=itemPeople','const v5817LiveBadgeBase=renderItems','itemControls=v72ItemControlsBefore','allEventAttendees().forEach(a=>']){
  assert.ok(live.includes(needle),'Live Badge & Scarf correction missing from active script: '+needle);
 }
