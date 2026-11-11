@@ -50,7 +50,7 @@ jobs:
         run: |
           $meta=Get-Content patch-hashes.json -Raw | ConvertFrom-Json
           $cs=[IO.File]::ReadAllText('scripts/AnandaCheckinPatch.cs').Replace('__BASE_SHA__',[string]$meta.baseSha256).Replace('__PATCH_SHA__',[string]$meta.patchSha256)
-          [IO.File]::WriteAllText((Join-Path $PWD 'distpatch/AnandaCheckinPatch.generated.cs'),$cs,[System.Text.Encoding]::UTF8)
+          [IO.File]::WriteAllText((Join-Path $PWD (Join-Path $PWD 'distpatch/AnandaCheckinPatch.generated.cs')),$cs,[System.Text.Encoding]::UTF8)
           node -e "const fs=require('fs'),z=require('zlib');fs.writeFileSync('distpatch/app.asar.gz',z.gzipSync(fs.readFileSync('distpatch/app.asar'),{level:9}))"
           if ($LASTEXITCODE -ne 0) { throw 'Compression failed' }
           $csc=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
