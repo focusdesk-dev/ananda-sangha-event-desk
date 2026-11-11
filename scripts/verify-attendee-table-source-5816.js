@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8'),pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pkg.version,'2.0.0-beta.5.81.7');
+assert.equal(pkg.version,'2.0.0-beta.5.81.8');
 const start=html.indexOf('function v5816CompactAttendeeTable()');
 assert.ok(start>0,'Missing attendee four-column decorator');
 const relevant=html.slice(start,html.indexOf('const v5816PreviousAttendees=',start));
