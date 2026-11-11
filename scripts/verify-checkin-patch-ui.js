@@ -55,6 +55,18 @@ async function main(){
     betaCheck:!!b?.querySelector('.v36-att-check'),counts:[document.getElementById('v36AttRegistered')?.textContent,document.getElementById('v36AttChecked')?.textContent],
     documentOverflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
     tableOverflow:table.scrollWidth-table.clientWidth,
+    typography:{
+      pageTitle:getComputedStyle(document.getElementById('pageTitle')).fontSize,
+      subtitle:getComputedStyle(document.getElementById('pageSubtitle')).fontSize,
+      cardLabel:getComputedStyle(document.querySelector('#v36AttendeeUI>.stats.three .stat:nth-child(2) .label')).fontSize,
+      cardValue:getComputedStyle(document.getElementById('v36AttChecked')).fontSize,
+      search:getComputedStyle(document.getElementById('v36AttendeeSearch')).fontSize,
+      familyTitle:getComputedStyle(document.querySelector('#v56GroupPlanning>.card-sub'),'::after').fontSize,
+      attendeeName:getComputedStyle(a.querySelector('.name')).fontSize,
+      checkedLabel:getComputedStyle(a.querySelector('.v5818-checked')).fontSize,
+      tableHeader:getComputedStyle(table.tHead.rows[0].cells[0],'::after').fontSize,
+      importTitle:getComputedStyle(document.querySelector('#v36AttendeeUI>.card:nth-child(3) h3')).fontSize
+    },
     overhangs:[...document.querySelectorAll('body *')].map(x=>({el:x,rect:x.getBoundingClientRect()}))
       .filter(x=>x.rect.width>0&&x.rect.right>document.documentElement.clientWidth+8)
       .sort((x,y)=>y.rect.right-x.rect.right).slice(0,12)
@@ -69,6 +81,11 @@ async function main(){
   assert.equal(initial.alphaMobile,'9810001666');assert.equal(initial.betaMobile,'9810001777');
   assert.ok(initial.checked&&initial.undo&&initial.dotsHidden&&initial.betaCheck,'Checked/Undo design failed: '+JSON.stringify(initial));
   assert.ok(initial.documentOverflow<=8&&initial.tableOverflow<=8,'Horizontal overflow: '+JSON.stringify(initial));
+  assert.deepEqual(initial.typography,{
+    pageTitle:'30px',subtitle:'13px',cardLabel:'13px',cardValue:'30px',
+    search:'13px',familyTitle:'16px',attendeeName:'14px',checkedLabel:'11px',
+    tableHeader:'13px',importTitle:'16px'
+  },'Check-In typography must match compact Classes scale');
   const undo=await run(function(){
    const row=[...document.querySelectorAll('#v36AttendeeTable tbody tr')].find(r=>r.cells[0].querySelector('.name')?.textContent==='PATCH ALPHA');
    row.querySelector('.v5818-undo').click();
