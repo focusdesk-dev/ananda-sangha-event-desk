@@ -1,6 +1,6 @@
 {
   "name": "ananda-sangha-event-desk",
-  "version": "2.0.0-beta.5.81.5",
+  "version": "2.0.0-beta.5.81.6",
   "private": true,
   "main": "main.js",
   "scripts": {

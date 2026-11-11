@@ -10709,6 +10709,87 @@ function p2v58BindPhoneListener(){
     '#v5813RegistrationStatus.is-registered button{color:#9b2e26;border-color:#d9a5a0;background:#fff}'+
     '</style>');
 
+
+  // 5.81.6: one compact operational attendee table. Source registration categories remain unchanged.
+  function v5816CompactAttendeeTable(){
+    const host=$('v36AttendeeTable'),table=host?.querySelector('table');
+    if(!table)return;
+    const heading=table.querySelector('thead tr');
+    if(!heading)return;
+    heading.replaceChildren(...['ATTENDEE','MOBILE','STATUS','ACTION'].map(label=>{
+      const th=document.createElement('th');th.textContent=label;return th;
+    }));
+    table.querySelectorAll('tbody tr').forEach(row=>{
+      const cells=[...row.cells];
+      if(cells.length<6)return;
+      const nameCell=cells[0],mobileCell=cells[1],typeCell=cells[2],
+        accessoryCells=cells.slice(3,-2),editCell=cells[cells.length-2],
+        checkCell=cells[cells.length-1];
+      const checkButton=checkCell.querySelector('.v36-att-check');
+      const undoButton=checkCell.querySelector('.v36-att-undo');
+      const status=document.createElement('td');status.className='v5816-att-status';
+      if(undoButton){
+        const pill=document.createElement('span');pill.className='pill green';pill.textContent='CHECKED IN';status.append(pill);
+      }else{
+        const pending=document.createElement('span');pending.className='v5816-att-pending';pending.textContent='NOT ARRIVED';status.append(pending);
+      }
+      const action=document.createElement('td');action.className='v5816-att-action';
+      const wrap=document.createElement('div');wrap.className='v5816-att-controls';
+      if(checkButton)wrap.append(checkButton);else if(undoButton)wrap.append(undoButton);
+      const menu=document.createElement('details');menu.className='v5816-att-menu';
+      const toggle=document.createElement('summary');toggle.className='v5816-menu-toggle';
+      toggle.title='More actions';
+      toggle.setAttribute('aria-label','More actions for '+(nameCell.querySelector('.name')?.textContent||'attendee'));
+      toggle.textContent='•••';
+      const panel=document.createElement('div');panel.className='v5816-menu-panel';
+      const registration=document.createElement('div');registration.className='v5816-menu-registration';
+      registration.textContent='Registration: '+(typeCell.textContent||'').trim();panel.append(registration);
+      accessoryCells.forEach(td=>{
+        const select=td.querySelector('select.v36-att-item');
+        if(!select)return;
+        const field=document.createElement('label');field.className='v5816-menu-field';
+        field.append(document.createTextNode(select.dataset.item==='badge'?'Badge':'Scarf'),select);panel.append(field);
+      });
+      editCell.querySelectorAll('.v36-att-edit,.v36-att-delete').forEach(button=>panel.append(button));
+      menu.append(toggle,panel);wrap.append(menu);action.append(wrap);
+      nameCell.querySelectorAll('.v75-add-kriyaban').forEach(flag=>flag.remove());
+      nameCell.querySelectorAll('.person-flag[data-person-flag="kriyaban"]').forEach(flag=>{
+        flag.classList.add('v5816-kriyaban-label');flag.textContent='Kriyaban';
+      });
+      row.replaceChildren(nameCell,mobileCell,status,action);
+    });
+  }
+  const v5816PreviousAttendees=v36RenderAttendees;
+  v36RenderAttendees=function(){
+    const result=v5816PreviousAttendees.apply(this,arguments);
+    v5816CompactAttendeeTable();
+    return result;
+  };
+  document.addEventListener('click',event=>{
+    document.querySelectorAll('#v36AttendeeTable details.v5816-att-menu[open]').forEach(menu=>{
+      if(!menu.contains(event.target))menu.open=false;
+    });
+  });
+  document.head.insertAdjacentHTML('beforeend','<style>'+
+    '#v36AttendeeTable .table-wrap{overflow:visible}'+
+    '#v36AttendeeTable th:nth-child(1){width:29%}#v36AttendeeTable th:nth-child(2){width:24%}'+
+    '#v36AttendeeTable th:nth-child(3){width:20%}#v36AttendeeTable th:nth-child(4){width:27%;text-align:right}'+
+    '#v36AttendeeTable td.v5816-att-action{text-align:right}'+
+    '#v36AttendeeTable .v5816-att-controls{display:flex;align-items:center;justify-content:flex-end;gap:10px}'+
+    '#v36AttendeeTable .v5816-att-pending{color:#687e91;font-size:11px;font-weight:500}'+
+    '#v36AttendeeTable .v5816-kriyaban-label{font-size:10px;font-weight:600;letter-spacing:.015em;color:#345879;margin-top:3px}'+
+    '#v36AttendeeTable .v5816-att-menu{position:relative;display:inline-block;text-align:left}'+
+    '#v36AttendeeTable .v5816-menu-toggle{list-style:none;cursor:pointer;display:grid;place-items:center;width:34px;height:32px;border:1px solid #d0dce7;border-radius:9px;color:#1c406f;background:#fff;font-weight:700;letter-spacing:1px}'+
+    '#v36AttendeeTable .v5816-menu-toggle::-webkit-details-marker{display:none}'+
+    '#v36AttendeeTable .v5816-att-menu[open] .v5816-menu-toggle{background:#eef3f8}'+
+    '#v36AttendeeTable .v5816-menu-panel{position:absolute;right:0;top:calc(100% + 5px);z-index:200;min-width:190px;display:flex;flex-direction:column;gap:8px;padding:12px;background:#fff;border:1px solid #d4e0ea;border-radius:10px;box-shadow:0 8px 22px rgba(12,42,74,.15)}'+
+    '#v36AttendeeTable .v5816-menu-panel .btn{width:100%;text-align:center}'+
+    '#v36AttendeeTable .v5816-menu-registration{font-size:11px;color:#617689;padding-bottom:8px;border-bottom:1px solid #e6ebf1}'+
+    '#v36AttendeeTable .v5816-menu-field{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#425d75;font-size:11px}'+
+    '#v36AttendeeTable .v5816-menu-field select{max-width:82px}'+
+    '@media(max-width:750px){#v36AttendeeTable .v5816-att-controls{gap:5px}#v36AttendeeTable th,#v36AttendeeTable td{padding-left:6px;padding-right:6px}}'+
+    '</style>');
+
   decorateLanding();
 })();
   resetEventForm();
