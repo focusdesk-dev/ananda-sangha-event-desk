@@ -1,0 +1,262 @@
+name: Build Ananda beta 5.81.8 Check-In Only Installer
+on:
+  workflow_dispatch:
+  push:
+    branches: [review-5817-frozen-checkin-ui]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    env:
+      ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+      ELECTRON_BUILDER_BINARIES_MIRROR: https://mirrors.huaweicloud.com/electron-builder-binaries/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Restore original Ananda logo and build Windows icon
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          $text = [IO.File]::ReadAllText("assets/original-ananda-logo.png.base64").Trim()
+          [IO.File]::WriteAllBytes("logo-128.png", [Convert]::FromBase64String($text))
+          $image = [Drawing.Image]::FromFile((Resolve-Path "logo-128.png").Path)
+          $bitmap = New-Object System.Drawing.Bitmap(256, 256)
+          $graphics = [Drawing.Graphics]::FromImage($bitmap)
+          $graphics.Clear([Drawing.Color]::Transparent)
+          $graphics.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+          $graphics.DrawImage($image, 0, 0, 256, 256)
+          $icon = [Drawing.Icon]::FromHandle($bitmap.GetHicon())
+          $out = [IO.File]::Create("ananda-icon.ico")
+          $icon.Save($out)
+          $out.Dispose()
+          $icon.Dispose()
+          $graphics.Dispose()
+          $bitmap.Dispose()
+          $image.Dispose()
+      - name: Validate source files
+        shell: pwsh
+        run: |
+          foreach ($file in @("package.json","index.html","main.js","preload.js","omr-scanner.js","logo-128.png","ananda-icon.ico","scripts/prepare-assets.js")) {
+            if (!(Test-Path $file)) { throw "Missing source file: $file" }
+          }
+      - name: Install Electron dependencies with retry
+        shell: pwsh
+        run: |
+          $success = $false
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            Write-Host "npm install attempt $attempt of 5"
+            npm install
+            if ($LASTEXITCODE -eq 0) { $success = $true; break }
+            if ($attempt -lt 5) { Start-Sleep -Seconds (8 * $attempt) }
+          }
+          if (-not $success) { throw 'Dependency download failed after 5 attempts' }
+      - run: npm run test:four-fixes
+      - run: npm run test:search-dedupe
+      - run: npm run test:master-search
+      - run: npm run test:registration-lookup
+      - run: npm run test:search-display
+      - run: node scripts/verify-checkin-hotfix.js
+      - run: node scripts/verify-volunteer-checkin-source-5815.js
+      - run: node scripts/verify-attendee-table-source-5816.js
+      - run: node scripts/verify-three-frozen-screens-source-5817.js
+      - name: Verify approved Check-In layout source
+        run: node scripts/verify-frozen-checkin-layout.js
+      - run: npm run test:hotfix5801
+      - run: npm run test:attendance
+      - run: npm run test:ai
+      - run: node scripts/verify-phone-ai-route.js
+      - run: npm run test:ai-settings
+      - run: npm run test:qr-print
+      - run: npm run test:ai-recovery
+      - run: npm run test:ai-performance
+      - run: npm run test:unified
+      - run: npm run test:absent-button
+      - run: npm run test:attendance-permission
+      - run: npm run test:attendance-ui
+      - run: npm run test:batch-count
+      - run: npm run test:kriya-schedule
+      - run: node scripts/verify-eight-stage-progression.js
+      - run: npm run test:corrections19-20
+      - run: npm run test:corrections21-26
+      - run: npm run test:correction21a
+      - run: npm run test:progression
+      - run: npm run test:enrol-shortcut
+      - run: npm run test:attendance-status
+      - run: npm run test:page-two
+      - name: Verify Beta 5.63 usability corrections
+        run: node scripts/verify-beta563.js
+      - name: Verify batch deletion and student retention scenarios
+        run: node scripts/verify-batch-delete-students.js
+      - name: 'Verify stability fixes - Acharya, one-click review and focus'
+        run: node scripts/verify-beta565-stability.js
+      - name: Verify Beta 5.81.8 correction and diagnostics
+        run: node scripts/verify-beta566.js
+      - name: 'Verify Beta 5.81.8 Kriya Master and In Progress workflow'
+        run: node scripts/verify-beta567.js
+      - name: Verify Beta 5.81.8 existing Kriya approval and repeat-fee policy
+        run: node scripts/verify-beta568.js
+      - name: Verify Beta 5.81.8 approved corrections
+        run: node scripts/verify-beta573-source.js
+      - name: Verify approved Class Attendance source
+        run: node scripts/verify-beta572-frozen-attendance.js
+      - name: Verify frozen Classes source
+        run: node scripts/verify-frozen-classes-source.js
+      - name: Audit 32 approved acceptance cases
+        run: npm run test:release32
+      - name: Verify beta 5.81.8 unified Class Reports source and frozen sidebar
+        run: node scripts/verify-beta574-unified-source.js
+      - name: Verify beta 5.81.8 ten master screens, stages and frozen sidebar
+        run: node scripts/verify-beta575-masters-source.js
+      - name: Verify beta 5.81.8 consistent headers, permanent list, attendance icon and frozen sidebar
+        run: node scripts/verify-beta576-consistency-source.js
+      - name: Verify 5.79 permanent card design and frozen navigation
+        run: node scripts/verify-beta577-master-cards-source.js
+      - name: Audit original 5.77 source immutability and recovered workflows
+        run: node scripts/verify-beta578-recovery-source.js
+      - name: Package Windows installer with retry
+        shell: pwsh
+        run: |
+          $success = $false
+          for ($attempt = 1; $attempt -le 5; $attempt++) {
+            Write-Host "Windows installer build attempt $attempt of 5"
+            npm run dist:win
+            if ($LASTEXITCODE -eq 0) { $success = $true; break }
+            if ($attempt -lt 5) { Start-Sleep -Seconds (8 * $attempt) }
+          }
+          if (-not $success) { throw 'Electron / NSIS packaging failed after 5 attempts' }
+      - name: Smoke test - launch packaged Windows desktop application
+        shell: pwsh
+        run: |
+          $exe = Join-Path $PWD "dist/win-unpacked/Ananda Sangha Event Desk.exe"
+          if (!(Test-Path $exe)) { throw "Packaged application executable missing: $exe" }
+          $appProcess = Start-Process -FilePath $exe -ArgumentList "--remote-debugging-port=9223" -PassThru
+          try {
+            $found = $false
+            for ($attempt = 0; $attempt -lt 18; $attempt++) {
+              Start-Sleep -Seconds 2
+              if ($appProcess.HasExited) { throw "Packaged desktop app exited during startup (exit code $($appProcess.ExitCode))" }
+              try {
+                $pages = Invoke-RestMethod -Uri "http://127.0.0.1:9223/json/list" -TimeoutSec 3
+                $appPage = @($pages) | Where-Object { $_.type -eq 'page' -and ($_.url -match 'index.html' -or $_.title -match 'Ananda') }
+                if ($appPage.Count -gt 0) { $found = $true; Write-Host "App opened successfully: $($appPage[0].title)"; break }
+              } catch { Write-Host "Waiting for desktop window to load..." }
+            }
+            if (!$found) { throw "Packaged app did not expose a loaded Ananda window within the smoke check." }
+            node scripts/verify-desktop-kriya-journey.js
+            node scripts/verify-release-ui.js
+            if ($LASTEXITCODE -ne 0) { throw 'Release UI regression failed' }
+            node scripts/verify-beta563-keyboard.js
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.81.8 keyboard interaction regression failed' }
+            node scripts/verify-frozen-classes-desktop.js
+            if ($LASTEXITCODE -ne 0) { throw 'Frozen Classes packaged UI regression failed' }
+            node scripts/verify-beta572-attendance-desktop.js
+            if ($LASTEXITCODE -ne 0) { throw 'Frozen Attendance desktop verification failed' }
+            node scripts/verify-beta573-progress-desktop.js
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.81.8 Excel Student Progress desktop regression failed' }
+            node scripts/verify-beta574-reports-desktop.js
+            if ($LASTEXITCODE -ne 0) { throw 'Unified Class Reports desktop verification failed' }
+            node scripts/verify-beta575-masters-desktop.js
+            if ($LASTEXITCODE -ne 0) { throw "Beta 5.81.8 master-list desktop check failed" }
+            node scripts/verify-beta577-master-cards-desktop.js
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.81.8 Permanent Records card acceptance failed' }
+            node scripts/verify-beta578-full-journey.js
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.81.8 functional recovery journey failed' }
+            node scripts/verify-hotfix-5801-desktop.js
+            if ($LASTEXITCODE -ne 0) { throw '5.81.8 Sahil family and unified search acceptance failed' }
+            node scripts/verify-frozen-checkin-preview.js
+            if ($LASTEXITCODE -ne 0) { throw 'Approved Check-In screenshot layout failed' }
+            node scripts/verify-three-frozen-screens-desktop-5817.js
+            if ($LASTEXITCODE -ne 0) { throw 'Attendee table UI acceptance failed' }
+            node scripts/verify-volunteer-checkin-desktop-5815.js
+            if ($LASTEXITCODE -ne 0) { throw 'Real volunteer Check In and Undo desktop regression failed' }
+            node scripts/verify-beta569-typing-navigation.js
+            if ($LASTEXITCODE -ne 0) { throw '100-cycle keyboard/navigation regression failed' }
+            node scripts/verify-reset-preserves-ai.js
+            if ($LASTEXITCODE -ne 0) { throw "Desktop Kriya UI regression failed" }
+          } finally {
+            Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Ananda Sangha Event Desk.exe' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+          }
+      - name: Download previous Beta 5.52 installer for upgrade test
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -Path previous-installer -ItemType Directory -Force | Out-Null
+          gh run download 41513239635 --repo focusdesk-dev/ananda-sangha-event-desk --name "Ananda-Sangha-Event-Desk-beta-5.52-Setup" --dir previous-installer
+          if (!(Get-ChildItem previous-installer -Filter *.exe)) { throw "Previous installer missing" }
+      - name: Real NSIS installation, upgrade, data preservation and uninstall
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $old = (Get-ChildItem previous-installer -Filter *.exe | Select-Object -First 1).FullName
+          $new = (Get-ChildItem dist -Filter *.exe | Select-Object -First 1).FullName
+          $dest = Join-Path $env:RUNNER_TEMP "AnandaVerifiedInstall"
+          function DoInstall([string]$source) {
+            $proc = Start-Process -FilePath $source -ArgumentList @("/S",("/D=" + $dest)) -Wait -PassThru
+            if ($proc.ExitCode -ne 0) { throw "NSIS failed: $($proc.ExitCode)" }
+            $exe = Join-Path $dest "Ananda Sangha Event Desk.exe"
+            if (!(Test-Path $exe)) { throw "Missing installed executable" }
+            return $exe
+          }
+          function CheckData([string]$exe,[string]$mode) {
+            $proc = Start-Process -FilePath $exe -ArgumentList "--remote-debugging-port=9225" -PassThru
+            try {
+              $env:ANANDA_DEVTOOLS_PORT = "9225"
+              node scripts/verify-installed-upgrade.js $mode
+              if ($LASTEXITCODE -ne 0) { throw "Installed app $mode failed" }
+            } finally {
+              Start-Sleep -Seconds 3
+              Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'Ananda Sangha Event Desk.exe' } | ForEach-Object {
+                $running = Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue
+                if ($running) {
+                  try { $null = $running.CloseMainWindow(); $null = $running.WaitForExit(5000) } catch {}
+                  if (!$running.HasExited) { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+                }
+              }
+              Start-Sleep -Seconds 3
+            }
+          }
+          $first = DoInstall $old
+          CheckData $first "seed"
+          CheckData $first "verify-old"
+          $second = DoInstall $new
+          CheckData $second "verify"
+          $uninstall = Get-ChildItem $dest -Filter "Uninstall*.exe" | Select-Object -First 1
+          if (!$uninstall) { throw "Uninstaller missing" }
+          $link = Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) 'Ananda Sangha Event Desk.lnk'
+          if (!(Test-Path $link)) { throw "Desktop shortcut missing" }
+          $proc = Start-Process -FilePath $uninstall.FullName -ArgumentList "/S" -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Uninstall failed" }
+          $data = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK\Data'
+          if (!(Test-Path $data)) { throw "Uninstall removed offline data" }
+          Write-Host "PASS real install, 5.52 to 5.81.8 upgrade, persistent NGO test student, shortcut and uninstall"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Ananda-beta-5.81.8-three-frozen-verification-evidence
+          path: verification/
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Ananda-beta-5.81.8-Checkin-Visual-Evidence
+          path: frozen-checkin-review.png
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Sangha-Event-Desk-beta-5.81.8-Full-Setup
+          path: dist/*.exe
+          if-no-files-found: error
+
+      - name: Publish single-file installer to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-beta-5.81.8
+          name: Ananda Sangha Event Desk Beta 5.81.8 Full Installer
+          prerelease: true
+          files: dist/*.exe
+          body: "Incremental beta 5.81.8 full Windows installer based on 5.81.7. Only the Check-In & Registration page layout is updated toward the frozen approved design; existing navigation/sidebar, registration data logic, Classes and other frozen screens are not intentionally modified. Includes automated desktop visual and upgrade checks. Unsigned; Windows Smart App Control may block it."
