@@ -64,6 +64,8 @@ async function main(){
     documentOverflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
     tableOverflow:table.scrollWidth-table.clientWidth,
     typography:{
+      titleTransform:getComputedStyle(document.getElementById('pageTitle')).textTransform,
+      subtitleDisplay:getComputedStyle(document.getElementById('pageSubtitle')).display,
       pageTitle:getComputedStyle(document.getElementById('pageTitle')).fontSize,
       subtitle:getComputedStyle(document.getElementById('pageSubtitle')).fontSize,
       cardLabel:getComputedStyle(document.querySelector('#v36AttendeeUI>.stats.three .stat:nth-child(2) .label')).fontSize,
@@ -89,7 +91,10 @@ async function main(){
   assert.equal(initial.alphaMobile,'9810001666');assert.equal(initial.betaMobile,'9810001777');
   assert.ok(initial.checked&&initial.undo&&initial.dotsHidden&&initial.betaCheck,'Checked/Undo design failed: '+JSON.stringify(initial));
   assert.ok(initial.documentOverflow<=8&&initial.tableOverflow<=8,'Horizontal overflow: '+JSON.stringify(initial));
+  assert.equal(initial.typography.titleTransform,'uppercase','Header is not visually uppercase');
+  assert.equal(initial.typography.subtitleDisplay,'none','Unwanted Check-In subtitle is still visible');
   assert.deepEqual(initial.typography,{
+    titleTransform:'uppercase',subtitleDisplay:'none',
     pageTitle:'30px',subtitle:'13px',cardLabel:'13px',cardValue:'30px',
     search:'13px',familyTitle:'16px',attendeeName:'14px',checkedLabel:'11px',
     tableHeader:'13px',importTitle:'16px'
