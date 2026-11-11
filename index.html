@@ -11118,6 +11118,64 @@ function p2v58BindPhoneListener(){
       };
       [['v97ExportVolunteers','volunteers','ananda-sangha-volunteer-master.xls','Volunteers','the Volunteer Master'],['v97ExportAttendees','attendees','ananda-sangha-attendee-master.xls','Attendees','the Attendee Master'],['v97ExportKriyabans','kriyabans','ananda-sangha-kriyaban-master.xls','Kriyabans','the Kriyaban Master'],['v97ExportVips','vips','ananda-sangha-vip-master.xls','VIPs','the VIP Master']].forEach(([id,key,filename,sheet,purpose])=>{const button=$(id);if(!button)return;button.textContent='Export Excel';button.onclick=()=>v51RequireAdmin(()=>download(filename,v106ExcelXml(sheet,exportRows[key]()),'application/vnd.ms-excel;charset=utf-8'),`export the ${purpose}`)});
     })();
+
+    // Beta 5.81.7: LIVE Badge & Scarf corrections. Kept in the active app scope,
+    // never in the disabled legacy download script below.
+    const v5817OriginalItemPeople=itemPeople;
+    itemPeople=function(){
+      const people=v5817OriginalItemPeople();
+      const seen=new Set(people.map(p=>p.type+'|'+p.id));
+      const date=$('workingDate').value;
+      allEventAttendees().forEach(a=>{
+        if(a.registrationDate&&a.registrationDate!==date&&!attendeeDates(a).includes(date))return;
+        const key='attendee|'+a.id;if(seen.has(key))return;
+        seen.add(key);
+        people.push({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo||''}${a.mobile?' · '+a.mobile:''}`});
+      });
+      return people;
+    };
+    // Printing is an independent workflow, never an issue prerequisite.
+    itemControls=v72ItemControlsBefore;
+    const v5817OriginalToggleItem=toggleItem;
+    toggleItem=function(type,id,item,action){
+      // An ISSUE is a real arrival. Prevent the roster-only wrapper from
+      // suppressing volunteer attendance; receiving an item never unchecks.
+      if(action==='issue')v36RosterOnly=false;
+      return v5817OriginalToggleItem.apply(this,arguments);
+    };
+    const v5817LiveBadgeBase=renderItems;
+    renderItems=function(){
+      const result=v5817LiveBadgeBase.apply(this,arguments);
+      const table=$('itemTable');if(!table)return result;
+      table.querySelectorAll('.item-box').forEach(box=>{
+        const issue=box.querySelector('.item-action[data-action="issue"]');
+        const receive=box.querySelector('.item-action[data-action="return"]');
+        if(!issue||!receive)return;
+        const issued=issue.classList.contains('issued'),returned=receive.classList.contains('returned');
+        if(issued){
+          issue.classList.add('v5817-item-status');
+          issue.textContent=returned?'✓ RECEIVED':'✓ ISSUED';
+          issue.title=returned?'Show re-issue action':'Show receive-back action';
+          receive.textContent=returned?'RE-ISSUE':'RECEIVE BACK';
+          receive.hidden=true;
+          issue.onclick=()=>{receive.hidden=!receive.hidden};
+        }else{
+          issue.textContent='ISSUE';receive.hidden=true;
+        }
+      });
+      return result;
+    };
+    $('itemSearch').oninput=renderItems;
+    $('personTypeFilter').onchange=renderItems;
+    document.head.insertAdjacentHTML('beforeend','<style>'+
+      // Main content only; frozen sidebar unchanged.
+      '#items .card-head .card-sub,#items .card-head h3{display:none!important}'+
+      '#items .item-box{display:flex;align-items:center;gap:8px;flex-wrap:wrap}'+
+      '#items .item-btn{min-width:123px;padding:9px 12px;border-radius:9px;font-size:12px;font-weight:700;text-transform:uppercase}'+
+      '#items .item-btn.v5817-item-status{background:#fff0be!important;border:1px solid #eabb37!important;color:#352b11!important}'+
+      '#items .item-btn.item-action[hidden]{display:none!important}'+
+      '#items table th{text-transform:uppercase}'+
+      '</style>');
   
 })();
 </script>
