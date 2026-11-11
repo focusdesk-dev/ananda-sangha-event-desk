@@ -4,7 +4,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8').replace(/\r\n/g,'\n');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pkg.version,'2.0.0-beta.5.81.7');
+assert.equal(pkg.version,'2.0.0-beta.5.81.8');
 const start=html.indexOf('  (function anandaV578(){'),end=html.indexOf('  resetEventForm();\n  renderAll();\n',start);
 assert.ok(start>0&&end>start,'Recovery patch missing or incorrectly placed');
 // The approved 5.81 fix moves existing enhancement scripts into the main
