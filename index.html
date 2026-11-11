@@ -11477,6 +11477,52 @@ function p2v58BindPhoneListener(){
 #checkin #v36AttendeeTable .v5816-att-controls{flex-wrap:nowrap!important;min-width:0!important}
 #checkin #v36AttendeeTable .v5816-att-action{overflow:visible!important}
 </style>
+<!-- Patch 2: Check-In typography matches Classes density; no data or event logic touched -->
+<style id="checkin-classes-typography-patch2">
+.app:has(#checkin.page.active) .topbar{margin-bottom:24px!important}
+.app:has(#checkin.page.active) #pageTitle{font-size:30px!important;font-weight:720!important;color:#082e65!important;letter-spacing:-.035em!important;margin-bottom:5px!important}
+.app:has(#checkin.page.active) #pageSubtitle{font-size:13px!important;color:#546a84!important;line-height:1.45!important}
+.app:has(#checkin.page.active) #backButton{font-size:13px!important;min-height:43px!important;padding:0 14px!important}
+.app:has(#checkin.page.active) #workingDateChip{min-width:190px!important;padding:8px 12px!important}
+.app:has(#checkin.page.active) #workingDateChip .sub{font-size:11px!important}
+.app:has(#checkin.page.active) #workingDate{font-size:14px!important}
+#checkin #v36AttendeeUI>.stats.three{gap:17px!important;margin-bottom:22px!important}
+#checkin #v36AttendeeUI>.stats.three>.stat{min-height:96px!important;padding:14px 20px!important}
+#checkin #v36AttendeeUI>.stats.three .stat .label{font-size:13px!important;line-height:1.35!important}
+#checkin #v36AttendeeUI>.stats.three .stat:first-child .label{font-size:0!important}
+#checkin #v36AttendeeUI>.stats.three .stat:first-child .label::after{font-size:13px!important}
+#checkin #v36AttendeeUI>.stats.three .stat strong{font-size:30px!important;font-weight:720!important;margin:8px 0 0!important;line-height:1.08!important}
+#checkin #v36AttendeeUI>.card:nth-child(2){gap:17px 20px!important;margin-bottom:25px!important}
+#checkin #v36NewRegistration{font-size:13px!important;min-height:44px!important;padding:9px 12px!important}
+#checkin #v36AttendeeSearch{font-size:13px!important;height:44px!important;padding-left:47px!important}
+#checkin #v36AttendeeUI .quick-lookup-row .field::before{left:17px!important;top:12px!important;width:14px!important;height:14px!important}
+#checkin #v36AttendeeUI .quick-lookup-row .field::after{left:31px!important;top:27px!important}
+#checkin #v56GroupPlanning{margin-top:6px!important}
+#checkin #v56GroupPlanning>.card-sub{margin-bottom:12px!important}
+#checkin #v56GroupPlanning>.card-sub::after{font-size:16px!important;font-weight:700!important;letter-spacing:0!important}
+#checkin #v56GroupPlanning .v88-group-row{min-height:62px!important;padding:10px 18px!important;gap:12px!important}
+#checkin #v56GroupPlanning .v88-group-row .v56-group-name{font-size:15px!important;font-weight:700!important}
+#checkin #v56GroupPlanning .v88-group-row .v56-count strong{font-size:18px!important;font-weight:700!important}
+#checkin #v56GroupPlanning .v88-group-row .v56-count::after{font-size:12px!important}
+#checkin #v56GroupPlanning .v88-group-row:not(.v88-open)::after{font-size:26px!important}
+#checkin #v36AttendeeTable th{height:38px!important;padding:9px 16px!important}
+#checkin #v36AttendeeTable th::after{font-size:13px!important}
+#checkin #v36AttendeeTable td{height:54px!important;padding:9px 16px!important;font-size:13px!important}
+#checkin #v36AttendeeTable .name{font-size:14px!important;font-weight:700!important}
+#checkin #v36AttendeeTable .v5817-type{min-width:90px!important;min-height:29px!important;padding:5px 9px!important;border-radius:8px!important}
+#checkin #v36AttendeeTable .v5817-type::after{font-size:11px!important}
+#checkin #v36AttendeeTable .v36-att-check{font-size:12px!important;min-height:36px!important;padding:8px 12px!important}
+#checkin #v36AttendeeTable .v5818-checked{font-size:11px!important;padding:8px 9px!important}
+#checkin #v36AttendeeTable .v5818-undo{font-size:11px!important;padding:8px 10px!important;min-height:34px!important}
+#checkin #v36AttendeeTable .v5816-menu-toggle{font-size:20px!important;height:34px!important}
+#checkin #v36AttendeeUI>.card:nth-child(3){padding:15px 17px!important}
+#checkin #v36AttendeeUI>.card:nth-child(3) h3{font-size:16px!important;font-weight:700!important}
+#checkin #v36AttendeeUI>.card:nth-child(3) .btn{font-size:12px!important;min-height:39px!important;padding:9px 13px!important}
+@media(max-width:1150px){
+  #checkin #v36AttendeeTable td,#checkin #v36AttendeeTable th{padding-left:10px!important;padding-right:10px!important}
+  #checkin #v56GroupPlanning .v88-group-row .v56-count::after{font-size:11px!important}
+}
+</style>
 <script id="frozen-checkin-copy-5817">
 (function(){
   const add=document.getElementById('v36NewRegistration');
