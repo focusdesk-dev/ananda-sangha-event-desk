@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pkg.version,'2.0.0-beta.5.81.7');
+assert.equal(pkg.version,'2.0.0-beta.5.81.8');
 const sidebar=fs.readFileSync('scripts/frozen-sidebar-beta573.txt','utf8').replace(/\r\n/g,'\n');
 const main=html.replace(/\r\n/g,'\n');
 assert.equal(main.slice(main.indexOf('<aside'),main.indexOf('</aside>')+8),sidebar,'5.80 frozen blue sidebar changed');
