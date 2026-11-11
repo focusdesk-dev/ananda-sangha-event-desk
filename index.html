@@ -10790,6 +10790,143 @@ function p2v58BindPhoneListener(){
     '@media(max-width:750px){#v36AttendeeTable .v5816-att-controls{gap:5px}#v36AttendeeTable th,#v36AttendeeTable td{padding-left:6px;padding-right:6px}}'+
     '</style>');
 
+
+  // Beta 5.81.7 — three frozen screens. This is a view-only attendee
+  // classification: Kriyaban supersedes Student; event role stays independent.
+  function v5817VerifiedKriyaban(name,mobile){
+    const n=normName(name),m=normMobile(mobile);
+    if(!n||m.length!==10)return null;
+    return (state.kriyabans||[]).find(k=>normName(k.name)===n&&normMobile(k.mobile)===m)||null;
+  }
+  function v5817AttendeeType(name,mobile){
+    if(v5817VerifiedKriyaban(name,mobile))return'KRIYABAN';
+    const n=normName(name),m=normMobile(mobile);
+    if(m.length===10&&(state.students||[]).some(p=>normName(p.name)===n&&normMobile(p.mobile)===m))return'STUDENT';
+    return'OUTSIDER';
+  }
+  function v5817AttendeeTable(){
+    const table=$('v36AttendeeTable')?.querySelector('table');
+    if(!table)return;
+    const headings=table.querySelectorAll('thead th');
+    if(headings.length!==4)return;
+    ['ATTENDEE','TYPE','MOBILE','ACTION'].forEach((label,i)=>headings[i].textContent=label);
+    table.querySelectorAll('tbody tr').forEach(tr=>{
+      if(tr.cells.length!==4)return;
+      const [nameCell,mobileCell,statusCell,actionCell]=[...tr.cells];
+      const name=nameCell.querySelector('.name')?.textContent.trim()||'';
+      const mobile=mobileCell.textContent.trim();
+      const type=v5817AttendeeType(name,mobile);
+      const td=document.createElement('td');td.className='v5817-person-type';
+      const badge=document.createElement('span');
+      badge.className='v5817-type '+(type==='KRIYABAN'?'v5817-type-kriya':type==='STUDENT'?'v5817-type-student':'v5817-type-outside');
+      badge.textContent=type;td.append(badge);
+      // Remove duplicate second-line flags; the Type column is the sole label.
+      nameCell.querySelectorAll('.person-flag[data-person-flag="kriyaban"],.v5816-kriyaban-label').forEach(n=>n.remove());
+      const controls=actionCell.querySelector('.v5816-att-controls');
+      if(controls&&statusCell.textContent.includes('CHECKED IN')){
+        const mark=document.createElement('span');mark.className='v5817-arrived';mark.textContent='CHECKED IN';
+        controls.prepend(mark);
+      }
+      tr.replaceChildren(nameCell,td,mobileCell,actionCell);
+    });
+  }
+  const v5817BaseAttendeeRender=v36RenderAttendees;
+  v36RenderAttendees=function(){
+    const result=v5817BaseAttendeeRender.apply(this,arguments);
+    v5817AttendeeTable();return result;
+  };
+
+  // One status line for the New Registration popup: event duplicates override
+  // verified Kriyaban recognition. Never use a shared family phone as identity.
+  function v5817RegistrationStatus(){
+    const form=$('v36RegistrationForm'),modal=$('v36RegistrationModal');
+    if(!form||!modal||!modal.classList.contains('open'))return;
+    const isFamily=/family/.test($('v36RegistrationType')?.value||'');
+    form.classList.toggle('v5817-family-mode',isFamily);
+    let host=$('v5817RegistrationStatus');
+    if(!host){
+      host=document.createElement('div');host.id='v5817RegistrationStatus';
+      $('v36MainRegistrationFields').insertAdjacentElement('afterend',host);
+    }
+    const name=String($('v36MainName').value||'').trim(),mobile=normMobile($('v36MainMobile').value||'');
+    const isEditing=!!v36RegistrationEditKey;
+    const actual=(mobile.length===10&&name)?v36AllAttendeeRows().find(row=>
+      normName(row.name)===normName(name)&&
+      normMobile(row.personalMobile||(row.kind==='attendee'?row.mobile:''))===mobile):null;
+    const mobileConflict=mobile.length===10&&name&&!actual&&!isEditing?
+      v80DuplicateState().blocking.find(p=>p.verdict==='phone-conflict'):null;
+    const kriyaban=mobile.length===10?v5817VerifiedKriyaban(name,mobile):null;
+    host.replaceChildren();host.className='hidden';
+    let blocked=false;
+    if(!isEditing&&actual){
+      blocked=true;host.className='v5817-status v5817-status-red';
+      const msg=document.createElement('strong');
+      msg.textContent=name.toUpperCase()+' — '+((actual.checkins||[]).length?'ALREADY CHECKED IN':'ALREADY REGISTERED');
+      host.append(msg);
+      const open=document.createElement('button');open.type='button';open.className='btn secondary small';
+      open.textContent='OPEN REGISTRATION';
+      open.onclick=()=>v36OpenRegistration((actual.kind==='family'?'family|'+actual.groupId:'attendee|'+actual.id));
+      host.append(open);
+    }else if(mobileConflict){
+      blocked=true;host.className='v5817-status v5817-status-red';
+      const msg=document.createElement('strong');
+      msg.textContent='MOBILE NUMBER BELONGS TO ANOTHER PERSON';host.append(msg);
+    }else if(!isEditing&&kriyaban){
+      host.className='v5817-status v5817-status-green';
+      const msg=document.createElement('strong');
+      msg.textContent=name.toUpperCase()+' — KRIYABAN RECOGNISED';host.append(msg);
+    }
+    form.querySelectorAll('button[type="submit"][data-mode]').forEach(b=>b.disabled=blocked);
+  }
+  const v5817BaseOpenRegistration=v36OpenRegistration;
+  v36OpenRegistration=function(editKey=''){
+    const result=v5817BaseOpenRegistration.apply(this,arguments);
+    v5817RegistrationStatus();return result;
+  };
+  ['v36MainName','v36MainMobile'].forEach(id=>{
+    $(id)?.addEventListener('input',()=>queueMicrotask(v5817RegistrationStatus));
+    $(id)?.addEventListener('change',()=>queueMicrotask(v5817RegistrationStatus));
+  });
+  $('v36RegistrationForm')?.addEventListener('submit',event=>{
+    // The view's blocked flag is a safeguard in addition to existing duplicate rules.
+    v5817RegistrationStatus();
+    if([...event.target.querySelectorAll('button[type="submit"][data-mode]')].every(b=>b.disabled)){
+      event.preventDefault();event.stopImmediatePropagation();
+    }
+  },true);
+  document.head.insertAdjacentHTML('beforeend','<style>'+
+    // No sidebar declarations: blue sidebar is frozen.
+    'body:has(#checkin.page.active) #v51SecurityButton,body:has(#items.page.active) #v51SecurityButton{display:none!important}'+
+    'body:has(#items.page.active) #pageSubtitle{display:none!important}'+
+    'body:has(#items.page.active) #pageTitle{text-transform:uppercase}'+
+    '#v36AttendeeTable .v5817-type{display:inline-flex;padding:5px 13px;border-radius:9px;font-size:12px;font-weight:600;white-space:nowrap}'+
+    '#v36AttendeeTable .v5817-type-kriya{background:#ffedb3;color:#192f49}'+
+    '#v36AttendeeTable .v5817-type-student{background:#e5eef8;color:#153a6d}'+
+    '#v36AttendeeTable .v5817-type-outside{background:#f0f1f3;color:#444b54}'+
+    '#v36AttendeeTable .v5817-arrived{font-size:11px;font-weight:700;color:#1b7857}'+
+    '#v36AttendeeTable th:nth-child(1){width:27%!important}#v36AttendeeTable th:nth-child(2){width:26%!important}'+
+    '#v36AttendeeTable th:nth-child(3){width:24%!important}#v36AttendeeTable th:nth-child(4){width:23%!important}'+
+    '#v36AttendeeTable .v5816-att-menu .v5816-menu-panel{z-index:300}'+
+    // Keep legacy inputs in the DOM for editing/import compatibility, never on the new individual popup.
+    '#v36RegistrationModal #v36VolunteerLinkField,#v36RegistrationModal #v58RelationshipField,'+
+    '#v36RegistrationModal #v36RegistrationNotes{display:none!important}'+
+    '#v36RegistrationModal .field:has(> #v36RegistrationNotes){display:none!important}'+
+    '#v36RegistrationModal #v39VolunteerMatch,#v36RegistrationModal #v46KriyabanGreeting,'+
+    '#v36RegistrationModal #v80MobileDuplicate,#v36RegistrationModal #v5813RegistrationStatus{display:none!important}'+
+    '#v36RegistrationModal #v48AutomaticCategory{display:none!important}'+
+    '#v36RegistrationModal #v48GroupMode{display:none!important}'+
+    '#v36RegistrationModal .field:has(> #v48GroupMode){display:none!important}'+
+    '#v36RegistrationModal .v5817-family-mode #v48GroupMode{display:block!important}'+
+    '#v36RegistrationModal .v5817-family-mode .field:has(> #v48GroupMode){display:block!important}'+
+    '#v36RegistrationModal .modal{max-width:650px;padding:28px 36px}'+
+    '#v36RegistrationModal .modal-head h3{text-transform:uppercase;font-size:21px;letter-spacing:.01em}'+
+    '#v36RegistrationModal .v5817-status{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;border-radius:8px;margin-top:17px;padding:12px 16px;font-size:13px}'+
+    '#v36RegistrationModal .v5817-status-green{border:1px solid #a2d9b3;background:#eaf7ee;color:#087444}'+
+    '#v36RegistrationModal .v5817-status-red{border:1px solid #efb1a9;background:#fdf0ee;color:#a02c20}'+
+    '#v36RegistrationModal button[type="submit"]:disabled{opacity:.42;cursor:not-allowed}'+
+    '#v36RegistrationModal .actions{justify-content:flex-end}'+
+    '</style>');
+
   decorateLanding();
 })();
   resetEventForm();
@@ -11035,7 +11172,10 @@ function p2v58BindPhoneListener(){
     function v116ItemPeople(){
       const rosterIds=typeof v36RosterIds==='function'?v36RosterIds(state.activeEventId,$('workingDate').value):dailyIds();
       const volunteers=rosterIds.map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean).map(v=>({type:'volunteer',id:v.id,name:volName(v),sub:`${v.mobile||'No mobile'}${v.birthday?' · Birthday '+fmt(v.birthday):''}`}));
-      const attendees=todaysAttendees().map(a=>({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo}${a.mobile?' · '+a.mobile:''}`}));
+      // Show registered attendees even before check-in, so issuing the FIRST item can check them in.
+      const date=$('workingDate').value;
+      const attendees=allEventAttendees().filter(a=>!a.registrationDate||a.registrationDate===date||attendeeDates(a).includes(date))
+        .map(a=>({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo||''}${a.mobile?' · '+a.mobile:''}`}));
       return [...volunteers,...attendees];
     }
     function v116MarkCheckedIn(type,id){
@@ -11043,6 +11183,8 @@ function p2v58BindPhoneListener(){
       if(type==='volunteer'){
         const volunteer=state.volunteers.find(v=>v.id===id);
         if(!volunteer)return;
+        // An item issue is arrival, never roster-only (even after a cancelled Add Volunteer form).
+        v36RosterOnly=false;
         ensureVolunteerCheckin(volunteer,eventId,date,'badge/scarf');
         const key=`${eventId}|${date}`;
         state.daily[key]=[...new Set([...(state.daily[key]||[]),id])];
@@ -11100,6 +11242,49 @@ function p2v58BindPhoneListener(){
       if(page==='items')renderItems();
       toast(`${item==='badge'?'Badge':'Scarf'} ${action==='return'?(a[item+'Returned']?'received back':'marked not received'):(a[item+'Issued']?'issued':'unissued')}`);
     };
+
+    // Beta 5.81.7 — one relevant badge/scarf control per item.
+    // The original inventory/attendance handlers remain the sole source of truth.
+    const v5817BadgeRenderBase=renderItems;
+    renderItems=function(){
+      const result=v5817BadgeRenderBase.apply(this,arguments);
+      const table=$('itemTable');
+      if(!table)return result;
+      table.querySelectorAll('.item-box').forEach(box=>{
+        const issue=box.querySelector('.item-action[data-action="issue"]');
+        const receive=box.querySelector('.item-action[data-action="return"]');
+        if(!issue||!receive)return;
+        const issued=issue.classList.contains('issued');
+        const returned=receive.classList.contains('returned');
+        if(issued){
+          issue.classList.add('v5817-item-status');
+          issue.textContent=returned?'✓ RECEIVED':'✓ ISSUED';
+          issue.type='button';
+          issue.title=returned?'Show re-issue option':'Show receive-back option';
+          receive.textContent=returned?'RE-ISSUE':'RECEIVE BACK';
+          receive.hidden=true;
+          // The status is only a reveal control: clicking it never changes stock or check-in.
+          issue.onclick=()=>{receive.hidden=!receive.hidden;issue.setAttribute('aria-expanded',String(!receive.hidden))};
+        }else{
+          issue.textContent='ISSUE';
+          receive.hidden=true;
+        }
+      });
+      return result;
+    };
+    document.head.insertAdjacentHTML('beforeend','<style>'+
+      // Main Badge & Scarf area only. Never change the frozen sidebar.
+      '#items .card-head .card-sub{display:none!important}'+
+      '#items .card-head h3{display:none!important}'+
+      '#items .item-box{display:flex;gap:7px;align-items:center;flex-wrap:wrap}'+
+      '#items .item-btn{min-width:125px;padding:9px 12px;border-radius:9px;font-size:12px;font-weight:700}'+
+      '#items .item-btn.v5817-item-status{background:#fff0be!important;border:1px solid #eabb37!important;color:#352b11!important}'+
+      '#items .item-btn.item-action[hidden]{display:none!important}'+
+      '#items .item-filter{font-weight:600}'+
+      '#items .table-wrap{overflow:visible}'+
+      '#items table th{text-transform:uppercase}'+
+      '</style>');
+
     document.title='ANANDA SANGHA GURGAON Event Desk v125';
     if($('itemTable'))renderItems();
     }

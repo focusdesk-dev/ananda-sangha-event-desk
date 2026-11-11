@@ -1,8 +1,8 @@
-name: Build Ananda Event Desk beta 5.81.6 Full Setup
+name: Build Ananda Event Desk beta 5.81.7 Full Setup
 on:
   workflow_dispatch:
   push:
-    branches: [beta-5-81-6-attendee-table]
+    branches: [beta-5-81-7-three-frozen-screens]
 permissions:
   contents: write
   actions: read
@@ -62,6 +62,7 @@ jobs:
       - run: node scripts/verify-checkin-hotfix.js
       - run: node scripts/verify-volunteer-checkin-source-5815.js
       - run: node scripts/verify-attendee-table-source-5816.js
+      - run: node scripts/verify-three-frozen-screens-source-5817.js
       - run: npm run test:hotfix5801
       - run: npm run test:attendance
       - run: npm run test:ai
@@ -90,13 +91,13 @@ jobs:
         run: node scripts/verify-batch-delete-students.js
       - name: 'Verify stability fixes - Acharya, one-click review and focus'
         run: node scripts/verify-beta565-stability.js
-      - name: Verify Beta 5.81.6 correction and diagnostics
+      - name: Verify Beta 5.81.7 correction and diagnostics
         run: node scripts/verify-beta566.js
-      - name: 'Verify Beta 5.81.6 Kriya Master and In Progress workflow'
+      - name: 'Verify Beta 5.81.7 Kriya Master and In Progress workflow'
         run: node scripts/verify-beta567.js
-      - name: Verify Beta 5.81.6 existing Kriya approval and repeat-fee policy
+      - name: Verify Beta 5.81.7 existing Kriya approval and repeat-fee policy
         run: node scripts/verify-beta568.js
-      - name: Verify Beta 5.81.6 approved corrections
+      - name: Verify Beta 5.81.7 approved corrections
         run: node scripts/verify-beta573-source.js
       - name: Verify approved Class Attendance source
         run: node scripts/verify-beta572-frozen-attendance.js
@@ -104,11 +105,11 @@ jobs:
         run: node scripts/verify-frozen-classes-source.js
       - name: Audit 32 approved acceptance cases
         run: npm run test:release32
-      - name: Verify beta 5.81.6 unified Class Reports source and frozen sidebar
+      - name: Verify beta 5.81.7 unified Class Reports source and frozen sidebar
         run: node scripts/verify-beta574-unified-source.js
-      - name: Verify beta 5.81.6 ten master screens, stages and frozen sidebar
+      - name: Verify beta 5.81.7 ten master screens, stages and frozen sidebar
         run: node scripts/verify-beta575-masters-source.js
-      - name: Verify beta 5.81.6 consistent headers, permanent list, attendance icon and frozen sidebar
+      - name: Verify beta 5.81.7 consistent headers, permanent list, attendance icon and frozen sidebar
         run: node scripts/verify-beta576-consistency-source.js
       - name: Verify 5.79 permanent card design and frozen navigation
         run: node scripts/verify-beta577-master-cards-source.js
@@ -147,24 +148,24 @@ jobs:
             node scripts/verify-release-ui.js
             if ($LASTEXITCODE -ne 0) { throw 'Release UI regression failed' }
             node scripts/verify-beta563-keyboard.js
-            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.81.6 keyboard interaction regression failed' }
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.81.7 keyboard interaction regression failed' }
             node scripts/verify-frozen-classes-desktop.js
             if ($LASTEXITCODE -ne 0) { throw 'Frozen Classes packaged UI regression failed' }
             node scripts/verify-beta572-attendance-desktop.js
             if ($LASTEXITCODE -ne 0) { throw 'Frozen Attendance desktop verification failed' }
             node scripts/verify-beta573-progress-desktop.js
-            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.81.6 Excel Student Progress desktop regression failed' }
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.81.7 Excel Student Progress desktop regression failed' }
             node scripts/verify-beta574-reports-desktop.js
             if ($LASTEXITCODE -ne 0) { throw 'Unified Class Reports desktop verification failed' }
             node scripts/verify-beta575-masters-desktop.js
-            if ($LASTEXITCODE -ne 0) { throw "Beta 5.81.6 master-list desktop check failed" }
+            if ($LASTEXITCODE -ne 0) { throw "Beta 5.81.7 master-list desktop check failed" }
             node scripts/verify-beta577-master-cards-desktop.js
-            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.81.6 Permanent Records card acceptance failed' }
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.81.7 Permanent Records card acceptance failed' }
             node scripts/verify-beta578-full-journey.js
-            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.81.6 functional recovery journey failed' }
+            if ($LASTEXITCODE -ne 0) { throw 'Beta 5.81.7 functional recovery journey failed' }
             node scripts/verify-hotfix-5801-desktop.js
-            if ($LASTEXITCODE -ne 0) { throw '5.81.6 Sahil family and unified search acceptance failed' }
-            node scripts/verify-attendee-table-desktop-5816.js
+            if ($LASTEXITCODE -ne 0) { throw '5.81.7 Sahil family and unified search acceptance failed' }
+            node scripts/verify-three-frozen-screens-desktop-5817.js
             if ($LASTEXITCODE -ne 0) { throw 'Attendee table UI acceptance failed' }
             node scripts/verify-volunteer-checkin-desktop-5815.js
             if ($LASTEXITCODE -ne 0) { throw 'Real volunteer Check In and Undo desktop regression failed' }
@@ -228,24 +229,24 @@ jobs:
           if ($proc.ExitCode -ne 0) { throw "Uninstall failed" }
           $data = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK\Data'
           if (!(Test-Path $data)) { throw "Uninstall removed offline data" }
-          Write-Host "PASS real install, 5.52 to 5.81.6 upgrade, persistent NGO test student, shortcut and uninstall"
+          Write-Host "PASS real install, 5.52 to 5.81.7 upgrade, persistent NGO test student, shortcut and uninstall"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Ananda-beta-5.81.6-table-verification-evidence
+          name: Ananda-beta-5.81.7-three-frozen-verification-evidence
           path: verification/
           if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
-          name: Ananda-Sangha-Event-Desk-beta-5.81.6-Full-Setup
+          name: Ananda-Sangha-Event-Desk-beta-5.81.7-Full-Setup
           path: dist/*.exe
           if-no-files-found: error
 
       - name: Publish single-file installer to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ananda-beta-5.81.6
-          name: Ananda Sangha Event Desk Beta 5.81.6 Full Installer
+          tag_name: ananda-beta-5.81.7
+          name: Ananda Sangha Event Desk Beta 5.81.7 Full Installer
           prerelease: true
           files: dist/*.exe
-          body: "Full Windows installer based on 5.81.5, four-column attendee check-in table, Kriyaban recognition, edit/delete and badge/scarf in row action menu, tested one-click arrival and Windows upgrade. Unsigned; Smart App Control may block it."
+          body: "Full Windows installer based on 5.81.6 implementing three approved event screens (Check-In/Registration, New Registration and Badge & Scarf), preserving the frozen sidebar, with Windows UI regression and upgrade checks. Unsigned; Smart App Control may block it."
