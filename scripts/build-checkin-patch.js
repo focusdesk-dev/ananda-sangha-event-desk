@@ -12,7 +12,10 @@ async function main(){
   asar.extractAll(old,extract);
   const entry=path.join(extract,'index.html'),original=fs.readFileSync(entry);
   const expected='df949e3bb0f64a09e32baa272a996c20fd557d9a';
-  assert.equal(blobSha(original),expected,'The installed 5.81.8 app.asar does not match the approved frozen baseline; refusing unsafe patch');
+  const normalized=Buffer.from(original.toString('utf8').replace(/\r\n/g,'\n'),'utf8');
+  const details={actualGitHash:blobSha(original),normalizedGitHash:blobSha(normalized),rawBytes:original.length,normalizedBytes:normalized.length};
+  console.log('BASELINE HTML CHECK',details);
+  assert.equal(blobSha(normalized),expected,'The installed 5.81.8 app.asar differs from the approved frozen baseline even after line-ending normalization; refusing unsafe patch');
   const updated=fs.readFileSync(path.join(__dirname,'..','index.html'));
   const before=original.toString('utf8'),after=updated.toString('utf8');
   assert.equal(before.includes('if(cells.length<6)return;'),true);
