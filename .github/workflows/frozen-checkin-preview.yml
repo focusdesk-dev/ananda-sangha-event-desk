@@ -1,0 +1,59 @@
+name: Check-In Frozen Design Preview (No Installer)
+on:
+  push:
+    branches: [review-5817-frozen-checkin-ui]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  visual-qa:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify source layout is isolated
+        run: node scripts/verify-frozen-checkin-layout.js
+      - name: Install Electron dependencies (no installer build)
+        shell: pwsh
+        run: |
+          $success = $false
+          for ($attempt=1; $attempt -le 4; $attempt++) {
+            npm install --no-audit --no-fund
+            if ($LASTEXITCODE -eq 0) { $success = $true; break }
+            Start-Sleep -Seconds (8 * $attempt)
+          }
+          if (!$success) { throw 'Could not install test dependencies' }
+      - name: Prepare assets for dev preview
+        shell: pwsh
+        run: |
+          npm run prepare:assets
+          if ($LASTEXITCODE -ne 0) { throw 'Failed preparing assets' }
+          $base64=[IO.File]::ReadAllText('assets/original-ananda-logo.png.base64').Trim()
+          [IO.File]::WriteAllBytes('logo-128.png',[Convert]::FromBase64String($base64))
+      - name: Verify existing event rules
+        shell: pwsh
+        run: |
+          node scripts/verify-three-frozen-screens-source-5817.js
+          if ($LASTEXITCODE -ne 0) { throw 'Existing frozen screens source regression' }
+          npm run test:search-dedupe
+          if ($LASTEXITCODE -ne 0) { throw 'Search/dedupe regression' }
+          npm run test:registration-lookup
+          if ($LASTEXITCODE -ne 0) { throw 'Registration lookup regression' }
+      - name: Start un-packaged Electron for visual QA
+        shell: pwsh
+        run: |
+          $electron=(Resolve-Path '.\node_modules\electron\dist\electron.exe').Path
+          Start-Process -FilePath $electron -ArgumentList @('--remote-debugging-port=9223','.') -PassThru | Select-Object Id,ProcessName
+          Start-Sleep -Seconds 5
+      - name: Verify computed layout and capture screenshot
+        run: node scripts/verify-frozen-checkin-preview.js
+      - name: Upload review screenshot (not installer)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frozen-checkin-layout-review
+          path: frozen-checkin-review.png
+          if-no-files-found: ignore
