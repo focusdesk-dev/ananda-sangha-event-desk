@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pkg.version,'2.0.0-beta.5.81.4');
+assert.equal(pkg.version,'2.0.0-beta.5.81.5');
 for(const x of [
   'Matching records',
   "const visible=records.filter(item=>!eventRows.some(row=>matchesEvent(item,row)))",

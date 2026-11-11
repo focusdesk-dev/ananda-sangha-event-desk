@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const source=fs.readFileSync('index.html','utf8');
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+assert.equal(pkg.version,'2.0.0-beta.5.81.5');
+const start=source.indexOf("document.querySelectorAll('.v36-check-vol').forEach(b=>b.onclick=");
+assert.ok(start>0,'Live volunteer roster Check In button missing');
+const live=source.slice(start,source.indexOf("document.querySelectorAll('.v36-undo-vol')",start));
+assert.ok(live.includes("v36RosterOnly=false;ensureVolunteerCheckin(v,eventId,date)"),'Live UI must exit roster-only mode before saving arrival');
+assert.ok(live.includes("v36CheckedVolunteerIds(eventId,date).includes(v.id)"),'Live UI must verify arrival was stored');
+assert.ok(live.includes("Checked in ·"),'Live one-click confirmation missing');
+assert.ok(live.includes("v46KriyabanMatch(volName(v),v.mobile)"),'Verified Kriyaban recognition missing');
+assert.ok(!live.includes('prompt(')&&!live.includes('confirm('),'Check In must not block on dialogs');
+assert.ok(source.includes("document.querySelectorAll('.v36-undo-vol').forEach"),'Original Undo missing');
+assert.ok(source.includes("renderDaily=renderV36Volunteers"),'The original rendered volunteer screen has changed');
+console.log('PASS 5.81.5 source: live volunteer button clears roster-only mode, saves arrival, recognises Kriyaban and preserves Undo.');
