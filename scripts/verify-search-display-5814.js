@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pkg.version,'2.0.0-beta.5.81.5');
+assert.equal(pkg.version,'2.0.0-beta.5.81.6');
 for(const x of [
  "window.ananda580ShowDuplicate?.(row,person.name)",
  "$('v5813RegistrationStatus')?.remove();",
