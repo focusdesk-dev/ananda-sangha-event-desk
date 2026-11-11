@@ -42,7 +42,7 @@ async function main(){
   assert.equal(initial.active,'checkin','Check-in screen not opened: '+JSON.stringify(initial));
   assert.deepEqual(initial.headers,['ATTENDEE','TYPE','MOBILE','ACTION'],'Repeated category column still visible');
   assert.ok(initial.cols.every(x=>x===4),'Unexpected columns: '+JSON.stringify(initial));
-  assert.ok(initial.kriyaban&&initial.menu&&initial.primary&&initial.edit&&initial.delete,'Approved controls absent');
+  assert.ok(initial.kriyaban&&initial.menu&&initial.primary&&initial.edit&&initial.delete,'Approved controls absent: '+JSON.stringify(initial));
   assert.equal(initial.accessories,2,'Badge/scarf controls lost');
   assert.equal(initial.status,'');assert.equal(initial.visibleCategory,false);
   const arrived=await run(function(){
