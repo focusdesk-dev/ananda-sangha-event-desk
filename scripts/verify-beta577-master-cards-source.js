@@ -3,7 +3,7 @@
   'use strict';
   const fs=require('node:fs'),assert=require('node:assert/strict');
   const html=fs.readFileSync('index.html','utf8'),pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-  assert.equal(pkg.version,'2.0.0-beta.5.81.5');
+  assert.equal(pkg.version,'2.0.0-beta.5.81.6');
   const sidebar=html.slice(html.indexOf('<aside'),html.indexOf('</aside>')+8);
   assert.equal(sidebar,fs.readFileSync('scripts/frozen-sidebar-beta573.txt','utf8'),'Frozen blue sidebar differs from approved baseline');
   const first=html.indexOf('function anandaV577()'),end=html.indexOf('  resetEventForm();',first);
