@@ -1,0 +1,124 @@
+name: Ananda 5.81.8 Typography Patch 2
+on:
+  push:
+    branches: [patch-5818-classes-typography]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  patch:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+      ELECTRON_BUILDER_BINARIES_MIRROR: https://mirrors.huaweicloud.com/electron-builder-binaries/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install asar and app test dependencies
+        shell: pwsh
+        run: |
+          npm install --no-fund --no-audit @electron/asar --no-save
+          if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed' }
+      - name: Download exact released 5.81.8 installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path base -Force | Out-Null
+          gh release download ananda-beta-5.81.8 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir base
+          if ($LASTEXITCODE -ne 0) { throw 'Original 5.81.8 download failed' }
+      - name: Install 5.81.8 to isolated test folder
+        shell: pwsh
+        run: |
+          $old=(Get-ChildItem base -Filter '*.exe' | Select-Object -First 1).FullName
+          $dest=Join-Path $env:RUNNER_TEMP 'Ananda-5818-Patch-Target'
+          $p=Start-Process -FilePath $old -ArgumentList @('/S',('/D='+$dest)) -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw 'Original installer failed' }
+          if (!(Test-Path (Join-Path $dest 'resources/app.asar'))) { throw 'Original app.asar missing' }
+          "ANANDA_PATCH_INSTALL_DIR=$dest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Install required Check-In Patch 1 before building Typography Patch 2
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path patch1 -Force | Out-Null
+          gh release download ananda-beta-5.81.8-checkin-patch1 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir patch1
+          if ($LASTEXITCODE -ne 0) { throw 'Required Check-In Patch 1 download failed' }
+          $patch=(Get-ChildItem patch1 -Filter '*.exe' | Select-Object -First 1).FullName
+          $arguments=@('--quiet','--target',('"' + $env:ANANDA_PATCH_INSTALL_DIR + '"'))
+          $p=Start-Process -FilePath $patch -ArgumentList $arguments -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw 'Required Check-In Patch 1 failed' }
+      - name: Repack one changed HTML file and verify base hash
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path distpatch -Force | Out-Null
+          node scripts/build-checkin-typography-patch2.js (Join-Path $env:ANANDA_PATCH_INSTALL_DIR 'resources/app.asar') (Join-Path $PWD 'distpatch/app.asar') (Join-Path $env:RUNNER_TEMP 'AnandaPatchExtract')
+          if ($LASTEXITCODE -ne 0) { throw 'Patch baseline or ASAR verification failed' }
+      - name: Compile small Windows EXE with embedded compressed patch
+        shell: pwsh
+        run: |
+          $meta=Get-Content patch2-hashes.json -Raw | ConvertFrom-Json
+          $cs=[IO.File]::ReadAllText('scripts/AnandaCheckinTypographyPatch2.cs').Replace('__BASE_SHA__',[string]$meta.baseSha256).Replace('__PATCH_SHA__',[string]$meta.patchSha256)
+          $csPath=Join-Path $PWD 'distpatch/AnandaCheckinPatch.generated.cs'
+          [IO.File]::WriteAllText($csPath,$cs,[System.Text.Encoding]::UTF8)
+          node -e "const fs=require('fs'),z=require('zlib');fs.writeFileSync('distpatch/app.asar.gz',z.gzipSync(fs.readFileSync('distpatch/app.asar'),{level:9}))"
+          if ($LASTEXITCODE -ne 0) { throw 'Compression failed' }
+          $csc=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
+          if (!(Test-Path $csc)) { throw 'Windows C# compiler unavailable' }
+          $out=Join-Path $PWD 'distpatch/Ananda-5.81.8-Classes-Typography-Patch2.exe'
+          $res=(Join-Path $PWD 'distpatch/app.asar.gz')+',AnandaPatchArchive'
+          & $csc '/nologo' '/target:winexe' ("/out:"+$out) ("/resource:"+$res) '/reference:System.Core.dll' '/reference:System.Windows.Forms.dll' '/reference:System.IO.Compression.dll' $csPath
+          if ($LASTEXITCODE -ne 0) { throw 'Patch compiler failed' }
+          if (!(Test-Path $out)) { throw 'Patch exe not found' }
+          Write-Host 'SMALL PATCH EXE BYTES:' (Get-Item $out).Length
+      - name: Test patch applies safely to genuine installed 5.81.8
+        shell: pwsh
+        run: |
+          $target=Join-Path $env:ANANDA_PATCH_INSTALL_DIR 'resources/app.asar'
+          $meta=Get-Content patch2-hashes.json -Raw | ConvertFrom-Json
+          if ((Get-FileHash $target -Algorithm SHA256).Hash -ne [string]$meta.baseSha256) { throw 'Original archive checksum mismatch' }
+          $data=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data'
+          New-Item -ItemType Directory -Path $data -Force | Out-Null
+          $sentinel=Join-Path $data 'patch-sentinel.txt'
+          [IO.File]::WriteAllText($sentinel,'original data')
+          $exe=(Resolve-Path 'distpatch/Ananda-5.81.8-Classes-Typography-Patch2.exe').Path
+          $argsPatch=@('--quiet','--target',('"' + $env:ANANDA_PATCH_INSTALL_DIR + '"'))
+          $p=Start-Process -FilePath $exe -ArgumentList $argsPatch -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw 'EXE patch installation failed' }
+          if ((Get-FileHash $target -Algorithm SHA256).Hash -ne [string]$meta.patchSha256) { throw 'Patched archive checksum mismatch' }
+          if (!(Get-ChildItem (Split-Path $target) -Filter 'app.asar.backup-5.81.8-patch2-*')) { throw 'Missing original backup' }
+          if ([IO.File]::ReadAllText($sentinel) -ne 'original data') { throw 'Offline data changed' }
+          $p2=Start-Process -FilePath $exe -ArgumentList $argsPatch -Wait -PassThru
+          if ($p2.ExitCode -ne 0) { throw 'Applying patch twice failed' }
+          Write-Host 'PASS exact version, backup, checksum, data untouched and safe repeat'
+      - name: Test packaged app real four-column Check-In and Undo UI
+        shell: pwsh
+        run: |
+          $app=Join-Path $env:ANANDA_PATCH_INSTALL_DIR 'Ananda Sangha Event Desk.exe'
+          $p=Start-Process -FilePath $app -ArgumentList '--remote-debugging-port=9223' -PassThru
+          Start-Sleep -Seconds 5
+          if ($p.HasExited) { throw "Patched app failed to start: $($p.ExitCode)" }
+          node scripts/verify-checkin-patch-ui.js
+          if ($LASTEXITCODE -ne 0) { throw 'Four-column/green Checked-In/Undo/overflow test failed' }
+          node scripts/verify-three-frozen-screens-desktop-5817.js
+          if ($LASTEXITCODE -ne 0) { throw 'Existing frozen event tests failed' }
+          Write-Host 'PASS patched Windows check-in and frozen screens'
+      - name: Upload small patch and test screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-5818-Typography-Patch2-Verification
+          path: |
+            distpatch/Ananda-5.81.8-Classes-Typography-Patch2.exe
+            checkin-patch-test.png
+            patch2-hashes.json
+          if-no-files-found: warn
+      - name: Release EXE patch after all tests pass
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-beta-5.81.8-typography-patch2
+          name: Ananda 5.81.8 Typography Patch 2 — Matches Classes
+          prerelease: true
+          files: distpatch/Ananda-5.81.8-Classes-Typography-Patch2.exe
+          body: "Small EXE patch for Ananda 5.81.8 with Check-In Patch 1 already applied. Aligns Check-In heading, labels, counts, table and buttons with Classes typography only. All previous interactions and records stay untouched. Close the app before patching. The patched application archive is hash-verified and backed up. Unsigned; Windows Smart App Control may block it."
