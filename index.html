@@ -11523,6 +11523,11 @@ function p2v58BindPhoneListener(){
   #checkin #v56GroupPlanning .v88-group-row .v56-count::after{font-size:11px!important}
 }
 </style>
+<!-- Patch 3: approved Check-In header only. No other page or behavior changed. -->
+<style id="checkin-header-caps-patch3">
+.app:has(#checkin.page.active) #pageTitle{text-transform:uppercase!important}
+.app:has(#checkin.page.active) #pageSubtitle{display:none!important}
+</style>
 <script id="frozen-checkin-copy-5817">
 (function(){
   const add=document.getElementById('v36NewRegistration');
