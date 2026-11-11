@@ -14,7 +14,8 @@ for(const text of [
   "OPEN REGISTRATION",
   "form.querySelectorAll('button[type=\"submit\"][data-mode]').forEach(b=>b.disabled=blocked)",
   "const attendees=allEventAttendees().filter(a=>",
-  "v36RosterOnly=false;\n        ensureVolunteerCheckin(volunteer,eventId,date,'badge/scarf')",
+  "v36RosterOnly=false;",
+  "ensureVolunteerCheckin(volunteer,eventId,date,'badge/scarf')",
   "const v5817BadgeRenderBase=renderItems",
   "const result=v5817BadgeRenderBase.apply(this,arguments)"
 ])assert.ok(html.includes(text),'Frozen screen requirement missing: '+text);
