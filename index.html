@@ -11528,6 +11528,81 @@ function p2v58BindPhoneListener(){
 .app:has(#checkin.page.active) #pageTitle{text-transform:uppercase!important}
 .app:has(#checkin.page.active) #pageSubtitle{display:none!important}
 </style>
+<!-- Patch 4: align the secondary Undo / More actions in one fixed action column. No event behavior changed. -->
+<style id="checkin-action-alignment-patch4">
+#checkin #v36AttendeeTable td.v5816-att-action .v5816-att-controls{
+  display:grid!important;
+  grid-template-columns:110px 60px!important;
+  column-gap:10px!important;
+  row-gap:0!important;
+  align-items:center!important;
+  justify-content:start!important;
+  justify-items:center!important;
+  width:180px!important;
+  min-width:180px!important;
+  max-width:100%!important;
+  margin:0!important;
+}
+#checkin #v36AttendeeTable .v36-att-check,
+#checkin #v36AttendeeTable .v5818-checked{
+  width:110px!important;
+  min-width:0!important;
+  min-height:36px!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  grid-column:1!important;
+  grid-row:1!important;
+}
+#checkin #v36AttendeeTable .v5818-undo,
+#checkin #v36AttendeeTable .v5816-att-menu{
+  width:60px!important;
+  min-width:0!important;
+  height:36px!important;
+  min-height:36px!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  grid-column:2!important;
+  grid-row:1!important;
+  align-self:center!important;
+  justify-self:center!important;
+}
+#checkin #v36AttendeeTable .v5818-undo{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+#checkin #v36AttendeeTable .v5816-att-menu[hidden]{display:none!important}
+#checkin #v36AttendeeTable .v5816-menu-toggle{
+  width:60px!important;
+  min-width:0!important;
+  height:36px!important;
+  min-height:36px!important;
+  padding:0!important;
+  border:0!important;
+  box-sizing:border-box!important;
+  display:grid!important;
+  place-items:center!important;
+  text-align:center!important;
+  line-height:1!important;
+}
+@media(max-width:1150px){
+  #checkin #v36AttendeeTable td.v5816-att-action .v5816-att-controls{
+    grid-template-columns:100px 48px!important;
+    column-gap:7px!important;
+    width:155px!important;
+    min-width:155px!important;
+  }
+  #checkin #v36AttendeeTable .v36-att-check,
+  #checkin #v36AttendeeTable .v5818-checked{width:100px!important}
+  #checkin #v36AttendeeTable .v5818-undo,
+  #checkin #v36AttendeeTable .v5816-att-menu,
+  #checkin #v36AttendeeTable .v5816-menu-toggle{width:48px!important}
+}
+</style>
 <script id="frozen-checkin-copy-5817">
 (function(){
   const add=document.getElementById('v36NewRegistration');
