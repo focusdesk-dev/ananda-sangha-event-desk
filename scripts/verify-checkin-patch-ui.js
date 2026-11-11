@@ -63,6 +63,17 @@ async function main(){
     betaCheck:!!b?.querySelector('.v36-att-check'),counts:[document.getElementById('v36AttRegistered')?.textContent,document.getElementById('v36AttChecked')?.textContent],
     documentOverflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
     tableOverflow:table.scrollWidth-table.clientWidth,
+    geometry:(function(){
+      const rect=x=>{const q=x?.getBoundingClientRect();return q?{x:q.x,y:q.y,w:q.width,h:q.height,cx:q.x+q.width/2,cy:q.y+q.height/2}:null};
+      return {
+        arrivedStatus:rect(a?.querySelector('.v5818-checked')),
+        arrivedUndo:rect(a?.querySelector('.v5818-undo')),
+        pendingCheck:rect(b?.querySelector('.v36-att-check')),
+        pendingDots:rect(b?.querySelector('.v5816-menu-toggle')),
+        arrivedLayout:getComputedStyle(a.querySelector('.v5816-att-controls')).display,
+        pendingLayout:getComputedStyle(b.querySelector('.v5816-att-controls')).display,
+      };
+    })(),
     typography:{
       titleTransform:getComputedStyle(document.getElementById('pageTitle')).textTransform,
       subtitleDisplay:getComputedStyle(document.getElementById('pageSubtitle')).display,
@@ -91,6 +102,17 @@ async function main(){
   assert.equal(initial.alphaMobile,'9810001666');assert.equal(initial.betaMobile,'9810001777');
   assert.ok(initial.checked&&initial.undo&&initial.dotsHidden&&initial.betaCheck,'Checked/Undo design failed: '+JSON.stringify(initial));
   assert.ok(initial.documentOverflow<=8&&initial.tableOverflow<=8,'Horizontal overflow: '+JSON.stringify(initial));
+  const g=initial.geometry;
+  assert.ok(g.arrivedStatus&&g.arrivedUndo&&g.pendingCheck&&g.pendingDots,'Action controls were not rendered');
+  assert.equal(g.arrivedLayout,'grid');assert.equal(g.pendingLayout,'grid');
+  const aligned=(a,b)=>Math.abs(a-b)<=1;
+  assert.ok(aligned(g.arrivedStatus.x,g.pendingCheck.x),'Status and Check In should share exact left edge: '+JSON.stringify(g));
+  assert.ok(aligned(g.arrivedUndo.cx,g.pendingDots.cx),'Undo and dots should share exact horizontal center: '+JSON.stringify(g));
+  assert.ok(aligned(g.arrivedStatus.cy,g.arrivedUndo.cy),'Checked In and Undo must align vertically: '+JSON.stringify(g));
+  assert.ok(aligned(g.pendingCheck.cy,g.pendingDots.cy),'Check In and dots must align vertically: '+JSON.stringify(g));
+  assert.ok(aligned(g.arrivedStatus.h,g.pendingCheck.h),'Primary controls must have equal height');
+  assert.ok(aligned(g.arrivedUndo.h,g.pendingDots.h),'Secondary controls must have equal height');
+
   assert.equal(initial.typography.titleTransform,'uppercase','Header is not visually uppercase');
   assert.equal(initial.typography.subtitleDisplay,'none','Unwanted Check-In subtitle is still visible');
   assert.deepEqual(initial.typography,{
