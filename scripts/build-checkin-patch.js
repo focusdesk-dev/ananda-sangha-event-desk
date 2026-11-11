@@ -1,0 +1,32 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const asar=require('@electron/asar');
+const old=path.resolve(process.argv[2]||''),output=path.resolve(process.argv[3]||'');
+const extract=path.resolve(process.argv[4]||'');
+if(!fs.existsSync(old)||!output||!extract)throw Error('Usage: node build-checkin-patch.js <base.asar> <patched.asar> <workdir>');
+const blobSha=b=>crypto.createHash('sha1').update(Buffer.from('blob '+b.length+'\0')).update(b).digest('hex');
+const sha256=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex').toUpperCase();
+async function main(){
+  if(fs.existsSync(extract))fs.rmSync(extract,{recursive:true,force:true});
+  fs.mkdirSync(extract,{recursive:true});
+  asar.extractAll(old,extract);
+  const entry=path.join(extract,'index.html'),original=fs.readFileSync(entry);
+  const expected='df949e3bb0f64a09e32baa272a996c20fd557d9a';
+  assert.equal(blobSha(original),expected,'The installed 5.81.8 app.asar does not match the approved frozen baseline; refusing unsafe patch');
+  const updated=fs.readFileSync(path.join(__dirname,'..','index.html'));
+  const before=original.toString('utf8'),after=updated.toString('utf8');
+  assert.equal(before.includes('if(cells.length<6)return;'),true);
+  assert.equal(after.includes('if(cells.length<5)return;'),true);
+  assert.ok(after.includes("v5818-checked")&&after.includes("v5818-undo"));
+  const orig=before.replace('if(cells.length<6)return;','if(cells.length<5)return;');
+  assert.equal(after.includes("const v5817BaseAttendeeRender=v36RenderAttendees"),true);
+  const pkg=JSON.parse(fs.readFileSync(path.join(extract,'package.json'),'utf8'));
+  assert.equal(pkg.version,'2.0.0-beta.5.81.8','Patch applies ONLY to 5.81.8');
+  fs.writeFileSync(entry,updated);
+  await asar.createPackage(extract,output);
+  assert.deepEqual(asar.extractFile(output,'index.html'),updated);
+  const report={baseSha256:sha256(old),patchSha256:sha256(output),oldIndexBytes:original.length,newIndexBytes:updated.length,packedBytes:fs.statSync(output).size,version:pkg.version};
+  fs.writeFileSync(path.resolve('patch-hashes.json'),JSON.stringify(report,null,2)+'\n');
+  console.log('PASS checked baseline, updated only index.html, repacked and verified app.asar',report);
+}
+main().catch(e=>{console.error(e.stack||String(e));process.exitCode=1});
