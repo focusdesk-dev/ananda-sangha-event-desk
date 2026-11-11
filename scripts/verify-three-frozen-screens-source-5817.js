@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const html=fs.readFileSync('index.html','utf8'),pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pkg.version,'2.0.0-beta.5.81.7');
+assert.ok(['2.0.0-beta.5.81.7','2.0.0-beta.5.81.8'].includes(pkg.version),'Unexpected version '+pkg.version);
 for(const text of [
   'function v5817VerifiedKriyaban(name,mobile)',
   'function v5817AttendeeType(name,mobile)',
