@@ -88,12 +88,18 @@ async function main(){
    document.getElementById('v36CloseRegistration').click();
    document.querySelector('#eventWorkspace .v36-go[data-page="items"]')?.click();
    document.getElementById('v82IssueReturn')?.click();
+   document.querySelector('#items .item-filter[data-filter="all"]')?.click();
+   const search=document.getElementById('itemSearch');search.value='';search.dispatchEvent(new Event('input',{bubbles:true}));
    const filter=document.getElementById('personTypeFilter');filter.value='all';filter.dispatchEvent(new Event('change',{bubbles:true}));
    const row=[...document.querySelectorAll('#itemTable tbody tr')].find(x=>x.textContent.includes('KRIYA ATTENDEE QA'));
    return {active:document.querySelector('.page.active')?.id,row:!!row,
     badge:!!row?.querySelector('.item-action[data-item="badge"][data-action="issue"]'),
     scarf:!!row?.querySelector('.item-action[data-item="scarf"][data-action="issue"]'),
-    lockHidden:!document.getElementById('v51SecurityButton')||getComputedStyle(document.getElementById('v51SecurityButton')).display==='none'};
+    lockHidden:!document.getElementById('v51SecurityButton')||getComputedStyle(document.getElementById('v51SecurityButton')).display==='none',
+    tableText:document.getElementById('itemTable')?.innerText.slice(0,700),
+    eventId:JSON.parse(localStorage.getItem('annualEventRegistration.v1'))?.activeEventId,
+    date:document.getElementById('workingDate')?.value,
+    registered:JSON.parse(localStorage.getItem('annualEventRegistration.v1'))?.attendees?.filter(a=>a.id.startsWith('qa5817')).map(a=>({id:a.id,registrationDate:a.registrationDate,eventId:a.eventId}))};
   });
   assert.equal(items.active,'items');assert.ok(items.row&&items.badge&&items.scarf&&items.lockHidden,
     'Badge counter must show unarrived attendee without Master Lock: '+JSON.stringify(items));
