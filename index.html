@@ -10721,7 +10721,7 @@ function p2v58BindPhoneListener(){
     }));
     table.querySelectorAll('tbody tr').forEach(row=>{
       const cells=[...row.cells];
-      if(cells.length<6)return;
+      if(cells.length<5)return;
       const nameCell=cells[0],mobileCell=cells[1],typeCell=cells[2],
         accessoryCells=cells.slice(3,-2),editCell=cells[cells.length-2],
         checkCell=cells[cells.length-1];
@@ -10824,8 +10824,24 @@ function p2v58BindPhoneListener(){
       nameCell.querySelectorAll('.person-flag[data-person-flag="kriyaban"],.v5816-kriyaban-label').forEach(n=>n.remove());
       const controls=actionCell.querySelector('.v5816-att-controls');
       if(controls&&statusCell.textContent.includes('CHECKED IN')){
-        const mark=document.createElement('span');mark.className='v5817-arrived';mark.textContent='CHECKED IN';
+        // Check-in is a green STATUS, not another primary action.
+        // Undo replaces the three-dot menu; existing Undo handlers are retained.
+        const mark=document.createElement('span');mark.className='v5817-arrived v5818-checked';mark.textContent='✓ CHECKED IN';
         controls.prepend(mark);
+        const undo=controls.querySelector('.v36-att-undo');
+        const menu=controls.querySelector('.v5816-att-menu');
+        if(undo){undo.textContent='UNDO';undo.classList.add('v5818-undo')}
+        if(menu){
+          menu.hidden=true;
+          // Keep registration editing accessible by selecting the attendee name.
+          const edit=menu.querySelector('.v36-att-edit'),label=nameCell.querySelector('.name');
+          if(edit&&label){
+            label.classList.add('v5818-edit-name');
+            label.setAttribute('role','button');label.tabIndex=0;label.title='Edit registration';
+            label.onclick=()=>edit.click();
+            label.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();edit.click()}};
+          }
+        }
       }
       tr.replaceChildren(nameCell,td,mobileCell,actionCell);
     });
@@ -11444,6 +11460,15 @@ function p2v58BindPhoneListener(){
 #checkin #v36ImportExcel,#checkin #v36DownloadTemplate{background:#fff!important;color:#063784!important;border:1px solid #cbd7e4!important}
 @media(max-width:1150px){#checkin #v56GroupPlanning .v88-group-row{gap:8px!important;padding:12px!important}#checkin #v56GroupPlanning .v88-group-row .v56-count::after{font-size:13px!important}#checkin #v36AttendeeTable th,#checkin #v36AttendeeTable td{padding-left:12px!important;padding-right:12px!important}#checkin #v36AttendeeUI>.card:nth-child(3)>.card-head{flex-wrap:wrap!important}}
 @media(max-width:800px){#checkin #v36AttendeeUI>.stats.three{gap:10px!important}#checkin #v36AttendeeUI>.card:nth-child(2){grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"search" "add" "family" "other" "results"!important}#checkin #v36AttendeeUI>.card:nth-child(2)>.card-head{max-width:240px}#checkin #v56GroupPlanning .v88-group-row{grid-template-columns:minmax(100px,1fr) repeat(3,minmax(60px,.5fr)) 25px!important}#checkin #v56GroupPlanning .v88-group-row .v56-count{display:block!important}#checkin #v56GroupPlanning .v88-group-row .v56-count:nth-child(3),#checkin #v56GroupPlanning .v88-group-row .v56-count:nth-child(4){padding-left:6px!important}#checkin #v36AttendeeTable .table-wrap{overflow-x:auto!important}#checkin #v36AttendeeTable table{min-width:700px!important}}
+
+/* 5.81.8 incremental patch: scoped Check-In status/Undo only */
+#checkin #v36AttendeeTable .v5818-checked{display:inline-flex!important;align-items:center!important;justify-content:center!important;white-space:nowrap!important;background:#def4e7!important;border-radius:9px!important;color:#14683b!important;padding:9px 10px!important;font-size:13px!important;font-weight:700!important;line-height:1.2!important}
+#checkin #v36AttendeeTable .v5818-undo{display:inline-flex!important;align-items:center!important;justify-content:center!important;border:1px solid #b5c9da!important;border-radius:9px!important;background:#fff!important;color:#173d68!important;padding:9px 12px!important;min-height:38px!important;font-size:12px!important;font-weight:700!important;line-height:1.2!important;cursor:pointer!important}
+#checkin #v36AttendeeTable .v5816-att-menu[hidden]{display:none!important}
+#checkin #v36AttendeeTable .v5818-edit-name{cursor:pointer!important}
+#checkin #v36AttendeeTable .v5818-edit-name:hover{text-decoration:underline!important}
+#checkin #v36AttendeeTable .v5816-att-controls{flex-wrap:nowrap!important;min-width:0!important}
+#checkin #v36AttendeeTable .v5816-att-action{overflow:visible!important}
 </style>
 <script id="frozen-checkin-copy-5817">
 (function(){
