@@ -10884,8 +10884,8 @@ function p2v58BindPhoneListener(){
     v5817RegistrationStatus();return result;
   };
   ['v36MainName','v36MainMobile'].forEach(id=>{
-    $(id)?.addEventListener('input',()=>queueMicrotask(v5817RegistrationStatus));
-    $(id)?.addEventListener('change',()=>queueMicrotask(v5817RegistrationStatus));
+    $(id)?.addEventListener('input',v5817RegistrationStatus);
+    $(id)?.addEventListener('change',v5817RegistrationStatus);
   });
   $('v36RegistrationForm')?.addEventListener('submit',event=>{
     // The view's blocked flag is a safeguard in addition to existing duplicate rules.
