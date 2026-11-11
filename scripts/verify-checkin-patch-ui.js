@@ -34,6 +34,9 @@ async function main(){
    s.activeEventId=eventId;localStorage.setItem(k,JSON.stringify(s));
   });
   await call('Page.reload',{ignoreCache:true});await sleep(1200);
+  // Verify the same 1536px desktop canvas as the approved frozen screenshot.
+  await call('Emulation.setDeviceMetricsOverride',{width:1536,height:1024,deviceScaleFactor:1,mobile:false});
+  await sleep(200);
   const initial=await run(function(){
    document.querySelector('aside .nav-btn[data-page="events"]')?.click();
    document.getElementById('p2v510OpenEvent')?.click();
