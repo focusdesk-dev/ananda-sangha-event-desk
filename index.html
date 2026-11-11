@@ -11250,6 +11250,12 @@ function p2v58BindPhoneListener(){
       const result=v5817BadgeRenderBase.apply(this,arguments);
       const table=$('itemTable');
       if(!table)return result;
+      table.dataset.v5817BadgeDebug=JSON.stringify({
+        activeEventId:state.activeEventId,workingDate:$('workingDate').value,
+        filter:itemFilter,personType:$('personTypeFilter').value,search:$('itemSearch').value,
+        allEventAttendees:allEventAttendees().map(a=>({id:a.id,name:a.name,eventId:a.eventId,registrationDate:a.registrationDate})),
+        availablePeople:v116ItemPeople().map(p=>({type:p.type,id:p.id,name:p.name}))
+      });
       table.querySelectorAll('.item-box').forEach(box=>{
         const issue=box.querySelector('.item-action[data-action="issue"]');
         const receive=box.querySelector('.item-action[data-action="return"]');

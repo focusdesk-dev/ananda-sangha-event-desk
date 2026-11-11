@@ -99,6 +99,7 @@ async function main(){
     tableText:document.getElementById('itemTable')?.innerText.slice(0,700),
     eventId:JSON.parse(localStorage.getItem('annualEventRegistration.v1'))?.activeEventId,
     date:document.getElementById('workingDate')?.value,
+    badgeDebug:document.getElementById('itemTable')?.dataset.v5817BadgeDebug,
     registered:JSON.parse(localStorage.getItem('annualEventRegistration.v1'))?.attendees?.filter(a=>a.id.startsWith('qa5817')).map(a=>({id:a.id,registrationDate:a.registrationDate,eventId:a.eventId}))};
   });
   assert.equal(items.active,'items');assert.ok(items.row&&items.badge&&items.scarf&&items.lockHidden,
