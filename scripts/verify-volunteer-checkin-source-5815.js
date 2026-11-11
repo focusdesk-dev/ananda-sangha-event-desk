@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const source=fs.readFileSync('index.html','utf8');
 const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
-assert.equal(pkg.version,'2.0.0-beta.5.81.7');
+assert.equal(pkg.version,'2.0.0-beta.5.81.8');
 const start=source.indexOf("document.querySelectorAll('.v36-check-vol').forEach(b=>b.onclick=");
 assert.ok(start>0,'Live volunteer roster Check In button missing');
 const live=source.slice(start,source.indexOf("document.querySelectorAll('.v36-undo-vol')",start));
