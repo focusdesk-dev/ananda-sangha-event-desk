@@ -48,6 +48,14 @@ async function main(){
    const table=document.querySelector('#v36AttendeeTable table');
    if(!table)return {error:'Missing attendee table',page:document.querySelector('.page.active')?.id};
    const tr=[...table.tBodies[0].rows],a=tr.find(r=>r.cells[0].querySelector('.name')?.textContent==='PATCH ALPHA'),b=tr.find(r=>r.cells[0].querySelector('.name')?.textContent==='PATCH BETA');
+   // The test event has no family group. Create a temporary heading solely
+   // to inspect its actual CSS, without modifying saved family records.
+   const familyHost=document.getElementById('v56GroupPlanning');
+   const existingFamilyLabel=familyHost?.querySelector(':scope > .card-sub');
+   const familyTestLabel=existingFamilyLabel||document.createElement('div');
+   if(!existingFamilyLabel){familyTestLabel.className='card-sub';familyHost?.append(familyTestLabel);}
+   const familyHeadingFont=getComputedStyle(familyTestLabel,'::after').fontSize;
+   if(!existingFamilyLabel)familyTestLabel.remove();
    return {page:document.querySelector('.page.active')?.id,headers:[...table.tHead.rows[0].cells].map(c=>c.textContent.trim()),
     lengths:tr.map(x=>x.cells.length),alphaType:a?.cells[1]?.textContent.trim(),alphaMobile:a?.cells[2]?.textContent.trim(),
     betaMobile:b?.cells[2]?.textContent.trim(),checked:!!a?.querySelector('.v5818-checked'),
@@ -61,7 +69,7 @@ async function main(){
       cardLabel:getComputedStyle(document.querySelector('#v36AttendeeUI>.stats.three .stat:nth-child(2) .label')).fontSize,
       cardValue:getComputedStyle(document.getElementById('v36AttChecked')).fontSize,
       search:getComputedStyle(document.getElementById('v36AttendeeSearch')).fontSize,
-      familyTitle:getComputedStyle(document.querySelector('#v56GroupPlanning>.card-sub'),'::after').fontSize,
+      familyTitle:familyHeadingFont,
       attendeeName:getComputedStyle(a.querySelector('.name')).fontSize,
       checkedLabel:getComputedStyle(a.querySelector('.v5818-checked')).fontSize,
       tableHeader:getComputedStyle(table.tHead.rows[0].cells[0],'::after').fontSize,
