@@ -51,8 +51,14 @@ async function main(){
     undo:!!a?.querySelector('.v5818-undo'),dotsHidden:!a?.querySelector('.v5816-att-menu')||getComputedStyle(a.querySelector('.v5816-att-menu')).display==='none',
     betaCheck:!!b?.querySelector('.v36-att-check'),counts:[document.getElementById('v36AttRegistered')?.textContent,document.getElementById('v36AttChecked')?.textContent],
     documentOverflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
-    tableOverflow:table.scrollWidth-table.clientWidth};
+    tableOverflow:table.scrollWidth-table.clientWidth,
+    overhangs:[...document.querySelectorAll('body *')].map(x=>({el:x,rect:x.getBoundingClientRect()}))
+      .filter(x=>x.rect.width>0&&x.rect.right>document.documentElement.clientWidth+8)
+      .sort((x,y)=>y.rect.right-x.rect.right).slice(0,12)
+      .map(x=>({tag:x.el.tagName,id:x.el.id,cls:String(x.el.className||'').slice(0,75),right:Math.round(x.rect.right),width:Math.round(x.rect.width)}))};
   });
+  const firstScreenshot=await call('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+  fs.writeFileSync('checkin-patch-test.png',Buffer.from(firstScreenshot.data,'base64'));
   assert.equal(initial.page,'checkin','Wrong page '+JSON.stringify(initial));
   assert.deepEqual(initial.headers,['ATTENDEE','TYPE','MOBILE','ACTION']);
   assert.ok(initial.lengths.every(n=>n===4),'Column mismatch: '+JSON.stringify(initial));
