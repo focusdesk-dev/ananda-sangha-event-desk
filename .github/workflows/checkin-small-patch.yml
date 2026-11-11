@@ -50,14 +50,15 @@ jobs:
         run: |
           $meta=Get-Content patch-hashes.json -Raw | ConvertFrom-Json
           $cs=[IO.File]::ReadAllText('scripts/AnandaCheckinPatch.cs').Replace('__BASE_SHA__',[string]$meta.baseSha256).Replace('__PATCH_SHA__',[string]$meta.patchSha256)
-          [IO.File]::WriteAllText((Join-Path $PWD (Join-Path $PWD 'distpatch/AnandaCheckinPatch.generated.cs')),$cs,[System.Text.Encoding]::UTF8)
+          $csPath=Join-Path $PWD 'distpatch/AnandaCheckinPatch.generated.cs'
+          [IO.File]::WriteAllText($csPath,$cs,[System.Text.Encoding]::UTF8)
           node -e "const fs=require('fs'),z=require('zlib');fs.writeFileSync('distpatch/app.asar.gz',z.gzipSync(fs.readFileSync('distpatch/app.asar'),{level:9}))"
           if ($LASTEXITCODE -ne 0) { throw 'Compression failed' }
           $csc=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
           if (!(Test-Path $csc)) { throw 'Windows C# compiler unavailable' }
           $out=Join-Path $PWD 'distpatch/Ananda-5.81.8-Checkin-Undo-Patch.exe'
           $res=(Join-Path $PWD 'distpatch/app.asar.gz')+',AnandaPatchArchive'
-          & $csc '/nologo' '/target:winexe' ("/out:"+$out) ("/resource:"+$res) '/reference:System.Core.dll' '/reference:System.Windows.Forms.dll' '/reference:System.IO.Compression.dll' 'distpatch/AnandaCheckinPatch.generated.cs'
+          & $csc '/nologo' '/target:winexe' ("/out:"+$out) ("/resource:"+$res) '/reference:System.Core.dll' '/reference:System.Windows.Forms.dll' '/reference:System.IO.Compression.dll' $csPath
           if ($LASTEXITCODE -ne 0) { throw 'Patch compiler failed' }
           if (!(Test-Path $out)) { throw 'Patch exe not found' }
           Write-Host 'SMALL PATCH EXE BYTES:' (Get-Item $out).Length
