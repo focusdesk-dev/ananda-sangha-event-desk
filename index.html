@@ -11843,6 +11843,57 @@ function p2v58BindPhoneListener(){
   if(search)search.placeholder='Search by name or mobile number';
 })();
 </script>
+<style id="v5-approved-layout">
+/* Patch 5: Volunteers and existing attendee registration only; approved sidebar and Classes remain unchanged. */
+#daily #v36VolunteerUI{display:none!important}
+.app:has(#daily.page.active) #pageTitle{font-size:30px!important;font-weight:720!important;color:#091633!important}
+.app:has(#daily.page.active) #pageSubtitle{display:none!important}
+#daily #v5VolunteersUI{position:relative;color:#0b1939}
+#daily #v5VolunteersUI .v5-tools{display:grid;grid-template-columns:218px minmax(180px,1fr) 160px;gap:16px;align-items:center;margin-bottom:20px}
+#daily #v5AddVolunteer{background:#073781;color:#fff;min-height:44px;border-radius:9px;font-size:13px;font-weight:700;white-space:nowrap}
+#daily #v5VolunteerSearch,#daily #v5VolunteerFilter{min-height:44px;width:100%;border:1px solid #cbd9e8;background:#fff;border-radius:9px;padding:0 16px;font-size:13px}
+#daily #v5VolunteerFilter{font-weight:700}
+#daily #v5VolunteersUI .v5-layout{display:grid;grid-template-columns:minmax(0,1fr) 315px;gap:18px;align-items:start}
+#daily #v5VolunteersUI .v5-table-card{border:1px solid #cfdae7;border-radius:12px;overflow-x:auto;background:#fff;min-width:0}
+#daily #v5VolunteerTable table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:635px}
+#daily #v5VolunteerTable th{background:#f0f4f8;color:#152743;text-align:left;font-size:12px;padding:12px}
+#daily #v5VolunteerTable td{border-top:1px solid #e2e9f1;padding:11px 12px;vertical-align:middle;font-size:12px;line-height:1.35}
+#daily #v5VolunteerTable th:nth-child(1){width:25%}
+#daily #v5VolunteerTable th:nth-child(2){width:17%}
+#daily #v5VolunteerTable th:nth-child(3),#daily #v5VolunteerTable th:nth-child(4){width:16%}
+#daily #v5VolunteerTable th:nth-child(5){width:18%}
+#daily #v5VolunteerTable th:nth-child(6){width:8%}
+#daily #v5VolunteerTable td:last-child{text-align:center}
+#daily #v5VolunteerTable .v5-item{min-height:34px;width:100%;max-width:122px;background:#fff;border:1px solid #cbd8e6;border-radius:8px;font-size:12px;font-weight:700;color:#061b47}
+#daily #v5VolunteerTable .v5-item.issued{background:#ffe7a0;border-color:#f0cf65;color:#201d12}
+#daily #v5VolunteerTable .v5-check{min-height:34px;background:#e9edf2;color:#223047;border:0;border-radius:9px;font-size:11px;font-weight:700;padding:7px 10px;white-space:nowrap}
+#daily #v5VolunteerTable .v5-check.checked{background:#ddf3e4;color:#125b2b;cursor:default}
+#daily #v5VolunteerTable .v5-info{border:0;background:transparent;color:#092e75;font-size:22px;min-width:34px}
+#daily #v5VolunteersUI .v5-detail{background:#fff;border:1px solid #ccd9e6;border-radius:12px;padding:18px;min-height:220px}
+#daily #v5VolunteersUI .v5-detail h3{font-size:15px;margin:0 0 20px}
+#daily #v5VolunteersUI .v5-detail h4{font-size:17px;margin:0 0 6px}
+#daily #v5VolunteersUI .v5-detail p{font-size:12px;color:#3c4d68;margin:0 0 14px}
+#daily #v5VolunteersUI .v5-detail strong{font-size:12px}
+#daily #v5VolunteersUI .v5-success,#daily #v5VolunteersUI .v5-muted{padding:11px 9px;border-radius:8px;margin-bottom:15px;font-weight:700;font-size:12px}
+#daily #v5VolunteersUI .v5-success{background:#ddf3e3;color:#14642f}
+#daily #v5VolunteersUI .v5-muted{background:#e9edf2;color:#41516a}
+#daily #v5VolunteersUI .v5-reason{padding:8px 0;border-bottom:1px solid #edf0f5;font-size:12px}
+#daily #v5VolunteersUI .v5-help{background:#eaf4ff;padding:12px;border-radius:9px;line-height:1.5;margin-top:15px}
+#daily #v5VolunteersUI .v5-reverse{position:absolute;width:330px;padding:16px 17px;border:1px solid #cbd9e7;border-radius:12px;background:#fff;z-index:25;box-shadow:0 6px 20px #0002}
+#daily #v5VolunteersUI .v5-reverse.hidden{display:none!important}
+#daily #v5VolunteersUI .v5-reverse h3{font-size:16px;margin:0 0 6px}
+#daily #v5VolunteersUI .v5-reverse p{font-size:12px;margin:0 0 15px}
+#daily #v5VolunteersUI .v5-reverse button{font-size:11px;margin-right:8px}
+#v36RegistrationModal #v5817RegistrationStatus.v5-existing{background:#fff5ef;border:1px solid #efb8a7;color:#8b251f}
+#v36RegistrationModal #v5817RegistrationStatus.v5-already{background:#e4f5e9;border:1px solid #b5dec4;color:#17633b}
+#v36RegistrationModal #v5817RegistrationStatus.v5-existing,#v36RegistrationModal #v5817RegistrationStatus.v5-already{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex-wrap:wrap!important;padding:12px 14px!important;border-radius:9px!important;font-size:12px!important}
+#v36RegistrationModal #v5817RegistrationStatus .v5-linked-volunteer{font-size:12px;color:#283b5b;font-weight:650}
+#v36RegistrationModal #v5817RegistrationStatus .v5-existing-checkin{background:#07853d!important;color:#fff!important;border-color:#07853d!important;font-size:12px!important;min-height:37px!important;padding:9px 14px!important}
+#v36RegistrationModal:has(#v5817RegistrationStatus.v5-existing) #v80MobileDuplicate,#v36RegistrationModal:has(#v5817RegistrationStatus.v5-already) #v80MobileDuplicate{display:none!important}
+#items #v82IssueReturn{display:none!important}
+@media(max-width:1150px){#daily #v5VolunteersUI .v5-layout{grid-template-columns:minmax(0,1fr)}#daily #v5VolunteersUI .v5-tools{grid-template-columns:190px minmax(130px,1fr) 145px}}
+@media(max-width:700px){#daily #v5VolunteersUI .v5-tools{grid-template-columns:1fr;gap:9px}}
+</style>
   <!-- Desktop window title comes from the installed package version in main.js. -->
 
 </body>
