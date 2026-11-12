@@ -11905,6 +11905,80 @@ function p2v58BindPhoneListener(){
   #checkin #v36AttendeeTable .v5816-menu-toggle{width:48px!important}
 }
 </style>
+<!-- Patch 5: Only Volunteer main content + existing-registration status, frozen sidebar untouched. -->
+<style id="ananda-patch5-unified">
+#v36RegistrationModal .v5817-status-registered{
+  border:1px solid #f1c66c!important;background:#fff6e3!important;color:#0c2b58!important;
+}
+#v36RegistrationModal .v5-linked-volunteer{flex:1;color:#314c69;font-size:11px;white-space:normal}
+#v36RegistrationModal .v5-existing-checkin{background:#098542!important;border:1px solid #098542!important;color:white!important;font-size:12px!important;font-weight:700!important;white-space:nowrap}
+body:has(#daily.page.active) #pageTitle{text-transform:uppercase!important;font-size:30px!important;color:#082e65!important}
+body:has(#daily.page.active) #pageSubtitle{display:none!important}
+#daily #v36VolunteerUI{display:none!important}
+#daily #v5VolunteerHub{display:block;max-width:100%;margin-top:0;padding:0;background:transparent}
+#daily .v5-toolbar{display:grid;grid-template-columns:220px minmax(180px,1fr) 170px;gap:17px;align-items:center;margin:0 0 22px}
+#daily #v5AddVolunteer{min-height:47px;background:#073581;border:1px solid #073581;color:#fff;border-radius:9px;font-size:13px;font-weight:700;white-space:nowrap}
+#daily #v5Search,#daily #v5Filter{height:47px;border:1px solid #cbd8e8;border-radius:9px;background:#fff;color:#132f59;font-size:13px;font-weight:550;padding:0 14px;min-width:0;box-shadow:none}
+#daily #v5Search{padding-left:18px}
+#daily #v5Filter{font-weight:700}
+#daily .v5-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start;min-width:0}
+#daily .v5-layout:has(.v5-detail:not(.hidden)){grid-template-columns:minmax(0,1fr) 310px}
+#daily .v5-list,#daily .v5-detail{min-width:0}
+#daily .v5-list>.table-wrap{border:1px solid #d4dfec;border-radius:12px;overflow-x:auto;background:#fff}
+#daily .v5-list table{width:100%;border-collapse:collapse;table-layout:fixed;background:#fff}
+#daily .v5-list thead{background:#f0f4f8}
+#daily .v5-list th{height:40px;text-align:left;color:#17385e;font-size:12px;font-weight:700;padding:10px}
+#daily .v5-list th:nth-child(1){width:25%}#daily .v5-list th:nth-child(2){width:17%}
+#daily .v5-list th:nth-child(3),#daily .v5-list th:nth-child(4){width:16%}
+#daily .v5-list th:nth-child(5){width:20%}#daily .v5-list th:nth-child(6){width:6%}
+#daily .v5-list td{padding:12px 9px;font-size:12px;color:#081a3c;border-bottom:1px solid #e1eaf3;vertical-align:middle}
+#daily .v5-list tr:last-child td{border-bottom:0}
+#daily .v5-list td:first-child b{display:block;font-size:13px;font-weight:720;white-space:normal}
+#daily .v5-list td:first-child small{display:block;font-size:10px;color:#5b6f87}
+#daily .v5-issue{width:100%;max-width:120px;min-height:35px;display:inline-flex;align-items:center;justify-content:center;background:#fff;border:1px solid #c9d8e5;border-radius:8px;color:#092958;font-size:11px;font-weight:750;white-space:nowrap;cursor:pointer}
+#daily .v5-issue.issued{background:#ffebaa;border:1px solid #f4ce65;color:#312411}
+#daily .v5-issue:hover{filter:brightness(.975)}
+#daily .v5-status{display:inline-flex;align-items:center;justify-content:center;min-height:31px;padding:7px 8px;border-radius:9px;font-size:11px;font-weight:700;white-space:nowrap}
+#daily .v5-status.arrived{background:#def5e4;color:#16672b}
+#daily .v5-status.waiting{background:#eaeef2;color:#203852}
+#daily .v5-select{border:0;background:transparent;color:#073681;font-size:21px;font-weight:700;cursor:pointer;width:31px;height:34px}
+#daily .v5-detail{border:1px solid #cedce9;background:#fff;border-radius:12px;padding:18px 17px;box-shadow:0 5px 15px rgba(10,31,60,.07);font-size:12px;color:#10254e}
+#daily .v5-detail-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+#daily .v5-detail h3{font-size:15px;margin:10px 0 4px;color:#0a1637}
+#daily .v5-detail-head h3{margin:0;font-size:15px}
+#daily #v5CloseDetails{font-size:23px;border:0;background:transparent;color:#183c64;cursor:pointer}
+#daily .v5-detail p{margin:9px 0;font-size:12px}
+#daily .v5-detail-rule{border-top:1px solid #d6e0eb;margin:14px 0}
+#daily .v5-reason{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:7px;align-items:center;padding:6px 0;font-size:12px}
+#daily .v5-reason .ok{color:#138c3c;font-size:18px;font-weight:700}
+#daily .v5-reason .off{color:#b4c0cd;font-size:18px}
+#daily .v5-reason small{color:#667991;font-size:10px}
+#daily #v5ManualCheck{margin:9px 0;min-height:33px;font-size:11px}
+#daily .v5-detail-note{background:#e9f4fc;color:#173d6c;border-radius:8px;padding:11px;font-size:11px;line-height:1.45;margin-top:15px}
+#daily .v5-how{display:grid;grid-template-columns:140px repeat(3,minmax(0,1fr));align-items:start;gap:17px;border:1px solid #cfddec;border-radius:11px;padding:20px;margin-top:28px;background:#fff;box-shadow:0 3px 14px rgba(13,47,84,.05)}
+#daily .v5-how>strong{font-size:15px;color:#0d1b3e}
+#daily .v5-how>div{border-left:1px solid #dbe3ee;padding-left:14px;display:grid;gap:5px}
+#daily .v5-how b{font-size:12px;color:#092c62}
+#daily .v5-how span{font-size:11px;line-height:1.4;color:#233a5c}
+#v5ReverseDialog .v5-confirm{max-width:410px;padding:25px}
+#v5ReverseDialog .v5-confirm h3{font-size:18px;color:#0a1b44;margin:0}
+#v5ReverseDialog .v5-confirm p{font-size:13px;color:#2c4869;line-height:1.5;margin:14px 0}
+#v5AddDialog .v5-add-dialog{max-width:560px}
+#v5AddDialog #v5AddSearch{width:100%;padding:12px;border:1px solid #cbd9e5;border-radius:9px;margin:12px 0}
+#v5AddDialog #v5AddMatches{max-height:250px;overflow-y:auto}
+#v5AddDialog .v5-add-match{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e7edf3;padding:10px 4px;gap:15px}
+#v5AddDialog .v5-add-match small{display:block;color:#5b7091;font-size:11px}
+#eventWorkspace .v36-go[data-page="items"],#eventWorkspace [data-go="items"]{display:none!important}
+@media(max-width:1200px){
+  #daily .v5-layout:has(.v5-detail:not(.hidden)){grid-template-columns:minmax(0,1fr)}
+  #daily .v5-detail{max-width:600px}
+  #daily .v5-list table{min-width:740px}
+}
+@media(max-width:760px){
+  #daily .v5-toolbar{grid-template-columns:1fr;gap:10px}
+  #daily .v5-how{grid-template-columns:1fr}
+}
+</style>
 <script id="frozen-checkin-copy-5817">
 (function(){
   const add=document.getElementById('v36NewRegistration');
