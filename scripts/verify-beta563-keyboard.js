@@ -48,6 +48,7 @@ async function main(){
       tab.click();
       const input=document.getElementById('p2v526Search');
       if(!input)throw Error('Student Wise search field missing');
+      input.value='';
       input.focus();
       return document.activeElement===input;
     })()`),true,'search focus');
