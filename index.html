@@ -11553,6 +11553,7 @@ function p2v58BindPhoneListener(){
     }
     function v5RenderVolunteerUI(){
       if(!$('v5VolunteerTable')||!activeEvent())return;
+      if(page==='daily')$('pageTitle').textContent='VOLUNTEERS';
       const list=v5VolunteerList();
       $('v5VolunteerFilter').value=v5Filter;
       const table=$('v5VolunteerTable');
