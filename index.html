@@ -11478,6 +11478,13 @@ function p2v58BindPhoneListener(){
       form.querySelectorAll('button[type="submit"][data-mode]').forEach(b=>b.disabled=true);
     };
 
+    // Older input event handlers retain their original function reference.
+    // Register the new status renderer after them so it is the last visible state.
+    ['v36MainName','v36MainMobile'].forEach(id=>{
+      $(id)?.addEventListener('input',v5817RegistrationStatus);
+      $(id)?.addEventListener('change',v5817RegistrationStatus);
+    });
+
     // Unified volunteer counter, limited to the selected event and working date.
     let v5Filter='all',v5Query='',v5SelectedVolunteer='',v5Reverse=null;
     const dailyPage=$('daily'),oldDailyUI=$('v36VolunteerUI');
