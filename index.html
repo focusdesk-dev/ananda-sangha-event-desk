@@ -10943,6 +10943,57 @@ function p2v58BindPhoneListener(){
     '#v36RegistrationModal .actions{justify-content:flex-end}'+
     '</style>');
 
+
+    // PATCH 5 REGISTRATION MODULE START (fresh)
+    const v5PreviousRegistrationStatus=v5817RegistrationStatus;
+    v5817RegistrationStatus=function(){
+      v5PreviousRegistrationStatus();
+      const host=$('v5817RegistrationStatus'),form=$('v36RegistrationForm');
+      if(!host||!form||!$('v36RegistrationModal')?.classList.contains('open')||v36RegistrationEditKey)return;
+      const name=String($('v36MainName').value||'').trim(),mobile=normMobile($('v36MainMobile').value||'');
+      if(!name||mobile.length!==10)return;
+      const match=v36AllAttendeeRows().find(row=>
+        normName(row.name)===normName(name)&&
+        normMobile(row.personalMobile||(row.kind==='attendee'?row.mobile:''))===mobile);
+      if(!match)return;
+      const alreadyChecked=(match.checkins||[]).includes(v5CurrentDate());
+      const volunteerId=match.family?.volunteerId||match.record?.referenceVolunteerId||
+        state.attendeeMaster.find(m=>m.id===match.record?.masterId)?.linkedVolunteerId;
+      const linked=state.volunteers.find(v=>v.id===volunteerId);
+      const label=document.createElement('strong');
+      label.textContent=name.toUpperCase()+' — '+(alreadyChecked?'ALREADY CHECKED IN':linked?'PRE-REGISTERED':'REGISTERED');
+      host.replaceChildren(label);
+      if(linked){
+        const link=document.createElement('span');link.className='v5-linked-volunteer';
+        link.textContent='LINKED VOLUNTEER: '+volName(linked).toUpperCase();
+        host.append(link);
+      }
+      if(!alreadyChecked){
+        const btn=document.createElement('button');btn.type='button';
+        btn.className='btn v5-existing-checkin';btn.textContent='✓ CHECK IN';
+        btn.onclick=()=>{
+          const current=v36AllAttendeeRows().find(r=>r.kind===match.kind&&r.id===match.id&&
+            (match.kind!=='family'||r.groupId===match.groupId));
+          if(!current||current.checkins.includes(v5CurrentDate())){v5817RegistrationStatus();return}
+          v36SetAttendeeCheckin(current,true);
+          $('v36RegistrationModal').classList.remove('open');
+          v36RenderAttendees();
+          toast('Checked in · '+current.name);
+        };
+        host.append(btn);
+      }
+      host.className='v5817-status '+(alreadyChecked?'v5-already':'v5-existing');
+      form.querySelectorAll('button[type="submit"][data-mode]').forEach(b=>b.disabled=true);
+    };
+
+    // Older input event handlers retain their original function reference.
+    // Register the new status renderer after them so it is the last visible state.
+    ['v36MainName','v36MainMobile'].forEach(id=>{
+      $(id)?.addEventListener('input',v5817RegistrationStatus);
+      $(id)?.addEventListener('change',v5817RegistrationStatus);
+    });
+
+    // PATCH 5 REGISTRATION MODULE END (fresh)
   decorateLanding();
 })();
   resetEventForm();
@@ -11264,54 +11315,6 @@ function p2v58BindPhoneListener(){
       if(page==='daily')v5RenderVolunteerUI();
       return result;
     };
-    const v5PreviousRegistrationStatus=v5817RegistrationStatus;
-    v5817RegistrationStatus=function(){
-      v5PreviousRegistrationStatus();
-      const host=$('v5817RegistrationStatus'),form=$('v36RegistrationForm');
-      if(!host||!form||!$('v36RegistrationModal')?.classList.contains('open')||v36RegistrationEditKey)return;
-      const name=String($('v36MainName').value||'').trim(),mobile=normMobile($('v36MainMobile').value||'');
-      if(!name||mobile.length!==10)return;
-      const match=v36AllAttendeeRows().find(row=>
-        normName(row.name)===normName(name)&&
-        normMobile(row.personalMobile||(row.kind==='attendee'?row.mobile:''))===mobile);
-      if(!match)return;
-      const alreadyChecked=(match.checkins||[]).includes(v5CurrentDate());
-      const volunteerId=match.family?.volunteerId||match.record?.referenceVolunteerId||
-        state.attendeeMaster.find(m=>m.id===match.record?.masterId)?.linkedVolunteerId;
-      const linked=state.volunteers.find(v=>v.id===volunteerId);
-      const label=document.createElement('strong');
-      label.textContent=name.toUpperCase()+' — '+(alreadyChecked?'ALREADY CHECKED IN':linked?'PRE-REGISTERED':'REGISTERED');
-      host.replaceChildren(label);
-      if(linked){
-        const link=document.createElement('span');link.className='v5-linked-volunteer';
-        link.textContent='LINKED VOLUNTEER: '+volName(linked).toUpperCase();
-        host.append(link);
-      }
-      if(!alreadyChecked){
-        const btn=document.createElement('button');btn.type='button';
-        btn.className='btn v5-existing-checkin';btn.textContent='✓ CHECK IN';
-        btn.onclick=()=>{
-          const current=v36AllAttendeeRows().find(r=>r.kind===match.kind&&r.id===match.id&&
-            (match.kind!=='family'||r.groupId===match.groupId));
-          if(!current||current.checkins.includes(v5CurrentDate())){v5817RegistrationStatus();return}
-          v36SetAttendeeCheckin(current,true);
-          $('v36RegistrationModal').classList.remove('open');
-          v36RenderAttendees();
-          toast('Checked in · '+current.name);
-        };
-        host.append(btn);
-      }
-      host.className='v5817-status '+(alreadyChecked?'v5-already':'v5-existing');
-      form.querySelectorAll('button[type="submit"][data-mode]').forEach(b=>b.disabled=true);
-    };
-
-    // Older input event handlers retain their original function reference.
-    // Register the new status renderer after them so it is the last visible state.
-    ['v36MainName','v36MainMobile'].forEach(id=>{
-      $(id)?.addEventListener('input',v5817RegistrationStatus);
-      $(id)?.addEventListener('change',v5817RegistrationStatus);
-    });
-
     // Unified volunteer counter, limited to the selected event and working date.
     let v5Filter='all',v5Query='',v5SelectedVolunteer='',v5Reverse=null;
     const dailyPage=$('daily'),oldDailyUI=$('v36VolunteerUI');
