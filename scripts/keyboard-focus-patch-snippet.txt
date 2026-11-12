@@ -1,0 +1,35 @@
+  // PATCH 5.1 KEYBOARD FOCUS RECOVERY (main process only).
+  // Reattach renderer keyboard focus only when this app is already the
+  // foreground Windows window. Never move other windows or change form data.
+  let anandaKeyboardFocusTimer = null;
+  function anandaRestoreRendererFocus() {
+    if (!mainWindow || mainWindow.isDestroyed() ||
+        !mainWindow.isVisible() || mainWindow.isMinimized() ||
+        !mainWindow.isFocused() || BrowserWindow.getFocusedWindow() !== mainWindow) return;
+    const contents = mainWindow.webContents;
+    if (!contents || contents.isDestroyed()) return;
+    try { contents.focus(); } catch (error) {
+      anandaHealthLog('renderer-focus-repair-error', {kind: 'focus'});
+    }
+  }
+  function anandaScheduleRendererFocus() {
+    if (anandaKeyboardFocusTimer !== null) clearTimeout(anandaKeyboardFocusTimer);
+    anandaKeyboardFocusTimer = setTimeout(() => {
+      anandaKeyboardFocusTimer = null;
+      anandaRestoreRendererFocus();
+    }, 40);
+  }
+  mainWindow.on('focus', anandaScheduleRendererFocus);
+  mainWindow.on('restore', anandaScheduleRendererFocus);
+  mainWindow.webContents.on('before-mouse-event', (_event, mouse) => {
+    // An already-foreground window can have an unfocused webContents after
+    // a native dialog or app switch. Restore it after the click completes.
+    if (mouse && mouse.type === 'mouseDown' &&
+        mainWindow.isFocused() && !mainWindow.webContents.isFocused())
+      anandaScheduleRendererFocus();
+  });
+  mainWindow.on('closed', () => {
+    if (anandaKeyboardFocusTimer !== null) clearTimeout(anandaKeyboardFocusTimer);
+    anandaKeyboardFocusTimer = null;
+  });
+  // END PATCH 5.1 KEYBOARD FOCUS RECOVERY.
