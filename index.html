@@ -11365,6 +11365,238 @@ function p2v58BindPhoneListener(){
       '#items table th{text-transform:uppercase}'+
       '</style>');
 
+
+    // PATCH 5 (approved): existing registration Check-In + unified Volunteer counter.
+    // No sidebar/Classes changes. Existing records are authoritative.
+    function v5CurrentDate(){return $('workingDate')?.value||''}
+    function v5Allocation(type,id,eventId=state.activeEventId,date=v5CurrentDate()){
+      const key=eventId+'|'+date+'|'+type+'|'+id;
+      return state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false});
+    }
+    function v5IsChecked(type,id,eventId=state.activeEventId,date=v5CurrentDate()){
+      if(type==='volunteer'){
+        const r=state.volunteerRegistrations.find(x=>x.eventId===eventId&&x.volunteerId===id);
+        return !!((r?.checkins||[]).includes(date)||(state.daily[eventId+'|'+date]||[]).includes(id));
+      }
+      const a=state.attendees.find(x=>x.eventId===eventId&&x.id===id);
+      return !!(a&&attendeeDates(a).includes(date));
+    }
+    function v5ClearAutoCheckin(type,id,eventId,date){
+      if(type==='volunteer'){
+        const key=eventId+'|'+date;
+        state.daily[key]=(state.daily[key]||[]).filter(x=>x!==id);
+        const r=state.volunteerRegistrations.find(x=>x.eventId===eventId&&x.volunteerId===id);
+        if(r)r.checkins=(r.checkins||[]).filter(d=>d!==date);
+      }else{
+        const a=state.attendees.find(x=>x.eventId===eventId&&x.id===id);
+        if(a){a.checkins=attendeeDates(a).filter(d=>d!==date);a.checkedIn=a.checkins.length>0;if(!a.checkedIn)a.checkInAt=''}
+      }
+    }
+    let v5Issuing=false;
+    const v5PreviousEnsureVolunteerCheckin=ensureVolunteerCheckin;
+    ensureVolunteerCheckin=function(volunteer,eventId,date,source='counter'){
+      if(!v5Issuing&&volunteer&&eventId&&date){
+        const alloc=v5Allocation('volunteer',volunteer.id,eventId,date);
+        alloc.v5ManualCheckin=true;
+      }
+      return v5PreviousEnsureVolunteerCheckin.apply(this,arguments);
+    };
+    const v5PreviousSetAttendeeCheckin=v36SetAttendeeCheckin;
+    v36SetAttendeeCheckin=function(row,checked){
+      if(row&&row.kind==='attendee'&&checked){
+        v5Allocation('attendee',row.id).v5ManualCheckin=true;
+      }
+      return v5PreviousSetAttendeeCheckin.apply(this,arguments);
+    };
+    const v5PreviousToggleItem=toggleItem;
+    toggleItem=function(type,id,item,action){
+      if(action!=='issue')return v5PreviousToggleItem.apply(this,arguments);
+      const eventId=state.activeEventId,date=v5CurrentDate();
+      if(!eventId||!date||!['badge','scarf'].includes(item))return;
+      const alloc=v5Allocation(type,id,eventId,date);
+      const wasIssued=!!alloc[item+'Issued'];
+      const wasChecked=v5IsChecked(type,id,eventId,date);
+      if(!wasIssued&&!wasChecked&&!alloc.v5AutoCheckin){
+        alloc.v5AutoCheckin=true;
+        alloc.v5AutoAt=new Date().toISOString();
+      }else if(!wasIssued&&wasChecked&&!alloc.v5AutoCheckin){
+        // Protect unknown historical/manual check-ins. Never infer their origin.
+        alloc.v5LegacyCheckin=true;
+      }
+      let result;
+      v5Issuing=true;
+      try{result=v5PreviousToggleItem.apply(this,arguments)}
+      finally{v5Issuing=false}
+      if(wasIssued&&!alloc[item+'Issued']&&alloc.v5AutoCheckin&&!alloc.v5ManualCheckin&&!alloc.v5LegacyCheckin
+         &&!alloc.badgeIssued&&!alloc.scarfIssued){
+        v5ClearAutoCheckin(type,id,eventId,date);
+        alloc.v5AutoCheckin=false;
+        alloc.v5AutoAt=null;
+        save();
+      }
+      if(page==='daily')v5RenderVolunteerUI();
+      return result;
+    };
+    const v5PreviousRegistrationStatus=v5817RegistrationStatus;
+    v5817RegistrationStatus=function(){
+      v5PreviousRegistrationStatus();
+      const host=$('v5817RegistrationStatus'),form=$('v36RegistrationForm');
+      if(!host||!form||!$('v36RegistrationModal')?.classList.contains('open')||v36RegistrationEditKey)return;
+      const name=String($('v36MainName').value||'').trim(),mobile=normMobile($('v36MainMobile').value||'');
+      if(!name||mobile.length!==10)return;
+      const match=v36AllAttendeeRows().find(row=>
+        normName(row.name)===normName(name)&&
+        normMobile(row.personalMobile||(row.kind==='attendee'?row.mobile:''))===mobile);
+      if(!match)return;
+      const alreadyChecked=(match.checkins||[]).includes(v5CurrentDate());
+      const volunteerId=match.family?.volunteerId||match.record?.referenceVolunteerId||
+        state.attendeeMaster.find(m=>m.id===match.record?.masterId)?.linkedVolunteerId;
+      const linked=state.volunteers.find(v=>v.id===volunteerId);
+      const label=document.createElement('strong');
+      label.textContent=name.toUpperCase()+' — '+(alreadyChecked?'ALREADY CHECKED IN':linked?'PRE-REGISTERED':'REGISTERED');
+      host.replaceChildren(label);
+      if(linked){
+        const link=document.createElement('span');link.className='v5-linked-volunteer';
+        link.textContent='LINKED VOLUNTEER: '+volName(linked).toUpperCase();
+        host.append(link);
+      }
+      if(!alreadyChecked){
+        const btn=document.createElement('button');btn.type='button';
+        btn.className='btn v5-existing-checkin';btn.textContent='✓ CHECK IN';
+        btn.onclick=()=>{
+          const current=v36AllAttendeeRows().find(r=>r.kind===match.kind&&r.id===match.id&&
+            (match.kind!=='family'||r.groupId===match.groupId));
+          if(!current||current.checkins.includes(v5CurrentDate())){v5817RegistrationStatus();return}
+          v36SetAttendeeCheckin(current,true);
+          $('v36RegistrationModal').classList.remove('open');
+          v36RenderAttendees();
+          toast('Checked in · '+current.name);
+        };
+        host.append(btn);
+      }
+      host.className='v5817-status '+(alreadyChecked?'v5-already':'v5-existing');
+      form.querySelectorAll('button[type="submit"][data-mode]').forEach(b=>b.disabled=true);
+    };
+
+    // Unified volunteer counter, limited to the selected event and working date.
+    let v5Filter='all',v5Query='',v5SelectedVolunteer='',v5Reverse=null;
+    const dailyPage=$('daily'),oldDailyUI=$('v36VolunteerUI');
+    if(dailyPage&&!$('v5VolunteersUI')){
+      const shell=document.createElement('div');shell.id='v5VolunteersUI';
+      shell.innerHTML=
+        '<div class="v5-tools"><button type="button" class="btn" id="v5AddVolunteer">＋ ADD VOLUNTEER</button>'+
+        '<input id="v5VolunteerSearch" class="search" placeholder="SEARCH BY NAME, REGISTRATION NUMBER OR PHONE">'+
+        '<select id="v5VolunteerFilter" aria-label="Volunteer status"><option value="all">ALL</option><option value="pending">PENDING</option><option value="checked">CHECKED IN</option></select></div>'+
+        '<div class="v5-layout"><div class="v5-table-card"><div id="v5VolunteerTable"></div></div>'+
+        '<div class="v5-detail" id="v5VolunteerDetail"><h3>VOLUNTEER DETAILS</h3><p>Select the info icon to view attendance details.</p></div></div>'+
+        '<div class="v5-reverse hidden" id="v5ReversePrompt"></div>';
+      dailyPage.insertBefore(shell,oldDailyUI||dailyPage.firstChild);
+      $('v5AddVolunteer').onclick=()=>{$('v48AddVolunteer')?.click()};
+      $('v5VolunteerSearch').oninput=e=>{v5Query=e.target.value;v5RenderVolunteerUI()};
+      $('v5VolunteerFilter').onchange=e=>{v5Filter=e.target.value;v5RenderVolunteerUI()};
+    }
+    function v5VolunteerList(){
+      const ids=v36RosterIds(state.activeEventId,v5CurrentDate());
+      return ids.map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean)
+        .filter(v=>!v5Query||[volName(v),v.mobile].join(' ').toLowerCase().includes(v5Query.toLowerCase()))
+        .filter(v=>v5Filter==='all'||(v5Filter==='checked'?
+          v5IsChecked('volunteer',v.id):!v5IsChecked('volunteer',v.id)))
+        .sort((a,b)=>volName(a).localeCompare(volName(b),undefined,{sensitivity:'base'}));
+    }
+    function v5RenderVolunteerDetail(){
+      const node=$('v5VolunteerDetail');if(!node)return;
+      const volunteer=state.volunteers.find(v=>v.id===v5SelectedVolunteer);
+      if(!volunteer||!v36RosterIds().includes(volunteer.id)){
+        node.innerHTML='<h3>VOLUNTEER DETAILS</h3><p>Select the info icon to view attendance details.</p>';
+        return;
+      }
+      const a=v5Allocation('volunteer',volunteer.id),checked=v5IsChecked('volunteer',volunteer.id);
+      const reasons=[
+        ['Badge Issued',a.badgeIssued&&!a.badgeReturned],
+        ['Scarf Issued',a.scarfIssued&&!a.scarfReturned],
+        ['Manual Check-In',!!a.v5ManualCheckin],
+        ['Prior Check-In (Preserved)',checked&&!a.v5AutoCheckin&&!a.v5ManualCheckin]
+      ];
+      node.replaceChildren();
+      const title=document.createElement('h3');title.textContent='VOLUNTEER DETAILS';node.append(title);
+      const h=document.createElement('h4');h.textContent=volName(volunteer).toUpperCase();node.append(h);
+      const sub=document.createElement('p');sub.textContent='Registration: Volunteer';node.append(sub);
+      const pill=document.createElement('div');pill.className=checked?'v5-success':'v5-muted';
+      pill.textContent='CHECK-IN STATUS: '+(checked?'CHECKED IN':'NOT CHECKED IN');node.append(pill);
+      const subhead=document.createElement('strong');subhead.textContent='Reasons (what counts for check-in):';node.append(subhead);
+      reasons.forEach(([label,yes])=>{
+        const row=document.createElement('div');row.className='v5-reason';
+        row.textContent=(yes?'✓ ':'○ ')+label;node.append(row);
+      });
+      const help=document.createElement('p');help.className='v5-help';
+      help.textContent='Undoing an item reverses automatic attendance only if no other valid reason remains. Previous check-ins are protected.';
+      node.append(help);
+    }
+    function v5ShowReverse(id,item,element){
+      v5Reverse={id,item,eventId:state.activeEventId,date:v5CurrentDate()};
+      const prompt=$('v5ReversePrompt');prompt.classList.remove('hidden');
+      prompt.replaceChildren();
+      const h=document.createElement('h3');h.textContent='Reverse '+(item==='badge'?'Badge':'Scarf')+' Issue?';prompt.append(h);
+      const p=document.createElement('p');p.textContent='This corrects an accidental issue. Check-in stays if another valid reason remains.';prompt.append(p);
+      const cancel=document.createElement('button');cancel.type='button';cancel.className='btn secondary';
+      cancel.textContent='CANCEL';cancel.onclick=()=>{v5Reverse=null;prompt.classList.add('hidden')};
+      const confirm=document.createElement('button');confirm.type='button';confirm.className='btn';
+      confirm.textContent='REVERSE ISSUE';confirm.onclick=()=>{
+        const target=v5Reverse;v5Reverse=null;prompt.classList.add('hidden');
+        if(!target||target.eventId!==state.activeEventId||target.date!==v5CurrentDate())return;
+        toggleItem('volunteer',target.id,target.item,'issue');v5RenderVolunteerUI();
+      };
+      prompt.append(cancel,confirm);
+      const r=element.getBoundingClientRect(),host=$('v5VolunteersUI').getBoundingClientRect();
+      prompt.style.left=Math.max(0,Math.min(host.width-330,r.left-host.left-80))+'px';
+      prompt.style.top=Math.max(0,r.bottom-host.top+8)+'px';
+    }
+    function v5RenderVolunteerUI(){
+      if(!$('v5VolunteerTable')||!activeEvent())return;
+      const list=v5VolunteerList();
+      $('v5VolunteerFilter').value=v5Filter;
+      const table=$('v5VolunteerTable');
+      table.innerHTML='<table><thead><tr><th>NAME</th><th>PHONE</th><th>BADGE</th><th>SCARF</th><th>CHECK-IN</th><th>DETAILS</th></tr></thead>'+
+        '<tbody>'+list.map(v=>{
+          const a=v5Allocation('volunteer',v.id),checked=v5IsChecked('volunteer',v.id);
+          const button=item=>'<button type="button" class="v5-item '+(a[item+'Issued']?'issued':'')+'" data-id="'+esc(v.id)+'" data-item="'+item+'">'+(a[item+'Issued']?'✓ ISSUED':'ISSUE')+'</button>';
+          return '<tr><td><strong>'+esc(volName(v))+'</strong></td><td>'+esc(v.mobile||'—')+'</td><td>'+button('badge')+'</td><td>'+button('scarf')+'</td>'+
+            '<td><button type="button" class="v5-check '+(checked?'checked':'')+'" data-id="'+esc(v.id)+'">'+(checked?'✓ CHECKED IN':'CHECK IN')+'</button></td>'+
+            '<td><button type="button" class="v5-info" aria-label="Volunteer details" data-id="'+esc(v.id)+'">ⓘ</button></td></tr>'
+        }).join('')+'</tbody></table>';
+      table.querySelectorAll('.v5-item').forEach(b=>b.onclick=()=>{
+        const id=b.dataset.id,item=b.dataset.item,a=v5Allocation('volunteer',id);
+        if(a[item+'Issued']){v5ShowReverse(id,item,b);return}
+        toggleItem('volunteer',id,item,'issue');v5SelectedVolunteer=id;
+        v5RenderVolunteerUI();
+      });
+      table.querySelectorAll('.v5-info').forEach(b=>b.onclick=()=>{
+        v5SelectedVolunteer=b.dataset.id;v5RenderVolunteerDetail();
+      });
+      table.querySelectorAll('.v5-check').forEach(b=>b.onclick=()=>{
+        const id=b.dataset.id;if(v5IsChecked('volunteer',id))return;
+        const v=state.volunteers.find(x=>x.id===id);if(!v)return;
+        v36RosterOnly=false;ensureVolunteerCheckin(v,state.activeEventId,v5CurrentDate(),'manual');
+        v5Allocation('volunteer',id).v5ManualCheckin=true;
+        v5SelectedVolunteer=id;save();v5RenderVolunteerUI();
+      });
+      v5RenderVolunteerDetail();
+    }
+    const v5PreviousRenderVolunteer=renderV36Volunteers;
+    renderV36Volunteers=function(){const result=v5PreviousRenderVolunteer.apply(this,arguments);v5RenderVolunteerUI();return result};
+    const v5PreviousRenderAll=renderAll;
+    renderAll=function(){const result=v5PreviousRenderAll.apply(this,arguments);v5RenderVolunteerUI();return result};
+    const v5PreviousSwitchPage=switchPage;
+    switchPage=function(id){
+      const result=v5PreviousSwitchPage.apply(this,arguments);
+      if(id==='daily'){v5RenderVolunteerUI();$('pageTitle').textContent='VOLUNTEERS';$('pageSubtitle').textContent=''}
+      return result;
+    };
+    // The old item-issue counter is removed from navigation, but printing remains.
+    if($('v82IssueReturn'))$('v82IssueReturn').hidden=true;
+    if($('v82PrepareBadges'))$('v82PrepareBadges').textContent='PREPARE & TRACK NAME BADGES';
+    if($('v5VolunteersUI'))v5RenderVolunteerUI();
+
     document.title='ANANDA SANGHA GURGAON Event Desk v125';
     if($('itemTable'))renderItems();
     }
