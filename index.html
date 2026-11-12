@@ -10967,6 +10967,284 @@ function p2v58BindPhoneListener(){
     '#v36RegistrationModal .actions{justify-content:flex-end}'+
     '</style>');
 
+
+  // Patch 5: one VOLUNTEERS workflow and independently persisted arrival reasons.
+  // Existing Classes, Check-In layout, registration records and sidebar are untouched.
+  function v5Key(type,id,date=$('workingDate').value,eventId=state.activeEventId){
+    return String(eventId)+'|'+String(date)+'|'+type+'|'+id;
+  }
+  function v5Alloc(type,id,date=$('workingDate').value,eventId=state.activeEventId){
+    const key=v5Key(type,id,date,eventId);
+    return state.allocations[key]||(state.allocations[key]={
+      badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false
+    });
+  }
+  function v5RegisteredVolunteer(id){
+    return state.volunteerRegistrations.find(r=>r.eventId===state.activeEventId&&r.volunteerId===id);
+  }
+  function v5VolunteerChecked(id,date=$('workingDate').value){
+    return (state.daily[v36DayKey(state.activeEventId,date)]||[]).includes(id)||
+      (v5RegisteredVolunteer(id)?.checkins||[]).includes(date);
+  }
+  function v5AttendeeChecked(id,date=$('workingDate').value){
+    const person=state.attendees.find(a=>a.id===id&&a.eventId===state.activeEventId);
+    return !!person&&attendeeDates(person).includes(date);
+  }
+  function v5IsChecked(type,id,date=$('workingDate').value){
+    return type==='volunteer'?v5VolunteerChecked(id,date):v5AttendeeChecked(id,date);
+  }
+  function v5Reasons(type,id,checkedBefore=false){
+    const a=v5Alloc(type,id);
+    if(!a.v5Arrival){
+      // Historical arrivals have no reliable source. Never guess that an item caused them.
+      a.v5Arrival={manual:!!checkedBefore,automatic:false,legacy:!!checkedBefore};
+    }
+    return a.v5Arrival;
+  }
+  function v5Audit(type,id,action,item){
+    state.v5IssueAudit=Array.isArray(state.v5IssueAudit)?state.v5IssueAudit:[];
+    state.v5IssueAudit.push({
+      eventId:state.activeEventId,date:$('workingDate').value,
+      type,id,action,item: item||null,at:new Date().toISOString()
+    });
+  }
+  function v5DropAutomaticArrival(type,id){
+    const date=$('workingDate').value,eventId=state.activeEventId;
+    if(type==='volunteer'){
+      const key=v36DayKey(eventId,date),r=v5RegisteredVolunteer(id);
+      if(r)r.checkins=(r.checkins||[]).filter(d=>d!==date);
+      state.daily[key]=(state.daily[key]||[]).filter(x=>x!==id);
+      // Keep the volunteer on the day's roster. Undo is not removal from the event.
+    }else{
+      const person=state.attendees.find(a=>a.id===id&&a.eventId===eventId);
+      if(person){
+        person.checkins=attendeeDates(person).filter(d=>d!==date);
+        person.checkedIn=person.checkins.length>0;
+        if(!person.checkedIn)person.checkInAt=null;
+      }
+    }
+  }
+  function v5MarkManualVolunteer(id){
+    const volunteer=state.volunteers.find(v=>v.id===id);
+    if(!volunteer)return;
+    const p=v5Reasons('volunteer',id,v5VolunteerChecked(id));
+    if(p.manual){toast('Manual check-in already recorded');return}
+    p.manual=true;p.legacy=false;
+    v36RosterOnly=false;
+    ensureVolunteerCheckin(volunteer,state.activeEventId,$('workingDate').value,'manual');
+    v5Audit('volunteer',id,'manual-check-in',null);
+    save();
+  }
+  function v5IssueVolunteer(id,item){
+    const person=state.volunteers.find(v=>v.id===id);
+    if(!person||!['badge','scarf'].includes(item))return;
+    const a=v5Alloc('volunteer',id),issued=!!a[item+'Issued'];
+    const checked=v5VolunteerChecked(id);
+    const p=v5Reasons('volunteer',id,checked);
+    if(issued){
+      v5OpenReverse(id,item);
+      return;
+    }
+    if(!checked){p.automatic=true;p.legacy=false}
+    a['v5'+(item==='badge'?'Badge':'Scarf')+'At']=new Date().toISOString();
+    v5Audit('volunteer',id,'issue',item);
+    toggleItem('volunteer',id,item,'issue');
+  }
+  let v5ReverseTarget=null;
+  function v5OpenReverse(id,item){
+    v5ReverseTarget={id,item};
+    const dialog=$('v5ReverseDialog');
+    $('v5ReverseText').textContent='Reverse '+(item==='badge'?'Badge':'Scarf')+' Issue?';
+    dialog.classList.add('open');
+  }
+  function v5FinishReverse(){
+    if(!v5ReverseTarget)return;
+    const id=v5ReverseTarget.id,item=v5ReverseTarget.item;
+    v5ReverseTarget=null;
+    $('v5ReverseDialog').classList.remove('open');
+    const a=v5Alloc('volunteer',id),p=v5Reasons('volunteer',id,v5VolunteerChecked(id));
+    if(!a[item+'Issued'])return;
+    v5Audit('volunteer',id,'undo-issue',item);
+    a['v5'+(item==='badge'?'Badge':'Scarf')+'At']=null;
+    toggleItem('volunteer',id,item,'issue');
+    const otherActive=a.badgeIssued||a.scarfIssued;
+    if(!otherActive&&p.automatic&&!p.manual&&!p.legacy){
+      v5DropAutomaticArrival('volunteer',id);
+      p.automatic=false;
+      save();
+    }
+  }
+  // Manual check-ins in existing modules count separately from an item issue.
+  const v5OriginalVolunteerCheckin=ensureVolunteerCheckin;
+  ensureVolunteerCheckin=function(volunteer,eventId,date,source='counter'){
+    const result=v5OriginalVolunteerCheckin.apply(this,arguments);
+    if(volunteer&&eventId===state.activeEventId&&date===$('workingDate').value&&
+        source!=='badge/scarf'&&!v36RosterOnly){
+      const a=v5Alloc('volunteer',volunteer.id);
+      if(!a.v5Arrival)a.v5Arrival={manual:true,automatic:false,legacy:false};
+      a.v5Arrival.manual=true;
+    }
+    return result;
+  };
+  const v5OriginalAttendeeCheckin=v36SetAttendeeCheckin;
+  v36SetAttendeeCheckin=function(row,checked){
+    if(row&&row.kind==='attendee'){
+      const p=v5Reasons('attendee',row.id,(row.checkins||[]).includes($('workingDate').value));
+      if(checked)p.manual=true;
+      else p.manual=false;
+    }
+    return v5OriginalAttendeeCheckin.apply(this,arguments);
+  };
+
+  let v5SelectedVolunteerId=null,v5Filter='all',v5Query='';
+  function v5InitVolunteerHub(){
+    const root=$('daily');
+    if(!root||$('v5VolunteerHub'))return;
+    const hub=document.createElement('div');hub.id='v5VolunteerHub';
+    hub.innerHTML=[
+      '<div class="v5-toolbar">',
+        '<button type="button" id="v5AddVolunteer" class="btn">＋ ADD VOLUNTEER</button>',
+        '<input id="v5Search" class="search" autocomplete="off" placeholder="SEARCH BY NAME, REGISTRATION NUMBER OR PHONE">',
+        '<select id="v5Filter" aria-label="Volunteer attendance filter">',
+          '<option value="all">ALL</option><option value="pending">PENDING</option><option value="checked">CHECKED IN</option>',
+        '</select>',
+      '</div>',
+      '<div class="v5-layout">',
+        '<div id="v5VolunteerTable" class="v5-list"></div>',
+        '<div id="v5VolunteerDetails" class="v5-detail"></div>',
+      '</div>',
+      '<div class="v5-how"><strong>HOW IT WORKS</strong>',
+        '<div><b>✓ ISSUE</b><span>Badge or scarf automatically checks in the volunteer.</span></div>',
+        '<div><b>↶ REVERSE ISSUE</b><span>Correct an issue without erasing a legitimate check-in.</span></div>',
+        '<div><b>CHECK-IN</b><span>Attendance remains if another valid reason exists.</span></div>',
+      '</div>'
+    ].join('');
+    root.insertBefore(hub,root.firstChild);
+    hub.querySelector('#v5Search').oninput=e=>{v5Query=e.target.value.trim().toLowerCase();v5RenderHub()};
+    hub.querySelector('#v5Filter').onchange=e=>{v5Filter=e.target.value;v5RenderHub()};
+    hub.querySelector('#v5AddVolunteer').onclick=()=>v5OpenAddVolunteer();
+    hub.addEventListener('click',event=>{
+      const issue=event.target.closest('.v5-issue');
+      if(issue){v5SelectedVolunteerId=issue.dataset.id;v5IssueVolunteer(issue.dataset.id,issue.dataset.item);return}
+      const details=event.target.closest('.v5-select');
+      if(details){v5SelectedVolunteerId=details.dataset.id;v5RenderHub();return}
+      const manual=event.target.closest('#v5ManualCheck');
+      if(manual&&v5SelectedVolunteerId){v5MarkManualVolunteer(v5SelectedVolunteerId);return}
+      if(event.target.closest('#v5CloseDetails')){v5SelectedVolunteerId=null;v5RenderHub();return}
+    });
+    const dialog=document.createElement('div');
+    dialog.id='v5ReverseDialog';dialog.className='modal-backdrop';
+    dialog.innerHTML='<div class="modal v5-confirm"><h3 id="v5ReverseText">REVERSE ISSUE?</h3>'+
+      '<p>This corrects the item. Check-in is removed only when no other valid reason remains.</p>'+
+      '<div class="actions"><button type="button" class="btn secondary" id="v5CancelReverse">CANCEL</button>'+
+      '<button type="button" class="btn" id="v5ConfirmReverse">REVERSE ISSUE</button></div></div>';
+    document.body.append(dialog);
+    $('v5CancelReverse').onclick=()=>{v5ReverseTarget=null;dialog.classList.remove('open')};
+    $('v5ConfirmReverse').onclick=v5FinishReverse;
+    const chooser=document.createElement('div');chooser.id='v5AddDialog';chooser.className='modal-backdrop';
+    chooser.innerHTML='<div class="modal v5-add-dialog">'+
+      '<div class="modal-head"><h3>ADD VOLUNTEER</h3><button type="button" class="x" id="v5CloseAdd">×</button></div>'+
+      '<input id="v5AddSearch" class="search" placeholder="Search existing volunteer by name or mobile">'+
+      '<div id="v5AddMatches"></div><div class="actions">'+
+      '<button type="button" id="v5CreateVolunteer" class="btn">＋ NEW VOLUNTEER</button>'+
+      '<button type="button" id="v5CancelAdd" class="btn secondary">CANCEL</button></div></div>';
+    document.body.append(chooser);
+    $('v5CloseAdd').onclick=$('v5CancelAdd').onclick=()=>chooser.classList.remove('open');
+    $('v5AddSearch').oninput=v5RenderAddMatches;
+    $('v5CreateVolunteer').onclick=()=>{
+      const q=$('v5AddSearch').value;
+      chooser.classList.remove('open');
+      if($('v36VolSearch'))$('v36VolSearch').value=q;
+      v36OpenNewVolunteer();
+    };
+    $('v5AddMatches').addEventListener('click',event=>{
+      const button=event.target.closest('[data-v5-add]');
+      if(!button)return;
+      const v=state.volunteers.find(x=>x.id===button.dataset.v5Add);
+      if(!v)return;
+      ensureVolunteerRoster(v,state.activeEventId,$('workingDate').value,'volunteer-desk');
+      v5SelectedVolunteerId=v.id;
+      chooser.classList.remove('open');
+      v5Audit('volunteer',v.id,'assigned',null);
+      save();
+    });
+  }
+  function v5OpenAddVolunteer(){
+    $('v5AddSearch').value=v5Query||'';
+    $('v5AddDialog').classList.add('open');
+    v5RenderAddMatches();$('v5AddSearch').focus();
+  }
+  function v5RenderAddMatches(){
+    const query=String($('v5AddSearch')?.value||'').trim().toLowerCase();
+    const digit=normMobile(query);
+    const list=state.volunteers.filter(v=>!query||volName(v).toLowerCase().includes(query)||(digit&&normMobile(v.mobile).includes(digit))).slice(0,15);
+    $('v5AddMatches').innerHTML=list.map(v=>{
+      const assigned=v36RosterIds().includes(v.id);
+      return '<div class="v5-add-match"><span><b>'+esc(volName(v))+'</b><small>'+esc(v.mobile||'')+'</small></span>'+
+        '<button class="btn secondary small" type="button" data-v5-add="'+esc(v.id)+'" '+(assigned?'disabled':'')+'>'+
+        (assigned?'ASSIGNED':'ADD')+'</button></div>';
+    }).join('')||'<p class="card-sub">No existing volunteer matched. Choose New Volunteer.</p>';
+  }
+  function v5RenderHub(){
+    if(!$('v5VolunteerHub')||!activeEvent())return;
+    const date=$('workingDate').value;
+    const ids=v36RosterIds();
+    const volunteers=ids.map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean)
+      .filter(v=>[volName(v),v.mobile||''].join(' ').toLowerCase().includes(v5Query))
+      .filter(v=>v5Filter==='all'||(v5Filter==='checked'?v5VolunteerChecked(v.id,date):!v5VolunteerChecked(v.id,date)))
+      .sort((a,b)=>volName(a).localeCompare(volName(b),undefined,{sensitivity:'base'}));
+    $('v5Filter').value=v5Filter;
+    if(v5SelectedVolunteerId&&!ids.includes(v5SelectedVolunteerId))v5SelectedVolunteerId=null;
+    const body=volunteers.map(v=>{
+      const a=v5Alloc('volunteer',v.id);
+      const checked=v5VolunteerChecked(v.id,date);
+      const button=item=>'<button type="button" class="v5-issue '+(a[item+'Issued']?'issued':'')+
+        '" data-id="'+esc(v.id)+'" data-item="'+item+'">'+(a[item+'Issued']?'✓ ISSUED':'ISSUE')+'</button>';
+      return '<tr><td><b>'+esc(volName(v))+'</b><small>'+esc(v.mobile||'')+'</small></td>'+
+        '<td>'+esc(v.mobile||'—')+'</td><td>'+button('badge')+'</td><td>'+button('scarf')+'</td>'+
+        '<td><span class="v5-status '+(checked?'arrived':'waiting')+'">'+(checked?'✓ CHECKED IN':'NOT CHECKED IN')+'</span></td>'+
+        '<td><button type="button" class="v5-select" data-id="'+esc(v.id)+'" aria-label="Attendance details for '+esc(volName(v))+'">ⓘ</button></td></tr>';
+    }).join('');
+    $('v5VolunteerTable').innerHTML='<div class="table-wrap"><table><thead><tr>'+
+      '<th>NAME</th><th>PHONE</th><th>BADGE</th><th>SCARF</th><th>CHECK-IN</th><th>DETAILS</th>'+
+      '</tr></thead><tbody>'+body+'</tbody></table></div>'+
+      (body?'':'<div class="empty">No volunteers match this filter.</div>');
+    const selected=state.volunteers.find(v=>v.id===v5SelectedVolunteerId);
+    const panel=$('v5VolunteerDetails');
+    if(!selected){panel.classList.add('hidden');panel.innerHTML='';return}
+    panel.classList.remove('hidden');
+    const checked=v5VolunteerChecked(selected.id,date),a=v5Alloc('volunteer',selected.id);
+    const p=v5Reasons('volunteer',selected.id,checked);
+    const time=item=>a['v5'+item+'At']?new Date(a['v5'+item+'At']).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):'';
+    const reason=(label,enabled,when)=>'<div class="v5-reason"><span class="'+(enabled?'ok':'off')+'">'+(enabled?'✓':'○')+'</span>'+
+      '<span>'+label+'</span><small>'+esc(when||'—')+'</small></div>';
+    panel.innerHTML='<div class="v5-detail-head"><h3>VOLUNTEER DETAILS</h3><button type="button" id="v5CloseDetails">×</button></div>'+
+      '<h3>'+esc(volName(selected)).toUpperCase()+'</h3><p>Registration: Volunteer</p>'+
+      '<div class="v5-detail-rule"></div><p><b>CHECK-IN STATUS:</b> <span class="v5-status '+(checked?'arrived':'waiting')+'">'+
+      (checked?'CHECKED IN':'NOT CHECKED IN')+'</span></p><b>Reasons (what counts for check-in):</b>'+
+      reason('Badge Issued',a.badgeIssued,time('Badge'))+reason('Scarf Issued',a.scarfIssued,time('Scarf'))+
+      reason(p.legacy?'Existing check-in (preserved)':'Manual Check-In',p.manual,'')+
+      (p.manual?'':'<button type="button" id="v5ManualCheck" class="btn secondary small">MARK MANUAL CHECK-IN</button>')+
+      '<div class="v5-detail-note">Attendance is removed only when no valid reason remains.</div>';
+  }
+  v5InitVolunteerHub();
+  const v5OldRenderAll=renderAll;
+  renderAll=function(){
+    const result=v5OldRenderAll.apply(this,arguments);
+    v5RenderHub();return result;
+  };
+  const v5OldSwitchPage=switchPage;
+  switchPage=function(id){
+    if(id==='items')id='daily';
+    const result=v5OldSwitchPage.call(this,id);
+    if(id==='daily'){
+      $('pageTitle').textContent='VOLUNTEERS';
+      $('pageSubtitle').textContent='';
+      v5RenderHub();
+    }
+    return result;
+  };
+
   decorateLanding();
 })();
   resetEventForm();
