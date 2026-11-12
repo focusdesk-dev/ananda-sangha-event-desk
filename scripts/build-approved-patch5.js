@@ -24,7 +24,8 @@ async function main(){
  assert.ok(js.includes('v5PreviousRegistrationStatus')&&js.includes('v5PreviousToggleItem')&&js.includes('v5RenderVolunteerUI'),'All three approved functions must exist');
  assert.ok(js.includes('v5ManualCheckin')&&js.includes('v5AutoCheckin')&&js.includes('v5LegacyCheckin'),'Missing attendance provenance safeguard');
  assert.ok(!/\.nav-btn\s*\{|aside\s*\{|#classes\s/.test(css),'Sidebar/Classes changed');
- const restored=after.slice(0,jsStart)+after.slice(jsEnd,styleStart)+after.slice(styleEnd+9);
+ assert.equal(after[jsStart-1],'\n','Expected exactly one insertion separator before Patch 5 JS');
+ const restored=after.slice(0,jsStart-1)+after.slice(jsEnd,styleStart)+after.slice(styleEnd+9);
  assert.equal(restored,previous,'Patch 5 would alter previously approved files outside its two isolated blocks');
  const pkg=JSON.parse(fs.readFileSync(path.join(dir,'package.json'),'utf8'));
  assert.equal(pkg.version,'2.0.0-beta.5.81.8','Patch 5 only for app 5.81.8');
