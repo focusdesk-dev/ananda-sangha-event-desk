@@ -11235,7 +11235,6 @@ function p2v58BindPhoneListener(){
   };
   const v5OldSwitchPage=switchPage;
   switchPage=function(id){
-    if(id==='items')id='daily';
     const result=v5OldSwitchPage.call(this,id);
     if(id==='daily'){
       $('pageTitle').textContent='VOLUNTEERS';
