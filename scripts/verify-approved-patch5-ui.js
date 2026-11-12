@@ -22,6 +22,7 @@ async function main(){
  const evaluate=async text=>(await call('Runtime.evaluate',{expression:text,awaitPromise:true,returnByValue:true})).result.value;
  const run=fn=>evaluate('('+fn.toString()+')()');
  await call('Runtime.enable');await call('Page.enable');
+ await call('Page.addScriptToEvaluateOnNewDocument',{source:"window.__patch5LoadErrors=[];window.addEventListener('error',e=>window.__patch5LoadErrors.push(e.message+' @ '+e.filename+':'+e.lineno));"});
  const key='annualEventRegistration.v1',oldData=await evaluate('localStorage.getItem('+JSON.stringify(key)+')');
  try{
   await run(function(){
@@ -66,7 +67,7 @@ async function main(){
    n.value='RAHUL LINKED';n.dispatchEvent(new Event('input',{bubbles:true}));
    m.value='9810001501';m.dispatchEvent(new Event('input',{bubbles:true}));
    const host=document.getElementById('v5817RegistrationStatus');
-   return {text:host?.textContent,check:!!host?.querySelector('.v5-existing-checkin'),blocked:[...document.querySelectorAll('#v36RegistrationForm button[type="submit"][data-mode]')].every(x=>x.disabled)};
+   return {text:host?.textContent,check:!!host?.querySelector('.v5-existing-checkin'),blocked:[...document.querySelectorAll('#v36RegistrationForm button[type="submit"][data-mode]')].every(x=>x.disabled),patchShell:!!document.getElementById('v5VolunteersUI'),patchStage:window.__patch5Stage||'',startupErrors:window.__patch5LoadErrors||[],scripts:document.scripts.length};
   });
   assert.ok(linked.text.includes('PRE-REGISTERED')&&linked.text.includes('QA VOLUNTEER')&&linked.check&&linked.blocked,
     'Linked pre-registration UI missing: '+JSON.stringify(linked));
