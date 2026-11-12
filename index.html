@@ -10875,14 +10875,38 @@ function p2v58BindPhoneListener(){
     host.replaceChildren();host.className='hidden';
     let blocked=false;
     if(!isEditing&&actual){
-      blocked=true;host.className='v5817-status v5817-status-red';
+      // Patch 5: existing event registration is CHECKED IN directly, never created twice.
+      blocked=true;
+      const date=$('workingDate').value;
+      const linkedId=actual.kind==='family'?(actual.family?.volunteerId||null):
+        (actual.record?.referenceVolunteerId||state.attendeeMaster.find(m=>m.id===actual.record?.masterId)?.linkedVolunteerId||null);
+      const linked=linkedId?state.volunteers.find(v=>v.id===linkedId):null;
+      const arrived=(actual.checkins||[]).includes(date);
+      host.className='v5817-status '+(arrived?'v5817-status-green':linked?'v5817-status-red':'v5817-status-registered');
       const msg=document.createElement('strong');
-      msg.textContent=name.toUpperCase()+' — '+((actual.checkins||[]).length?'ALREADY CHECKED IN':'ALREADY REGISTERED');
+      msg.textContent=name.toUpperCase()+' — '+(arrived?'CHECKED IN':linked?'PRE-REGISTERED':'REGISTERED');
       host.append(msg);
-      const open=document.createElement('button');open.type='button';open.className='btn secondary small';
-      open.textContent='OPEN REGISTRATION';
-      open.onclick=()=>v36OpenRegistration((actual.kind==='family'?'family|'+actual.groupId:'attendee|'+actual.id));
-      host.append(open);
+      if(linked){
+        const label=document.createElement('span');label.className='v5-linked-volunteer';
+        label.textContent='LINKED VOLUNTEER: '+volName(linked).toUpperCase();
+        host.append(label);
+      }
+      if(!arrived){
+        const check=document.createElement('button');check.type='button';
+        check.className='btn small v5-existing-checkin';
+        check.textContent='✓ CHECK IN';
+        check.onclick=()=>{
+          const fresh=v36AllAttendeeRows().find(row=>row.id===actual.id&&row.kind===actual.kind&&
+            normName(row.name)===normName(name)&&
+            normMobile(row.personalMobile||(row.kind==='attendee'?row.mobile:''))===mobile);
+          if(!fresh){toast('Registration changed. Search again.');return}
+          if(!(fresh.checkins||[]).includes($('workingDate').value))
+            v36SetAttendeeCheckin(fresh,true);
+          $('v36RegistrationModal').classList.remove('open');
+          v5817RegistrationStatus();
+        };
+        host.append(check);
+      }
     }else if(mobileConflict){
       blocked=true;host.className='v5817-status v5817-status-red';
       const msg=document.createElement('strong');
