@@ -26,7 +26,7 @@ async function main(){
  const regStart=after.indexOf(regMarker),regStop=after.indexOf(regEndMarker,regStart);
  assert.ok(regStart>0&&regStop>regStart&&regStop<jsStart,'Registration handler must be installed in its own live module before the core Patch 5');
  const js=after.slice(jsStart,markEnd),css=after.slice(styleStart,styleEnd);
- assert.ok(js.includes('v5PreviousRegistrationStatus')&&js.includes('v5PreviousToggleItem')&&js.includes('v5RenderVolunteerUI'),'All three approved functions must exist');
+ assert.ok(after.slice(regStart,regStop).includes('v5PreviousRegistrationStatus')&&js.includes('v5PreviousToggleItem')&&js.includes('v5RenderVolunteerUI'),'All three approved functions must exist in their correct live modules');
  assert.ok(js.includes('v5ManualCheckin')&&js.includes('v5AutoCheckin')&&js.includes('v5LegacyCheckin'),'Missing attendance provenance safeguard');
  assert.ok(!/\.nav-btn\s*\{|aside\s*\{|#classes\s/.test(css),'Sidebar/Classes changed');
  assert.equal(after[jsStart-1],'\n','Patch JS insertion must start on a new line');
