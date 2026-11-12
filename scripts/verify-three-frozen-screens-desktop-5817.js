@@ -82,8 +82,8 @@ async function main(){
    return {text:host?.textContent.trim(),cls:host?.className,open:!!host?.querySelector('button'),
     blocked:[...document.querySelectorAll('#v36RegistrationForm button[type="submit"][data-mode]')].every(x=>x.disabled)};
   });
-  assert.ok(red.text.includes('ALREADY REGISTERED')&&red.cls.includes('red')&&red.blocked&&red.open,
-    'Red registered warning must outrank green recognition: '+JSON.stringify(red));
+  assert.ok(red.text.includes('REGISTERED')&&!red.text.includes('KRIYABAN RECOGNISED')&&(red.cls.includes('v5-existing')||red.cls.includes('red'))&&red.blocked&&red.open,
+    'Approved registered status with direct check-in must outrank Kriyaban recognition and block duplicates: '+JSON.stringify(red));
   const items=await run(function(){
    document.getElementById('v36CloseRegistration').click();
    document.querySelector('#eventWorkspace .v36-go[data-page="items"]')?.click();
