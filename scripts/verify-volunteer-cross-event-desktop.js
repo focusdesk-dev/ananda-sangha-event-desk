@@ -31,7 +31,7 @@ async function main(){
   await send('Page.reload',{ignoreCache:true});await delay(1000);
   const open=async (year)=>{
    const ok=await evalFn(function(){
-    const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));const year=window.__qaYear;
+    const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));const year=localStorage.getItem('qaCrossEventYear');
     const e=s.events.find(e=>e.id==='qaCrossEvent-'+year);
     s.activeEventId=e.id;
     const day=e.dates[0];
@@ -51,13 +51,13 @@ async function main(){
    });
   };
   for(const year of ['2026','2027']){
-   await run('window.__qaYear='+JSON.stringify(year));
+   await run('localStorage.setItem("qaCrossEventYear",'+JSON.stringify(year)+')');
    const ui=await open(year);
    assert.ok(ui.modal&&ui.haveSave,'Volunteer form missing: '+JSON.stringify(ui));
    // Save and check in today must not be blocked by permanent-master identity rules.
    const result=await evalFn(function(){
      document.getElementById('v87SaveVolunteerCheckin').click();
-     const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1')),id='qaCrossEvent-'+window.__qaYear;
+     const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1')),id='qaCrossEvent-'+localStorage.getItem('qaCrossEventYear');
      return {modalOpen:document.getElementById('volunteerModal').classList.contains('open'),
        masterCount:s.volunteers.filter(v=>v.mobile==='5917534600').length,
        eventCount:s.volunteerRegistrations.filter(r=>r.eventId===id&&r.volunteerId==='qaCrossEvent-vol').length,
@@ -81,6 +81,7 @@ async function main(){
  }finally{
   if(original===null)await run('localStorage.removeItem('+JSON.stringify(key)+')');
   else await run('localStorage.setItem('+JSON.stringify(key)+','+JSON.stringify(original)+')');
+  await run('localStorage.removeItem("qaCrossEventYear")');
   ws.close();
  }
 }
