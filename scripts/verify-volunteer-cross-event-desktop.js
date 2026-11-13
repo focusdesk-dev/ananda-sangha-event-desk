@@ -23,7 +23,7 @@ async function main(){
    s.volunteerRosters=s.volunteerRosters||{};s.daily=s.daily||{};
    const volunteerId=id+'-vol';
    s.volunteers.push({id:volunteerId,firstName:'NIKHIL',lastName:'ANANDA',mobile:'5917534600',birthday:'1980-01-01'});
-   for(const [eventId,date] of [[id+'-2026','2026-11-11'],[id+'-2027','2027-11-11']]){
+   for(const [eventId,date] of [[id+'-2026','2026-11-11'],[id+'-2027','2027-11-11'],[id+'-2028','2028-11-11']]){
     s.events.push({id:eventId,name:'QA Volunteer Cross Event '+date,dates:[date],start:date,end:date,venue:'Test Venue',rules:{badgeVolunteer:true,scarfVolunteer:true}});
    }
    s.activeEventId=id+'-2026';localStorage.setItem(key,JSON.stringify(s));
@@ -70,13 +70,38 @@ async function main(){
    // Reapply through a different year while retaining previous year history.
    console.log('PASS '+year+' reuse existing Volunteer Master, one per-event registration, checked in');
   }
+  // Ordinary Save Volunteer in a later year: assign to roster, NOT check in.
+  await run('localStorage.setItem("qaCrossEventYear","2028")');
+  const ordinaryUi=await open('2028');
+  assert.ok(ordinaryUi.modal,'Volunteer form missing for ordinary Save');
+  const ordinary=await evalFn(function(){
+    const form=document.getElementById('volunteerForm');
+    const submit=[...form.querySelectorAll('button[type="submit"]')][0];
+    if(!submit)throw Error('Ordinary Save Volunteer submit button absent');
+    submit.click();
+    const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
+    const id='qaCrossEvent-2028',date='2028-11-11',vol='qaCrossEvent-vol';
+    return {
+      modalOpen:document.getElementById('volunteerModal').classList.contains('open'),
+      masterCount:s.volunteers.filter(v=>v.mobile==='5917534600').length,
+      eventCount:s.volunteerRegistrations.filter(r=>r.eventId===id&&r.volunteerId===vol).length,
+      roster:(s.volunteerRosters[id+'|'+date]||[]).includes(vol),
+      checkins:s.volunteerRegistrations.find(r=>r.eventId===id&&r.volunteerId===vol)?.checkins||[]
+    };
+  });
+  assert.equal(ordinary.masterCount,1,'Ordinary save must not duplicate Volunteer Master');
+  assert.equal(ordinary.modalOpen,false,'Ordinary save modal must close');
+  assert.equal(ordinary.eventCount,1,'Ordinary save must register existing volunteer');
+  assert.equal(ordinary.roster,true,'Ordinary save must assign to selected date roster');
+  assert.deepEqual(ordinary.checkins,[],'Ordinary save must NOT check in');
+  console.log('PASS 2028 ordinary Save Volunteer: roster only, not checked in, no master duplicate');
   const final=await evalFn(function(){
    const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
    return {master:s.volunteers.filter(v=>v.mobile==='5917534600').length,
      events:s.volunteerRegistrations.filter(r=>r.volunteerId==='qaCrossEvent-vol').map(r=>r.eventId).sort()};
   });
   assert.equal(final.master,1);
-  assert.deepEqual(final.events,['qaCrossEvent-2026','qaCrossEvent-2027']);
+  assert.deepEqual(final.events,['qaCrossEvent-2026','qaCrossEvent-2027','qaCrossEvent-2028']);
   console.log('PASS cross-event, cross-year, no master duplicate, existing records preserved');
  }finally{
   if(original===null)await run('localStorage.removeItem('+JSON.stringify(key)+')');
