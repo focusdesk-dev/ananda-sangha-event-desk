@@ -198,4 +198,4 @@ jobs:
           name: Ananda 5.81.8 Volunteer Cross-Event Fix Patch 5.3
           prerelease: true
           files: distpatch/Ananda-5.81.8-Volunteer-Fix-Patch5.3.exe
-          body: "Patch 5.3 corrects installer labels and requires selecting the exact application folder instead of silently choosing an installation. Supports verified Fresh Patch 5 / Keyboard Patch 5.1 / Volunteer Patch 5.2. The application title indicates Patch 5.3. Verified ordinary Save Volunteer and Save & Check In Today in 2026/2027/2028; no duplicate master records; frozen layouts unchanged; close the app before patching. Unsigned."
+          body: "Patch 5.3 corrects installer labels and requires selecting the exact application folder instead of silently choosing an installation. Supports verified Fresh Patch 5 / Keyboard Patch 5.1 / Volunteer Patch 5.2. The installer confirms PATCH 5.3 with exact selected executable path and verified archive SHA256. Verified ordinary Save Volunteer and Save & Check In Today in 2026/2027/2028; no duplicate master records; frozen layouts unchanged; close the app before patching. Unsigned."
