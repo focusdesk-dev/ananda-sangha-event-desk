@@ -54,7 +54,7 @@ internal static class AnandaPatch
                 }
                 if(!Hash(stage).Equals(NewHash,StringComparison.OrdinalIgnoreCase))
                     throw new Exception("Patch integrity validation failed. Application was not modified.");
-                string backup=target+".backup-5.81.8-keyboard-patch5-1-"+DateTime.Now.ToString("yyyyMMdd-HHmmss");
+                string backup=target+".backup-5.81.8-volunteer-patch5-2-"+DateTime.Now.ToString("yyyyMMdd-HHmmss");
                 File.Replace(stage,target,backup);
                 if(!Hash(target).Equals(NewHash,StringComparison.OrdinalIgnoreCase))
                     throw new Exception("Post-install verification failed. Original archive remains in "+backup);
