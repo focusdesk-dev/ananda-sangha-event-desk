@@ -264,6 +264,29 @@ async function main(){
   assert.equal(checkinResult.badge,true);
   pass('Save & Check In Today is event-specific and preserves permanent master and prior-year history');
 
+  const approvedLayout=await fn(function(){
+    const nav=document.getElementById('v6EventTabs');
+    const detail=document.getElementById('v5VolunteerDetail');
+    const table=document.getElementById('v5VolunteerTable');
+    const extra=table?.querySelector('thead tr > :nth-child(6)');
+    const back=document.getElementById('v7BackToEvents');
+    return {
+      page:document.querySelector('.page.active')?.id,
+      tabsVisible:nav&&getComputedStyle(nav).display==='grid',
+      detailHidden:!detail||getComputedStyle(detail).display==='none',
+      detailsColumnHidden:!extra||getComputedStyle(extra).display==='none',
+      backVisible:back&&getComputedStyle(back).display!=='none',
+      eventHeader:document.getElementById('pageTitle')?.textContent
+    };
+  });
+  assert.equal(approvedLayout.page,'daily');
+  assert.equal(approvedLayout.tabsVisible,true,'Selected event should have five tabs');
+  assert.equal(approvedLayout.detailHidden,true,'Details side panel must be removed');
+  assert.equal(approvedLayout.detailsColumnHidden,true,'Details column must be removed');
+  assert.equal(approvedLayout.backVisible,true,'Back to Events must be shown');
+  assert.ok(/QA Badge Retreat|QA/i.test(approvedLayout.eventHeader||''),'Selected event name must be visible');
+  pass('Approved Freeze 1 and 2: tabs inside event, no details panel or column, event title and Back to Events');
+  
   const safety=await fn(function(){
     const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
     const before={studentCount:(s.students||[]).length,classCount:(s.classBatches||[]).length,
@@ -278,7 +301,7 @@ async function main(){
   assert.equal(safety.aside.replace(/nav-btn active/g,'nav-btn'),aside.replace(/nav-btn active/g,'nav-btn'));
   pass('Classes navigation and unchanged blue sidebar; no duplicate permanent volunteers');
   assert.ok(checks>=10,'Fewer than ten independent patch checks passed');
-  console.log('PASS PATCH 6 VERIFIED WITH '+checks+' INDEPENDENT UI/DATA CHECKS ON PACKAGED WINDOWS APP');
+  console.log('PASS PATCH 7 VERIFIED WITH '+checks+' INDEPENDENT UI/DATA CHECKS ON PACKAGED WINDOWS APP');
  }finally{
   if(prior===null)await js('localStorage.removeItem('+JSON.stringify(key)+')');
   else await js('localStorage.setItem('+JSON.stringify(key)+','+JSON.stringify(prior)+')');
