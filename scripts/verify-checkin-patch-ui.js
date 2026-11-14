@@ -39,11 +39,10 @@ async function main(){
   await sleep(200);
   const initial=await run(function(){
    document.querySelector('aside .nav-btn[data-page="events"]')?.click();
-   document.getElementById('p2v510OpenEvent')?.click();
-   const f=document.getElementById('v578EventSearch');
+   const f=document.getElementById('v6EventSearch');
    if(f){f.value='Patch No-Accessories QA';f.dispatchEvent(new Event('input',{bubbles:true}))}
-   const event=[...document.querySelectorAll('#eventList .p2v510-event-row')].find(r=>r.textContent.includes('Patch No-Accessories QA'));
-   event?.querySelector('.v578-open-event')?.click();
+   const event=[...document.querySelectorAll('#eventList .v6-event-table tbody tr')].find(r=>r.textContent.includes('Patch No-Accessories QA'));
+   event?.querySelector('.v6-open-event')?.click();
    document.querySelector('#eventWorkspace .v36-go[data-page="checkin"]')?.click();
    const table=document.querySelector('#v36AttendeeTable table');
    if(!table)return {error:'Missing attendee table',page:document.querySelector('.page.active')?.id};
