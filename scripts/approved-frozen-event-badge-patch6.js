@@ -207,15 +207,6 @@
     });
     return nav;
   }
-  function v6EventStatus(event){
-    if(event.status&&['active','upcoming','planned','completed','cancelled'].includes(String(event.status).toLowerCase()))
-      return String(event.status).toLowerCase();
-    const days=eventDates(event),date=new Date().toISOString().slice(0,10);
-    if(!days.length)return'planned';
-    if(date<days[0])return'upcoming';
-    if(date>days[days.length-1])return'completed';
-    return'active';
-  }
   function v6RenderEventList(){
     if(p2v510EventView!=='open')return;
     const list=$('eventList'),card=list?.closest('.card');
@@ -330,6 +321,8 @@
       const panel=$('v72BadgePanel');panel?.classList.remove('hidden');
     }
   }
+  const v6BadgeModeBefore=v82ApplyBadgeMode;
+  v82ApplyBadgeMode=function(){const result=v6BadgeModeBefore.apply(this,arguments);v6UpdateLayout();return result};
   v6EventsShell();
   v6UpdateLayout();
   document.head.insertAdjacentHTML('beforeend','<style id="v6-frozen-event-badge-css">'+
