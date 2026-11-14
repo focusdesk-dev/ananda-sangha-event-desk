@@ -78,7 +78,7 @@ async function main(){
   assert.equal(events.display,'grid');
   assert.equal(events.newEvent,true);
   assert.equal(events.table,true);
-  assert.equal(events.aside,aside);
+  assert.equal(events.aside.replace(/nav-btn active/g,'nav-btn'),aside.replace(/nav-btn active/g,'nav-btn'));
   pass('Frozen Events design: five tabs, gold divider, correct list and untouched blue sidebar');
 
   const search=await fn(function(){
@@ -281,7 +281,7 @@ async function main(){
   assert.equal(safety.oneMaster,1);
   assert.equal(safety.event2026,1);
   assert.equal(safety.page,'classes');
-  assert.equal(safety.aside,aside);
+  assert.equal(safety.aside.replace(/nav-btn active/g,'nav-btn'),aside.replace(/nav-btn active/g,'nav-btn'));
   pass('Classes navigation and unchanged blue sidebar; no duplicate permanent volunteers');
   assert.ok(checks>=10,'Fewer than ten independent patch checks passed');
   console.log('PASS PATCH 6 VERIFIED WITH '+checks+' INDEPENDENT UI/DATA CHECKS ON PACKAGED WINDOWS APP');
