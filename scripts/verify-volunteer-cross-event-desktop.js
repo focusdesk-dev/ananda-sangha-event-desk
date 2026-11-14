@@ -18,7 +18,7 @@ async function main(){
  try{
  const patchMarker=await evalFn(function(){return {version:window.anandaVolunteerPatchVersion,title:document.title}});
  assert.equal(patchMarker.version,'5.4','Previous volunteer correction missing');
- assert.equal(await evalFn(function(){return window.anandaFrozenPatchVersion}),'6','Approved patch 6 missing');
+ assert.equal(await evalFn(function(){return window.anandaFrozenPatchVersion}),'9','Cumulative Patch 9 missing');
  console.log('PASS packaged app confirms Volunteer Patch 5.4 internal marker');
   await evalFn(function(){
    const key='annualEventRegistration.v1',s=JSON.parse(localStorage.getItem(key)||'{}'),id='qaCrossEvent';
