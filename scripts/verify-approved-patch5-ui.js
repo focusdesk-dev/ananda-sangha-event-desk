@@ -108,7 +108,7 @@ async function main(){
   });
   assert.equal(volunteer.page,'daily','Volunteer page not opened '+JSON.stringify(volunteer));
   assert.deepEqual(volunteer.filters,['all','pending','checked']);
-  assert.equal(volunteer.title,'PATCH 5 THREE CHANGES QA');
+  assert.equal(volunteer.title,'PATCH 5 THREE CHANGES QA – VOLUNTEERS');
   assert.ok(volunteer.add&&volunteer.oldCounterHidden&&volunteer.badgeIssue&&volunteer.rows===2,'Unified volunteer UI failed '+JSON.stringify(volunteer));
   const afterIssue=await run(function(){
    document.querySelector('.v5-item[data-id="qapatch5-vol"][data-item="badge"]').click();
