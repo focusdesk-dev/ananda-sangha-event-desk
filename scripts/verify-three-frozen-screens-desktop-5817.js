@@ -28,11 +28,10 @@ async function main(){
   await call('Page.reload',{ignoreCache:true});await sleep(1100);
   const initial=await run(function(){
    document.querySelector('aside .nav-btn[data-page="events"]')?.click();
-   document.getElementById('p2v510OpenEvent')?.click();
-   const f=document.getElementById('v578EventSearch');
+   const f=document.getElementById('v6EventSearch');
    if(f){f.value='5.81.7 Attendee Table QA';f.dispatchEvent(new Event('input',{bubbles:true}))}
-   const row=[...document.querySelectorAll('#eventList .p2v510-event-row')].find(r=>r.textContent.includes('5.81.7 Attendee Table QA'));
-   row?.querySelector('.v578-open-event')?.click();
+   const row=[...document.querySelectorAll('#eventList .v6-event-table tbody tr')].find(r=>r.textContent.includes('5.81.7 Attendee Table QA'));
+   row?.querySelector('.v6-open-event')?.click();
    document.querySelector('#eventWorkspace .v36-go[data-page="checkin"]')?.click();
    const t=document.querySelector('#v36AttendeeTable table');
    if(!t)return {error:'No attendee table',active:document.querySelector('.page.active')?.id};
