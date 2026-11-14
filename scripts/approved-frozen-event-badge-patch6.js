@@ -461,6 +461,5 @@
     'body.v6-event-area:has(#daily.page.active) #v5VolunteerTable tr > :nth-child(6){display:none!important}'+
     'body.v6-event-area:has(#daily.page.active) #v5VolunteerTable th,body.v6-event-area:has(#daily.page.active) #v5VolunteerTable td{padding:13px 10px!important;white-space:normal!important}'+
     'body.v6-event-area:has(#daily.page.active) #v5VolunteersUI{max-width:100%!important;min-width:0!important}'+
-    'body.v6-event-area:has(#daily.page.active) #v5ReversePrompt{display:none!important}'+
     '</style>');
   v7ApprovedRefresh();
