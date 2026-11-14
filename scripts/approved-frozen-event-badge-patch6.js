@@ -147,6 +147,14 @@
     };
   }
 
+  const v6BadgeRenderBefore=renderItems;
+  renderItems=function(){
+    const result=v6BadgeRenderBefore.apply(this,arguments);
+    v6BadgePanel();
+    v6UpdateLayout();
+    return result;
+  };
+
   function v6VolunteerPicker(){
     let modal=$('v6VolunteerPicker');
     if(!modal){
