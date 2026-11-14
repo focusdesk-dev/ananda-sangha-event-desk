@@ -480,6 +480,7 @@
     'body.v6-event-area .topbar{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important}'+
     'body.v6-event-area #pageTitle{font-size:clamp(22px,2.4vw,30px)!important;line-height:1.25!important;overflow-wrap:anywhere!important}'+
     'body.v6-event-area #v6EventTabs{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:9px!important}'+
+    'body.v6-badge-mode #v72BadgePanel > #v6BadgeBack{display:inline-flex!important;margin-bottom:12px!important}'+
     'body.v6-event-area:has(#daily.page.active) #daily .v5-layout{display:block!important;grid-template-columns:minmax(0,1fr)!important}'+
     'body.v6-event-area:has(#daily.page.active) #v5VolunteerDetail{display:none!important}'+
     'body.v6-event-area:has(#daily.page.active) #v5VolunteerTable{width:100%!important;table-layout:fixed!important}'+
