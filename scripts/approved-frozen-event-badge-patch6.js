@@ -225,7 +225,7 @@
     nav.innerHTML=tabs.map(pair=>'<button type="button" class="v6-event-tab" data-v6-tab="'+pair[0]+'">'+pair[1]+'</button>').join('');
     nav.querySelectorAll('button').forEach(button=>button.onclick=()=>{
       const name=button.dataset.v6Tab;v6EventTab=name;
-      if(name==='record')switchPage('events');
+      if(name==='record')switchPage('eventWorkspace');
       else if(name==='volunteers')switchPage('daily');
       else if(name==='attendees')switchPage('register');
       else if(name==='items')switchPage('items');
@@ -308,11 +308,11 @@
   function v6UpdateLayout(){
     const nav=v6EventsShell();
     const relevant=v6EventPages.has(page),printing=page==='items'&&v82BadgeMode==='printing';
-    nav.classList.toggle('hidden',!relevant||printing);
+    nav.classList.toggle('hidden',!relevant||printing||page==='events'||p2v510EventView==='create'||p2v510EventView==='edit');
     document.body.classList.toggle('v6-event-area',relevant);
     document.body.classList.toggle('v6-badge-mode',printing);
     if(relevant){
-      const t=$('pageTitle');if(t)t.textContent=printing?'BADGE PREPARATION':'EVENTS';
+      const t=$('pageTitle');if(t)t.textContent=printing?'BADGE PREPARATION':page==='events'?'EVENTS':String(activeEvent()?.name||'EVENT').toUpperCase();
       $('pageSubtitle')?.classList.add('hidden');
       const chip=$('workingDateChip');
       if(chip)chip.classList.toggle('hidden',page==='events');
@@ -416,3 +416,51 @@
   '#v6VolunteerPicker .v6-already{color:#25734b;font-size:12px;font-weight:750}'+
   '@media(max-width:1100px){#v6EventTabs .v6-event-tab{font-size:11px}#v6BadgeRoot .v6-badge-filters{grid-template-columns:repeat(3,100px)}}'+
   '</style>');
+
+
+  // Approved follow-up Freeze 1: keep event navigation INSIDE a selected event.
+  // Freeze 2: remove the redundant details area, not the data or check-in provenance.
+  function v7ApprovedRefresh(){
+    const isEvent=page!=='events' && v6EventPages.has(page) && !!activeEvent();
+    const nav=$('v6EventTabs');
+    if(nav)nav.classList.toggle('hidden',!isEvent||(page==='items'&&v82BadgeMode==='printing'));
+    let back=$('v7BackToEvents');
+    if(!back){
+      back=document.createElement('button');
+      back.id='v7BackToEvents';back.type='button';
+      back.className='btn ghost';back.textContent='← BACK TO EVENTS';
+      (document.querySelector('.topbar .actions')||document.querySelector('.topbar'))?.append(back);
+      back.onclick=()=>{p2v510EventView='open';switchPage('events')};
+    }
+    back.hidden=!isEvent;
+    const t=$('pageTitle');
+    if(t&&isEvent&&page!=='items')t.textContent=String(activeEvent().name||'EVENT').toUpperCase();
+    if(t&&page==='events')t.textContent='EVENTS';
+    const detail=$('v5VolunteerDetail');
+    if(detail)detail.hidden=true;
+    document.querySelectorAll('.topbar button').forEach(b=>{
+      if((b.textContent||'').trim().toUpperCase().includes('MASTER LOCK'))
+        b.style.display=page==='daily'?'none':'';
+    });
+  }
+  const v7LayoutPrevious=v6UpdateLayout;
+  v6UpdateLayout=function(){
+    const value=v7LayoutPrevious.apply(this,arguments);
+    v7ApprovedRefresh();return value;
+  };
+  const v7RenderVolunteerPrevious=v5RenderVolunteerUI;
+  v5RenderVolunteerUI=function(){
+    const value=v7RenderVolunteerPrevious.apply(this,arguments);
+    v7ApprovedRefresh();return value;
+  };
+  document.head.insertAdjacentHTML('beforeend','<style id="v7-approved-volunteers-css">'+
+    '#v7BackToEvents[hidden]{display:none!important}'+
+    'body.v6-event-area:has(#daily.page.active) #daily .v5-layout{display:block!important;grid-template-columns:minmax(0,1fr)!important}'+
+    'body.v6-event-area:has(#daily.page.active) #v5VolunteerDetail{display:none!important}'+
+    'body.v6-event-area:has(#daily.page.active) #v5VolunteerTable{width:100%!important;table-layout:fixed!important}'+
+    'body.v6-event-area:has(#daily.page.active) #v5VolunteerTable tr > :nth-child(6){display:none!important}'+
+    'body.v6-event-area:has(#daily.page.active) #v5VolunteerTable th,body.v6-event-area:has(#daily.page.active) #v5VolunteerTable td{padding:13px 10px!important;white-space:normal!important}'+
+    'body.v6-event-area:has(#daily.page.active) #v5VolunteersUI{max-width:100%!important;min-width:0!important}'+
+    'body.v6-event-area:has(#daily.page.active) #v5ReversePrompt{display:none!important}'+
+    '</style>');
+  v7ApprovedRefresh();
