@@ -81,6 +81,51 @@ async function main(){
   assert.equal(events.aside.replace(/nav-btn active/g,'nav-btn'),aside.replace(/nav-btn active/g,'nav-btn'));
   pass('Approved Freeze 1: four event tabs hidden on event list; original sidebar preserved');
 
+  // New frozen requirement: four tabs INSIDE an event, one native Back button,
+  // and an event + section title. The old CHECK-IN route remains functional as
+  // an Attendees operation rather than occupying a fifth top-level tab.
+  const scopedNav=await fn(function(){
+    document.querySelector('#eventList .v6-open-event[data-id="qaFreeze6-2027"]')?.click();
+    const nav=document.getElementById('v6EventTabs');
+    const title=()=>document.getElementById('pageTitle')?.textContent;
+    const back=document.getElementById('backButton');
+    const record={page:document.querySelector('.page.active')?.id,title:title(),
+      count:nav.querySelectorAll('button').length,visible:getComputedStyle(nav).display!=='none',
+      nativeBack:getComputedStyle(back).display!=='none',
+      extraBack:!!document.getElementById('v7BackToEvents')&&getComputedStyle(document.getElementById('v7BackToEvents')).display!=='none'};
+    nav.querySelector('[data-v6-tab="volunteers"]').click();
+    const volunteers={page:document.querySelector('.page.active')?.id,title:title(),
+      table:!!document.getElementById('v5VolunteerTable')};
+    nav.querySelector('[data-v6-tab="attendees"]').click();
+    const attendees={page:document.querySelector('.page.active')?.id,title:title(),
+      table:!!document.getElementById('v36AttendeeTable'),
+      registration:!!document.getElementById('v36NewRegistration')};
+    document.querySelector('#eventWorkspace .v36-go[data-page="checkin"]')?.click();
+    const checkin={page:document.querySelector('.page.active')?.id,title:title(),
+      activeTab:nav.querySelector('.v6-event-tab.active')?.textContent?.trim(),
+      originalSearch:!!document.getElementById('findCheckin')};
+    back.click();
+    const listed={page:document.querySelector('.page.active')?.id,
+      navHidden:getComputedStyle(nav).display==='none',
+      backHidden:getComputedStyle(back).display==='none'};
+    return {record,volunteers,attendees,checkin,listed};
+  });
+  assert.equal(scopedNav.record.count,4,'Exactly four event tabs required');
+  assert.deepEqual([scopedNav.record.page,scopedNav.record.visible,scopedNav.record.nativeBack,scopedNav.record.extraBack],
+    ['eventWorkspace',true,true,false],'Selected event navigation must have one Back button');
+  assert.equal(scopedNav.record.title,'QA BADGE RETREAT 2027 – EVENT RECORD');
+  assert.equal(scopedNav.volunteers.title,'QA BADGE RETREAT 2027 – VOLUNTEERS');
+  assert.equal(scopedNav.volunteers.table,true,'Volunteer table remains available');
+  assert.equal(scopedNav.attendees.title,'QA BADGE RETREAT 2027 – ATTENDEES');
+  assert.equal(scopedNav.attendees.table&&scopedNav.attendees.registration,true,'Attendee check-in and registration remain available');
+  assert.equal(scopedNav.checkin.title,'QA BADGE RETREAT 2027 – ATTENDEES');
+  assert.equal(scopedNav.checkin.activeTab,'ATTENDEES');
+  assert.equal(scopedNav.checkin.originalSearch,true,'Legacy waiting list and import remains available under attendee context');
+  assert.equal(scopedNav.listed.page,'events');
+  assert.equal(scopedNav.listed.navHidden,true);
+  assert.equal(scopedNav.listed.backHidden,true);
+  pass('Patch 9 four-tab event navigation, one Back button, event-section titles and preserved attendee check-in');
+  
   const search=await fn(function(){
     const input=document.getElementById('v6EventSearch');
     input.value='QA Badge Retreat';input.dispatchEvent(new Event('input',{bubbles:true}));
@@ -118,7 +163,7 @@ async function main(){
     return out;
   });
   assert.equal(badgePage.page,'items');
-  assert.equal(badgePage.title,'QA BADGE RETREAT – BADGE & SCARF');
+  assert.equal(badgePage.title,'QA BADGE RETREAT 2027 – BADGE & SCARF');
   assert.equal(badgePage.badgeVisible,true);
   assert.deepEqual(badgePage.counts,[4,1,3]);
   assert.equal(badgePage.names.length,4);
