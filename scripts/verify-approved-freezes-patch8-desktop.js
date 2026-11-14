@@ -287,6 +287,24 @@ async function main(){
   assert.ok(/QA Badge Retreat|QA/i.test(approvedLayout.eventHeader||''),'Selected event name must be visible');
   pass('Approved Freeze 1 and 2: tabs inside event, no details panel or column, event title and Back to Events');
   
+  const reversal=await fn(function(){
+    const button=document.querySelector('#v5VolunteerTable .v5-check.checked[data-id="qaFreeze6-nikhil"]');
+    if(!button)return {found:false};
+    button.dispatchEvent(new MouseEvent('dblclick',{bubbles:true,cancelable:true,detail:2}));
+    const data=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
+    const r=data.volunteerRegistrations.find(r=>r.eventId==='qaFreeze6-2026'&&r.volunteerId==='qaFreeze6-nikhil');
+    const fresh=document.querySelector('#v5VolunteerTable .v5-check[data-id="qaFreeze6-nikhil"]');
+    return {found:true,checkins:r?.checkins,button:fresh?.textContent?.trim(),
+      master:data.volunteers.filter(v=>v.id==='qaFreeze6-nikhil').length,
+      badge:data.volunteers.find(v=>v.id==='qaFreeze6-nikhil')?.badgeAvailable};
+  });
+  assert.equal(reversal.found,true,'Checked-in volunteer must have a reversible status button');
+  assert.deepEqual(reversal.checkins,[],'Double-click must remove selected event/day check-in');
+  assert.equal(reversal.button,'CHECK IN','Status must change back to CHECK IN');
+  assert.equal(reversal.master,1,'Volunteer Master record must not change');
+  assert.equal(reversal.badge,true,'Permanent badge availability must not change');
+  pass('Double-click checked in reverses accidental attendance and updates button without changing volunteer or badge records');
+
   const safety=await fn(function(){
     const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
     const before={studentCount:(s.students||[]).length,classCount:(s.classBatches||[]).length,
@@ -301,7 +319,7 @@ async function main(){
   assert.equal(safety.aside.replace(/nav-btn active/g,'nav-btn'),aside.replace(/nav-btn active/g,'nav-btn'));
   pass('Classes navigation and unchanged blue sidebar; no duplicate permanent volunteers');
   assert.ok(checks>=10,'Fewer than ten independent patch checks passed');
-  console.log('PASS PATCH 7 VERIFIED WITH '+checks+' INDEPENDENT UI/DATA CHECKS ON PACKAGED WINDOWS APP');
+  console.log('PASS PATCH 8 VERIFIED WITH '+checks+' INDEPENDENT UI/DATA CHECKS ON PACKAGED WINDOWS APP');
  }finally{
   if(prior===null)await js('localStorage.removeItem('+JSON.stringify(key)+')');
   else await js('localStorage.setItem('+JSON.stringify(key)+','+JSON.stringify(prior)+')');
