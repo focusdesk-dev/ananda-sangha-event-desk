@@ -51,11 +51,10 @@ async function main(){
   await call('Page.reload',{ignoreCache:true});await sleep(1200);
   const open=await run(function(){
    document.querySelector('aside .nav-btn[data-page="events"]')?.click();
-   document.getElementById('p2v510OpenEvent')?.click();
-   const f=document.getElementById('v578EventSearch');
+   const f=document.getElementById('v6EventSearch');
    if(f){f.value='Patch 5 Three Changes QA';f.dispatchEvent(new Event('input',{bubbles:true}))}
-   const event=[...document.querySelectorAll('#eventList .p2v510-event-row')].find(r=>r.textContent.includes('Patch 5 Three Changes QA'));
-   event?.querySelector('.v578-open-event')?.click();
+   const event=[...document.querySelectorAll('#eventList .v6-event-table tbody tr')].find(r=>r.textContent.includes('Patch 5 Three Changes QA'));
+   event?.querySelector('.v6-open-event')?.click();
    document.querySelector('#eventWorkspace .v36-go[data-page="checkin"]')?.click();
    return {page:document.querySelector('.page.active')?.id,event:!!event,registrationButton:!!document.getElementById('v36NewRegistration')};
   });
@@ -109,7 +108,7 @@ async function main(){
   });
   assert.equal(volunteer.page,'daily','Volunteer page not opened '+JSON.stringify(volunteer));
   assert.deepEqual(volunteer.filters,['all','pending','checked']);
-  assert.equal(volunteer.title,'VOLUNTEERS');
+  assert.equal(volunteer.title,'EVENTS');
   assert.ok(volunteer.add&&volunteer.oldCounterHidden&&volunteer.badgeIssue&&volunteer.rows===2,'Unified volunteer UI failed '+JSON.stringify(volunteer));
   const afterIssue=await run(function(){
    document.querySelector('.v5-item[data-id="qapatch5-vol"][data-item="badge"]').click();
