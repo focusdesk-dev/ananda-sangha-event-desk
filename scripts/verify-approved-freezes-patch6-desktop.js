@@ -168,36 +168,30 @@ async function main(){
   assert.deepEqual(reversed,{master:false,available:1,pending:3});
   pass('Unticking reverses the badge status without deleting registrations');
 
-  const print=await fn(async function(){
-    // The real Windows print dialog must never open in an automated test.
-    // Replace the print API locally for this test; confirm only after "printed".
-    const originalApi=window.anandaDesktop;
+  const print=await fn(function(){
+    document.getElementById('v6PrintBadges').click();
+    const modal=document.getElementById('v6PrintConfirm');
+    const controls=!!modal&&modal.classList.contains('open')&&!!document.getElementById('v6PrintOpenDialog')&&!!document.getElementById('v6PrintMarkAvailable');
     const originalConfirm=window.confirm;
-    let patched=false;
     try{
-      window.anandaDesktop={...(originalApi||{}),printHtml:async()=>({ok:true})};
-      patched=window.anandaDesktop.printHtml!==originalApi?.printHtml;
       window.confirm=()=>false;
-      await document.getElementById('v6PrintBadges').onclick();
-      const before=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
-      const unconfirmed=before.volunteers.filter(v=>v.id.startsWith('qaFreeze6-')&&!v.badgeAvailable).length;
+      document.getElementById('v6PrintMarkAvailable').click();
+      const first=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
+      const unchanged=first.volunteers.filter(v=>['qaFreeze6-rahul','qaFreeze6-meera','qaFreeze6-amit'].includes(v.id)&&!v.badgeAvailable).length;
       window.confirm=()=>true;
-      await document.getElementById('v6PrintBadges').onclick();
+      document.getElementById('v6PrintMarkAvailable').click();
       const after=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
-      return {patched,unconfirmed,available:after.volunteers.filter(v=>
-        ['qaFreeze6-nikhil','qaFreeze6-rahul','qaFreeze6-meera','qaFreeze6-amit'].includes(v.id)&&v.badgeAvailable).length,
-        sonal:after.volunteers.find(v=>v.id==='qaFreeze6-sonal')?.badgeAvailable,
-        counters:[Number(document.getElementById('v6Required')?.textContent),
-          Number(document.getElementById('v6Available')?.textContent),
-          Number(document.getElementById('v6ToPrint')?.textContent)]};
-    }finally{window.confirm=originalConfirm;window.anandaDesktop=originalApi;}
+      return {controls,unchanged,closed:!modal.classList.contains('open'),
+        ready:after.volunteers.filter(v=>['qaFreeze6-nikhil','qaFreeze6-rahul','qaFreeze6-meera','qaFreeze6-amit'].includes(v.id)&&v.badgeAvailable).length,
+        counts:[Number(document.getElementById('v6Required').textContent),Number(document.getElementById('v6Available').textContent),Number(document.getElementById('v6ToPrint').textContent)]};
+    }finally{window.confirm=originalConfirm}
   });
-  assert.equal(print.patched,true,'Test print API stub did not activate; batch printing not verified');
-  assert.ok(print.unconfirmed>=3,'Cancelled printing must not mark any pending badges available');
-  assert.equal(print.available,4);
-  assert.equal(print.sonal,true);
-  assert.deepEqual(print.counters,[4,4,0]);
-  pass('Printing batch asks for confirmation then sets permanent availability for everyone printed');
+  assert.equal(print.controls,true);
+  assert.equal(print.unchanged,3);
+  assert.equal(print.closed,true);
+  assert.equal(print.ready,4);
+  assert.deepEqual(print.counts,[4,4,0]);
+  pass('Printed batch confirmation and cancellation update master only on explicit operator confirmation');
 
   // Save another event first, then reload; printed badges cannot be lost as
   // the old day's checklist was empty.
