@@ -75,11 +75,11 @@ async function main(){
   assert.equal(events.page,'events');
   assert.deepEqual(events.tabs,['EVENT RECORD','VOLUNTEERS','ATTENDEES','BADGE & SCARF','CHECK-IN']);
   assert.equal(events.lines,'4px');
-  assert.equal(events.display,'grid');
+  assert.equal(events.display,'none');
   assert.equal(events.newEvent,true);
   assert.equal(events.table,true);
   assert.equal(events.aside.replace(/nav-btn active/g,'nav-btn'),aside.replace(/nav-btn active/g,'nav-btn'));
-  pass('Frozen Events design: five tabs, gold divider, correct list and untouched blue sidebar');
+  pass('Approved Freeze 1: five event tabs hidden on event list; original sidebar preserved');
 
   const search=await fn(function(){
     const input=document.getElementById('v6EventSearch');
