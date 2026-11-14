@@ -168,7 +168,7 @@ jobs:
         shell: pwsh
         run: |
           $meta=Get-Content frozen-patch8-hashes.json -Raw | ConvertFrom-Json
-          $cs=[IO.File]::ReadAllText('scripts/AnandaApprovedFreezesPatch8.cs').Replace('__BASE_SHA__',[string]$meta.baseSha256).Replace('__PATCH_SHA__',[string]$meta.patchSha256).Replace('__PATCH6_SHA__',[string]$env:PATCH6_INSTALLED_SHA)
+          $cs=[IO.File]::ReadAllText('scripts/AnandaApprovedFreezesPatch8.cs').Replace('__BASE_SHA__',[string]$meta.baseSha256).Replace('__PATCH_SHA__',[string]$meta.patchSha256).Replace('__PATCH7_SHA__',[string]$env:PATCH7_INSTALLED_SHA).Replace('__PATCH6_SHA__','C810C76B6DCDD1DB2F15FE6BFAD46B027D8F75C7F00E95B86D65A3F513160869')
           $csPath=Join-Path $PWD 'distpatch/AnandaCheckinPatch.generated.cs'
           [IO.File]::WriteAllText($csPath,$cs,[System.Text.Encoding]::UTF8)
           node -e "const fs=require('fs'),z=require('zlib');fs.writeFileSync('distpatch/app.asar.gz',z.gzipSync(fs.readFileSync('distpatch/app.asar'),{level:9}))"
@@ -186,7 +186,7 @@ jobs:
         run: |
           $target=Join-Path $env:ANANDA_PATCH_INSTALL_DIR 'resources/app.asar'
           $meta=Get-Content frozen-patch8-hashes.json -Raw | ConvertFrom-Json
-          if ((Get-FileHash $target -Algorithm SHA256).Hash -ne [string]$env:PATCH6_INSTALLED_SHA) { throw 'Original archive checksum mismatch' }
+          if ((Get-FileHash $target -Algorithm SHA256).Hash -ne [string]$env:PATCH7_INSTALLED_SHA) { throw 'Original archive checksum mismatch' }
           $data=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data'
           New-Item -ItemType Directory -Path $data -Force | Out-Null
           $sentinel=Join-Path $data 'patch-sentinel.txt'
