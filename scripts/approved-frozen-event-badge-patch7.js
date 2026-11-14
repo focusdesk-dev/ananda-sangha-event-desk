@@ -463,3 +463,30 @@
     'body.v6-event-area:has(#daily.page.active) #v5VolunteersUI{max-width:100%!important;min-width:0!important}'+
     '</style>');
   v7ApprovedRefresh();
+
+  // Freeze 2 correction: double-click CHECKED IN to undo only the active
+  // event/day check-in. Never clear registration, an unrelated day, or issued items.
+  document.addEventListener('dblclick',function v8UndoVolunteerCheckin(event){
+    const button=event.target.closest?.('#v5VolunteerTable .v5-check.checked');
+    if(!button||page!=='daily'||!activeEvent())return;
+    event.preventDefault();event.stopImmediatePropagation();
+    const id=button.dataset.id,eventId=state.activeEventId,date=v5CurrentDate();
+    if(!id||!eventId||!date)return;
+    const allocation=v5Allocation('volunteer',id,eventId,date);
+    // Badge/scarf issue is independent check-in evidence: keep it checked in.
+    if((allocation.badgeIssued&&!allocation.badgeReturned)||
+       (allocation.scarfIssued&&!allocation.scarfReturned)){
+      toast('Badge or scarf is issued; reverse its issue first to remove check-in.');
+      return;
+    }
+    const registration=(state.volunteerRegistrations||[]).find(
+      r=>r.eventId===eventId&&r.volunteerId===id);
+    if(registration)registration.checkins=(registration.checkins||[]).filter(d=>d!==date);
+    const key=eventId+'|'+date;
+    state.daily[key]=(state.daily[key]||[]).filter(value=>value!==id);
+    allocation.v5ManualCheckin=false;
+    allocation.v5LegacyCheckin=false;
+    allocation.v5AutoCheckin=false;
+    allocation.v5AutoAt=null;
+    save();v5RenderVolunteerUI();
+  },true);
