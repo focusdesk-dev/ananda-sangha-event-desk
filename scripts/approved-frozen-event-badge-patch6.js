@@ -98,35 +98,54 @@
           v6BadgeAvailable(v)?'Available':'To Print']));
       download('ananda-badge-preparation-'+($('workingDate').value||'event')+'.csv',csv(rows),'text/csv;charset=utf-8');
     };
-    $('v6PrintBadges').onclick=async()=>{
-      const pending=v6BadgeRows().filter(v=>!v6BadgeAvailable(v));
-      if(!pending.length){toast('No registered volunteer badges to print');return}
+    $('v6PrintBadges').onclick=()=>v6OpenPrintFlow();
+  }
+  function v6OpenPrintFlow(){
+    const pending=v6BadgeRows().filter(v=>!v6BadgeAvailable(v));
+    if(!pending.length){toast('No registered volunteer badges to print');return}
+    let modal=$('v6PrintConfirm');
+    if(!modal){
+      modal=document.createElement('div');modal.id='v6PrintConfirm';modal.className='modal-backdrop';
+      modal.innerHTML='<div class="modal" style="max-width:620px">'+
+        '<div class="modal-head"><h3>PRINT NAME BADGES</h3>'+
+        '<button id="v6ClosePrint" class="x" type="button">×</button></div>'+
+        '<p id="v6PrintSummary" class="card-sub"></p>'+
+        '<div id="v6PrintNames" style="max-height:240px;overflow:auto;margin:12px 0"></div>'+
+        '<p style="font-size:12px;color:#46536b">After printing, confirm the physical badges are ready. Only then are they permanently marked Available for future years.</p>'+
+        '<div class="actions" style="margin-top:17px;gap:9px">'+
+        '<button id="v6PrintOpenDialog" class="btn secondary" type="button">OPEN PRINT DIALOG</button>'+
+        '<button id="v6PrintMarkAvailable" class="btn" type="button">MARK PRINTED & AVAILABLE</button>'+
+        '<button id="v6PrintCancel" class="btn ghost" type="button">CANCEL</button>'+
+        '</div></div>';
+      document.body.append(modal);
+      const close=()=>modal.classList.remove('open');
+      $('v6ClosePrint').onclick=$('v6PrintCancel').onclick=close;
+    }
+    $('v6PrintSummary').textContent=pending.length+' BADGE(S) TO PRINT FOR '+(activeEvent()?.name||'EVENT');
+    $('v6PrintNames').innerHTML=pending.map(v=>'<div style="padding:7px 10px;border-bottom:1px solid #ddd">'+
+      esc(volName(v))+' · '+esc(v.mobile||'')+'</div>').join('');
+    modal.classList.add('open');
+    $('v6PrintOpenDialog').onclick=async()=>{
       const html='<!doctype html><html><head><meta charset="utf-8"><title>Badges to Print</title>'+
         '<style>body{font:16px Arial;padding:20px}li{padding:12px;border-bottom:1px solid #ddd}</style>'+
         '</head><body><h2>'+esc(activeEvent()?.name||'Event')+' — BADGES TO PRINT</h2><ol>'+
         pending.map(v=>'<li>'+esc(volName(v))+' · '+esc(v.mobile||'')+'</li>').join('')+'</ol></body></html>';
       if(window.anandaDesktop?.printHtml){
         const response=await window.anandaDesktop.printHtml(html);
-        if(!response?.ok){toast(response?.error||'Printing was not completed');return}
+        if(!response?.ok)toast(response?.error||'Printing could not be opened');
       }else{
         const popup=window.open('','_blank','width=700,height=700');
         if(!popup){toast('Allow printing pop-ups');return}
         popup.document.write(html);popup.document.close();popup.focus();popup.print();
       }
-      // The print dialog can be cancelled. Do not mark badges printed before
-      // the operator confirms that the physical printed batch exists.
-      if(!confirm('Have these '+pending.length+' badges actually been printed? Mark them AVAILABLE permanently?'))return;
+    };
+    $('v6PrintMarkAvailable').onclick=()=>{
+      if(!confirm('Confirm '+pending.length+' name badges have been physically printed and are available for all future events?'))return;
       pending.forEach(v=>{v.badgeAvailable=true});
-      save();v6BadgePanel();toast(pending.length+' badges available across all future events and years');
+      save();modal.classList.remove('open');v6BadgePanel();
+      toast(pending.length+' badges permanently available across all events and years');
     };
   }
-  const v6BadgeRenderBefore=renderItems;
-  renderItems=function(){
-    const result=v6BadgeRenderBefore.apply(this,arguments);
-    v6BadgePanel();
-    v6UpdateLayout();
-    return result;
-  };
 
   function v6VolunteerPicker(){
     let modal=$('v6VolunteerPicker');
