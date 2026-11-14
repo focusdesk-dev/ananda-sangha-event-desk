@@ -17,7 +17,8 @@ async function main(){
  const key='annualEventRegistration.v1',original=await run('localStorage.getItem('+JSON.stringify(key)+')');
  try{
  const patchMarker=await evalFn(function(){return {version:window.anandaVolunteerPatchVersion,title:document.title}});
- assert.equal(patchMarker.version,'5.4','Installed Volunteer Patch 5.4 marker missing');
+ assert.equal(patchMarker.version,'5.4','Previous volunteer correction missing');
+ assert.equal(await evalFn(function(){return window.anandaFrozenPatchVersion}),'6','Approved patch 6 missing');
  console.log('PASS packaged app confirms Volunteer Patch 5.4 internal marker');
   await evalFn(function(){
    const key='annualEventRegistration.v1',s=JSON.parse(localStorage.getItem(key)||'{}'),id='qaCrossEvent';
@@ -46,7 +47,7 @@ async function main(){
    await send('Page.reload',{ignoreCache:true});await delay(500);
    return evalFn(function(){
     document.querySelector('#eventWorkspace .v36-go[data-page="daily"]')?.click();
-    document.getElementById('v5AddVolunteer')?.click();
+    document.getElementById('v48AddVolunteer')?.click();
     const id=document.getElementById('volunteerId'),modal=document.getElementById('volunteerModal');
     const first=document.getElementById('volunteerFirstName'),last=document.getElementById('volunteerLastName'),mobile=document.getElementById('volunteerMobile');
     first.value='NIKHIL';last.value='ANANDA';mobile.value='5917534600';
