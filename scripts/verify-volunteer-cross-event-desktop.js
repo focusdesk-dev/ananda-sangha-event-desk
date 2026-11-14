@@ -17,8 +17,8 @@ async function main(){
  const key='annualEventRegistration.v1',original=await run('localStorage.getItem('+JSON.stringify(key)+')');
  try{
  const patchMarker=await evalFn(function(){return {version:window.anandaVolunteerPatchVersion,title:document.title}});
- assert.equal(patchMarker.version,'5.3','Installed Volunteer Patch 5.3 marker missing');
- console.log('PASS packaged app confirms Volunteer Patch 5.3 internal marker');
+ assert.equal(patchMarker.version,'5.4','Installed Volunteer Patch 5.4 marker missing');
+ console.log('PASS packaged app confirms Volunteer Patch 5.4 internal marker');
   await evalFn(function(){
    const key='annualEventRegistration.v1',s=JSON.parse(localStorage.getItem(key)||'{}'),id='qaCrossEvent';
    for(const name of ['events','volunteers','volunteerRegistrations','attendees','familyGroups'])
