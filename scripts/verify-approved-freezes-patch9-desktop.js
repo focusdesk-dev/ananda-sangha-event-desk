@@ -314,7 +314,7 @@ async function main(){
     const detail=document.getElementById('v5VolunteerDetail');
     const table=document.getElementById('v5VolunteerTable');
     const extra=table?.querySelector('thead tr > :nth-child(6)');
-    const back=document.getElementById('v7BackToEvents');
+    const back=document.getElementById('backButton');
     return {
       page:document.querySelector('.page.active')?.id,
       tabsVisible:nav&&getComputedStyle(nav).display==='grid',
@@ -325,7 +325,7 @@ async function main(){
     };
   });
   assert.equal(approvedLayout.page,'daily');
-  assert.equal(approvedLayout.tabsVisible,true,'Selected event should have five tabs');
+  assert.equal(approvedLayout.tabsVisible,true,'Selected event should have four tabs');
   assert.equal(approvedLayout.detailHidden,true,'Details side panel must be removed');
   assert.equal(approvedLayout.detailsColumnHidden,true,'Details column must be removed');
   assert.equal(approvedLayout.backVisible,true,'Back to Events must be shown');
