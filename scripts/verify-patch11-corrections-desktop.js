@@ -68,28 +68,21 @@ async function main(){
    assert.deepEqual(first.tabs,['EVENT RECORD','VOLUNTEERS','ATTENDEES','BADGE & SCARF']);
    pass('One volunteer search on current page; four frozen event tabs unchanged');
    const sidebar=first.sidebar;
-   for(const [name,masterKey] of [['Sonal Student','student'],['Mira Kriyaban','kriyaban']]){
-     const result=await run(function(name){
+   const promoted=await run(function(){
+     const found=[];
+     for(const name of ['Sonal Student','Mira Kriyaban']){
        const q=document.getElementById('v5VolunteerSearch');
        q.value=name;q.dispatchEvent(new Event('input',{bubbles:true}));
        const match=[...document.querySelectorAll('#v11VolunteerResults .v11-person')]
          .find(r=>r.textContent.toUpperCase().includes(name.toUpperCase()));
-       const exists=!!match;
-       match?.querySelector('button')?.click();
-       const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
-       const v=s.volunteers.find(p=>[p.firstName,p.lastName].filter(Boolean).join(' ')===name);
-       return {exists,role:v?{id:v.id,mobile:v.mobile,refs:v.linkedIdentityRefs}:null,
-         checked:s.volunteerRegistrations.find(r=>r.eventId==='qaP11-event'&&r.volunteerId===v?.id)?.checkins||[],
-         people:s.volunteers.filter(p=>[p.firstName,p.lastName].filter(Boolean).join(' ')===name).length,
-         roleAssigned:(s.volunteerRosters['qaP11-event|2026-11-09']||[]).includes(v?.id),
-         studentMaster:s.students.filter(p=>p.name===name).length,
-         kriyaMaster:s.kriyabans.filter(p=>p.name===name).length};
-     }.toString().replace('function(name)','function()').replaceAll('name.toUpperCase()',"'+name.toUpperCase()+'").replaceAll("===name","==='"+name+"'")); // normal execution is handled below if needed
-   }
-   // Directly test the two role promotions with in-page controls.
-   const promoted=await run(function(){
+       if(!match){found.push({name,found:false});continue;}
+       const add=match.querySelector('button');
+       found.push({name,found:!!add});
+       add?.click();
+     }
      const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
      return {
+       found,
        students:s.students.filter(p=>p.id==='qaP11-student').length,
        kriyabans:s.kriyabans.filter(p=>p.id==='qaP11-kriyaban').length,
        volunteers:s.volunteers.filter(p=>/Sonal|Mira/.test(p.firstName||'')).map(v=>({
@@ -98,6 +91,7 @@ async function main(){
        }))
      };
    });
+   assert.ok(promoted.found.every(x=>x.found),'Both student and Kriyaban search results must have ADD buttons');
    assert.equal(promoted.students,1);assert.equal(promoted.kriyabans,1);
    assert.equal(promoted.volunteers.length,2,'Student and Kriyaban must both become event volunteers');
    assert.ok(promoted.volunteers.every(v=>v.checkins.length===0&&v.refs.length>0));
