@@ -18,7 +18,7 @@
       if(used.has(key))return;used.add(key);found.push({name,mobile:m,kind,id});
     };
     (state.volunteers||[]).forEach(x=>add(volName(x),x.mobile,'volunteer',x.id));
-    (state.attendeeMaster||[]).forEach(x=>add(x.name,x.personalMobile||x.mobile,'master',x.id));
+    (state.attendeeMaster||[]).forEach(x=>{if(x.category==='family'&&!normMobile(x.personalMobile))return;add(x.name,x.personalMobile||x.mobile,'master',x.id)});
     (state.kriyabans||[]).forEach(x=>add(x.name,x.mobile,'kriyaban',x.id));
     return found.sort((a,b)=>a.name.localeCompare(b.name)).slice(0,10);
   }
@@ -184,12 +184,17 @@
       $('v36RegistrationVolunteer').value=v10SelectedHead.id;
     }
     const originalMode=submitter.dataset.mode,checking=originalMode==='checkin';
+    const originalCount=$('v36FamilyCount').value;
+    // The old V84 submit wrapper subtracts one from outside-family totals;
+    // compensate here to preserve every actual member row, with no off-by-one.
+    $('v36FamilyCount').value=String(rows.length+(type==='outside-family'?2:0));
     // The legacy handler checks every family member in. Register first, then
     // apply only explicitly selected individuals. Never wipe past check-ins.
     if(checking)submitter.dataset.mode='register';
     let result;
     try{result=v10SubmitOld.call(this,event)}
-    finally{submitter.dataset.mode=originalMode}
+    finally{submitter.dataset.mode=originalMode;
+      if($('v36RegistrationModal').classList.contains('open'))$('v36FamilyCount').value=originalCount;}
     if($('v36RegistrationModal').classList.contains('open'))return result;
     const group=editKey.startsWith('family|')?
       state.familyGroups.find(g=>g.id===editKey.split('|')[1]):
