@@ -34,45 +34,69 @@
   // Kriyaban, attendee and family records remain unchanged and linked.
   function v11PersonDirectory(){
     const persons=new Map();
-    const add=(name,personalMobile,source,id)=>{
-      const n=normName(name),mobile=normMobile(personalMobile);
-      if(!n||mobile.length!==10)return;
-      const key=n+'|'+mobile,person=persons.get(key)||{
-        name:String(name).trim(),mobile,refs:[]};
-      if(source&&id&&!person.refs.some(r=>r.kind===source&&r.id===id))
-        person.refs.push({kind:source,id});
+    const add=(name,personalMobile,source,id,extraRefs=[])=>{
+      const n=normName(name);
+      if(!n)return;
+      const normalized=normMobile(personalMobile);
+      const mobile=normalized.length===10?normalized:'';
+      // A missing number must never suppress a person from NAME search.
+      // Do not merge different people by name alone.
+      const key=mobile?n+'|'+mobile:'unverified|'+source+'|'+String(id||n);
+      const person=persons.get(key)||{name:String(name).trim(),mobile,refs:[]};
+      const refs=[{kind:source,id},...extraRefs];
+      for(const ref of refs){
+        if(!ref.kind||!ref.id)continue;
+        if(!person.refs.some(r=>r.kind===ref.kind&&r.id===ref.id))
+          person.refs.push({kind:ref.kind,id:ref.id});
+      }
       persons.set(key,person);
     };
     (state.volunteers||[]).forEach(p=>add(volName(p),p.mobile,'volunteer',p.id));
-    (state.students||[]).forEach(p=>add(p.name||[p.firstName,p.lastName].filter(Boolean).join(' '),p.mobile||p.phone,'student',p.id));
+    (state.students||[]).forEach(p=>add(p.name||[p.firstName,p.lastName].filter(Boolean).join(' '),
+      p.mobile||p.phone,'student',p.id));
     (state.kriyabans||[]).forEach(p=>add(p.name,p.mobile,'kriyaban',p.id));
+    // Some class records are 'class-only' and do not exist in Student Master.
+    // Their personName/personMobile MUST be in unified search too.
+    (state.classEnrollments||[]).forEach(e=>{
+      const master=(state.students||[]).find(s=>s.id===e.studentId);
+      add(e.personName||master?.name,e.personMobile||master?.mobile,
+        'class-enrolment',e.id,master?[{kind:'student',id:master.id}]:[]);
+    });
     (state.attendeeMaster||[]).forEach(p=>{
       if(p.category==='family'&&!normMobile(p.personalMobile))return;
       add(p.name,p.personalMobile||p.mobile,'master',p.id);
     });
-    (state.attendees||[]).forEach(p=>add(p.name,p.personalMobile||p.mobile,'attendee',p.id));
-    // Historical family guests with their own personal phones are also
-    // searchable; never treat a shared family head phone as the guest's phone.
+    (state.attendees||[]).forEach(p=>{
+      const fromFamily=p.referenceVolunteerId||p.groupId||p.familyId;
+      // Shared family contact does not prove personal identity.
+      add(p.name,p.personalMobile||(fromFamily?'':p.mobile),'attendee',p.id);
+    });
     (state.vips||[]).forEach(p=>add(p.name,p.mobile,'vip',p.id));
     (state.familyGroups||[]).forEach(g=>{
-      g.members?.forEach(m=>{
-        // The head's shared family mobile does not identify all members.
-        if(normMobile(m.mobile).length===10)add(m.name,m.mobile,'family',m.id);
-      });
+      g.members?.forEach(m=>add(m.name,m.mobile,'family',m.id));
     });
     return [...persons.values()].sort((a,b)=>a.name.localeCompare(b.name));
   }
   function v11MatchPerson(raw){
-    const query=normName(raw||''),digits=normMobile(raw||'');
-    return v11PersonDirectory().filter(person=>
-      (query&&normName(person.name).includes(query))||
-      (digits.length>=3&&person.mobile.includes(digits))).slice(0,18);
+    const value=String(raw||'').trim();
+    const digits=normMobile(value),letters=value.replace(/[+\d()[\].,\-]/g,' ').replace(/\s+/g,' ').trim();
+    const q=normName(letters);
+    if(!q&&digits.length<3)return[];
+    return v11PersonDirectory().filter(person=>{
+      const sameName=!q||normName(person.name).includes(q);
+      const samePhone=digits.length<3||person.mobile.includes(digits);
+      return sameName&&samePhone;
+    }).slice(0,100);
   }
   let v11SearchOpen=false,v11NewVolunteerFlow=false;
   function v11RegisterExistingVolunteer(person){
     const event=activeEvent(),date=$('workingDate')?.value;
     if(!event||!date){toast('Select an event and date');return false}
     const mobile=normMobile(person.mobile),name=normName(person.name);
+    if(mobile.length!==10){toast('Verify a personal 10-digit mobile before assigning this volunteer');return false}
+    // A shared mobile must not identify two different people.
+    const conflictPerson=v11PersonDirectory().find(p=>p.mobile===mobile&&normName(p.name)!==name);
+    if(conflictPerson){toast('Mobile already belongs to '+conflictPerson.name+'. Check the identity before assigning.');return false}
     let volunteer=(state.volunteers||[]).find(v=>
       normName(volName(v))===name&&normMobile(v.mobile)===mobile);
     if(!volunteer){
@@ -123,7 +147,8 @@
       const row=document.createElement('div');row.className='v11-person';
       const label=document.createElement('div');
       const strong=document.createElement('strong');strong.textContent=person.name;
-      const phone=document.createElement('small');phone.textContent=person.mobile;
+      const phone=document.createElement('small');
+      phone.textContent=person.mobile||'MOBILE NOT RECORDED';
       label.append(strong,phone);
       row.append(label);
       if(existing&&registered.has(existing.id)){
@@ -131,8 +156,26 @@
         status.textContent='REGISTERED';row.append(status);
       }else{
         const button=document.createElement('button');button.type='button';
-        button.className='btn secondary small';button.textContent='ADD TO EVENT';
-        button.onclick=()=>v11RegisterExistingVolunteer(person);
+        button.className='btn secondary small';
+        button.textContent=person.mobile?'ADD TO EVENT':'VERIFY MOBILE';
+        button.onclick=()=>{
+          if(person.mobile){v11RegisterExistingVolunteer(person);return}
+          const existing=row.querySelector('.v11-mobile-verify');
+          if(existing){existing.querySelector('input').focus();return}
+          const verify=document.createElement('div');verify.className='v11-mobile-verify';
+          const input=document.createElement('input');input.type='tel';
+          input.placeholder='PERSONAL MOBILE · 10 DIGITS';input.maxLength=10;
+          input.setAttribute('aria-label','Verified personal mobile for '+person.name);
+          const confirm=document.createElement('button');confirm.type='button';
+          confirm.className='btn small';confirm.textContent='CONFIRM & ADD';
+          const finish=()=>{
+            const mobile=normMobile(input.value);
+            if(mobile.length!==10){toast('Enter a valid personal 10-digit mobile');return}
+            v11RegisterExistingVolunteer({...person,mobile});
+          };
+          confirm.onclick=finish;input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();finish()}};
+          verify.append(input,confirm);row.append(verify);input.focus();
+        };
         row.append(button);
       }
       results.append(row);
@@ -172,6 +215,18 @@
     };
     v11RenderVolunteerResults();
   }
+  // Older code may rebind the Add Volunteer button to the old
+  // Volunteer-Master-only modal. Redirect that path to the same unified input.
+  const v11OldVolunteerPicker=v6VolunteerPicker;
+  v6VolunteerPicker=function(){
+    if(activeEvent()){
+      if(page!=='daily')switchPage('daily');
+      v11InstallVolunteerSearch();
+      const field=$('v5VolunteerSearch');
+      if(field){v11SearchOpen=true;v11RenderVolunteerResults();field.focus();return}
+    }
+    return v11OldVolunteerPicker.apply(this,arguments);
+  };
   // Protect against a brand-new volunteer role duplicating an existing
   // student/Kriyaban/attendee of the same personal identity.
   $('volunteerForm')?.addEventListener('submit',event=>{
@@ -403,7 +458,8 @@
     '#daily #v11VolunteerResults{margin:-8px 0 16px;max-width:790px;border:1px solid #d3e0ef;border-radius:12px;padding:9px 14px;background:#fff;box-shadow:0 7px 18px #233e6020}'+
     '#daily #v11VolunteerResults[hidden]{display:none!important}'+
     '.v11-search-lead{font-size:11px;font-weight:800;color:#63758b;padding:7px}'+
-    '.v11-person{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #edf0f5;padding:9px 4px}'+
+    '.v11-person{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;border-bottom:1px solid #edf0f5;padding:9px 4px}'+
+    '.v11-mobile-verify{display:flex;align-items:center;gap:7px;width:100%;justify-content:flex-end}.v11-mobile-verify input{min-height:38px;max-width:235px;border:1px solid #cbd8e7;border-radius:8px;padding:8px}'+
     '.v11-person strong,.v11-person small{display:block}.v11-person strong{color:#0d346d;font-size:13px}'+
     '.v11-person small{color:#62728a;font-size:12px;margin-top:3px}'+
     '.v11-registered{color:#0a7544;font-size:11px;font-weight:750}'+
