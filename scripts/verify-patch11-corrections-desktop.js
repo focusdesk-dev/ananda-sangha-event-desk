@@ -99,7 +99,7 @@ async function main(){
    const family=await run(function(){
      document.querySelector('#v6EventTabs [data-v6-tab="attendees"]').click();
      const standalone=[...document.querySelectorAll('#v36AttendeeTable tbody tr')]
-       .filter(r=>r.textContent.includes('Divya Kohli')).length;
+       .filter(r=>r.textContent.includes('Divya Kohli')&&getComputedStyle(r).display!=='none').length;
      document.getElementById('v36NewRegistration').click();
      document.querySelector('#v10RegistrationMode [data-v10-mode="family"]').click();
      const q=document.getElementById('v11FamilySearch');
