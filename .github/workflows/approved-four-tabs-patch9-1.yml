@@ -209,7 +209,7 @@ jobs:
           $patch=(Resolve-Path 'distpatch/Ananda-5.81.8-Four-Tabs-Patch9.1.exe').Path
           $target=Join-Path $env:PATCH7_USER_FIXTURE 'resources/app.asar'
           $original='4AAACFEA6A60414D5C413208BB754AFC8F859BAFA5A489C9F34B3FA9D518FDD5'
-          if ((Get-FileHash $target -Algorithm SHA256).Hash -ne $original) { throw 'Fixture no longer matches the user's Patch 7 code' }
+          if ((Get-FileHash $target -Algorithm SHA256).Hash -ne $original) { throw 'Fixture fingerprint differs from verified Patch 7 archive' }
           $p=Start-Process -FilePath $patch -ArgumentList @('--quiet','--target',('"' + $env:PATCH7_USER_FIXTURE + '"')) -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "Patch 9.1 rejected the exact user Patch 7 version ($($p.ExitCode))" }
           $meta=Get-Content frozen-patch9-hashes.json -Raw | ConvertFrom-Json
