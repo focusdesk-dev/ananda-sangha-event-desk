@@ -29,7 +29,7 @@ async function main(){
  try{
    await run(function(){
      const key='annualEventRegistration.v1',s=JSON.parse(localStorage.getItem(key)||'{}');
-     for(const k of ['events','attendees','familyGroups','students','kriyabans','volunteers','volunteerRegistrations','attendeeMaster']){
+     for(const k of ['events','attendees','familyGroups','students','kriyabans','volunteers','volunteerRegistrations','attendeeMaster','classEnrollments']){
        s[k]=(s[k]||[]).filter(o=>!String(o.id).startsWith('qaP11-'));
      }
      for(const k of ['volunteerRosters','daily'])s[k]=s[k]||{};
@@ -37,6 +37,11 @@ async function main(){
      s.events.push({id:eventId,name:'PATCH11 QA FAMILY EVENT',dates:[date],start:date,end:date,venue:'QA',rules:{}});
      s.students.push({id:id+'student',name:'Sonal Student',mobile:'9876111111'});
      s.kriyabans.push({id:id+'kriyaban',name:'Mira Kriyaban',mobile:'9876222222'});
+     s.kriyabans.push({id:id+'kriyaNoPhone',name:'Tara KriyaWithoutPhone',mobile:''});
+     s.classEnrollments.push(
+       {id:id+'classOnly',studentId:'',personName:'Rohan ClassOnly',personMobile:'9876777777',batchId:'qaP11-batch'},
+       {id:id+'classNoPhone',studentId:'',personName:'Kavita ClassWithoutPhone',personMobile:'',batchId:'qaP11-batch'}
+     );
      s.volunteers.push({id:id+'head',firstName:'Ankit',lastName:'Kohli',mobile:'9876333333',badgeAvailable:false});
      s.volunteerRegistrations.push({id:id+'vreg',eventId,volunteerId:id+'head',source:'counter',checkins:[]});
      s.volunteerRosters[eventId+'|'+date]=[id+'head'];
@@ -96,6 +101,72 @@ async function main(){
    assert.equal(promoted.volunteers.length,2,'Student and Kriyaban must both become event volunteers');
    assert.ok(promoted.volunteers.every(v=>v.checkins.length===0&&v.refs.length>0));
    pass('Student and Kriyaban are searchable and become linked volunteer roles, never auto checked in');
+
+   const classOnly=await run(function(){
+     const q=document.getElementById('v5VolunteerSearch');
+     q.value='Rohan ClassOnly';q.dispatchEvent(new Event('input',{bubbles:true}));
+     const row=[...document.querySelectorAll('#v11VolunteerResults .v11-person')]
+       .find(x=>x.textContent.includes('Rohan ClassOnly'));
+     const hasResult=!!row,button=row?.querySelector('button');
+     button?.click();
+     const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
+     const v=s.volunteers.find(x=>x.mobile==='9876777777');
+     return {hasResult,label:button?.textContent,assigned:!!v,
+       linked:v?.linkedIdentityRefs?.some(x=>x.kind==='class-enrolment'&&x.id==='qaP11-classOnly'),
+       enrolmentPreserved:s.classEnrollments.some(x=>x.id==='qaP11-classOnly'),
+       checked:s.volunteerRegistrations.find(x=>x.volunteerId===v?.id)?.checkins||[]};
+   });
+   assert.equal(classOnly.hasResult,true,'Class-only enrolments must appear in unified search');
+   assert.equal(classOnly.assigned,true);
+   assert.equal(classOnly.linked,true);
+   assert.equal(classOnly.enrolmentPreserved,true);
+   assert.deepEqual(classOnly.checked,[]);
+   pass('Class-only enrolments outside Student Master are searchable, linked and not auto checked in');
+
+   const withoutPhone=await run(function(){
+     const q=document.getElementById('v5VolunteerSearch');
+     q.value='Kavita ClassWithoutPhone';q.dispatchEvent(new Event('input',{bubbles:true}));
+     const row=[...document.querySelectorAll('#v11VolunteerResults .v11-person')]
+       .find(x=>x.textContent.includes('Kavita ClassWithoutPhone'));
+     const exists=!!row,verify=row?.querySelector('button');
+     const verifyLabel=verify?.textContent;
+     verify?.click();
+     const input=row?.querySelector('.v11-mobile-verify input');
+     if(input)input.value='9876888888';
+     row?.querySelector('.v11-mobile-verify button')?.click();
+     const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
+     const v=s.volunteers.find(x=>x.mobile==='9876888888');
+     return {exists,verifyLabel,editor:!!input,linked:v?.linkedIdentityRefs?.some(x=>
+       x.kind==='class-enrolment'&&x.id==='qaP11-classNoPhone'),phone:v?.mobile,
+       unchanged:s.classEnrollments.find(x=>x.id==='qaP11-classNoPhone')?.personMobile||''};
+   });
+   assert.ok(withoutPhone.exists&&withoutPhone.editor&&withoutPhone.linked);
+   assert.equal(withoutPhone.verifyLabel,'VERIFY MOBILE');
+   assert.equal(withoutPhone.phone,'9876888888');
+   assert.equal(withoutPhone.unchanged,'');
+   pass('Class-only records with NO phone show by name, verify phone and preserve enrolment');
+
+   const kriyaNoPhone=await run(function(){
+     const q=document.getElementById('v5VolunteerSearch');
+     q.value='Tara KriyaWithoutPhone';q.dispatchEvent(new Event('input',{bubbles:true}));
+     const row=[...document.querySelectorAll('#v11VolunteerResults .v11-person')]
+       .find(x=>x.textContent.includes('Tara KriyaWithoutPhone'));
+     const label=row?.querySelector('button')?.textContent;
+     row?.querySelector('button')?.click();
+     const input=row?.querySelector('.v11-mobile-verify input');
+     if(input)input.value='9876999999';
+     row?.querySelector('.v11-mobile-verify button')?.click();
+     const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
+     const v=s.volunteers.find(x=>x.mobile==='9876999999');
+     return {found:!!row,label,linked:v?.linkedIdentityRefs?.some(x=>
+       x.kind==='kriyaban'&&x.id==='qaP11-kriyaNoPhone'),
+       masterCount:s.kriyabans.filter(x=>x.id==='qaP11-kriyaNoPhone').length};
+   });
+   assert.ok(kriyaNoPhone.found&&kriyaNoPhone.linked);
+   assert.equal(kriyaNoPhone.label,'VERIFY MOBILE');
+   assert.equal(kriyaNoPhone.masterCount,1);
+   pass('Existing Kriyaban with no mobile remains findable by name and keeps original master record');
+
    const family=await run(function(){
      document.querySelector('#v6EventTabs [data-v6-tab="attendees"]').click();
      const standalone=[...document.querySelectorAll('#v36AttendeeTable tbody tr')]
