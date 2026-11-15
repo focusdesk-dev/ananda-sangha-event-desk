@@ -1,0 +1,51 @@
+name: Ananda Patch 9 Read-Only Compatibility Check
+on:
+  push:
+    branches: [diagnose-patch9-unsupported-20261115]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile read-only Windows checker and CLI test binary
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path distcheck -Force | Out-Null
+          $csc=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
+          if (!(Test-Path $csc)) { throw 'C# compiler missing' }
+          & $csc /nologo /target:winexe /out:distcheck/Ananda-Patch9-Compatibility-Check.exe /reference:System.Core.dll /reference:System.Windows.Forms.dll scripts/AnandaPatch9CompatibilityChecker.cs
+          if ($LASTEXITCODE -ne 0) { throw 'GUI checker compile failed' }
+          & $csc /nologo /target:exe /out:distcheck/test-checker.exe /reference:System.Core.dll /reference:System.Windows.Forms.dll scripts/AnandaPatch9CompatibilityChecker.cs
+          if ($LASTEXITCODE -ne 0) { throw 'CLI checker compile failed' }
+      - name: Verify no changes and exact archive fingerprint
+        shell: pwsh
+        run: |
+          $test=Join-Path $PWD 'diagnostic-fixture'
+          $res=Join-Path $test 'resources'
+          New-Item -ItemType Directory -Path $res -Force | Out-Null
+          $app=Join-Path $test 'Ananda Sangha Event Desk.exe'
+          $asar=Join-Path $res 'app.asar'
+          [IO.File]::WriteAllBytes($app,[byte[]](77,90,0,0))
+          [IO.File]::WriteAllText($asar,"window.anandaFrozenPatchVersion='8'")
+          $before=(Get-FileHash $asar -Algorithm SHA256).Hash
+          $output=(& distcheck/test-checker.exe --quiet --target $test | Out-String)
+          Write-Host $output
+          if ($LASTEXITCODE -ne 0) { throw 'Fingerprint checker returned error' }
+          if (!$output.Contains($before)) { throw 'Exact SHA256 not present' }
+          if (!$output.Contains('Patch 8 marker')) { throw 'Expected marker missing' }
+          if (!$output.Contains('Read only')) { throw 'Read-only notice missing' }
+          $after=(Get-FileHash $asar -Algorithm SHA256).Hash
+          if ($before -ne $after) { throw 'Checker modified application archive' }
+          if (!(Test-Path $app)) { throw 'Checker modified application executable' }
+      - name: Publish verified compatibility checker
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-patch9-compatibility-check-20261115
+          target_commitish: diagnose-patch9-unsupported-20261115
+          name: Ananda Patch 9 Compatibility Check (Read Only)
+          prerelease: true
+          files: distcheck/Ananda-Patch9-Compatibility-Check.exe
+          body: "Read-only support tool for Ananda Patch 9 unsupported-code warning. Shows installed code SHA256, marker, and code archive location. Saves diagnostic report to Desktop. Does not modify Ananda application or records."
