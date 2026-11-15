@@ -46,8 +46,8 @@
           v36UpdateRegistrationFields(true);
         }
         v10Input($('v36MainName'));v10Input($('v36MainMobile'));
-        host.innerHTML='';
-        v10PaintRegistration();
+        v10SelectedHead=person;host.innerHTML='';
+        v5817RegistrationStatus();v10PaintRegistration();
       };
       host.append(button);
     });
