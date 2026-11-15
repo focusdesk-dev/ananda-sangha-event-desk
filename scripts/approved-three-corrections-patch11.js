@@ -51,8 +51,10 @@
       add(p.name,p.personalMobile||p.mobile,'master',p.id);
     });
     (state.attendees||[]).forEach(p=>add(p.name,p.personalMobile||p.mobile,'attendee',p.id));
+    // Historical family guests with their own personal phones are also
+    // searchable; never treat a shared family head phone as the guest's phone.
+    (state.vips||[]).forEach(p=>add(p.name,p.mobile,'vip',p.id));
     (state.familyGroups||[]).forEach(g=>{
-      if(g.eventId!==state.activeEventId)return;
       g.members?.forEach(m=>{
         // The head's shared family mobile does not identify all members.
         if(normMobile(m.mobile).length===10)add(m.name,m.mobile,'family',m.id);
@@ -194,6 +196,16 @@
       v36RosterOnly=false;v11NewVolunteerFlow=false;v5RenderVolunteerUI();
     },0);
   },true);
+  // Cancel must not leave the roster-only flag active for later check-ins.
+  const v11VolunteerModal=$('volunteerModal');
+  if(v11VolunteerModal){
+    new MutationObserver(()=>{
+      if(v11NewVolunteerFlow&&!v11VolunteerModal.classList.contains('open')){
+        v11NewVolunteerFlow=false;
+        v36RosterOnly=false;
+      }
+    }).observe(v11VolunteerModal,{attributes:true,attributeFilter:['class']});
+  }
   const v11RenderVolunteerBase=v5RenderVolunteerUI;
   v5RenderVolunteerUI=function(){
     const result=v11RenderVolunteerBase.apply(this,arguments);
