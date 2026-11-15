@@ -3,6 +3,7 @@
   // and use the existing Volunteers screen search instead of a second popup.
   // Retain all prior patch9/10 UI and event data. Do not change frozen sidebar.
   window.anandaEventCorrectionsPatchVersion='11';
+  window.anandaUnifiedSearchFixVersion='11.1';
 
   // One underlying family member can have an old standalone attendee
   // registration as well. Hide the redundant *view projection*, not the
