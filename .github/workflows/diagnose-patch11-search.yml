@@ -1,0 +1,11 @@
+name: Diagnose Patch 11 Real Student and Kriyaban Data Shapes
+on:
+  push:
+    branches: [fix-patch11-real-unified-search-20261116]
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect student/kriyaban schema and the search UI
+        run: node scripts/diagnose-patch11-search.js
