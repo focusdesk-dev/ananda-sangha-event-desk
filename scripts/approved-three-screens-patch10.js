@@ -72,6 +72,12 @@
       $('v36MainRegistrationFields').after(suggestions);
       $('v36MainName').addEventListener('input',()=>{v10SelectedHead=null;v10HeadSuggestion()});
       $('v36MainMobile').addEventListener('input',()=>{if(v10SelectedHead&&normMobile($('v36MainMobile').value)!==v10SelectedHead.mobile)v10SelectedHead=null});
+      // Legacy registration code sometimes redraws family rows after a match.
+      // Restore only the new selection controls without altering any data.
+      const familyHost=$('v36FamilyMembers');
+      new MutationObserver(()=>{if($('v36RegistrationModal').classList.contains('open')&&
+        /family/.test($('v36RegistrationType').value))v10PaintRegistration()})
+        .observe(familyHost,{childList:true});
     }
     const family=/family/.test($('v36RegistrationType').value);
     form.classList.toggle('v10-family',family);
