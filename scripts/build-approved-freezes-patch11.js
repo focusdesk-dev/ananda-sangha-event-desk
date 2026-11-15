@@ -26,7 +26,7 @@ async function main(){
  assert.deepEqual(asar.extractFile(out,'index.html'),Buffer.from(after));
  assert.deepEqual(asar.extractFile(out,'main.js'),asar.extractFile(old,'main.js'),'Desktop and keyboard code changed unexpectedly');
  assert.equal(JSON.parse(asar.extractFile(out,'package.json').toString()).version,'2.0.0-beta.5.81.8');
- const report={baseSha256:sha(old),patchSha256:sha(out),onlyChangedFile:'index.html',freeze1:true,freeze2:true,volunteerFix:true,version:'10',sourceSha1:git(Buffer.from(code)),previousBytes:Buffer.byteLength(before),patchedBytes:Buffer.byteLength(after)};
+ const report={baseSha256:sha(old),patchSha256:sha(out),onlyChangedFile:'index.html',freeze1:true,freeze2:true,volunteerFix:true,version:'11',sourceSha1:git(Buffer.from(code)),previousBytes:Buffer.byteLength(before),patchedBytes:Buffer.byteLength(after)};
  fs.writeFileSync('frozen-patch11-hashes.json',JSON.stringify(report,null,2)+'\n');
  console.log('PASS exact 5.4 archive, one app scope insertion, original sidebar, Classes, data and keyboard source untouched',report);
 }
