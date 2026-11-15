@@ -1,25 +1,24 @@
 'use strict';
-const fs=require('fs');
-const s=fs.readFileSync('index.html','utf8');
-console.log('INDEX CHARACTERS',s.length,'LINES',s.split('\n').length);
+const fs=require('fs'),s=fs.readFileSync('index.html','utf8');
 const needles=[
-  'function v36OpenRegistration','function v36UpdateRegistrationFields','function v36CurrentMemberInputs',
-  'function v36SaveRegistration','function v36RenderRecord','function v36RenderEventRecord',
-  'function v36RenderAttendees','function v36AllAttendeeRows','v36RegistrationModal',
-  'v36RegistrationType','v36FamilyCount','v36FamilyMembers','v36RecordUI',
-  'Selected day record','DAY-WISE SUMMARY','day-wise summary','familyGroups',
-  'function renderEventRecord','function renderEventWorkspace','v36RecVolChecked',
-  'function v36Checkin','function v36RenderFamily','function v36RecordMetric',
-  'Permanent Master','function v36UpdateRegistrationLookup',
+ 'v48GroupMode', 'v39AddFamilyMember','v84SubmitRegistrationBase','v84Original',
+ 'v36SaveRegistration=function','v36OpenRegistration=function',
+ 'v5817BaseOpenRegistration','v5817RegistrationStatus',
+ 'v36FamilyMemberSection','v36RegistrationType').replace',
+ 'v36RecordDays','v36WholeEventStats','renderV36Record=function',
+ 'function renderV36Record','function v36Records','function v36RenderEventRecord',
+ 'v36RecVolChecked','function v36RecordMetricList','function v68','function v36Record',
+ 'v36RecordAttendees','v36RecordVolunteers',
+ '#v48GroupMode','#v36FamilyMemberSection','#v36RegistrationModal',
+ 'function v36RenderMemberRows','function v36SaveRegistration',
+ 'function v36SubmitRegistration','function findAttendeeMaster'
 ];
 for(const needle of needles){
- const start=[];let i=-1;
- while((i=s.indexOf(needle,i+1))>=0&&start.length<200)start.push(i);
- const pick=needle.startsWith('function ')?[...start.slice(0,2)]:start.length?[start[0],...(start.length>2?[start.at(-1)]:[])]:[];
- console.log('\n--- QUERY',JSON.stringify(needle),'COUNT',start.length,'MATCHES',JSON.stringify(start.slice(0,12)),'---');
- for(const pos of pick){
-   const before=needle.includes('RegistrationModal')||needle.includes('RecordUI')?500:250;
-   const after=needle.startsWith('function ')?5500:needle.includes('Record')?4500:2300;
-   console.log(s.slice(Math.max(0,pos-before),Math.min(s.length,pos+after)).replace(/\r/g,''));
+ const hits=[];let i=-1;
+ while((i=s.indexOf(needle,i+1))>=0&&hits.length<200)hits.push(i);
+ console.log('\n--- '+needle+' count='+hits.length+' positions='+hits.slice(0,20).join(',')+' ---');
+ for(const p of (hits.length?[hits[0],...(hits.length>1?[hits[hits.length-1]]:[])]:[])){
+  let span=needle.includes('SaveRegistration')||needle.includes('v84Submit')?5500:needle.includes('GroupMode')?2800:needle.includes('Record')?3600:2600;
+  console.log(s.slice(Math.max(0,p-300),Math.min(s.length,p+span)).replace(/\r/g,''));
  }
 }
