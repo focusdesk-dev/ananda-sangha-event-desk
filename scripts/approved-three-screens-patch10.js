@@ -2,7 +2,7 @@
   // PATCH 10 — only three user-approved event surfaces. This runs inside the
   // existing app IIFE after Patch 9; sidebar, Classes and persistent schema
   // remain unchanged. Reuse original family/group registration records.
-  window.anandaFrozenPatchVersion='10';
+  window.anandaThreeScreensPatchVersion='10';
   let v10SelectedHead=null,v10Checks=new Map(),v10Expanded=false;
   let v10FamilyDialogGroupId='';
 
