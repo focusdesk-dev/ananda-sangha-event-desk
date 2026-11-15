@@ -4,7 +4,7 @@ const needles=[
  'v48GroupMode', 'v39AddFamilyMember','v84SubmitRegistrationBase','v84Original',
  'v36SaveRegistration=function','v36OpenRegistration=function',
  'v5817BaseOpenRegistration','v5817RegistrationStatus',
- 'v36FamilyMemberSection','v36RegistrationType').replace',
+ 'v36FamilyMemberSection','v36RegistrationType',
  'v36RecordDays','v36WholeEventStats','renderV36Record=function',
  'function renderV36Record','function v36Records','function v36RenderEventRecord',
  'v36RecVolChecked','function v36RecordMetricList','function v68','function v36Record',
