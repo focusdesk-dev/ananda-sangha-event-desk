@@ -1,0 +1,12 @@
+name: Patch11 Internal Source Inspection
+on:
+  push:
+    branches: [patch11-unified-volunteer-family-fix-20261116]
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Examine original volunteer and family handlers
+        run: node scripts/inspect-patch11-source.js
