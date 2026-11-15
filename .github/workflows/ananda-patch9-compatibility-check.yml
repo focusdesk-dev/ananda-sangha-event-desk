@@ -16,9 +16,12 @@ jobs:
           New-Item -ItemType Directory -Path distcheck -Force | Out-Null
           $csc=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
           if (!(Test-Path $csc)) { throw 'C# compiler missing' }
-          & $csc /nologo /target:winexe /out:distcheck/Ananda-Patch9-Compatibility-Check.exe /reference:System.Core.dll /reference:System.Windows.Forms.dll scripts/AnandaPatch9CompatibilityChecker.cs
+          $src=(Resolve-Path scripts/AnandaPatch9CompatibilityChecker.cs).Path
+          $gui=Join-Path $PWD "distcheck/Ananda-Patch9-Compatibility-Check.exe"
+          & $csc /nologo /target:winexe ("/out:"+$gui) /reference:System.Core.dll /reference:System.Windows.Forms.dll $src
           if ($LASTEXITCODE -ne 0) { throw 'GUI checker compile failed' }
-          & $csc /nologo /target:exe /out:distcheck/test-checker.exe /reference:System.Core.dll /reference:System.Windows.Forms.dll scripts/AnandaPatch9CompatibilityChecker.cs
+          $cli=Join-Path $PWD "distcheck/test-checker.exe"
+          & $csc /nologo /target:exe ("/out:"+$cli) /reference:System.Core.dll /reference:System.Windows.Forms.dll $src
           if ($LASTEXITCODE -ne 0) { throw 'CLI checker compile failed' }
       - name: Verify no changes and exact archive fingerprint
         shell: pwsh
@@ -31,7 +34,7 @@ jobs:
           [IO.File]::WriteAllBytes($app,[byte[]](77,90,0,0))
           [IO.File]::WriteAllText($asar,"window.anandaFrozenPatchVersion='8'")
           $before=(Get-FileHash $asar -Algorithm SHA256).Hash
-          $output=(& distcheck/test-checker.exe --quiet --target $test | Out-String)
+          $output=(& (Join-Path $PWD "distcheck/test-checker.exe") --quiet --target $test | Out-String)
           Write-Host $output
           if ($LASTEXITCODE -ne 0) { throw 'Fingerprint checker returned error' }
           if (!$output.Contains($before)) { throw 'Exact SHA256 not present' }
