@@ -134,6 +134,12 @@
     const primaryRole={student:'student',volunteer:'volunteer',kriyaban:'kriyaban',
       'attendee-master':'master'}[kind];
     const sameRole=primaryRole?owners.find(o=>o.kind===primaryRole):null;
+    // Events > Volunteers reuses an existing Volunteer Master role in the
+    // legacy SAVE & CHECK IN and roster-only actions. Rejecting it here
+    // would break per-event assignments in subsequent years.
+    if(sameRole&&kind==='volunteer'&&page==='daily'&&activeEvent()&&
+       p13Name(sameRole.name)===n)
+      return {type:'existing',mobile,owners,who:sameRole};
     if(sameRole)return{type:'duplicate-role',mobile,owners,who:sameRole};
     const eventRecord=p13ExistingEvent(name,mobile,kind,editId);
     if(eventRecord)return{type:'duplicate-event',mobile,owners,who:eventRecord};
