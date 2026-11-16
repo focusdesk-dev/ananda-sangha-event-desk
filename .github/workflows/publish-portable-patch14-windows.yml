@@ -1,0 +1,188 @@
+name: Ananda Patch14 Portable Windows EXE - Antivirus Verified
+on:
+  push:
+    branches: [patch14-portable-clean-validated-20261116]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  portable-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare official build tools and verify approved source
+        shell: pwsh
+        run: |
+          npm install --no-fund --no-audit
+          if($LASTEXITCODE -ne 0){throw 'npm install failed'}
+          npm install --no-save --no-fund --no-audit @electron/asar
+          if($LASTEXITCODE -ne 0){throw 'asar dependency failed'}
+          node --check scripts/approved-existing-family-edit-patch14.js
+          if($LASTEXITCODE -ne 0){throw 'Patch14 source syntax invalid'}
+          node --check scripts/verify-patch14-existing-family-desktop.js
+          if($LASTEXITCODE -ne 0){throw 'Patch14 test syntax invalid'}
+      - name: Read exact previously verified Patch13 code without running prior patcher
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path prior,build-input | Out-Null
+          gh release download ananda-beta-5.81.8-student-volunteer-mobile-patch13 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir prior
+          if($LASTEXITCODE -ne 0){throw 'Cannot retrieve Patch13 release'}
+          $file=(Get-ChildItem prior -Filter '*.exe' | Select-Object -First 1).FullName
+          $asm=[Reflection.Assembly]::LoadFrom($file)
+          $res=$asm.GetManifestResourceStream('AnandaPatchArchive')
+          if(!$res){throw 'Missing expected Patch13 archive'}
+          $gzip=[IO.Compression.GZipStream]::new($res,[IO.Compression.CompressionMode]::Decompress)
+          $f=[IO.File]::Create((Join-Path $PWD 'build-input/app.asar'))
+          try{$gzip.CopyTo($f)}finally{$f.Close();$gzip.Close();$res.Close()}
+          $sha=(Get-FileHash build-input/app.asar -Algorithm SHA256).Hash
+          if($sha -ne '70F3424BEBCC9434D9D54B678EC69677A50C21A30BD7A0FFDC69EB4EE11BFC7F'){throw 'Unexpected Patch13 content'}
+          Write-Host 'PASS original Patch13 app.asar verified'
+      - name: Apply exactly Patch14 approved family-editor code to original application
+        shell: pwsh
+        run: |
+          node scripts/prepare-patch14-standard-installer.js build-input/app.asar
+          if($LASTEXITCODE -ne 0){throw 'Frozen Patch13 plus Patch14 source verification failed'}
+      - name: Build ordinary unpacked Windows application - NO additional installer wrapper
+        shell: pwsh
+        run: |
+          npx electron-builder --win --dir --x64 --publish never
+          if($LASTEXITCODE -ne 0){throw 'Electron directory build failed'}
+          $app='dist/win-unpacked/Ananda Sangha Event Desk.exe'
+          if(!(Test-Path $app)){throw 'Windows desktop application EXE missing'}
+          Write-Host 'PORTABLE_APP_SHA256:' (Get-FileHash $app -Algorithm SHA256).Hash
+          Write-Host 'APPLICATION_SIGNATURE:' (Get-AuthenticodeSignature $app).Status
+          node -e "const asar=require('@electron/asar'),fs=require('fs'),crypto=require('crypto');const b=asar.extractFile('dist/win-unpacked/resources/app.asar','index.html');const sha=crypto.createHash('sha256').update(b).digest('hex').toUpperCase();const report=JSON.parse(fs.readFileSync('standard-patch14-source-integrity.json'));console.log('INSTALLED_INDEX_SHA:',sha);if(sha!==report.newIndexSha256)process.exit(1)"
+          if($LASTEXITCODE -ne 0){throw 'Portable app missing reviewed Patch14 code'}
+          Write-Host 'PASS built portable app from approved released source'
+      - name: Scan portable Windows EXE and associated files using Defender
+        shell: pwsh
+        run: |
+          $state=Get-MpComputerStatus -ErrorAction Stop
+          if(!$state.AntivirusEnabled){throw 'Defender scanner disabled'}
+          try{Update-MpSignature -ErrorAction Stop}catch{Write-Host 'Defender update unavailable:' $_.Exception.Message}
+          Write-Host 'DEFENDER_SIGNATURE_VERSION:' (Get-MpComputerStatus).AntivirusSignatureVersion
+          Start-MpScan -ScanType CustomScan -ScanPath (Join-Path $PWD 'dist/win-unpacked') -ErrorAction Stop
+          $hits=@(Get-MpThreatDetection -ErrorAction SilentlyContinue | Where-Object {($_.Resources -join ';') -match 'win-unpacked'})
+          if($hits.Count -gt 0){Write-Host ($hits|ConvertTo-Json -Depth 5);throw 'Defender detected portable app files'}
+          if(!(Test-Path 'dist/win-unpacked/Ananda Sangha Event Desk.exe')){throw 'Windows EXE removed by antivirus'}
+          Write-Host 'PASS Windows Defender scan of portable Windows application files'
+      - name: Test real portable Windows app and prior frozen workflows
+        shell: pwsh
+        run: |
+          $exe=(Join-Path $PWD 'dist/win-unpacked/Ananda Sangha Event Desk.exe')
+          $p=Start-Process -FilePath $exe -ArgumentList '--remote-debugging-port=9223' -PassThru
+          Start-Sleep -Seconds 6
+          if($p.HasExited){throw 'Portable app could not launch on Windows'}
+          node scripts/verify-patch14-existing-family-desktop.js
+          if($LASTEXITCODE -ne 0){throw 'Family editor failed'}
+          node scripts/verify-patch13-student-volunteer-and-mobile-desktop.js
+          if($LASTEXITCODE -ne 0){throw 'Patch13 integrity failed'}
+          node scripts/verify-patch12-register-under-desktop.js
+          if($LASTEXITCODE -ne 0){throw 'Patch12 registration freeze failed'}
+          node scripts/verify-prior-freezes-patch11-desktop.js
+          if($LASTEXITCODE -ne 0){throw 'Frozen Events UI failed'}
+          node scripts/verify-volunteer-cross-event-desktop.js
+          if($LASTEXITCODE -ne 0){throw 'Volunteer cross-event behavior failed'}
+          Write-Host 'PASS portable Windows app and all frozen critical regression tests'
+      - name: Pack ready-to-run Windows app into single user-downloadable ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path 'deliver' | Out-Null
+          $source=Join-Path $PWD 'dist/win-unpacked'
+          $portable=Join-Path $PWD 'deliver/Ananda Patch14 Portable'
+          Copy-Item -Path $source -Destination $portable -Recurse -Force
+          $note=@'
+          ANANDA PATCH 14 — PORTABLE WINDOWS APPLICATION
+          
+          1. Right-click Ananda-Patch14-Portable-Windows.zip and choose Extract All.
+          2. Open the extracted "Ananda Patch14 Portable" folder.
+          3. Double-click "Ananda Sangha Event Desk.exe". It is a normal Windows application, not a separate patch installer.
+          4. BEFORE OPENING: Quit Patch13 completely. Do not run both simultaneously.
+          5. BEFORE OPENING: Copy Documents\ANANDA SANGHA EVENT DESK\Data to a safe backup folder.
+          6. This application uses the SAME saved data directory as Patch13 under Documents.
+          7. If antivirus flags the file: DO NOT disable Defender or allow-list the app.
+          
+          This is not the previous antivirus-blocked custom patch EXE or NSIS installer.
+          It contains a plain unpacked Electron Windows app with only Patch14 code
+          added to the verified Patch13 application.
+          '@
+          [IO.File]::WriteAllText((Join-Path $portable 'READ_ME_FIRST.txt'),$note)
+          Compress-Archive -Path $portable -DestinationPath 'deliver/Ananda-Patch14-Portable-Windows.zip' -CompressionLevel Optimal
+          $zip='deliver/Ananda-Patch14-Portable-Windows.zip'
+          if(!(Test-Path $zip)){throw 'Portable ZIP missing'}
+          Write-Host 'PORTABLE_PACKAGE_BYTES:' (Get-Item $zip).Length
+          Write-Host 'PORTABLE_PACKAGE_SHA256:' (Get-FileHash $zip -Algorithm SHA256).Hash
+      - name: Publish CI artifact for independent whole-bundle antivirus scan
+        uses: actions/upload-artifact@v4
+        with:
+          name: ananda-patch14-portable-windows-bundle
+          path: deliver/Ananda-Patch14-Portable-Windows.zip
+          if-no-files-found: error
+          compression-level: 0
+  clamav:
+    needs: portable-windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-portable-windows-bundle
+          path: audit
+      - name: Check portable ZIP exists, unpack and count Windows payload files
+        run: |
+          test -s audit/Ananda-Patch14-Portable-Windows.zip
+          mkdir -p unpacked
+          unzip -qq audit/Ananda-Patch14-Portable-Windows.zip -d unpacked
+          test -s 'unpacked/Ananda Patch14 Portable/Ananda Sangha Event Desk.exe'
+          test -s 'unpacked/Ananda Patch14 Portable/resources/app.asar'
+          echo 'Ready-to-run Windows app and application data are present'
+          du -sh audit unpacked
+      - name: Install independent malware scanner and update definitions
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clamav clamav-freshclam
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam --verbose
+          clamscan --version
+      - name: Scan all extracted application files without suppressing detections
+        run: |
+          clamscan --infected --recursive --allmatch --max-filesize=300M --max-scansize=1200M unpacked
+          echo 'PASS ClamAV: zero detections in extracted Windows EXE, application code and dependencies'
+      - name: Scan exact downloadable ZIP with independent malware engine
+        run: |
+          clamscan --infected --allmatch --max-filesize=300M --max-scansize=2500M audit/Ananda-Patch14-Portable-Windows.zip
+          echo 'PASS ClamAV: zero detections in the exact downloadable ZIP'
+  release:
+    needs: [portable-windows, clamav]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-portable-windows-bundle
+          path: release
+      - name: Publish only if application tests, Defender, ClamAV all passed
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-beta-5.81.8-patch14-portable
+          name: Ananda 5.81.8 Patch 14 - Portable Windows App (Extract and Run)
+          prerelease: true
+          files: release/Ananda-Patch14-Portable-Windows.zip
+          body: |
+            Full ready-to-run Windows portable application, NOT the custom Patch14 patcher or NSIS installer that triggered antivirus warnings.
+            Download ZIP, Extract All, open folder Ananda Patch14 Portable, launch Ananda Sangha Event Desk.exe.
+            Backup Documents/ANANDA SANGHA EVENT DESK/Data and close Patch13 first.
+            This portable app uses the SAME data folder as the existing installed app.
+            Only approved Patch14 existing-family member Edit/Save/Add logic added to exact released Patch13 source.
+            Functional Windows regression tests and MS Defender + independent ClamAV scans passed on the build machine.
+            No guarantee that every antivirus will accept the program on every machine.
+            If Windows Defender or Chrome blocks it, DO NOT disable antivirus, restore quarantined binaries, or whitelist it.
