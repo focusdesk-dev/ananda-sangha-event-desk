@@ -79,11 +79,11 @@
     $('v12Cancel').onclick=()=>$('v36RegistrationModal').classList.remove('open');
     tabs.addEventListener('click',e=>{
       if(e.target.closest('[data-v10-mode]')){
-        setTimeout(()=>{
-          if(/family/.test($('v36RegistrationType').value)&&!v12Starting&&
-             !v12Rows.length)v12Rows=[v12NewRow()];
-          v12SetVisible();v12PaintRows();
-        },0);
+        // The segment button's own click handler has already switched modes.
+        // Redraw immediately so the first family member row is available.
+        if(/family/.test($('v36RegistrationType').value)&&!v12Starting&&
+           !v12Rows.length)v12Rows=[v12NewRow()];
+        v12SetVisible();v12PaintRows();
       }
     });
     // Do not enter the old family save path from Enter.
