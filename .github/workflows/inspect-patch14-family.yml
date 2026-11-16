@@ -1,0 +1,11 @@
+name: Inspect Existing Family Edit & Save Handler
+on:
+  push:
+    branches: [patch14-existing-family-edit-addmember-20261116]
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect family view and edit routes
+        run: node scripts/inspect-patch14-family.js
