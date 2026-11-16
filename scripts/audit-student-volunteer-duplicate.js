@@ -1,5 +1,6 @@
-'use strict';const s=require('fs').readFileSync('index.html','utf8');for(const q of ['p2v526Search','p2v526-result','p2v520-history-btn','p2v520Followups','p2v520History','p2v520Render(){','function p2v520Render','p2v526Results','p2v526Input']){
-let i=-1,h=[];while((i=s.indexOf(q,i+1))>=0&&h.length<35)h.push(i);
-console.log('\\n### '+q+' at '+h.join(','));
-for(const p of h.slice(0,12))console.log('POS '+p+'\\n'+s.slice(Math.max(0,p-700),p+950).replace(/\\r/g,''));
-}
+'use strict';const s=require('fs').readFileSync('index.html','utf8');const terms=[
+"switchPage('studentProgress')", 'switchPage("studentProgress")',"data-page=\\"studentProgress\\"",
+"switchPage('phase2Reports')","data-page=\\"phase2Reports\\"","p2v56ChatPrepareProgress","p2v56ChatRenderProgress",
+"p2v520Render()","p2v526StudentWise(body)","id=\\"studentProgress\\"","p2v520Followups",
+"switchPage('classes')","data-page=\\"classes\\"","STUDENT PROGRESS"
+];for(const q of terms){const positions=[];let i=-1;while((i=s.indexOf(q,i+1))>=0&&positions.length<25)positions.push(i);console.log('\\n### '+q+' at '+positions.join(','));for(const p of positions.slice(-4))console.log(s.slice(Math.max(0,p-750),p+1250).replace(/\\r/g,''));}
