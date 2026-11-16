@@ -114,7 +114,7 @@ internal static class AnandaApprovedFreezePatch6
     static bool IsVerifiedBase(string h)
     {
         return h.Equals("965313C5B44772038A98CF1B28EB932BD07380983A2382258806B7B58B40EB9D",StringComparison.OrdinalIgnoreCase)||
-        return h.Equals("FF9955A4DC73D656EF2C445A1073247730B56D880D5675C1C4D71E16DCA88A33",StringComparison.OrdinalIgnoreCase)||
+               h.Equals("FF9955A4DC73D656EF2C445A1073247730B56D880D5675C1C4D71E16DCA88A33",StringComparison.OrdinalIgnoreCase)||
                h.Equals("E17AD4DF4E1B4D07A5F272AB549264519135051E5936A14EA37A735BADFDBB98",StringComparison.OrdinalIgnoreCase)||
                h.Equals("D562F5584C32C57711498071359AD4F4316D9925E047C52BE328F0FD99DE911B",StringComparison.OrdinalIgnoreCase)||
                h.Equals("__PATCH8_SHA__",StringComparison.OrdinalIgnoreCase)||
