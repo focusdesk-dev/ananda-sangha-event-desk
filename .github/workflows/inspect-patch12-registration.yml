@@ -1,0 +1,10 @@
+name: Inspect Patch12 Registration Code
+on:
+  push:
+    branches: [patch12-register-under-minimal-family-20261116]
+jobs:
+  inspection:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node scripts/inspect-patch12-registration.js
