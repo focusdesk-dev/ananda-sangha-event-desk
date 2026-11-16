@@ -1,0 +1,67 @@
+name: Publish Patch 14 Source-Only ZIP (Not Installer)
+on:
+  push:
+    branches: [security-audit-blocked-patch14-20261116]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package verified Patch14 source only - no executable
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          import hashlib
+          source=Path("scripts/approved-existing-family-edit-patch14.js")
+          tests=Path("scripts/verify-patch14-existing-family-desktop.js")
+          assert source.is_file() and tests.is_file()
+          assert "window.anandaExistingFamilyPatchVersion='14'" in source.read_text()
+          dest=Path("dist/Ananda-Patch14-SOURCE-ONLY.zip")
+          dest.parent.mkdir(exist_ok=True)
+          notice="""ANANDA SANGHA EVENT DESK — PATCH 14 SOURCE ONLY
+          
+          THIS ZIP IS NOT A WINDOWS INSTALLER. DO NOT TRY TO RUN THE .JS FILE.
+          The previously published Ananda-5.81.8-Family-Edit-Patch14.exe
+          was repeatedly flagged by Windows Defender as a severe threat.
+          Although independent Microsoft Defender and ClamAV scans on
+          build machines did not detect malware, the user's device
+          detection has not been resolved and that executable is not
+          recommended. Do not whitelist, bypass, or disable antivirus.
+          
+          This archive contains the reviewed source changes for the
+          existing family member Edit, Save, Add Member, Check-In and Undo
+          behavior plus a Windows UI test script. It is for a developer
+          to review and integrate into a security-validated, preferably
+          code-signed installer.
+          
+          No compiled EXE, encoded installer payload, app.asar, binary
+          archive, or install script is included.
+          
+          SECURITY ISSUE:
+          https://github.com/focusdesk-dev/ananda-sangha-event-desk/issues/3
+          """
+          with ZipFile(dest,"w",compression=ZIP_DEFLATED) as z:
+              z.writestr("README_SECURITY_FIRST.txt",notice)
+              z.write(source,arcname="approved-existing-family-edit-patch14.js")
+              z.write(tests,arcname="verify-patch14-existing-family-desktop.js")
+              z.writestr("SHA256_SOURCE.txt",
+                hashlib.sha256(source.read_bytes()).hexdigest()+"  approved-existing-family-edit-patch14.js\n")
+          print("SOURCE_ZIP",dest,"BYTES",dest.stat().st_size)
+          PY
+      - name: Publish source-only asset, NEVER original flagged EXE
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-patch14-source-only-20261116
+          name: Ananda Patch 14 - Source Only (NOT an installer)
+          prerelease: true
+          files: dist/Ananda-Patch14-SOURCE-ONLY.zip
+          body: |
+            SOURCE ONLY. This ZIP does NOT install or patch the Windows application.
+            The original Patch14 EXE was repeatedly blocked by Defender and must not be bypassed.
+            Includes Patch14 JS source, UI regression test and security notice.
+            See blocker #3 for the pending signed and security-validated Windows installer.
