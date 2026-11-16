@@ -1,0 +1,78 @@
+name: Diagnose ClamAV signature origin - compare upstream Electron and NSIS
+on:
+  push:
+    branches: [patch14-mikey-signature-root-cause-20261116]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  investigate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-standard-setup
+          path: compare
+          run-id: 43919748830
+          github-token: ${{ github.token }}
+      - name: Download official original Ananda setup and known upstream Electron runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p original upstream extracted
+          gh release download ananda-beta-5.81.8 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir original
+          curl --fail --location --retry 2 --silent --show-error "https://github.com/electron/electron/releases/download/v36.9.0/electron-v36.9.0-win32-x64.zip" -o upstream/electron-v36.9.0-win32-x64.zip
+          ls -lh original/* upstream/* compare/dist/*
+      - name: Install read-only archive inspection and antivirus
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq p7zip-full clamav clamav-freshclam
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam --quiet
+          clamscan --version
+      - name: Extract NSIS installer and upstream Electron binary without executing
+        shell: bash
+        run: |
+          set -euo pipefail
+          SETUP="$(find compare -name 'Ananda-Sangha-Event-Desk-Patch14-Standard-Setup.exe' -print -quit)"
+          test -s "$SETUP"
+          echo "5edda195b1ceb0751d1279b5fb61d7bd2942fa95665d4f2c26dd1a686c7af330  $SETUP" | sha256sum -c -
+          unzip -jo upstream/electron-v36.9.0-win32-x64.zip electron.exe -d extracted/upstream
+          7z x -y -oextracted/setup "$SETUP" >/dev/null
+          find extracted/setup -type f -maxdepth 5 | head -70
+          printf "NSIS_BINARY_SCAN_FILES=%s\n" "$(find extracted/setup -type f | wc -l)"
+      - name: Compare ClamAV detection for unchanged upstream Electron, base installer and Patch14
+        shell: bash
+        run: |
+          set -uo pipefail
+          mkdir -p diagnostics
+          SCANFILE(){
+            NAME="$1";FILE="$2"
+            echo "BEGIN_COMPARE $NAME" | tee -a diagnostics/scan-results.txt
+            if [ -f "$FILE" ]; then
+              sha256sum "$FILE" | tee -a diagnostics/scan-results.txt
+              clamscan --infected --allmatch --max-filesize=300M --max-scansize=900M "$FILE" 2>&1 | tee -a diagnostics/scan-results.txt
+              echo "RESULT_EXIT_STATUS ${PIPESTATUS[0]}" | tee -a diagnostics/scan-results.txt
+            else echo "FILE_NOT_FOUND $FILE" | tee -a diagnostics/scan-results.txt; fi
+            echo "END_COMPARE $NAME" | tee -a diagnostics/scan-results.txt
+          }
+          SCANFILE OFFICIAL_ELECTRON_BINARY extracted/upstream/electron.exe
+          SCANFILE ORIGINAL_ANANDA_INSTALLER "$(find original -name '*.exe' -print -quit)"
+          SCANFILE PATCH14_STANDARD_INSTALLER "$(find compare -name '*Standard-Setup.exe' -print -quit)"
+          echo "EXTRACTED NSIS EXE FILES"
+          find extracted/setup -type f \( -iname '*.exe' -o -iname '*.dll' \) | head -70
+          echo "SCAN EXTRACTED NSIS PACKAGE (scan may show same signature under nested $PLUGINSDIR)"
+          clamscan --infected --allmatch --recursive --max-filesize=300M --max-scansize=900M extracted/setup 2>&1 | tee -a diagnostics/scan-results.txt || true
+          echo "IMPORTANT ClamAV detections remain potentially unsafe; diagnostic, not an authorization to release."
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: patch14-antivirus-root-cause-not-for-install
+          path: diagnostics/scan-results.txt
+          if-no-files-found: warn
