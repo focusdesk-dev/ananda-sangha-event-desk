@@ -1,0 +1,161 @@
+name: Build and scan Patch14 data-only update for existing Patch13 (NO EXE)
+on:
+  push:
+    branches: [patch14-data-only-safe-archive-20261116]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare ASAR build dependency and source check
+        shell: pwsh
+        run: |
+          npm install --no-save --no-fund --no-audit @electron/asar
+          if($LASTEXITCODE -ne 0){throw 'ASAR packager unavailable'}
+          node --check scripts/approved-existing-family-edit-patch14.js
+          if($LASTEXITCODE -ne 0){throw 'Invalid Patch14 JS'}
+      - name: Read only exact original released Patch13 archive, never execute old patch EXE
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path base,output | Out-Null
+          gh release download ananda-beta-5.81.8-student-volunteer-mobile-patch13 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir base
+          if($LASTEXITCODE -ne 0){throw 'Verified Patch13 release unavailable'}
+          $exe=(Get-ChildItem -Path base -Filter '*.exe' | Select-Object -First 1).FullName
+          $asm=[Reflection.Assembly]::LoadFrom($exe)
+          $r=$asm.GetManifestResourceStream('AnandaPatchArchive')
+          if(!$r){throw 'Expected released Patch13 archive not found'}
+          $gz=[IO.Compression.GZipStream]::new($r,[IO.Compression.CompressionMode]::Decompress)
+          $out=[IO.File]::Create((Join-Path $PWD 'base/patch13.asar'))
+          try{$gz.CopyTo($out)}finally{$out.Close();$gz.Close();$r.Close()}
+          $sha=(Get-FileHash base/patch13.asar -Algorithm SHA256).Hash
+          if($sha -ne '70F3424BEBCC9434D9D54B678EC69677A50C21A30BD7A0FFDC69EB4EE11BFC7F'){throw 'Wrong base version, refusing patch'}
+          Write-Host 'PASS known-good Patch13 archive SHA-256'
+      - name: Create reviewed Patch14 app.asar and verify exactly one source changed
+        shell: pwsh
+        run: |
+          node scripts/build-patch14-from-verified-patch13.js base/patch13.asar output/app.asar output/verified-extracted
+          if($LASTEXITCODE -ne 0){throw 'Strict Patch14 source audit failed'}
+          Write-Host 'PATCH14_FINAL_ASAR_SHA:' (Get-FileHash output/app.asar -Algorithm SHA256).Hash
+          Copy-Item frozen-patch14-hashes.json output/SHA256-AND-CHANGE-REPORT.json
+      - name: Verify Microsoft Defender does not detect the data-only update
+        shell: pwsh
+        run: |
+          $st=Get-MpComputerStatus -ErrorAction Stop
+          if(!$st.AntivirusEnabled){throw 'Defender not active'}
+          try{Update-MpSignature -ErrorAction Stop}catch{Write-Host 'Signature update unavailable:' $_.Exception.Message}
+          Start-MpScan -ScanType CustomScan -ScanPath (Join-Path $PWD 'output/app.asar') -ErrorAction Stop
+          $hits=@(Get-MpThreatDetection -ErrorAction SilentlyContinue | Where-Object{($_.Resources -join ';') -match 'output.*app.asar'})
+          if($hits.Count -gt 0){throw 'Antivirus flagged updated app code'}
+          Write-Host 'PASS Defender scan Patch14 code archive; malware-free not guaranteed'
+      - name: Build genuine manually installable code update - no EXE or scripts
+        shell: pwsh
+        run: |
+          $readme=@'
+          ANANDA SANGHA EVENT DESK — PATCH 14 FOR PATCH 13
+          
+          IMPORTANT: This is a REAL application-code update, NOT an EXE installer.
+          It does not contain any executable or antivirus workaround.
+          It is intended ONLY for a correctly installed Patch 13.
+          
+          1. CLOSE Ananda completely. Check its icon is not in taskbar.
+          2. BACK UP your Documents\ANANDA SANGHA EVENT DESK\Data folder.
+          3. Right-click the usual Ananda desktop shortcut and select "Open file location".
+          4. In the Ananda installation folder, open "resources".
+          5. Rename the current "app.asar" file to "app.asar.patch13-backup".
+             If you cannot rename it, the app is still running or permission is needed.
+          6. Copy the "app.asar" from this ZIP into that exact "resources" folder.
+             Windows may ask for normal administrator file-copy permission.
+          7. Open Ananda using your existing desktop shortcut.
+          
+          This preserves the installed EXE; it updates only approved Patch14
+          existing-family member Edit, Save, Add Member and check-in handling.
+          Existing student, event and class data remains in your Documents folder.
+          
+          TO REVERT: Close Ananda; delete the NEW app.asar in resources and rename
+          app.asar.patch13-backup back to app.asar.
+          
+          WARNING: If Windows antivirus flags this archive, do not disable Defender,
+          restore blocked files or create security exceptions. Stop and report it.
+          '@
+          [IO.File]::WriteAllText((Join-Path $PWD 'output/READ_ME_FIRST.txt'),$readme)
+          if(!(Test-Path output/app.asar)){throw 'No Patch14 application update found'}
+          $files=@(Get-ChildItem output -File)
+          if($files.Count -ne 3){throw 'Unexpected files in output'}
+          if(@($files|Where-Object {$_.Extension -in @('.exe','.dll','.bat','.cmd','.ps1')}).Count -ne 0){throw 'Executable found in data-only package'}
+          Compress-Archive -Path @('output/app.asar','output/READ_ME_FIRST.txt','output/SHA256-AND-CHANGE-REPORT.json') -DestinationPath output/Ananda-Patch14-Existing-App-Update.zip -CompressionLevel Optimal
+          Write-Host 'DATA_ONLY_ZIP_SHA256:' (Get-FileHash output/Ananda-Patch14-Existing-App-Update.zip -Algorithm SHA256).Hash
+          Write-Host 'DATA_ONLY_ZIP_BYTES:' (Get-Item output/Ananda-Patch14-Existing-App-Update.zip).Length
+      - uses: actions/upload-artifact@v4
+        with:
+          name: patch14-data-only-update
+          path: output/Ananda-Patch14-Existing-App-Update.zip
+          if-no-files-found: error
+          compression-level: 0
+  clamav:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: patch14-data-only-update
+          path: audit
+      - name: Inspect downloaded update to ensure no executables
+        run: |
+          unzip -l audit/Ananda-Patch14-Existing-App-Update.zip
+          mkdir -p extract
+          unzip -qq audit/Ananda-Patch14-Existing-App-Update.zip -d extract
+          test -s extract/app.asar
+          if find extract -type f | grep -E '\.(exe|dll|bat|cmd|ps1|msi)$'; then echo 'Unexpected executable'; exit 1; fi
+      - name: Obtain independent antivirus and latest malware signatures
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clamav clamav-freshclam
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam --verbose
+          clamscan --version
+      - name: Scan actual Patch14 code archive
+        run: |
+          clamscan --infected --recursive --allmatch --max-filesize=250M --max-scansize=1000M extract
+          echo 'PASS ClamAV code archive scan'
+      - name: Scan exact user-downloadable ZIP
+        run: |
+          clamscan --infected --allmatch --max-filesize=250M --max-scansize=1000M audit/Ananda-Patch14-Existing-App-Update.zip
+          echo 'PASS ClamAV update ZIP scan'
+  release:
+    needs: [build,clamav]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: patch14-data-only-update
+          path: release
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-5.81.8-patch14-manual-app-update
+          name: Ananda Patch 14 – Application Data-Only Update (Existing Patch 13)
+          prerelease: true
+          files: release/Ananda-Patch14-Existing-App-Update.zip
+          body: |
+            Working Patch14 application-code update for an existing installed Patch13.
+            ZIP includes verified app.asar, source change report, and simple copy instructions.
+            This is NOT a conventional setup.exe. It updates the application code while
+            keeping your existing executable and Documents data untouched.
+            Close Ananda; back up Documents/ANANDA SANGHA EVENT DESK/Data; replace app.asar
+            in the existing application's resources folder as explained in README.
+            Exact original Patch13 archive hash required. Only Patch14 approved family-editor code added.
+            The updated code and final ZIP were independently scanned by Microsoft Defender and ClamAV on CI.
+            No promise that security software on all other devices will approve it.
+            Do not disable antivirus if it flags the file.
