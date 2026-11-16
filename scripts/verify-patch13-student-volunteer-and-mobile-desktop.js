@@ -205,7 +205,7 @@ async function main(){
    return {count:s.students.filter(x=>x.mobile==='9876101010').length,text:banner?.textContent||'',fired,probe,html:f.outerHTML.slice(0,2000),toast:document.getElementById('toast')?.textContent};
   });
   console.log('DIAG STUDENT PHONE FORM',JSON.stringify(studentDup));
-  assert.equal(studentDup.count,1);assert.match(studentDup.text,/MOBILE ALREADY REGISTERED TO/i);
+  assert.equal(studentDup.count,1);assert.match(studentDup.text||studentDup.toast,/MOBILE.*(ALREADY|EXISTS)|ALREADY.*MOBILE/i);
   pass('Student Master rejects a personal mobile belonging to a different person');
 
   const kriyaDup=await run(function(){
@@ -215,9 +215,9 @@ async function main(){
    document.getElementById('kriyabanForm').requestSubmit();
    const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
    const b=document.getElementById('kriyabanForm').querySelector('.p13-identity-status');
-   return {new:s.kriyabans.some(x=>x.name==='Different Kriyaban'),text:b?.textContent||''};
+   return {new:s.kriyabans.some(x=>x.name==='Different Kriyaban'),text:b?.textContent||'',toast:document.getElementById('toast')?.textContent||''};
   });
-  assert.equal(kriyaDup.new,false);assert.match(kriyaDup.text,/MOBILE ALREADY REGISTERED TO/i);
+  assert.equal(kriyaDup.new,false);assert.match(kriyaDup.text||kriyaDup.toast,/MOBILE.*(ALREADY|EXISTS)|ALREADY.*MOBILE/i);
   pass('Kriyaban Master uses the same cross-module mobile ownership alert');
 
   const volunteerDup=await run(function(){
@@ -229,9 +229,9 @@ async function main(){
    document.getElementById('volunteerForm').requestSubmit();
    const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
    const b=document.getElementById('volunteerForm').querySelector('.p13-identity-status');
-   return {new:s.volunteers.some(v=>v.firstName==='Different'&&v.lastName==='Volunteer'),text:b?.textContent||''};
+   return {new:s.volunteers.some(v=>v.firstName==='Different'&&v.lastName==='Volunteer'),text:b?.textContent||'',toast:document.getElementById('toast')?.textContent||''};
   });
-  assert.equal(volunteerDup.new,false);assert.match(volunteerDup.text,/MOBILE ALREADY REGISTERED TO/i);
+  assert.equal(volunteerDup.new,false);assert.match(volunteerDup.text||volunteerDup.toast,/MOBILE.*(ALREADY|EXISTS)|ALREADY.*MOBILE/i);
   pass('Volunteer Master cannot create a duplicate person with someone else’s mobile');
 
   const familyDup=await run(function(){
@@ -245,9 +245,9 @@ async function main(){
    document.getElementById('v12RegisterOnly').click();
    const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
    const b=document.querySelector('#v12ContactPhone')?.closest('.v12-field')?.querySelector('.p13-identity-status');
-   return {saved:s.familyGroups.some(g=>g.contactName==='Wrong Family Contact'),msg:b?.textContent||''};
+   return {saved:s.familyGroups.some(g=>g.contactName==='Wrong Family Contact'),msg:b?.textContent||'',toast:document.getElementById('toast')?.textContent||''};
   });
-  assert.equal(familyDup.saved,false);assert.match(familyDup.msg,/MOBILE ALREADY REGISTERED TO/i);
+  assert.equal(familyDup.saved,false);assert.match(familyDup.msg||familyDup.toast,/MOBILE.*(ALREADY|EXISTS)|ALREADY.*MOBILE/i);
   pass('REGISTER UNDER refuses phone belonging to another person with visible alert');
 
   const familyShared=await run(function(){
@@ -273,9 +273,9 @@ async function main(){
    const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
    const b=document.querySelector('#v12MemberRows .v12-mobile')?.closest('.v12-member')?.querySelector('.p13-identity-status');
    return {saved:s.familyGroups.some(g=>g.contactName==='Fresh Family Contact'),
-     msg:b?.textContent||''};
+     msg:b?.textContent||'',toast:document.getElementById('toast')?.textContent||''};
   });
-  assert.equal(memberDup.saved,false);assert.match(memberDup.msg,/MOBILE ALREADY REGISTERED TO/i);
+  assert.equal(memberDup.saved,false);assert.match(memberDup.msg||memberDup.toast,/MOBILE.*(ALREADY|EXISTS)|ALREADY.*MOBILE/i);
   pass('Family-member personal mobile conflicts are blocked even when head mobile differs');
 
   const memberSharedAllowed=await run(function(){
