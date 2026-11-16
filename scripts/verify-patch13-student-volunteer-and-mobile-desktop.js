@@ -98,8 +98,11 @@ async function main(){
   pass('Registering existing Student as Volunteer writes back student.volunteerId, never checks in automatically');
   const sidebar=event.sidebar;
 
-  const historyBefore=await run(function(){
-   document.querySelector('aside .nav-btn[data-page="studentProgress"]')?.click();
+  const historyBefore=await run(async function(){
+   // Student Progress is a subpage accessed through Classes/Reports, not
+   // a standalone frozen sidebar item.
+   if(typeof switchPage==='function')switchPage('studentProgress');
+   await new Promise(resolve=>setTimeout(resolve,140));
    document.getElementById('p2v520Followups')?.click();
    const search=document.getElementById('p2v526Search');
    if(search){search.value='Aarav StudentTest';search.dispatchEvent(new Event('input',{bubbles:true}))}
@@ -136,8 +139,11 @@ async function main(){
   assert.ok(arrived.daily.includes(event.volunteer));
   pass('Volunteer check-in writes both event ledger and volunteer registration');
 
-  const historyAfter=await run(function(){
-   document.querySelector('aside .nav-btn[data-page="studentProgress"]')?.click();
+  const historyAfter=await run(async function(){
+   // Student Progress is a subpage accessed through Classes/Reports, not
+   // a standalone frozen sidebar item.
+   if(typeof switchPage==='function')switchPage('studentProgress');
+   await new Promise(resolve=>setTimeout(resolve,140));
    document.getElementById('p2v520Followups')?.click();
    const search=document.getElementById('p2v526Search');
    search.value='Aarav StudentTest';search.dispatchEvent(new Event('input',{bubbles:true}));
@@ -165,8 +171,11 @@ async function main(){
   assert.equal(undone.button,true);assert.deepEqual(undone.checkins,[]);
   assert.ok(!undone.daily.includes(undone.studentId));
   pass('Double-click Undo clears checked-in history without deleting student-volunteer identity link');
-  const afterUndo=await run(function(){
-   document.querySelector('aside .nav-btn[data-page="studentProgress"]')?.click();
+  const afterUndo=await run(async function(){
+   // Student Progress is a subpage accessed through Classes/Reports, not
+   // a standalone frozen sidebar item.
+   if(typeof switchPage==='function')switchPage('studentProgress');
+   await new Promise(resolve=>setTimeout(resolve,140));
    document.getElementById('p2v520Followups')?.click();
    const q=document.getElementById('p2v526Search');
    q.value='Aarav StudentTest';q.dispatchEvent(new Event('input',{bubbles:true}));
