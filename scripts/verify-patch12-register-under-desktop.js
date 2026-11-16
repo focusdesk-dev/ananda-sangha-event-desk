@@ -59,7 +59,7 @@ async function main(){
     assert.deepEqual(open.tabs,['EVENT RECORD','VOLUNTEERS','ATTENDEES','BADGE & SCARF']);
     const layout=await run(function(){
       const form=document.getElementById('v36RegistrationForm'),panel=document.getElementById('v12FamilyPanel');
-      const visible=n=>!!n&&getComputedStyle(n).display!=='none'&&!n.hidden;
+      const visible=n=>!!n&&!n.hidden&&getComputedStyle(n).display!=='none'&&n.getClientRects().length>0;
       const originalDrop=document.getElementById('v48GroupMode')?.closest('.field');
       return {family:form.classList.contains('v12-family-active'),
         registerUnder:panel?.textContent.includes('REGISTER UNDER'),
