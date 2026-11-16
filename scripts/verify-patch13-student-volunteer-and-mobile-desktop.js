@@ -99,9 +99,11 @@ async function main(){
   const sidebar=event.sidebar;
 
   const historyBefore=await run(async function(){
-   // Student Progress is a subpage accessed through Classes/Reports, not
-   // a standalone frozen sidebar item.
-   if(typeof switchPage==='function')switchPage('studentProgress');
+   // Follow the actual user route: REPORTS > STUDENT PROGRESS REPORTS
+   // > OPEN STUDENT PROGRESS > STUDENT WISE.
+   document.querySelector('aside .nav-btn[data-page="phase2Reports"]')?.click();
+   document.getElementById('p2ReportStudent')?.click();
+   document.getElementById('p2OpenStudentProgressReport')?.click();
    await new Promise(resolve=>setTimeout(resolve,140));
    document.getElementById('p2v520Followups')?.click();
    const search=document.getElementById('p2v526Search');
@@ -140,9 +142,11 @@ async function main(){
   pass('Volunteer check-in writes both event ledger and volunteer registration');
 
   const historyAfter=await run(async function(){
-   // Student Progress is a subpage accessed through Classes/Reports, not
-   // a standalone frozen sidebar item.
-   if(typeof switchPage==='function')switchPage('studentProgress');
+   // Follow the actual user route: REPORTS > STUDENT PROGRESS REPORTS
+   // > OPEN STUDENT PROGRESS > STUDENT WISE.
+   document.querySelector('aside .nav-btn[data-page="phase2Reports"]')?.click();
+   document.getElementById('p2ReportStudent')?.click();
+   document.getElementById('p2OpenStudentProgressReport')?.click();
    await new Promise(resolve=>setTimeout(resolve,140));
    document.getElementById('p2v520Followups')?.click();
    const search=document.getElementById('p2v526Search');
@@ -172,9 +176,11 @@ async function main(){
   assert.ok(!undone.daily.includes(undone.studentId));
   pass('Double-click Undo clears checked-in history without deleting student-volunteer identity link');
   const afterUndo=await run(async function(){
-   // Student Progress is a subpage accessed through Classes/Reports, not
-   // a standalone frozen sidebar item.
-   if(typeof switchPage==='function')switchPage('studentProgress');
+   // Follow the actual user route: REPORTS > STUDENT PROGRESS REPORTS
+   // > OPEN STUDENT PROGRESS > STUDENT WISE.
+   document.querySelector('aside .nav-btn[data-page="phase2Reports"]')?.click();
+   document.getElementById('p2ReportStudent')?.click();
+   document.getElementById('p2OpenStudentProgressReport')?.click();
    await new Promise(resolve=>setTimeout(resolve,140));
    document.getElementById('p2v520Followups')?.click();
    const q=document.getElementById('p2v526Search');
