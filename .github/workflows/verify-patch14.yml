@@ -1,0 +1,10 @@
+name: Patch 14 Windows Verification
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax check
+        run: node --check scripts/approved-existing-family-edit-patch14.js
