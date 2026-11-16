@@ -1,0 +1,44 @@
+name: SECOND OPINION – ClamAV – Blocked Patch14 – NO EXECUTION
+on:
+  push:
+    branches: [security-audit-blocked-patch14-20261116]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  clamav-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_SHA256: d32b0fff960bde730bbd5c64bf7c6bb8f052dbf80462ab9b9de49293225a9075
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download exact blocked binary and verify immutable hash
+        run: |
+          mkdir -p audit
+          gh release download ananda-beta-5.81.8-family-edit-patch14 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir audit
+          echo "${EXPECTED_SHA256}  audit/Ananda-5.81.8-Family-Edit-Patch14.exe" | sha256sum -c -
+          file audit/Ananda-5.81.8-Family-Edit-Patch14.exe
+      - name: Install antivirus scanner and update its public signatures
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clamav clamav-freshclam
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam --verbose
+          clamscan --version
+      - name: Scan suspicious executable with ClamAV without executing it
+        run: |
+          set +e
+          clamscan --infected --allmatch --max-filesize=25M --max-scansize=250M audit/Ananda-5.81.8-Family-Edit-Patch14.exe
+          CODE=$?
+          set -e
+          if [ "$CODE" -eq 1 ]; then
+            echo 'CLAMAV_VERDICT: MALWARE DETECTED, QUARANTINE; DO NOT DISTRIBUTE'
+            exit 1
+          fi
+          if [ "$CODE" -ne 0 ]; then
+            echo 'CLAMAV_VERDICT: SCAN ERROR / INDETERMINATE'
+            exit "$CODE"
+          fi
+          echo 'CLAMAV_VERDICT: NO DETECTION BY THIS ENGINE; USER DEVICE BLOCK TAKES PRECEDENCE'
