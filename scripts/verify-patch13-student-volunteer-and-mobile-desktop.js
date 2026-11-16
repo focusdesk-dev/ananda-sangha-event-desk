@@ -108,8 +108,14 @@ async function main(){
    b?.click();
    document.getElementById('p2v558Volunteer')?.click();
    const panel=document.getElementById('p2v558VolunteerPanel');
-   return {search:!!search,found:!!b,panel:panel?.textContent||'',allButtons:[...document.querySelectorAll('#studentProgress input')].map(x=>x.id)};
+   return {search:!!search,found:!!b,panel:panel?.textContent||'',
+    current:document.querySelector('.page.active')?.id,
+    followups:!!document.getElementById('p2v520Followups'),
+    nav:[...document.querySelectorAll('aside .nav-btn')].map(x=>x.dataset.page),
+    allButtons:[...document.querySelectorAll('#studentProgress input')].map(x=>x.id),
+    progressText:document.getElementById('studentProgress')?.textContent?.slice(0,600)};
   });
+  console.log('DEBUG STUDENT-PROGRESS BEFORE CHECKIN',JSON.stringify(historyBefore));
   assert.ok(historyBefore.search&&historyBefore.found,
     'Student record must be searchable and openable in Student Progress');
   assert.match(historyBefore.panel,/No volunteer participation recorded/i);
