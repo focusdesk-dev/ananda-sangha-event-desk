@@ -197,11 +197,14 @@ async function main(){
    const f=document.getElementById('p2StudentForm');document.getElementById('p2StudentId').value='';
    document.getElementById('p2StudentName').value='Different Student Name';
    document.getElementById('p2StudentMobile').value='9876101010';
+   const probe={valid:f.checkValidity(),invalid:[...f.querySelectorAll(':invalid')].map(x=>({id:x.id,value:x.value,required:x.required})),version:window.anandaStudentVolunteerIntegrityVersion,field:document.getElementById('p2StudentMobile').value};
+   let fired=0;f.addEventListener('submit',()=>fired++,{capture:true,once:true});
    f.requestSubmit();
    const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
    const banner=f.querySelector('.p13-identity-status');
-   return {count:s.students.filter(x=>x.mobile==='9876101010').length,text:banner?.textContent||''};
+   return {count:s.students.filter(x=>x.mobile==='9876101010').length,text:banner?.textContent||'',fired,probe,html:f.outerHTML.slice(0,2000),toast:document.getElementById('toast')?.textContent};
   });
+  console.log('DIAG STUDENT PHONE FORM',JSON.stringify(studentDup));
   assert.equal(studentDup.count,1);assert.match(studentDup.text,/MOBILE ALREADY REGISTERED TO/i);
   pass('Student Master rejects a personal mobile belonging to a different person');
 
