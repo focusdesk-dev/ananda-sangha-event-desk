@@ -1,24 +1,20 @@
-'use strict';const fs=require('fs'),s=fs.readFileSync('index.html','utf8');
-const needles=[
- ['v80MobileMatches','function v80MobileMatches',4500],
- ['v80DuplicateState','function v80DuplicateState',2000],
- ['Registration status','function v5817RegistrationStatus',5000],
- ['student form markup','id="p2StudentForm"',2300],
- ['student form handler','function p2SaveStudent',6500],
- ['volunteer form markup','id="volunteerForm"',4200],
- ['volunteer submit handler',"$('volunteerForm').onsubmit",4200],
- ['student progress show history','function p2v520ShowHistory',5700],
- ['student progress selectors','p2v520History',1200],
- ['student profile selectors','id="p2v558Volunteer"',850],
- ['kriyaban form markup','id="kriyabanForm"',2200],
- ['attendee master submit',"$('attendeeMasterForm').onsubmit",2300],
- ['legacy generic registration submit',"$('registrationForm').onsubmit",3000],
- ['volunteer new form fields','id="volunteerMobile"',2000],
- ['person registration controls','id="v36MainMobile"',1000]
+'use strict';const s=require('fs').readFileSync('index.html','utf8');
+const queries=[
+  ['Student save handler',"$('p2StudentForm').onsubmit",3200],
+  ['Student submit addEventListener',"p2StudentForm').addEventListener",1900],
+  ['Volunteer mobile error','function v92VolunteerMobileError',3200],
+  ['Kriya submit',"$('kriyabanForm').onsubmit",2800],
+  ['Student History references','p2v520History',550],
+  ['Student History controls','p2v520ShowHistory()',650],
+  ['Volunteer checkin undo','.v5-undo',1400],
+  ['Volunteer checkin v5', "function v5RenderVolunteerUI",1700],
+  ['Volunteer initial state','function ensureV36State',2000],
+  ['Duplicate render', 'function v80MobileMatches',1900],
+  ['Old individual save',"function v36SaveRegistration",5500],
+  ['Student link save','p2LinkStudent(student)',600],
 ];
-for(const [title,needle,limit] of needles){
-const positions=[];let p=-1;while((p=s.indexOf(needle,p+1))!==-1&&positions.length<15)positions.push(p);
-console.log('\\n--- '+title+' '+positions.length+' positions '+positions.join(','));
-for(const pos of [...new Set([positions[0],positions.at(-1)])].filter(x=>x!==undefined)){
-console.log(s.slice(Math.max(0,pos-200),Math.min(s.length,pos+limit)).replace(/\\r/g,''));}
+for(const [title,needle,n] of queries){
+  const hits=[];let p=-1;while((p=s.indexOf(needle,p+1))!==-1&&hits.length<22)hits.push(p);
+  console.log('\\n### '+title+' hits '+hits.length+' at '+hits.join(','));
+  for(const pos of hits.slice(-7))console.log(s.slice(Math.max(0,pos-350),pos+n).replace(/\\r/g,'').replace(/\\n/g,' '));
 }
