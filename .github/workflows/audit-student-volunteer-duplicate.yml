@@ -1,0 +1,12 @@
+name: Audit Student Volunteering and Mobile Duplicates
+on:
+  push:
+    branches: [audit-student-volunteer-and-phone-duplicates-20261116]
+  workflow_dispatch:
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect logic and duplicate validation routes
+        run: node scripts/audit-student-volunteer-duplicate.js
