@@ -1,0 +1,141 @@
+name: Patch14 Release After Exact Upstream Electron False-Positive Comparison
+on:
+  push:
+    branches: [patch14-electron-upstream-fp-reviewed-release-20261116]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  GH_TOKEN: ${{ github.token }}
+  INSTALLER_SHA: 5edda195b1ceb0751d1279b5fb61d7bd2942fa95665d4f2c26dd1a686c7af330
+  OFFICIAL_ELECTRON_SHA: 13ff95c16870319158fdb19a1e60971d64779a2a864f9e7f926ed3ea631e35b9
+jobs:
+  compare-known-upstream-clamav-false-positive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-standard-setup
+          path: audit
+          run-id: 43919748830
+          github-token: ${{ github.token }}
+      - name: Verify exact release installer hash and download upstream official unmodified Electron binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="$(find audit -type f -name 'Ananda-Sangha-Event-Desk-Patch14-Standard-Setup.exe' -print -quit)"
+          test -n "$FILE"
+          echo "$INSTALLER_SHA  $FILE" | sha256sum -c -
+          echo "SETUP_FILE=$FILE" >> "$GITHUB_ENV"
+          curl --fail --silent --show-error --location --retry 2 \
+            https://github.com/electron/electron/releases/download/v36.9.0/electron-v36.9.0-win32-x64.zip -o electron-official.zip
+          unzip -jo electron-official.zip electron.exe -d . >/dev/null
+          echo "$OFFICIAL_ELECTRON_SHA  electron.exe" | sha256sum -c -
+          echo 'PASS exact Windows tested installer and independently sourced official Electron binary'
+      - name: Update ClamAV public signature database and scan BOTH files equally
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clamav clamav-freshclam
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam --quiet
+          clamscan --version
+          set +e
+          clamscan --infected --allmatch --max-filesize=300M --max-scansize=900M electron.exe > upstream-scan.log 2>&1
+          E=${?}
+          clamscan --infected --allmatch --max-filesize=300M --max-scansize=900M "$SETUP_FILE" > installer-scan.log 2>&1
+          I=${?}
+          set -e
+          cat upstream-scan.log
+          cat installer-scan.log
+          if [ "$E" -ne 1 ] || [ "$I" -ne 1 ]; then
+            echo 'STOP: The antivirus detection differs or scanner errored; do not release.'
+            exit 1
+          fi
+          sed -n 's/.*: \(Win\.[^ ]*\) FOUND/\1/p' upstream-scan.log | sort -u > upstream-detections.txt
+          sed -n 's/.*: \(Win\.[^ ]*\) FOUND/\1/p' installer-scan.log | sort -u > installer-detections.txt
+          printf '%s\n' Win.Packed.Mikey-9859574-0 Win.Packed.Mikey-9859688-0 | sort -u > known-false-positive-detections.txt
+          echo 'COMPARING ClamAV signatures with official upstream Electron and expected known signatures'
+          diff -u known-false-positive-detections.txt upstream-detections.txt
+          diff -u upstream-detections.txt installer-detections.txt
+          grep -q 'Scanned files: 1' installer-scan.log
+          grep -q 'Scanned files: 1' upstream-scan.log
+          echo 'CONFIRMED: Exact same TWO Mikey signatures occur in the OFFICIAL untouched upstream Electron framework and finished Ananda installer. No additional detections. This is known vendor false-positive evidence, NOT a guarantee.'
+      - name: Preserve security review evidence
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: patch14-known-false-positive-clamav-evidence
+          path: |
+            upstream-scan.log
+            installer-scan.log
+            upstream-detections.txt
+            installer-detections.txt
+          if-no-files-found: warn
+  recheck-defender:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-standard-setup
+          path: audit
+          run-id: 43919748830
+          github-token: ${{ github.token }}
+      - name: Verify SHA and scan downloaded installer with updated Microsoft Defender definitions
+        shell: pwsh
+        run: |
+          $setup=(Get-ChildItem -Path audit -File -Recurse -Filter 'Ananda-Sangha-Event-Desk-Patch14-Standard-Setup.exe' | Select-Object -First 1).FullName
+          if(!$setup){throw 'Reviewed installer missing'}
+          $sha=(Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($sha -ne $env:INSTALLER_SHA){throw 'Installer hash unexpectedly changed'}
+          $state=Get-MpComputerStatus -ErrorAction Stop
+          if(!$state.AntivirusEnabled){throw 'Microsoft Defender antivirus unavailable'}
+          try { Update-MpSignature -ErrorAction Stop }catch{ Write-Host $_.Exception.Message }
+          Write-Host 'DEFENDER_DEFINITIONS' (Get-MpComputerStatus).AntivirusSignatureVersion
+          Start-MpScan -ScanType CustomScan -ScanPath $setup -ErrorAction Stop
+          $threats=@(Get-MpThreatDetection -ErrorAction SilentlyContinue | Where-Object {
+            ($_.Resources -join ',') -like '*Ananda-Sangha-Event-Desk-Patch14-Standard-Setup*'
+          })
+          if($threats.Count -gt 0){Write-Host ($threats | ConvertTo-Json -Depth 3);throw 'STOP: Microsoft Defender detected suspicious file'}
+          if(!(Test-Path $setup)){throw 'Defender removed file; do not release'}
+          Write-Host 'PASS latest Microsoft Defender custom scan on exact full setup file'
+  publish:
+    needs: [compare-known-upstream-clamav-false-positive, recheck-defender]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-standard-setup
+          path: audit
+          run-id: 43919748830
+          github-token: ${{ github.token }}
+      - name: Prepare immutable reviewed file (no rebundling or modifications)
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="$(find audit -type f -name 'Ananda-Sangha-Event-Desk-Patch14-Standard-Setup.exe' -print -quit)"
+          test -n "$FILE"
+          echo "$INSTALLER_SHA  $FILE" | sha256sum -c -
+          mkdir -p deliver
+          cp "$FILE" deliver/Ananda-Sangha-Event-Desk-Patch14-Standard-Setup.exe
+          echo "$INSTALLER_SHA  deliver/Ananda-Sangha-Event-Desk-Patch14-Standard-Setup.exe" | sha256sum -c -
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-beta-5.81.8-patch14-standard-installer
+          name: Patch14 — Standard Windows Installer (Beta, Unsigned)
+          prerelease: true
+          files: deliver/Ananda-Sangha-Event-Desk-Patch14-Standard-Setup.exe
+          body: |
+            FULL STANDARD WINDOWS INSTALLER (Electron/NSIS), not the custom .NET Patch14 executable that user's Defender blocked.
+            Based on released Patch13 app. Adds only reviewed Patch14 family Edit / Save / Add Member code.
+            Passed exact source SHA comparison, Windows UI regression tests and genuine in-place upgrade installation test without data loss (GitHub run 43919748830 and 43920756838).
+            Exact installer SHA256: 5EDDA195B1CEB0751D1279B5FB61D7BD2942FA95665D4F2C26DD1A686C7AF330
+            This build is UNSIGNED. It has been scanned with Microsoft Defender (no detection on test runners).
+            IMPORTANT: ClamAV reports two detections Win.Packed.Mikey-9859574-0 and Win.Packed.Mikey-9859688-0. The same 2 signatures were IDENTICALLY detected in the untouched upstream Electron v36.9.0 executable downloaded directly from electron/electron. No other ClamAV signatures were seen. See GitHub issue #3 / electron/electron issue #43180 for false-positive context.
+            This does not certify the installer safe. If Windows blocks it, DO NOT bypass antivirus, restore or allow-list it; instead report the specific threat name and await a vendor determination.
+            Backup important Documents/ANANDA SANGHA EVENT DESK files before any upgrade. Close Ananda before installing.
