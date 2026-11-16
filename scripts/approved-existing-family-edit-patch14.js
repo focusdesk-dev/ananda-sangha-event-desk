@@ -37,13 +37,23 @@
       return number?'That personal mobile is already used by another member of this family.':
         'A member with this name already exists. Enter their personal mobile to distinguish them.';
     if(number&&n){
-      const status=p13PhoneDecision(name,number,'family-member',old?.id||'');
-      if(['conflict','duplicate-event','duplicate-role'].includes(status.type))
-        return p13Message(status);
-      // An explicit personal phone must never be taken from a different person.
-      const different=(state.students||[]).find(p=>normMobile(p.mobile)===number&&normName(p.name)!==n)||
-        (state.kriyabans||[]).find(p=>normMobile(p.mobile)===number&&normName(p.name)!==n);
-      if(different)return 'Mobile belongs to a different person. Confirm the correct mobile.';
+      // Editing a verified existing member may correct a spelling mistake.
+      // Ignore only the member's own old name and linked Master identity.
+      const ownRename=!!old&&normMobile(old.mobile||'')===number&&
+        normName(old.name||'')!==n;
+      const owners=p13PhoneOwners(number);
+      const unrelated=owners.filter(o=>{
+        if(o.kind==='family-member'&&o.id===old?.id)return false;
+        if(o.kind==='master'&&o.id===old?.masterId)return false;
+        if(ownRename&&normName(o.name)===normName(old.name||''))return false;
+        return normName(o.name)!==n;
+      });
+      if(unrelated.length)return 'Mobile belongs to '+unrelated[0].name+'. Confirm the person.';
+      if(!ownRename){
+        const status=p13PhoneDecision(name,number,'family-member',old?.id||'');
+        if(['conflict','duplicate-event','duplicate-role'].includes(status.type))
+          return p13Message(status);
+      }
     }
     if(number&&!n)return 'Enter the real name when adding a personal mobile.';
     return '';
@@ -52,6 +62,13 @@
     const name=String(member.name||'').trim(),mobile=normMobile(member.mobile||'');
     if(!name||mobile.length!==10)return;
     const current=(state.attendeeMaster||[]).find(p=>p.id===member.masterId);
+    if(current&&normMobile(oldMobile)===mobile&&
+       normName(current.name)===normName(oldName)&&
+       normMobile(current.personalMobile||current.mobile)===mobile){
+      current.name=name;
+      if(member.relationship)current.relationship=member.relationship;
+      return;
+    }
     if(current&&normName(current.name)===normName(name)&&
        normMobile(current.personalMobile||current.mobile)===mobile)return;
     // Don't rename a historical Master record when the member identity
@@ -79,6 +96,7 @@
     if(!isNew&&!old){v14Notice(row,'Member record not found; reload the family.');return}
     const error=v14ValidateMember(group,old,name,relationship,raw);
     if(error){v14Notice(row,error);return}
+    const originalName=old?.name||'',originalMobile=old?.mobile||'';
     let member;
     if(isNew){
       if((group.members||[]).length>=40){v14Notice(row,'Maximum 40 family members.');return}
@@ -90,7 +108,7 @@
       member.name=name;member.relationship=relationship;member.mobile=mobile;
       // Preserve original member ID, checkins, source, allocation and history.
     }
-    v14ConnectMaster(group,member);
+    v14ConnectMaster(group,member,originalName,originalMobile);
     if(group.registrationLayout==='v12-contact-only')
       group.expectedGuests=group.members.length;
     else
