@@ -1,0 +1,162 @@
+name: Complete Patch14 Standard Setup Security Scan & In-Place Install Validation
+on:
+  push:
+    branches: [patch14-standard-nsis-validated-release-20261116]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  EXPECTED_SETUP_SHA: 5EDDA195B1CEB0751D1279B5FB61D7BD2942FA95665D4F2C26DD1A686C7AF330
+  EXPECTED_PATCH13_SHA: 70F3424BEBCC9434D9D54B678EC69677A50C21A30BD7A0FFDC69EB4EE11BFC7F
+  EXPECTED_PATCH14_ASAR: CD9CF34E7CF4A4F2F717C7A20398FE1EF9EB14FEBB64DB4ED310554F4A36D041
+jobs:
+  clamav:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-standard-setup
+          path: audit
+          run-id: 43919748830
+          github-token: ${{ github.token }}
+      - name: Find original file and strictly compare its SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          find audit -maxdepth 5 -type f -printf '%p (%s bytes)\n'
+          mapfile -t FILES < <(find audit -type f -name 'Ananda-Sangha-Event-Desk-Patch14-Standard-Setup.exe')
+          if [ "${#FILES[@]}" -ne 1 ]; then echo 'Missing/ambiguous Windows setup artifact'; exit 1; fi
+          echo "${EXPECTED_SETUP_SHA,,}  ${FILES[0]}" | sha256sum -c -
+          echo "SETUP_PATH=${FILES[0]}" >> "$GITHUB_ENV"
+      - name: Install ClamAV and update signatures
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clamav clamav-freshclam
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam --verbose
+          clamscan --version
+      - name: Scan the EXACT full Windows setup with a second antivirus engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$SETUP_PATH" || { echo 'Cannot scan empty or missing setup'; exit 1; }
+          clamscan --infected --allmatch --max-filesize=300M --max-scansize=800M "$SETUP_PATH"
+          echo "PASS: Exact full Windows setup scanned, 0 ClamAV detections"
+  install-test:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-standard-setup
+          path: installer-artifact
+          run-id: 43919748830
+          github-token: ${{ github.token }}
+      - name: Locate and verify exact signed-off build artifact
+        shell: pwsh
+        run: |
+          $setups=@(Get-ChildItem -Path installer-artifact -Filter 'Ananda-Sangha-Event-Desk-Patch14-Standard-Setup.exe' -File -Recurse)
+          if($setups.Count -ne 1){throw 'Installer missing or ambiguous'}
+          $setup=$setups[0].FullName
+          $sha=(Get-FileHash $setup -Algorithm SHA256).Hash
+          Write-Host 'STANDARD_INSTALLER_SHA256:' $sha
+          if($sha -ne $env:EXPECTED_SETUP_SHA){throw 'Setup artifact not the Windows-tested build'}
+          "SETUP_FILE=$setup" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'Authenticode status:' (Get-AuthenticodeSignature $setup).Status
+      - name: Install original official full app and then released Patch13 source
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path base,prior | Out-Null
+          gh release download ananda-beta-5.81.8 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir base
+          if ($LASTEXITCODE -ne 0) { throw 'Original Windows app release download failed' }
+          gh release download ananda-beta-5.81.8-student-volunteer-mobile-patch13 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir prior
+          if ($LASTEXITCODE -ne 0) { throw 'Released Patch13 archive download failed' }
+          $base=(Get-ChildItem base -Filter '*.exe' | Select-Object -First 1).FullName
+          $prior=(Get-ChildItem prior -Filter '*.exe' | Select-Object -First 1).FullName
+          $dest=Join-Path $env:RUNNER_TEMP 'Ananda14StandardUpgrade'
+          $p=Start-Process -FilePath $base -ArgumentList @('/S',('/D='+$dest)) -Wait -PassThru
+          if($p.ExitCode -ne 0){throw 'Original Ananda installer failed'}
+          $asm=[Reflection.Assembly]::LoadFrom($prior)
+          $res=$asm.GetManifestResourceStream('AnandaPatchArchive')
+          if(!$res){throw 'Missing released Patch13 archive resource'}
+          $gzip=[IO.Compression.GZipStream]::new($res,[IO.Compression.CompressionMode]::Decompress)
+          $archive=Join-Path $dest 'resources/app.asar'
+          $output=[IO.File]::Create($archive)
+          try{$gzip.CopyTo($output)}finally{$output.Close();$gzip.Close();$res.Close()}
+          if((Get-FileHash $archive -Algorithm SHA256).Hash -ne $env:EXPECTED_PATCH13_SHA){throw 'Unknown previous app code'}
+          "TEST_INSTALL_DIR=$dest" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $data=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data'
+          New-Item -ItemType Directory -Force -Path $data | Out-Null
+          [IO.File]::WriteAllText((Join-Path $data 'patch14-user-data-preservation.txt'),'Existing user data must survive setup')
+          Write-Host 'PASS original installed full application upgraded to verified released Patch13 code'
+      - name: Run conventional setup over existing Patch13 installation
+        shell: pwsh
+        run: |
+          $setup=$env:SETUP_FILE
+          $dest=$env:TEST_INSTALL_DIR
+          $p=Start-Process -FilePath $setup -ArgumentList @('/S',('/D='+$dest)) -Wait -PassThru
+          if($p.ExitCode -ne 0){throw 'Standard Patch14 full installer failed with exit code '+$p.ExitCode}
+          $archive=Join-Path $dest 'resources/app.asar'
+          if(!(Test-Path $archive)){throw 'Standard setup did not write application code to existing install'}
+          $sha=(Get-FileHash $archive -Algorithm SHA256).Hash
+          Write-Host 'INSTALLED_ASAR_SHA256:' $sha
+          if($sha -ne $env:EXPECTED_PATCH14_ASAR){throw 'Installed code hash is not the reviewed Patch14 release'}
+          $data=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data/patch14-user-data-preservation.txt'
+          if([IO.File]::ReadAllText($data) -ne 'Existing user data must survive setup'){throw 'Old user data missing/modified'}
+          Write-Host 'PASS standard setup upgrades in-place and preserves Documents user data'
+      - name: Re-test installed Ananda HRIDAY Edit/Save/Add UI
+        shell: pwsh
+        run: |
+          $app=Join-Path $env:TEST_INSTALL_DIR 'Ananda Sangha Event Desk.exe'
+          if(!(Test-Path $app)){throw 'Installed application EXE missing'}
+          $p=Start-Process -FilePath $app -ArgumentList '--remote-debugging-port=9223' -PassThru
+          Start-Sleep -Seconds 6
+          if($p.HasExited){throw 'Installed Patch14 full application did not launch'}
+          node scripts/verify-patch14-existing-family-desktop.js
+          if($LASTEXITCODE -ne 0){throw 'Installed HRIDAY Family Editor regression failed'}
+          Write-Host 'PASS new standard setup installed and existing-family member actions verified'
+  release:
+    needs: [clamav, install-test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-standard-setup
+          path: release
+          run-id: 43919748830
+          github-token: ${{ github.token }}
+      - name: Normalize verified release file path
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="$(find release -type f -name 'Ananda-Sangha-Event-Desk-Patch14-Standard-Setup.exe' -print -quit)"
+          test -n "$FILE"
+          echo "${EXPECTED_SETUP_SHA,,}  $FILE" | sha256sum -c -
+          mkdir -p final-release
+          cp "$FILE" final-release/Ananda-Sangha-Event-Desk-Patch14-Standard-Setup.exe
+      - name: Publish file only after source, UI, in-place install and both antivirus checks pass
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-beta-5.81.8-patch14-standard-installer
+          name: Ananda 5.81.8 Patch14 — Standard Windows Installer
+          prerelease: true
+          files: final-release/Ananda-Sangha-Event-Desk-Patch14-Standard-Setup.exe
+          body: |
+            Full conventional Electron/NSIS installer (not the previously blocked custom C# GZip patch executable).
+            Reuses verified released Patch13 application and adds only approved Patch14 family Edit/Save/Add Member logic.
+            Windows tests and a second test of in-place installation must pass, along with Microsoft Defender and ClamAV scanning.
+            SHA256: 5EDDA195B1CEB0751D1279B5FB61D7BD2942FA95665D4F2C26DD1A686C7AF330
+            UNSIGNED: The project does not currently have a code-signing certificate. Scanner passes are not a guarantee of safety.
+            If Windows Defender or Chrome flags this new file, do not bypass security, allow-list it, or disable antivirus.
+            Saved data lives under Documents/ANANDA SANGHA EVENT DESK and is not overwritten.
