@@ -168,7 +168,8 @@
     nameField.addEventListener('input',render);
     phoneField.addEventListener('input',render);
     phoneField.addEventListener('change',render);
-    form.addEventListener('submit',e=>{
+    document.addEventListener('submit',e=>{
+      if(e.target!==form)return;
       if(!p13ValidMobile(phoneField.value))return;
       const check=status();
       if(p13Blocked(check)){
@@ -190,7 +191,8 @@
       $('volunteerMobile').value,'volunteer',$('volunteerId').value);
     p13VolLast.addEventListener('input',()=>p13ShowStatus($('volunteerMobile'),checkVol()));
     p13VolFirst.addEventListener('input',()=>p13ShowStatus($('volunteerMobile'),checkVol()));
-    $('volunteerForm').addEventListener('submit',e=>{
+    document.addEventListener('submit',e=>{
+      if(e.target!==$('volunteerForm'))return;
       if(!p13ValidMobile($('volunteerMobile').value))return;
       const state=checkVol();
       if(p13Blocked(state)){e.preventDefault();e.stopImmediatePropagation();
@@ -215,7 +217,8 @@
       p13AttendeeMain.addEventListener(ev,show);
       $('attendeeMasterCategory')?.addEventListener(ev,show);
     });
-    $('attendeeMasterForm')?.addEventListener('submit',e=>{
+    document.addEventListener('submit',e=>{
+      if(e.target!==$('attendeeMasterForm'))return;
       const own=p13Number($('attendeeMasterPersonalMobile').value);
       const shared=$('attendeeMasterCategory').value==='family';
       if(own.length===10||shared||!p13ValidMobile(p13AttendeeMain.value))return;
@@ -236,7 +239,8 @@
     return {matches,blocking:p13Blocked(d)?(matches.length?matches:[{name,kind:'event'}]):[],
       allowedVolunteer:false};
   };
-  $('v36RegistrationForm')?.addEventListener('submit',e=>{
+  document.addEventListener('submit',e=>{
+    if(e.target!==$('v36RegistrationForm'))return;
     if(/family/.test($('v36RegistrationType')?.value||''))return;
     const name=$('v36MainName').value,phone=$('v36MainMobile').value;
     const edit=v36RegistrationEditKey?.startsWith('attendee|')?
