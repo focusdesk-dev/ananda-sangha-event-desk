@@ -182,8 +182,6 @@
     ()=>$('p2StudentId')?.value||'');
   p13SetFormGuard('kriyabanForm','kriyabanName','kriyabanMobile','kriyaban',
     ()=>$('kriyabanId')?.value||'');
-  p13SetFormGuard('volunteerForm','volunteerFirstName','volunteerMobile','volunteer',
-    ()=>$('volunteerId')?.value||'');
   // Volunteer name is split across two inputs. Use the combined name.
   const p13VolFirst=$('volunteerFirstName'),p13VolLast=$('volunteerLastName');
   if(p13VolFirst&&p13VolLast&&$('volunteerForm')){
