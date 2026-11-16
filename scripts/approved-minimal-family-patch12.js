@@ -60,7 +60,7 @@
     });
     $('v12ContactPhone').addEventListener('input',()=>{
       const field=$('v12ContactPhone');field.value=normMobile(field.value).slice(0,10);
-      if(v12ContactMatch&&v12ContactMatch.mobile!==field.value)v12ContactMatch=null;
+      if(v12ContactMatch&&v12ContactMatch.mobile&&v12ContactMatch.mobile!==field.value)v12ContactMatch=null;
       v12Suggest(field.value);
     });
     $('v12ContactName').addEventListener('keydown',e=>{
@@ -100,11 +100,11 @@
     const q=String(raw||'').trim();
     box.replaceChildren();
     if(q.length<2){box.hidden=true;return}
-    const matches=v11MatchPerson(q).filter(x=>x.mobile).slice(0,8);
+    const matches=v11MatchPerson(q).slice(0,8);
     // Do not show a duplicate suggestion below the previous family-head field.
     for(const person of matches){
       const button=document.createElement('button');button.type='button';button.className='v12-match';
-      button.textContent=person.name+' · '+person.mobile;
+      button.textContent=person.name+' · '+(person.mobile||'MOBILE NOT RECORDED');
       button.onclick=()=>{
         v12ContactMatch=person;
         $('v12ContactName').value=person.name;
@@ -235,7 +235,10 @@
       if(same){toast('Already registered under '+name+'. Open the existing family from Attendees.');return}
     }
     const contact=identityDirectory.find(p=>normName(p.name)===normName(name)&&p.mobile===mobile);
-    let masterRef=contact?.refs.find(r=>r.kind==='master')||contact?.refs[0]||null;
+    const selected=v12ContactMatch&&normName(v12ContactMatch.name)===normName(name)&&
+      (!v12ContactMatch.mobile||v12ContactMatch.mobile===mobile)?v12ContactMatch:null;
+    let masterRef=selected?.refs.find(r=>r.kind==='master')||selected?.refs[0]||
+      contact?.refs.find(r=>r.kind==='master')||contact?.refs[0]||null;
     if(!masterRef){
       const master=v36EnsureMaster(name,mobile,mobile,'outside',null,'');
       if(master)masterRef={kind:'master',id:master.id};
