@@ -1,10 +1,128 @@
-name: Patch 14 Windows Verification
+name: Ananda Patch14 Verified Existing-Family Editor
 on:
+  push:
+    branches: [patch14-existing-family-edit-addmember-20261116]
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
-  test:
+  patch:
     runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
-      - name: Syntax check
-        run: node --check scripts/approved-existing-family-edit-patch14.js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check source syntax and install archive tooling
+        shell: pwsh
+        run: |
+          node --check scripts/approved-existing-family-edit-patch14.js
+          if ($LASTEXITCODE -ne 0) { throw 'Patch14 JavaScript syntax invalid' }
+          node --check scripts/verify-patch14-existing-family-desktop.js
+          if ($LASTEXITCODE -ne 0) { throw 'Patch14 Windows test syntax invalid' }
+          npm install --no-fund --no-audit @electron/asar --no-save
+          if ($LASTEXITCODE -ne 0) { throw 'Archive dependency setup failed' }
+      - name: Recover exactly released Patch13 application and install full Windows app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path base,prior,distpatch -Force | Out-Null
+          gh release download ananda-beta-5.81.8 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir base
+          if ($LASTEXITCODE -ne 0) { throw '5.81.8 release download failed' }
+          gh release download ananda-beta-5.81.8-student-volunteer-mobile-patch13 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir prior
+          if ($LASTEXITCODE -ne 0) { throw 'Patch13 release download failed' }
+          $exe=(Get-ChildItem base -Filter '*.exe' | Select-Object -First 1).FullName
+          $patch=(Get-ChildItem prior -Filter '*.exe' | Select-Object -First 1).FullName
+          $dest=Join-Path $env:RUNNER_TEMP 'AnandaPatch14Test'
+          $p=Start-Process -FilePath $exe -ArgumentList @('/S',('/D='+$dest)) -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw 'Ananda 5.81.8 full installation failed' }
+          $asm=[Reflection.Assembly]::LoadFrom($patch)
+          $res=$asm.GetManifestResourceStream('AnandaPatchArchive')
+          if (!$res) { throw 'Patch13 embedded archive not found' }
+          $gzip=[IO.Compression.GZipStream]::new($res,[IO.Compression.CompressionMode]::Decompress)
+          $archive=Join-Path $dest 'resources/app.asar'
+          $destFile=[IO.File]::Create($archive)
+          try { $gzip.CopyTo($destFile) } finally { $destFile.Close();$gzip.Close();$res.Close() }
+          $sha=(Get-FileHash $archive -Algorithm SHA256).Hash
+          if ($sha -ne '70F3424BEBCC9434D9D54B678EC69677A50C21A30BD7A0FFDC69EB4EE11BFC7F') { throw 'Extracted Patch13 code is not the verified release' }
+          "ANANDA_PATCH_INSTALL_DIR=$dest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'PASS released Patch13 exact app.asar hash' $sha
+      - name: Build only one approved family fix into previous verified app
+        shell: pwsh
+        run: |
+          $old=Join-Path $env:ANANDA_PATCH_INSTALL_DIR 'resources/app.asar'
+          node scripts/build-patch14-from-verified-patch13.js $old (Join-Path $PWD 'distpatch/app.asar') (Join-Path $env:RUNNER_TEMP 'AnandaPatch14Extract')
+          if ($LASTEXITCODE -ne 0) { throw 'Strict Patch13 archive builder failed' }
+      - name: Compile one-click Windows Patch14
+        shell: pwsh
+        run: |
+          $meta=Get-Content frozen-patch14-hashes.json -Raw | ConvertFrom-Json
+          $cs=[IO.File]::ReadAllText('scripts/AnandaExistingFamilyPatch14.cs').Replace('__BASE_SHA__',[string]$meta.baseSha256).Replace('__PATCH_SHA__',[string]$meta.patchSha256).Replace('__PATCH8_SHA__','70F3424BEBCC9434D9D54B678EC69677A50C21A30BD7A0FFDC69EB4EE11BFC7F').Replace('__PATCH6_SHA__','C810C76B6DCDD1DB2F15FE6BFAD46B027D8F75C7F00E95B86D65A3F513160869')
+          $generated=Join-Path $PWD 'distpatch/AnandaPatch14.generated.cs'
+          [IO.File]::WriteAllText($generated,$cs,[Text.Encoding]::UTF8)
+          node -e "const fs=require('fs'),z=require('zlib');fs.writeFileSync('distpatch/app.asar.gz',z.gzipSync(fs.readFileSync('distpatch/app.asar'),{level:9}))"
+          if ($LASTEXITCODE -ne 0) { throw 'Compression failed' }
+          $csc=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
+          $out=Join-Path $PWD 'distpatch/Ananda-5.81.8-Family-Edit-Patch14.exe'
+          $resource=(Join-Path $PWD 'distpatch/app.asar.gz')+',AnandaPatchArchive'
+          & $csc '/nologo' '/target:winexe' ("/out:"+$out) ("/resource:"+$resource) '/reference:System.Core.dll' '/reference:System.Windows.Forms.dll' '/reference:System.IO.Compression.dll' $generated
+          if ($LASTEXITCODE -ne 0 -or !(Test-Path $out)) { throw 'Patch14 installer compilation failed' }
+          Write-Host 'Patch14 installer bytes:' (Get-Item $out).Length
+      - name: Verify in-place upgrade, hash, backup, and existing data safety
+        shell: pwsh
+        run: |
+          $exe=(Resolve-Path 'distpatch/Ananda-5.81.8-Family-Edit-Patch14.exe').Path
+          $archive=Join-Path $env:ANANDA_PATCH_INSTALL_DIR 'resources/app.asar'
+          $meta=Get-Content frozen-patch14-hashes.json -Raw | ConvertFrom-Json
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne [string]$meta.baseSha256) { throw 'Unknown installed base archive' }
+          $data=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data'
+          New-Item -ItemType Directory -Path $data -Force | Out-Null
+          $sentinel=Join-Path $data 'patch14-test-sentinel.txt'
+          [IO.File]::WriteAllText($sentinel,'existing data preserved')
+          $arg=@('--quiet','--target',('"' + $env:ANANDA_PATCH_INSTALL_DIR + '"'))
+          $p=Start-Process -FilePath $exe -ArgumentList $arg -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw 'Patch14 installer failed' }
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne [string]$meta.patchSha256) { throw 'Installed Patch14 archive mismatch' }
+          if (!(Get-ChildItem (Split-Path $archive) -Filter 'app.asar.backup-approved-freezes-patch14-*')) { throw 'Previous archive backup not created' }
+          if ([IO.File]::ReadAllText($sentinel) -ne 'existing data preserved') { throw 'Existing data modified' }
+          $verify=Start-Process -FilePath $exe -ArgumentList @('--quiet','--verify') -Wait -PassThru
+          if ($verify.ExitCode -ne 0) { throw 'Patch14 independent installed code verification failed' }
+          Write-Host 'PASS Patch14 in-place hash, original backup, unchanged data and post-install verify'
+      - name: Test real Windows family edit and all frozen regression paths
+        shell: pwsh
+        run: |
+          $exe=Join-Path $env:ANANDA_PATCH_INSTALL_DIR 'Ananda Sangha Event Desk.exe'
+          $p=Start-Process -FilePath $exe -ArgumentList '--remote-debugging-port=9223' -PassThru
+          Start-Sleep -Seconds 5
+          if ($p.HasExited) { throw 'Installed Ananda did not launch' }
+          node scripts/verify-patch14-existing-family-desktop.js
+          if ($LASTEXITCODE -ne 0) { throw 'Existing family member save/add/edit test failed' }
+          node scripts/verify-patch13-student-volunteer-and-mobile-desktop.js
+          if ($LASTEXITCODE -ne 0) { throw 'Student Progress or mobile duplicate regression' }
+          node scripts/verify-patch12-register-under-desktop.js
+          if ($LASTEXITCODE -ne 0) { throw 'New Registration Family frozen form regression' }
+          node scripts/verify-prior-freezes-patch11-desktop.js
+          if ($LASTEXITCODE -ne 0) { throw 'Older Volunteer/Badge/Attendee freeze regression' }
+          node scripts/verify-volunteer-cross-event-desktop.js
+          if ($LASTEXITCODE -ne 0) { throw 'Cross-year volunteer regression' }
+          Write-Host 'PASS Patch14 packaged app and all previous data-integrity regression checks'
+      - name: Upload tested Windows patch and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-5.81.8-Existing-Family-Patch14
+          path: |
+            distpatch/Ananda-5.81.8-Family-Edit-Patch14.exe
+            frozen-patch14-hashes.json
+            patch14-existing-family-verified.png
+          if-no-files-found: warn
+      - name: Release only when all Windows checks pass
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-beta-5.81.8-family-edit-patch14
+          name: Ananda 5.81.8 Patch 14 — Existing Family Edit/Add
+          prerelease: true
+          files: distpatch/Ananda-5.81.8-Family-Edit-Patch14.exe
+          body: "Patch14 fixes edit/save and adding members to a selected existing family registration. Preserves each member's identity, check-in history, and all previously frozen screens. Windows regression tests must pass before release."
