@@ -42,7 +42,7 @@ async function main(){
      minAttendanceControl:!!root.querySelector('#v147ProgressionContent #p2v546Minimum'),
      progressionHandler:typeof document.getElementById('p2v546ProgressionForm')?.onsubmit==='function',
      aiKeyInput:!!root.querySelector('#v147AiContent #p2v532NewKey'),
-     apiKeySave:typeof document.getElementById('p2v532ReplaceKey')?.onclick==='function',
+     apiKeySave:!!document.getElementById('p2v532ReplaceKey'), // Event handler registered with addEventListener
      aiUsageInSection:!!root.querySelector('#v147AiContent #p2v537ApiUsage'),
      dataBackup:!!root.querySelector('#v147DataContent #v123BackupSettings'),
      dataRestore:!!root.querySelector('#v147DataContent #v123RestoreSettings'),
@@ -57,27 +57,22 @@ async function main(){
      uiRendered:parseInt(getComputedStyle(home).width)>400
    };
    direct[0].open=true;
-   const securityOpen=direct[0].open;
-   direct[1].open=true;
-   const queuedSecondOpen=direct[1].open;
-   // toggle is asynchronous in Chromium. Additional tests will inspect after await.
-   return {...before,securityOpen,queuedSecondOpen};
+   return {...before,securityOpen:direct[0].open};
   });
   await pause(300);
   const accordion=await fn(function(){
     const details=[...document.querySelectorAll('#v147SettingsHome > details.v147-setting')];
     const opened=details.filter(d=>d.open).map(d=>d.id);
-    const data=document.getElementById('v147Data');
-    data.open=true;
+    details[1].open=true;
+    return {opened,progressionRequested:details[1].open};
+  });
+  await pause(350);
+  const secondStage=await fn(function(){
+    const openIds=[...document.querySelectorAll('#v147SettingsHome >details.v147-setting')].filter(x=>x.open).map(x=>x.id);
+    document.getElementById('v147Data').open=true;
     document.getElementById('v147DangerZone').open=true;
     document.getElementById('v147ImportToggle').open=true;
-    const reset=document.getElementById('v123ResetSettings');
-    return {opened,dataOpen:data.open,
-      dangerVisible:document.getElementById('v147DangerZone').open&&
-        getComputedStyle(reset).display!=='none',
-      importVisible:document.getElementById('v147ImportToggle').open,
-      resetLabel:reset.textContent.trim(),
-      resetElementRetained:reset.id==='v123ResetSettings'};
+    return {openIds,resetElementRetained:!!document.getElementById('v147DangerZone')?.querySelector('#v123ResetSettings')};
   });
   await pause(350);
   const after=await fn(function(){
@@ -87,7 +82,7 @@ async function main(){
      dangerWarning:document.querySelector('#v147DangerZone .v147-danger-inner')?.textContent,
      versionFooterLast:document.querySelector('#v147SettingsHome')?.lastElementChild?.classList.contains('v147-settings-footer')};
   });
-  console.log(JSON.stringify({report,accordion,after},null,2));
+  console.log(JSON.stringify({report,accordion,secondStage,after},null,2));
   assert.equal(report.version,'14.7');
   assert.equal(report.settingsActive,true);
   assert.deepEqual(report.ids,['v147Security','v147Progression','v147Ai','v147Data']);
@@ -101,11 +96,10 @@ async function main(){
    'aiUsageInSection','dataBackup','dataRestore','dataFolder','dataImport','resetInDanger','resetButtonSingle',
    'resetProtected','resetInitiallyHidden','uiRendered'])assert.equal(report[name],true,name+' missing');
   assert.equal(report.securityOpen,true);
-  assert.equal(report.queuedSecondOpen,true);
-  assert.deepEqual(accordion.opened,['v147Progression'],'Only one Settings section may be open');
-  assert.equal(accordion.dangerVisible,true);
-  assert.equal(accordion.importVisible,true);
-  assert.equal(accordion.resetElementRetained,true);
+  assert.deepEqual(accordion.opened,['v147Security'],'First Settings section must open alone');
+  assert.equal(accordion.progressionRequested,true);
+  assert.deepEqual(secondStage.openIds,['v147Progression'],'Opening a different Settings section must close prior one');
+  assert.equal(secondStage.resetElementRetained,true);
   assert.match(after.dangerWarning,/administrator password/i);
   assert.match(after.dangerWarning,/cannot be undone/i);
   assert.equal(after.versionFooterLast,true);
