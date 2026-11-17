@@ -162,5 +162,6 @@ async function main(){
  fs.writeFileSync('enrol-batch-audit/report.json',JSON.stringify(result,null,2));
  fs.writeFileSync('enrol-batch-audit/summary.md','# 24 Existing + 24 New Student Class Enrolments\n\n'+out.map(x=>'- '+x.status+' '+x.name+(x.status==='FAIL'?' '+JSON.stringify(x.result||x.error).slice(0,300):'')).join('\n'));
  console.log('FINAL_AUDIT '+JSON.stringify({tests:out.length,failed:result.failures.length,exceptions:exceptions.length,failures:result.failures.slice(0,8)}));
+ if(result.failures.length||exceptions.length)process.exitCode=1;
 }
 main().catch(e=>{console.error(e.stack||String(e));process.exitCode=1});
