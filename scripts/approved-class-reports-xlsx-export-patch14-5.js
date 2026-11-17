@@ -90,6 +90,16 @@
               /^PENDING$/.test(types.status)?7:8;
           }
         }
+        // Table header: navy medium boundary. Body: dark grid with medium
+        // left/right/bottom outside edges; data and payment values unchanged.
+        if(rowNumber===3)style+=13; // second style block, borderId=2
+        else if(rowNumber>=4){
+          const last=rowNumber===items.length+3;
+          const firstCol=i===0,lastCol=i===cols-1;
+          const borderId=last?(firstCol?6:lastCol?7:5):
+            firstCol?3:lastCol?4:1;
+          style+=(borderId-1)*13;
+        }
         cells.push(v145Cell(letter,rowNumber,val,style));
       }
       const height=rowNumber===1?29:rowNumber===2?25:rowNumber===3?27:22;
@@ -140,19 +150,45 @@
     const fill=color=>'<fill><patternFill patternType="solid"><fgColor rgb="FF'+color+'"/><bgColor indexed="64"/></patternFill></fill>';
     const fills=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>',
       fill('12376F'),fill('E9F0F8'),fill('F4F7FB'),fill('FFFFFF'),fill('DEF2E5'),fill('FFF1C6'),fill('EEF1F4')];
-    const b='<border><left/><right/><top/><bottom style="hair"><color rgb="FFE2E9F1"/></bottom/><diagonal/></border>';
-    const xf=(f,fl,nf=0,align='left')=>'<xf numFmtId="'+nf+'" fontId="'+f+'" fillId="'+fl+'" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"'+(nf?' applyNumberFormat="1"':'')+'><alignment horizontal="'+align+'" vertical="center"/></xf>';
-    const styles=[
-      xf(0,5),xf(1,2),xf(2,3),xf(3,2),xf(4,4),xf(4,5),
-      xf(5,6),xf(6,7),xf(7,8),xf(4,4,0,'right'),xf(4,5,0,'right'),
-      xf(4,4,164,'right'),xf(4,5,164,'right')
+    // Patch 14.6: valid Office Open XML, with dark column/row gridlines and
+    // a stronger outer border on the table. The old "</bottom/>" was invalid
+    // XML and caused Excel to discard EVERY fill/font/border style.
+    const edge=(side,weight='thin',color='FF52657A')=>
+      '<'+side+' style="'+weight+'"><color rgb="'+color+'"/></'+side+'>';
+    const border=(left,right,top,bottom)=>
+      '<border>'+edge('left',left)+edge('right',right)+
+      edge('top',top)+edge('bottom',bottom)+'<diagonal/></border>';
+    const borders=[
+      '<border><left/><right/><top/><bottom/><diagonal/></border>',
+      border('thin','thin','thin','thin'),                    // 1 body grid
+      border('medium','medium','medium','medium'),            // 2 navy headers
+      border('medium','thin','thin','thin'),                 // 3 left outer edge
+      border('thin','medium','thin','thin'),                 // 4 right outer edge
+      border('thin','thin','thin','medium'),                 // 5 bottom edge
+      border('medium','thin','thin','medium'),               // 6 bottom-left
+      border('thin','medium','thin','medium')                // 7 bottom-right
     ];
+    const xf=(f,fl,nf=0,align='left',borderId=1)=>
+      '<xf numFmtId="'+nf+'" fontId="'+f+'" fillId="'+fl+'" borderId="'+borderId+
+      '" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"'+
+      (nf?' applyNumberFormat="1"':'')+
+      '><alignment horizontal="'+align+'" vertical="center"/></xf>';
+    const base=[
+      [0,5,0,'left'],[1,2,0,'left'],[2,3,0,'left'],[3,2,0,'left'],
+      [4,4,0,'left'],[4,5,0,'left'],[5,6,0,'left'],[6,7,0,'left'],
+      [7,8,0,'left'],[4,4,0,'right'],[4,5,0,'right'],
+      [4,4,164,'right'],[4,5,164,'right']
+    ];
+    // Each 13-style block corresponds to border IDs 1..7.
+    const styles=[];
+    for(let borderId=1;borderId<=7;borderId++)
+      for(const def of base)styles.push(xf(def[0],def[1],def[2],def[3],borderId));
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
       '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
       '<numFmts count="1"><numFmt numFmtId="164" formatCode="₹#,##0"/></numFmts>'+
       '<fonts count="'+fonts.length+'">'+fonts.join('')+'</fonts>'+
       '<fills count="'+fills.length+'">'+fills.join('')+'</fills>'+
-      '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>'+b+'</borders>'+
+      '<borders count="'+borders.length+'">'+borders.join('')+'</borders>'+
       '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'+
       '<cellXfs count="'+styles.length+'">'+styles.join('')+'</cellXfs>'+
       '</styleSheet>';
