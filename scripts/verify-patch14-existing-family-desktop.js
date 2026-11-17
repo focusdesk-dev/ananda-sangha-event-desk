@@ -288,6 +288,72 @@ async function main(){
    document.querySelector('#v6EventTabs [data-v6-tab="attendees"]')?.click();
    document.querySelector('#v56GroupPlanning .v88-group-row[data-id="qaP14-hriday"]')?.click();
   });
+
+  // PATCH14.1 regression: saved family reopened with a working top action.
+  const savedFamilyAdd=await run(function(){
+   const header=document.querySelector('#v56GroupPlanning .v88-group-row[data-id="qaP14-hriday"]');
+   const wrapper=header?.closest('.v88-card-wrap');
+   const add=header?.querySelector('.v14-add-member');
+   const saveRegister=[...(header?.querySelectorAll('button')||[])].find(b=>
+     /SAVE\s*&\s*REGISTER/i.test(b.textContent||''));
+   const beforeCounts=[...(header?.querySelectorAll('.v56-count strong')||[])].map(el=>Number(el.textContent));
+   const before=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
+   const group=before.familyGroups.find(g=>g.id==='qaP14-hriday');
+   const oldLength=group?.members.length,oldCount=before.familyGroups.filter(g=>g.eventId==='qaP14-event').length;
+   if(!add)return {hasAdd:false,headerText:header?.textContent};
+   const addBeforeSave=saveRegister?add.nextElementSibling===saveRegister:true;
+   add.click();
+   const editor=wrapper?.querySelector('.v14-add-new');
+   const first=wrapper?.querySelector('.v88-group-details .v14-member-line')===editor;
+   const draftCounts=[...(document.querySelector('#v56GroupPlanning .v88-group-row[data-id="qaP14-hriday"]')?.querySelectorAll('.v56-count strong')||[])].map(el=>Number(el.textContent));
+   if(editor){
+     editor.querySelector('.v14-name').value='ANOTHER SAVED FAMILY GUEST';
+     editor.querySelector('.v14-relationship').value='Aunt';
+     editor.querySelector('.v14-mobile').value='6666611111';
+     editor.querySelector('.v14-member-buttons button').click();
+   }
+   const saved=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
+   const updated=saved.familyGroups.find(g=>g.id==='qaP14-hriday');
+   const latest=document.querySelector('#v56GroupPlanning .v88-group-row[data-id="qaP14-hriday"]');
+   return {hasAdd:true,addBeforeSave,first,draftVisible:!!editor,
+     beforeCounts,draftCounts,beforeLength:oldLength,afterLength:updated?.members.length,
+     newMember:updated?.members.find(m=>m.name==='ANOTHER SAVED FAMILY GUEST'),
+     groupCountBefore:oldCount,groupCountAfter:saved.familyGroups.filter(g=>g.eventId==='qaP14-event').length,
+     addStillThere:!!latest?.querySelector('.v14-add-member')};
+  });
+  assert.equal(savedFamilyAdd.hasAdd,true);
+  assert.equal(savedFamilyAdd.addBeforeSave,true,'ADD MEMBER must sit beside SAVE & REGISTER');
+  assert.equal(savedFamilyAdd.first,true,'New member row must be first');
+  assert.equal(savedFamilyAdd.draftVisible,true);
+  assert.deepEqual(savedFamilyAdd.draftCounts,savedFamilyAdd.beforeCounts,'Counts must not change on draft');
+  assert.equal(savedFamilyAdd.afterLength,savedFamilyAdd.beforeLength+1);
+  assert.equal(savedFamilyAdd.newMember?.relationship,'Aunt');
+  assert.equal(savedFamilyAdd.newMember?.mobile,'6666611111');
+  assert.deepEqual(savedFamilyAdd.newMember?.checkins,[]);
+  assert.equal(savedFamilyAdd.groupCountAfter,savedFamilyAdd.groupCountBefore);
+  assert.equal(savedFamilyAdd.addStillThere,true);
+  pass('Existing saved family: top ADD MEMBER visible; editor first; same group; draft does not alter counters');
+
+  await cmd('Page.reload',{ignoreCache:true});await wait(1000);
+  const reopenedAdd=await run(function(){
+    document.querySelector('aside .nav-btn[data-page="events"]')?.click();
+    document.querySelector('#eventList .v6-open-event[data-id="qaP14-event"]')?.click();
+    document.querySelector('#v6EventTabs [data-v6-tab="attendees"]')?.click();
+    const header=document.querySelector('#v56GroupPlanning .v88-group-row[data-id="qaP14-hriday"]');
+    header?.click();
+    const group=JSON.parse(localStorage.getItem('annualEventRegistration.v1')).familyGroups.find(g=>g.id==='qaP14-hriday');
+    const add=document.querySelector('#v56GroupPlanning .v88-group-row[data-id="qaP14-hriday"] .v14-add-member');
+    add?.click();
+    return {count:group.members.length,guest:group.members.some(m=>m.name==='ANOTHER SAVED FAMILY GUEST'),
+      addVisible:!!add,
+      editor:!!document.querySelector('#v56GroupPlanning .v88-group-row[data-id="qaP14-hriday"]')?.closest('.v88-card-wrap')?.querySelector('.v14-add-new')};
+  });
+  assert.equal(reopenedAdd.count,6);
+  assert.equal(reopenedAdd.guest,true);
+  assert.equal(reopenedAdd.addVisible,true);
+  assert.equal(reopenedAdd.editor,true);
+  pass('After second reload ADD MEMBER remains available and saved family member remains in same registration');
+
   const img=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
   fs.writeFileSync('patch14-existing-family-verified.png',Buffer.from(img.data,'base64'));
   console.log('PATCH14 '+count+' REAL WINDOWS FAMILY TESTS PASSED');
