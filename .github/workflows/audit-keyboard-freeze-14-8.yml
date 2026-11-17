@@ -61,6 +61,9 @@ jobs:
           $p=Start-Process -FilePath $exe -ArgumentList '--remote-debugging-port=9223' -PassThru
           Start-Sleep -Seconds 7
           if($p.HasExited){throw 'Windows application closed/crashed'}
+          $env:ANANDA_APP_PID=[string]$p.Id
+          node scripts/test-first-click-enrol-patch14-8-windows.js *> keyboard-audit/after-enrol-success.log
+          Write-Host 'ENROL_SUCCESS_TEST_EXIT' $LASTEXITCODE
           node scripts/audit-keyboard-regression-14-8-windows.js *> keyboard-audit/main-test.log
           $result=$LASTEXITCODE
           Get-Content keyboard-audit/main-test.log | Select-Object -Last 35 | ForEach-Object { Write-Host $_ }
@@ -75,7 +78,12 @@ jobs:
           Write-Host 'FOCUS_REPLACEMENT_TEST_EXIT' $focusCode
           node scripts/verify-enrol-shortcut.js *> keyboard-audit/enrol-shortcut-test.log
           Write-Host 'ENROL_SHORTCUT_TEST_EXIT' $LASTEXITCODE
-          # Diagnostic, not release, so retain every failure as evidence.
+          node scripts/audit-native-typing-14-8-windows.js *> keyboard-audit/native-Windows-keyboard-test.log
+          $nativeCode=$LASTEXITCODE
+          Get-Content keyboard-audit/native-Windows-keyboard-test.log | Select-Object -Last 15 | ForEach-Object {Write-Host $_}
+          Write-Host 'NATIVE_WINDOWS_KEYBOARD_EXIT' $nativeCode
+          # Diagnostic, not release; native GUI may be unavailable in a hosted runner.
+          # Retain all failure details and avoid claiming any failed test passed.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
