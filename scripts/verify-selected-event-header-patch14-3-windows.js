@@ -67,7 +67,9 @@ async function main(){
       headerBeforeTabs:document.getElementById('v143EventContext')?.nextElementSibling?.id==='v6EventTabs',
       headingAfterTabs:document.getElementById('v6EventTabs')?.nextElementSibling?.id==='v143EventSection',
       visible:getComputedStyle(document.getElementById('v143EventContext')).display!=='none',
-      oldTitleHidden:getComputedStyle(document.getElementById('pageTitle')).display==='none'
+      oldTitleHidden:getComputedStyle(document.getElementById('pageTitle')).display==='none',
+      backAtLeft:Math.abs(back.getBoundingClientRect().left-document.getElementById('v143EventContext').getBoundingClientRect().left)<16,
+      extraTopbarDivider:getComputedStyle(document.querySelector('.topbar')).borderBottomWidth!=='0px'
     }};
    document.querySelector('#v6EventTabs [data-v6-tab="volunteers"]')?.click();
    result.volunteerPage=document.querySelector('.page.active')?.id;
@@ -106,6 +108,8 @@ async function main(){
   assert.equal(report.context.headingAfterTabs,true,'EVENT NAME – ACTIVE TAB heading must be immediately below buttons');
   assert.equal(report.context.visible,true);
   assert.equal(report.context.oldTitleHidden,true,'Avoid duplicate headings from the old topbar');
+  assert.equal(report.context.backAtLeft,true,'Back to Events must align at upper left with selected event name');
+  assert.equal(report.context.extraTopbarDivider,false,'Remove redundant top divider above event header');
   assert.equal(report.volunteerHeading,'QA FROZEN ROUTE 2027 – VOLUNTEERS');
   assert.equal(report.attendeeHeading,'QA FROZEN ROUTE 2027 – ATTENDEES');
   assert.equal(report.badgeHeading,'QA FROZEN ROUTE 2027 – BADGE & SCARF');
