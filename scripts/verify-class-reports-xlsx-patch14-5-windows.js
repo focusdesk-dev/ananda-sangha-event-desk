@@ -70,7 +70,7 @@ async function main(){
    return d.side;
   }
   const originalSide=await reports();
-  await run("(()=>{window.__qaXlsx=null;const old=URL.createObjectURL.bind(URL);URL.createObjectURL=blob=>{window.__qaXlsx=blob;return old(blob)};return true})()");
+  await run("(()=>{window.__qaXlsx=null;window.__qaErr=[];window.addEventListener('error',e=>window.__qaErr.push(e.message));window.addEventListener('unhandledrejection',e=>window.__qaErr.push(String(e.reason)));const old=URL.createObjectURL.bind(URL);URL.createObjectURL=blob=>{window.__qaXlsx=blob;return old(blob)};return true})()");
   async function exportMenu(kind){
    const menu=await fn(function(){
      document.getElementById('v574Export').click();
@@ -88,6 +88,10 @@ async function main(){
    }
    for(let i=0;i<100;i++){if(await run("!!window.__qaXlsx"))break;await sleep(140)}
    const base64=await run("window.__qaXlsx?window.__qaXlsx.arrayBuffer().then(b=>{let v='';for(const c of new Uint8Array(b))v+=String.fromCharCode(c);return btoa(v)}):''");
+   if(!base64||base64.length<=1000){
+    const dbg=await run("(()=>({err:window.__qaErr,security:document.getElementById('v51SecurityError')?.textContent,modal:document.getElementById('v51SecurityModal')?.className,toast:document.querySelector('#toast')?.textContent,menu:document.getElementById('v145ClassExportMenu')?.textContent,classPage:document.querySelector('.page.active')?.id,table:document.getElementById('v574Count')?.textContent}))()");
+    console.log('XLSX EXPORT DEBUG',JSON.stringify(dbg));
+   }
    assert(base64&&base64.length>1000,'No XLSX exported after choosing menu option');
    await run('window.__qaXlsx=null');
    return unzip(Buffer.from(base64,'base64'));
