@@ -4,7 +4,10 @@
   window.anandaClassEnrolIdentityVersion='14.9';
   // Called by the authoritative CAPTURE phase submit guard. That older
   // guard calls a stored base handler directly and otherwise bypasses .onsubmit.
-  function v149ProtectedEnrolSubmit(form,event,original){
+  // Resolve the actual mobile BEFORE the older progression/Acharya checks.
+  // The capture-phase listener evaluates p2v54StudentFromEnrollForm(), so its
+  // hidden selected ID MUST already point to the correct person.
+  function v149ResolveEnrolIdentity(event){
       const batch=p2ActiveBatch();
       const name=$('p2cEnrollName')?.value.trim()||'';
       const phone=normMobile($('p2cEnrollMobile')?.value||'');
@@ -18,7 +21,7 @@
         event.preventDefault();
         toast('This mobile belongs to '+exact.name+' in Student Master. Select that record or correct the number.');
         $('p2cEnrollMobile')?.focus();
-        return;
+        return false;
       }
       // A selected search suggestion may be obsolete after the operator edits
       // the mobile/name fields. Resolve it from the ACTUAL entered mobile.
@@ -38,7 +41,7 @@
         event.preventDefault();
         toast('The selected record does not match the entered mobile number.');
         $('p2cEnrollMobile')?.focus();
-        return;
+        return false;
       }
 
       // Validate payment BEFORE creating a new Student Master record. Previously
@@ -55,6 +58,10 @@
         }
       }
 
+      return true;
+  }
+  function v149ProtectedEnrolSubmit(form,event,original){
+      if(!v149ResolveEnrolIdentity(event))return;
       const beforeStudents=new Set(state.students.map(s=>s.id));
       const beforeEnrolments=new Set(state.classEnrollments.map(e=>e.id));
       try{
