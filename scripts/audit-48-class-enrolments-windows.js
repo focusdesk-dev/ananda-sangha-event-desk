@@ -83,6 +83,48 @@ async function main(){
     out.push({name:'SUMMARY '+mode,status:failures?'FAIL':'PASS',result:{...summary,failures}});
     console.log('SUMMARY_MODE '+mode+' '+JSON.stringify({...summary,failures}));
   }
+
+  // Reproduce screenshot: two same-name Master persons; one already enrolled.
+  // UI chooses first record, operator edits mobile to the second person.
+  const stale=structuredClone(base.state);
+  const b={id:'qa-stale-batch',courseId:base.courseId,name:'QA SAME NAME',level:'Level 1',
+     start:'2026-11-18',end:'2026-12-18',year:2026,courseFee:1500,
+     scheduleType:'weekly',usualDay:3,status:'In Progress',sessionDates:['2026-11-18']};
+  stale.classBatches=[b];stale.activeClassBatchId=b.id;
+  stale.students=[
+    {id:'qa-m-1',name:'M',mobile:'7100000101'},
+    {id:'qa-m-2',name:'M',mobile:'7100000102'}];
+  stale.classEnrollments=[{id:'qa-m-1-en',studentId:'qa-m-1',batchId:b.id,courseId:b.courseId,
+    level:'Level 1',enrolledAt:'2026-11-18',outcome:'Enrolled',attendance:{}}];
+  await reset(stale);
+  const result=await fn(function(){
+    const read=()=>JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
+    document.querySelector('aside .nav-btn[data-page="classes"]')?.click();
+    document.getElementById('p2ClassBatches')?.click();
+    document.querySelector('#p2ClassList .p2v510-class-year')?.click();
+    document.querySelector('#p2ClassList .p2v56-chat-class[data-id="qa-stale-batch"]')?.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));
+    document.getElementById('p2EnrollStudent').click();
+    const search=document.getElementById('p2EnrollStudentSearch');
+    search.value='M';search.dispatchEvent(new Event('input',{bubbles:true}));
+    const first=[...document.querySelectorAll('#p2EnrollSuggestions .p2c-enrol-pick')].find(x=>x.textContent.includes('7100000101'));
+    if(!first)throw Error('Existing M suggestion 1 is missing');
+    first.click();
+    const name=document.getElementById('p2cEnrollName'),mobile=document.getElementById('p2cEnrollMobile');
+    name.value='M';mobile.value='7100000102';mobile.dispatchEvent(new Event('input',{bubbles:true}));
+    const selected=document.getElementById('p2EnrollStudentId').value;
+    document.getElementById('p2EnrollForm').requestSubmit();
+    const state=read();
+    return{selected,typedMobile:mobile.value,initialEnrolments:1,
+      finalEnrolments:state.classEnrollments.filter(x=>x.batchId==='qa-stale-batch').length,
+      secondPersonEnrolled:state.classEnrollments.some(x=>x.batchId==='qa-stale-batch'&&x.studentId==='qa-m-2'),
+      firstPersonUnchanged:state.students.find(x=>x.id==='qa-m-1')?.mobile==='7100000101',
+      secondPersonUnchanged:state.students.find(x=>x.id==='qa-m-2')?.mobile==='7100000102',
+      message:document.getElementById('toast')?.textContent||'',
+      success:!!document.getElementById('v148EnrolSuccessModal')};
+  });
+  const doesWrongThing=!result.secondPersonEnrolled&&result.finalEnrolments===1&&result.message.includes('already enrolled');
+  out.push({name:'Stale same-name selected identity causes FALSE ALREADY ENROLLED',status:doesWrongThing?'FAIL':'PASS',result});
+  console.log('STALE_SELECTION_REPRO '+JSON.stringify({doesWrongThing,...result}));
  }finally{
   try{await js(original===null?'localStorage.removeItem("annualEventRegistration.v1")':'localStorage.setItem("annualEventRegistration.v1",'+JSON.stringify(original)+')');await call('Page.reload',{ignoreCache:true})}catch(e){out.push({name:'restore original',status:'FAIL',error:String(e)})}
   ws.close()
