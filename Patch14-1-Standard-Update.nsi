@@ -3,6 +3,9 @@
 ; Does not include/repackage the antivirus-flagged Electron executable.
 Unicode True
 !include "MUI2.nsh"
+!include "StrFunc.nsh"
+${StrStr}
+${StrCase}
 
 Name "Ananda Sangha Event Desk - Patch 14.1"
 OutFile "dist-patch14-1/Ananda-Patch14.1-ADD-MEMBER-Installer.exe"
@@ -53,17 +56,22 @@ Section "Install the approved Patch 14.1 code" SecPatch141
     Abort "Existing Patch 14.1 backup; update not performed"
   backupNotPresent:
 
-  ; Refuse unknown original code, not a generic replacement tool.
-  ; Verified original released Patch13, released data-only Patch14,
-  ; and already-updated Patch14.1 are the only supported current versions.
+  ; Refuse unknown previous code. certutil is a standard Windows utility.
   DetailPrint "Verifying installed Ananda code version..."
-  nsExec::ExecToStack 'powershell.exe -NoProfile -NonInteractive -Command "$$h=(Get-FileHash -LiteralPath ''$INSTDIR\resources\app.asar'' -Algorithm SHA256).Hash; if(@(''70F3424BEBCC9434D9D54B678EC69677A50C21A30BD7A0FFDC69EB4EE11BFC7F'',''F9D00B6757F83107E09435602AF4C54C2E8DAE4E40EF87B1164109408784DFAD'') -contains $$h){exit 0}else{exit 13}"'
+  nsExec::ExecToStack 'certutil.exe -hashfile "$INSTDIR\resources\app.asar" SHA256'
   Pop $0
   Pop $1
-  StrCmp "$0" "0" baseApproved
-    DetailPrint "Unsupported or already updated app.asar."
-    MessageBox MB_ICONSTOP "This installer needs Patch 13 or the previous Patch 14 code update. No files have changed. Do not uninstall Ananda." /SD IDOK
-    Abort "Unsupported existing app version"
+  StrCmp "$0" "0" readOldHash unsupportedBase
+  readOldHash:
+    ${StrCase} $1 "$1" "L"
+    ${StrStr} $2 "$1" "70f3424bebcc9434d9d54b678ec69677a50c21a30bd7a0ffdc69eb4ee11bfc7f"
+    StrCmp "$2" "" tryPatch14 baseApproved
+  tryPatch14:
+    ${StrStr} $2 "$1" "f9d00b6757f83107e09435602af4c54c2e8dae4e40ef87b1164109408784dfad"
+    StrCmp "$2" "" unsupportedBase baseApproved
+  unsupportedBase:
+    MessageBox MB_ICONSTOP "The existing Ananda version is not Patch 13 or the previous Patch 14 update. No files were changed." /SD IDOK
+    Abort "Unsupported existing Ananda code"
   baseApproved:
 
   ; Rename original into backup in the same directory so Windows can
@@ -86,11 +94,15 @@ Section "Install the approved Patch 14.1 code" SecPatch141
     Abort "Writing application update failed"
   verifyNew:
 
-  ; Verify that the actual installed archive equals the approved Patch14.1.
-  nsExec::ExecToStack 'powershell.exe -NoProfile -NonInteractive -Command "$$h=(Get-FileHash -LiteralPath ''$INSTDIR\resources\app.asar'' -Algorithm SHA256).Hash; if($$h -eq ''24F788CED0E3616EDAA52A1A6566BA0B58CAD6555CE34D09A00087E525E1A4EC''){exit 0}else{exit 17}"'
+  ; Verify final installed app archive matches the approved released update.
+  nsExec::ExecToStack 'certutil.exe -hashfile "$INSTDIR\resources\app.asar" SHA256'
   Pop $0
   Pop $1
-  StrCmp "$0" "0" success rollback
+  StrCmp "$0" "0" verifyHash rollback
+  verifyHash:
+    ${StrCase} $1 "$1" "L"
+    ${StrStr} $2 "$1" "24f788ced0e3616edaa52a1a6566ba0b58cad6555ce34d09a00087e525e1a4ec"
+    StrCmp "$2" "" rollback success
   rollback:
     Delete "$INSTDIR\resources\app.asar"
     Rename "$INSTDIR\resources\app.asar.before-patch14-1" "$INSTDIR\resources\app.asar"
