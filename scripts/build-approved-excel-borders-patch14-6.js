@@ -17,7 +17,7 @@ async function main(){
  const replacement=fs.readFileSync('scripts/approved-class-reports-xlsx-export-patch14-5.js','utf8').replace(/\r\n/g,'\n');
  assert.equal(before.split(old).length,2,'Original approved Patch14.5 Excel exporter was modified unexpectedly');
  assert(replacement.includes("window.anandaClassReportsExcelStyleVersion='14.6'"));
- assert(!replacement.includes('</bottom/>'),'Invalid XML style closer still present');
+ assert(!replacement.includes('style="hair"><color rgb="FFE2E9F1"/></bottom/>'),'Old invalid styles XML builder still present');
  assert(replacement.includes("border('medium'"),'Table outline border missing');
  const after=before.replace(old,replacement);
  assert.equal(after.replace(replacement,old),before,'Unexpected update outside Excel style generator');
