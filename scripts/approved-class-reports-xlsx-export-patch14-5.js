@@ -2,6 +2,7 @@
   // No new data store, no payment mutation, and no change to frozen Classes UI.
   // Generates the compact 3-row-header, A4 landscape XLSX from LIVE class data.
   window.anandaClassReportsExportVersion='14.5';
+  window.anandaClassReportsExcelStyleVersion='14.6';
 
   function v145Money(raw){
     if(raw===null||raw===undefined||String(raw).trim()==='')return null;
