@@ -68,10 +68,9 @@ jobs:
             'scripts/verify-patch14-existing-family-desktop.js',
             'scripts/verify-patch13-student-volunteer-and-mobile-desktop.js',
             'scripts/verify-patch12-register-under-desktop.js',
-            'scripts/verify-volunteer-cross-event-desktop.js',
-            'scripts/verify-three-approved-patch10-desktop.js'
+            'scripts/verify-volunteer-cross-event-desktop.js'
           )
-          foreach($test in $tests){
+          # Patch10 submission test is superseded by the Patch12 Register Under form:\n          # it submits an obsolete hidden #v36RegistrationForm, not v12RegisterOnly/v12RegisterSelected.\n          # Current Patch12 workflow covers student/volunteer family save and counts.\n          foreach($test in $tests){
             Write-Host "RUNNING_REGR_TEST: $test"
             node $test
             if($LASTEXITCODE -ne 0){
