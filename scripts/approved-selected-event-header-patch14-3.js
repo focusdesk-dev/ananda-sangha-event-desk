@@ -44,7 +44,11 @@
   document.head.insertAdjacentHTML('beforeend','<style id="v143-event-context-style">'+
     '#v143EventContext[hidden],#v143EventSection[hidden]{display:none!important}'+
     'body.v143-event-context-active .topbar #pageTitle{display:none!important}'+
-    'body.v143-event-context-active .topbar #backButton{margin-right:auto!important}'+
+    'body.v143-event-context-active .topbar{position:relative!important;'+
+      'border-bottom:0!important;box-shadow:none!important}'+
+    'body.v143-event-context-active .topbar:after{display:none!important}'+
+    'body.v143-event-context-active .topbar #backButton{position:absolute!important;'+
+      'left:0!important;top:50%!important;transform:translateY(-50%)!important;z-index:2}'+
     '#v143EventContext{display:flex;align-items:center;flex-wrap:wrap;gap:16px 28px;'+
       'padding:12px 0 16px;margin:0 0 16px;border-bottom:4px solid #f6b916;color:#092b60}'+
     '#v143EventName{font-size:32px;line-height:1.15;font-weight:800;letter-spacing:-.02em;'+
