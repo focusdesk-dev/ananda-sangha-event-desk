@@ -104,6 +104,12 @@ jobs:
             Write-Host "TEST_PASS $test"
           }
           Write-Host 'PASS Class Reports Excel and all previous tests'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ananda-patch14-5-real-exported-xlsx-for-style-audit
+          path: class-report-export-audit/*.xlsx
+          if-no-files-found: warn
       - name: Microsoft Defender scan of exact EXE
         shell: pwsh
         run: |
