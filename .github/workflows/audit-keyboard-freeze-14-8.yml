@@ -1,0 +1,84 @@
+name: Diagnose recurring keyboard freeze on installed Ananda 14.8
+on:
+  push:
+    branches: [keyboard-freeze-recurrence-audit-14-8-20261118]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  keyboard-audit:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install exactly released Patch14.8 in isolated Windows test environment
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path base,original,original/unpacked,prev146,prev147,prev148,keyboard-audit | Out-Null
+          gh release download ananda-5.81.8-patch14-1-add-member-update --repo focusdesk-dev/ananda-sangha-event-desk --pattern 'Ananda-Patch14.1-ADD-MEMBER-Update.zip' --dir original
+          if($LASTEXITCODE -ne 0){throw 'Approved base code missing'}
+          Expand-Archive original/Ananda-Patch14.1-ADD-MEMBER-Update.zip original/unpacked -Force
+          if((Get-FileHash original/unpacked/app.asar -Algorithm SHA256).Hash -ne '24F788CED0E3616EDAA52A1A6566BA0B58CAD6555CE34D09A00087E525E1A4EC'){throw 'Unexpected 14.1 base code'}
+          gh release download ananda-beta-5.81.8 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir base
+          if($LASTEXITCODE -ne 0){throw 'Base EXE missing'}
+          gh release download ananda-5.81.8-patch14-6-excel-formatting-dark-borders --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir prev146
+          if($LASTEXITCODE -ne 0){throw '14.6 missing'}
+          gh release download ananda-5.81.8-patch14-7-settings-redesign --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir prev147
+          if($LASTEXITCODE -ne 0){throw '14.7 missing'}
+          gh release download ananda-5.81.8-patch14-8-enrol-first-click-repair --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir prev148
+          if($LASTEXITCODE -ne 0){throw '14.8 missing'}
+          $installer=(Get-ChildItem base -Filter '*.exe'|Select-Object -First 1).FullName
+          $dest=Join-Path $env:RUNNER_TEMP 'AnandaKeyboardFreezeQA148'
+          $p=Start-Process -FilePath $installer -ArgumentList @('/S',('/D='+$dest)) -PassThru -Wait
+          if($p.ExitCode -ne 0){throw 'Base Windows installer failed'}
+          $archive=Join-Path $dest 'resources/app.asar'
+          Copy-Item original/unpacked/app.asar $archive -Force
+          foreach($folder in @('prev146','prev147','prev148')){
+            $exe=(Get-ChildItem $folder -Filter '*.exe' |Select-Object -First 1).FullName
+            $p=Start-Process -FilePath $exe -ArgumentList @('/S',('/D='+$dest)) -PassThru
+            if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw "Installer $folder timed out"}
+            if($p.ExitCode -ne 0){throw "Installer $folder exited $($p.ExitCode)"}
+          }
+          if((Get-FileHash $archive -Algorithm SHA256).Hash -ne '430135AD8FBD0263E584D4463DB0B1D87851B66D517E77B9111713B51B7A64AD'){throw 'Current 14.8 code hash differs'}
+          "ANANDA_INSTALL=$dest" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'PASS installed exact released Patch14.8'
+      - name: Check whether original Electron keyboard focus protection survived prior patches
+        shell: pwsh
+        run: |
+          npm install --no-save --no-fund --no-audit @electron/asar
+          if($LASTEXITCODE -ne 0){throw 'ASAR reader dependency failed'}
+          node -e "const a=require('@electron/asar'),fs=require('fs'),p=process.env.ANANDA_INSTALL+'/resources/app.asar',m=a.extractFile(p,'main.js').toString(),i=a.extractFile(p,'index.html').toString();const o={mainHasPatch51:m.includes('anandaRestoreRendererFocus'),mainHandlesMouseRecovery:m.includes('before-mouse-event'),rendererHasTypingRestore:i.includes('p2v565RestoreTyping'),hasCriticalFix:i.includes('anandaEnrolSaveAndConfirmVersion')};fs.writeFileSync('keyboard-audit/focus-protection.json',JSON.stringify(o,null,2));console.log('ACTUAL_INSTALLED_KEYBOARD_PROTECTION',JSON.stringify(o));"
+          if($LASTEXITCODE -ne 0){throw 'Could not inspect installed keyboard focus code'}
+      - name: Exercise actual Windows typed inputs after navigation and modal close
+        shell: pwsh
+        run: |
+          $exe=Join-Path $env:ANANDA_INSTALL 'Ananda Sangha Event Desk.exe'
+          $p=Start-Process -FilePath $exe -ArgumentList '--remote-debugging-port=9223' -PassThru
+          Start-Sleep -Seconds 7
+          if($p.HasExited){throw 'Windows application closed/crashed'}
+          node scripts/audit-keyboard-regression-14-8-windows.js *> keyboard-audit/main-test.log
+          $result=$LASTEXITCODE
+          Get-Content keyboard-audit/main-test.log | Select-Object -Last 35 | ForEach-Object { Write-Host $_ }
+          Write-Host 'AUDIT_EXIT_CODE' $result
+          node scripts/verify-beta569-typing-navigation.js *> keyboard-audit/previous-100-cycle-test.log
+          $oldCode=$LASTEXITCODE
+          Get-Content keyboard-audit/previous-100-cycle-test.log | Select-Object -Last 12 | ForEach-Object { Write-Host $_ }
+          Write-Host 'OLDER_KEYBOARD_TEST_EXIT' $oldCode
+          node scripts/verify-beta563-keyboard.js *> keyboard-audit/focus-replacement-test.log
+          $focusCode=$LASTEXITCODE
+          Get-Content keyboard-audit/focus-replacement-test.log | Select-Object -Last 12 | ForEach-Object { Write-Host $_ }
+          Write-Host 'FOCUS_REPLACEMENT_TEST_EXIT' $focusCode
+          node scripts/verify-enrol-shortcut.js *> keyboard-audit/enrol-shortcut-test.log
+          Write-Host 'ENROL_SHORTCUT_TEST_EXIT' $LASTEXITCODE
+          # Diagnostic, not release, so retain every failure as evidence.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ananda-14-8-keyboard-freeze-reproduction
+          path: keyboard-audit/**
+          if-no-files-found: warn
