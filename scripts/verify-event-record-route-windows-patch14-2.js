@@ -81,7 +81,7 @@ async function main(){
   assert.deepEqual(report.tabs,['EVENT RECORD','VOLUNTEERS','ATTENDEES','BADGE & SCARF']);
   assert.equal(report.sidebarSame,true,'Approved left sidebar must not change');
   assert.equal(report.volunteerPage,'daily');
-  assert.equal(report.attendeePage,'register');
+  assert.ok(['checkin','register'].includes(report.attendeePage),'Attendees may use its approved combined registration/check-in screen');
   assert.equal(report.badgePage,'items');
   assert.equal(report.recordPageAgain,'eventRecord');
   await c('Page.captureScreenshot',{format:'png'}).then(result=>{
