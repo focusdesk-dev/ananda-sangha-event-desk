@@ -65,7 +65,7 @@ async function main(){
   });
   await pause(300);
   const accordion=await fn(function(){
-    const details=[...document.querySelectorAll('#v147SettingsHome>:scope > details.v147-setting')];
+    const details=[...document.querySelectorAll('#v147SettingsHome > details.v147-setting')];
     const opened=details.filter(d=>d.open).map(d=>d.id);
     const data=document.getElementById('v147Data');
     data.open=true;
