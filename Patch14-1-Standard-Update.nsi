@@ -41,15 +41,15 @@ Section "Install the approved Patch 14.1 code" SecPatch141
   ; Fail closed if user selected a Documents folder, arbitrary directory,
   ; or anything other than the already installed application.
   IfFileExists "$INSTDIR\Ananda Sangha Event Desk.exe" foundExe 0
-    MessageBox MB_ICONSTOP "Ananda Sangha Event Desk.exe was not found in the selected folder. Use Browse to select your existing app folder."
+    MessageBox MB_ICONSTOP "Ananda Sangha Event Desk.exe was not found in the selected folder. Use Browse to select your existing app folder." /SD IDOK
     Abort "Existing Ananda installation not found"
   foundExe:
   IfFileExists "$INSTDIR\resources\app.asar" foundArchive 0
-    MessageBox MB_ICONSTOP "The existing app.asar is missing. The update did not change anything."
+    MessageBox MB_ICONSTOP "The existing app.asar is missing. The update did not change anything." /SD IDOK
     Abort "Existing app archive not found"
   foundArchive:
   IfFileExists "$INSTDIR\resources\app.asar.before-patch14-1" 0 backupNotPresent
-    MessageBox MB_ICONSTOP "A previous Patch 14.1 backup already exists. To protect it, the update has stopped without changing anything."
+    MessageBox MB_ICONSTOP "A previous Patch 14.1 backup already exists. To protect it, the update has stopped without changing anything." /SD IDOK
     Abort "Existing Patch 14.1 backup; update not performed"
   backupNotPresent:
 
@@ -62,7 +62,7 @@ Section "Install the approved Patch 14.1 code" SecPatch141
   Pop $1
   StrCmp "$0" "0" baseApproved
     DetailPrint "Unsupported or already updated app.asar."
-    MessageBox MB_ICONSTOP "This installer needs Patch 13 or the previous Patch 14 code update. No files have changed. Do not uninstall Ananda."
+    MessageBox MB_ICONSTOP "This installer needs Patch 13 or the previous Patch 14 code update. No files have changed. Do not uninstall Ananda." /SD IDOK
     Abort "Unsupported existing app version"
   baseApproved:
 
@@ -72,7 +72,7 @@ Section "Install the approved Patch 14.1 code" SecPatch141
   Rename "$INSTDIR\resources\app.asar" "$INSTDIR\resources\app.asar.before-patch14-1"
   IfErrors backupFailed backupSaved
   backupFailed:
-    MessageBox MB_ICONSTOP "Could not back up app.asar. Close Ananda completely and check file permissions. No files were changed."
+    MessageBox MB_ICONSTOP "Could not back up app.asar. Close Ananda completely and check file permissions. No files were changed." /SD IDOK
     Abort "Previous app archive backup failed"
   backupSaved:
 
@@ -82,7 +82,7 @@ Section "Install the approved Patch 14.1 code" SecPatch141
   IfErrors restoreNow verifyNew
   restoreNow:
     Rename "$INSTDIR\resources\app.asar.before-patch14-1" "$INSTDIR\resources\app.asar"
-    MessageBox MB_ICONSTOP "Cannot install Patch14.1. Attempted to restore the original app archive."
+    MessageBox MB_ICONSTOP "Cannot install Patch14.1. Attempted to restore the original app archive." /SD IDOK
     Abort "Writing application update failed"
   verifyNew:
 
@@ -94,7 +94,7 @@ Section "Install the approved Patch 14.1 code" SecPatch141
   rollback:
     Delete "$INSTDIR\resources\app.asar"
     Rename "$INSTDIR\resources\app.asar.before-patch14-1" "$INSTDIR\resources\app.asar"
-    MessageBox MB_ICONSTOP "Patch 14.1 did not verify. Attempted to restore the previous version."
+    MessageBox MB_ICONSTOP "Patch 14.1 did not verify. Attempted to restore the previous version." /SD IDOK
     Abort "Installed code integrity failed"
   success:
     DetailPrint "Patch 14.1 installed and SHA256 verified."
