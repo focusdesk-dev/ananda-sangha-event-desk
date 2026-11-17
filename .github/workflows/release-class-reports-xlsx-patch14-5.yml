@@ -1,0 +1,175 @@
+name: Ananda Patch14.5 - Approved Class Reports Excel Export
+on:
+  push:
+    branches: [patch14-5-approved-class-reports-xlsx-export-20261117]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  windows-verify:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      P144_SHA: 538EFEF637EBDE84FC569D370CD7DE2973F4D1E444A9084BA9F81F142304DEED
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Obtain released exact Patch14.1 source and Windows application
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path source,source/unpacked,build,payload,dist-patch14-5,windows-base | Out-Null
+          gh release download ananda-5.81.8-patch14-1-add-member-update --repo focusdesk-dev/ananda-sangha-event-desk --pattern 'Ananda-Patch14.1-ADD-MEMBER-Update.zip' --dir source
+          if($LASTEXITCODE -ne 0){throw 'Approved source release missing'}
+          Expand-Archive -LiteralPath source/Ananda-Patch14.1-ADD-MEMBER-Update.zip -DestinationPath source/unpacked -Force
+          if((Get-FileHash source/unpacked/app.asar -Algorithm SHA256).Hash -ne '24F788CED0E3616EDAA52A1A6566BA0B58CAD6555CE34D09A00087E525E1A4EC'){throw 'Wrong Patch14.1 source'}
+          gh release download ananda-beta-5.81.8 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir windows-base
+          if($LASTEXITCODE -ne 0){throw 'Base Windows setup missing'}
+      - name: Rebuild exact Patch14.4 baseline and only change existing Export List
+        shell: pwsh
+        run: |
+          npm install --no-save --no-audit --no-fund @electron/asar
+          if($LASTEXITCODE -ne 0){throw 'ASAR tool unavailable'}
+          node --check scripts/approved-class-reports-xlsx-export-patch14-5.js
+          if($LASTEXITCODE -ne 0){throw 'Export script invalid'}
+          node scripts/build-direct-view-single-divider-patch14-4.js source/unpacked/app.asar build/p144.asar build/p144-folder
+          if($LASTEXITCODE -ne 0){throw 'Patch14.4 reconstruction failed'}
+          if((Get-FileHash build/p144.asar -Algorithm SHA256).Hash -ne $env:P144_SHA){throw 'Wrong Patch14.4 baseline'}
+          node scripts/build-class-reports-xlsx-export-patch14-5.js build/p144.asar build/app.asar build/final-folder
+          if($LASTEXITCODE -ne 0){throw 'Class Reports export source validation failed'}
+          $new=(Get-FileHash build/app.asar -Algorithm SHA256).Hash
+          "NEW_SHA=$new" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'NEW_PATCH14_5_APP_SHA:' $new
+      - name: Build standard Patch14.5 Windows EXE installer
+        shell: pwsh
+        run: |
+          choco install nsis --yes --no-progress
+          if($LASTEXITCODE -ne 0){throw 'NSIS unavailable'}
+          Copy-Item build/app.asar payload/app.asar
+          $nsi=[IO.File]::ReadAllText((Join-Path $PWD 'Patch14-5-Standard-Update.nsi'))
+          if(!$nsi.Contains('__NEW_SHA__')){throw 'Missing hash placeholder'}
+          $nsi=$nsi.Replace('__NEW_SHA__',$env:NEW_SHA.ToLowerInvariant())
+          [IO.File]::WriteAllText((Join-Path $PWD 'Patch14-5-Generated.nsi'),$nsi)
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' '/V4' 'Patch14-5-Generated.nsi'
+          if($LASTEXITCODE -ne 0){throw 'Windows installer compilation failed'}
+          $exe='dist-patch14-5/Ananda-Patch14.5-CLASS-REPORTS-EXCEL-Installer.exe'
+          if(!(Test-Path $exe)){throw 'Windows EXE missing'}
+          Write-Host 'INSTALLER_HASH:' (Get-FileHash $exe -Algorithm SHA256).Hash
+      - name: Test in-place EXE upgrade from Patch14.4 and offline data integrity
+        shell: pwsh
+        run: |
+          $setup=(Get-ChildItem windows-base -Filter '*.exe'|Select-Object -First 1).FullName
+          $dest=Join-Path $env:RUNNER_TEMP 'AnandaPatch145Windows'
+          $p=Start-Process -FilePath $setup -ArgumentList @('/S',('/D='+$dest)) -PassThru -Wait
+          if($p.ExitCode -ne 0){throw 'Windows baseline installation failed'}
+          $archive=Join-Path $dest 'resources/app.asar'
+          Copy-Item build/p144.asar $archive -Force
+          if((Get-FileHash $archive -Algorithm SHA256).Hash -ne $env:P144_SHA){throw 'Baseline Patch14.4 not installed'}
+          $data=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data'
+          New-Item -ItemType Directory -Force -Path $data | Out-Null
+          [IO.File]::WriteAllText((Join-Path $data 'patch14-5-data-sentinel.txt'),'UNCHANGED NGO RECORDS')
+          $installer=(Resolve-Path 'dist-patch14-5/Ananda-Patch14.5-CLASS-REPORTS-EXCEL-Installer.exe').Path
+          $p=Start-Process -FilePath $installer -ArgumentList @('/S',('/D='+$dest)) -PassThru
+          if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue;throw 'EXE installer timed out'}
+          if($p.ExitCode -ne 0){throw 'Patch14.5 Windows upgrade failed'}
+          $old=Join-Path $dest 'resources/app.asar.before-patch14-5'
+          if(!(Test-Path $old)){throw 'Previous app backup missing'}
+          if((Get-FileHash $old -Algorithm SHA256).Hash -ne $env:P144_SHA){throw 'Prior application backup was modified'}
+          if((Get-FileHash $archive -Algorithm SHA256).Hash -ne $env:NEW_SHA){throw 'Installed application hash mismatch'}
+          if([IO.File]::ReadAllText((Join-Path $data 'patch14-5-data-sentinel.txt')) -ne 'UNCHANGED NGO RECORDS'){throw 'Saved data was modified'}
+          "ANANDA_INSTALL=$dest" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'PASS Windows EXE install, rollback backup and offline data preservation'
+      - name: Verify actual Excel workbook, live payment changes, and previous modules
+        shell: pwsh
+        run: |
+          $app=Join-Path $env:ANANDA_INSTALL 'Ananda Sangha Event Desk.exe'
+          $p=Start-Process -FilePath $app -ArgumentList '--remote-debugging-port=9223' -PassThru
+          Start-Sleep -Seconds 7
+          if($p.HasExited){throw 'Packaged Windows app could not launch'}
+          $tests=@(
+            'scripts/verify-class-reports-xlsx-patch14-5-windows.js',
+            'scripts/verify-direct-view-single-yellow-patch14-4-windows.js',
+            'scripts/verify-beta574-reports-desktop.js',
+            'scripts/verify-patch14-existing-family-desktop.js',
+            'scripts/verify-patch13-student-volunteer-and-mobile-desktop.js',
+            'scripts/verify-patch12-register-under-desktop.js',
+            'scripts/verify-volunteer-cross-event-desktop.js'
+          )
+          foreach($test in $tests){
+            Write-Host "TEST_START $test"
+            node $test
+            if($LASTEXITCODE -ne 0){throw "Regression test failed: $test"}
+            Write-Host "TEST_PASS $test"
+          }
+          Write-Host 'PASS Class Reports Excel and all previous tests'
+      - name: Microsoft Defender scan of exact EXE
+        shell: pwsh
+        run: |
+          $exe=(Resolve-Path 'dist-patch14-5/Ananda-Patch14.5-CLASS-REPORTS-EXCEL-Installer.exe').Path
+          $status=Get-MpComputerStatus -ErrorAction Stop
+          if(!$status.AntivirusEnabled){throw 'Defender unavailable'}
+          try{Update-MpSignature -ErrorAction Stop}catch{Write-Host 'Definition update unavailable' $_.Exception.Message}
+          Start-MpScan -ScanType CustomScan -ScanPath $exe -ErrorAction Stop
+          $hits=@(Get-MpThreatDetection -ErrorAction SilentlyContinue|Where-Object {($_.Resources -join ';') -match 'Ananda-Patch14.5-CLASS-REPORTS-EXCEL-Installer.exe'})
+          if($hits.Count -gt 0){throw 'Defender flagged installer'}
+          if(!(Test-Path $exe)){throw 'Installer quarantined'}
+          Write-Host 'PASS Defender scan'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ananda-patch14-5-windows-exe
+          path: dist-patch14-5/Ananda-Patch14.5-CLASS-REPORTS-EXCEL-Installer.exe
+          if-no-files-found: error
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ananda-patch14-5-source-change-report
+          path: patch14-5-build-report.json
+          if-no-files-found: error
+  clamav:
+    needs: windows-verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-5-windows-exe
+          path: audit
+      - name: Scan exact EXE with independent ClamAV definitions
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clamav clamav-freshclam
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam --verbose
+          clamscan --infected --allmatch --max-filesize=200M --max-scansize=500M audit/Ananda-Patch14.5-CLASS-REPORTS-EXCEL-Installer.exe
+          echo 'PASS independent ClamAV scanner'
+  release:
+    needs: [windows-verify,clamav]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-5-windows-exe
+          path: publish
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-5.81.8-patch14-5-class-reports-excel
+          name: Ananda Patch14.5 — Approved Class Reports Excel Export
+          prerelease: true
+          files: publish/Ananda-Patch14.5-CLASS-REPORTS-EXCEL-Installer.exe
+          body: |
+            A Windows EXE updater for verified existing Ananda Patch14.1 through 14.4 versions.
+            Updates only the CLASS REPORTS > EXPORT LIST handler.
+            Exports Registration Checklist / Payment List / Registration & Payment or all three as XLSX;
+            the previous Complete Class Report CSV remains available.
+            Excel uses the approved compact three-row navy header and A4 landscape page settings.
+            Course, Batch, Year and saved Batch START appear in one row. Records begin on row 4.
+            No Desk Check or extra colored row.
+            Uses saved class registration and CURRENT payment status each time exported.
+            No partial payments or values are invented; free class payment is N.A.
+            Mobile numbers retain leading zeroes. All matching records exported, not just visible page.
+            Previous app archive is backed up; the offline Documents data folder is untouched.
+            Executable is unsigned. Do not bypass a Windows Defender or SmartScreen block.
