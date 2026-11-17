@@ -99,8 +99,8 @@ async function main(){
   assert.equal(report.badgePage,'items');
   assert.equal(report.recordPageAgain,'eventRecord');
   assert.equal(report.context.name,'QA FROZEN ROUTE 2027','Selected event name must appear prominently above buttons');
-  assert.equal(report.context.date,'09 NOV 2027','Selected event day must remain visible in context');
-  assert.equal(report.context.status,'COMPLETED','Event status must appear with selected name');
+  assert.equal(report.context.date,'09 Nov 2027','Selected event day must remain visible in context');
+  assert.equal(report.context.status,'UPCOMING','Event status must match future event date');
   assert.equal(report.context.section,'QA FROZEN ROUTE 2027 – EVENT RECORD');
   assert.equal(report.context.headerBeforeTabs,true,'Event name/context must be immediately above the four navigation buttons');
   assert.equal(report.context.headingAfterTabs,true,'EVENT NAME – ACTIVE TAB heading must be immediately below buttons');
