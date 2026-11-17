@@ -1,0 +1,189 @@
+name: Ananda Patch14.7 Approved Four-Section Settings Windows Installer
+on:
+  push:
+    branches: [patch14-7-settings-four-sections-danger-zone-20261117]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  windows-verify:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BASE_SHA: C05341B5BA44A79AF29122EA39FF88E97F0D8D512BF17C1B303E6612194BD43A
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install actual approved Patch14.6 Windows application
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path base,source,source/unpacked,prior,build,payload,dist-patch14-7 | Out-Null
+          gh release download ananda-5.81.8-patch14-1-add-member-update --repo focusdesk-dev/ananda-sangha-event-desk --pattern 'Ananda-Patch14.1-ADD-MEMBER-Update.zip' --dir source
+          if($LASTEXITCODE -ne 0){throw 'Approved Patch14.1 source unavailable'}
+          Expand-Archive source/Ananda-Patch14.1-ADD-MEMBER-Update.zip source/unpacked -Force
+          if((Get-FileHash source/unpacked/app.asar -Algorithm SHA256).Hash -ne '24F788CED0E3616EDAA52A1A6566BA0B58CAD6555CE34D09A00087E525E1A4EC'){throw 'Unexpected original source'}
+          gh release download ananda-beta-5.81.8 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir base
+          if($LASTEXITCODE -ne 0){throw 'Base Windows application unavailable'}
+          gh release download ananda-5.81.8-patch14-6-excel-formatting-dark-borders --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir prior
+          if($LASTEXITCODE -ne 0){throw 'Existing Patch14.6 Windows updater unavailable'}
+          $setup=(Get-ChildItem base -Filter '*.exe' |Select-Object -First 1).FullName
+          $dir=Join-Path $env:RUNNER_TEMP 'AnandaPatch147VerifiedUpdater'
+          $p=Start-Process -FilePath $setup -ArgumentList @('/S',('/D='+$dir)) -PassThru -Wait
+          if($p.ExitCode -ne 0){throw 'Base Windows app installation failed'}
+          $archive=Join-Path $dir 'resources/app.asar'
+          Copy-Item source/unpacked/app.asar $archive -Force
+          $prior=(Get-ChildItem prior -Filter '*.exe'|Select-Object -First 1).FullName
+          $p=Start-Process -FilePath $prior -ArgumentList @('/S',('/D='+$dir)) -PassThru
+          if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw 'Prior Patch14.6 update timed out'}
+          if($p.ExitCode -ne 0){throw 'Prior Patch14.6 update failed'}
+          if((Get-FileHash $archive -Algorithm SHA256).Hash -ne $env:BASE_SHA){throw 'Not the previously validated Patch14.6 app'}
+          $data=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data'
+          New-Item -ItemType Directory -Force -Path $data | Out-Null
+          [IO.File]::WriteAllText((Join-Path $data 'patch14-7-data-sentinel.txt'),'ANANDA_RECORDS_UNCHANGED')
+          "ANANDA_INSTALL=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Build scoped four-section Settings code from exact Patch14.6
+        shell: pwsh
+        run: |
+          npm install --no-save --no-fund --no-audit @electron/asar
+          if($LASTEXITCODE -ne 0){throw 'ASAR packaging dependency failed'}
+          node --check scripts/approved-four-section-settings-patch14-7.js
+          if($LASTEXITCODE -ne 0){throw 'Settings source syntax invalid'}
+          node --check scripts/build-four-section-settings-patch14-7.js
+          if($LASTEXITCODE -ne 0){throw 'Build script syntax invalid'}
+          node scripts/build-four-section-settings-patch14-7.js (Join-Path $env:ANANDA_INSTALL 'resources/app.asar') build/app.asar build/unpacked
+          if($LASTEXITCODE -ne 0){throw 'Scoped Settings modification failed'}
+          $new=(Get-FileHash build/app.asar -Algorithm SHA256).Hash
+          if($new -ne '62873FC4FA13C02FBE3B350221E99C566AA12E96792B80AF62CACB3AFDE1999E'){throw 'Rebuilt app differs from Windows-tested Patch14.7'}
+          "NEW_SHA=$new" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'VERIFIED_PATCH14_7_SHA256:' $new
+      - name: Compile real Windows EXE installer with SHA guards and rollback
+        shell: pwsh
+        run: |
+          choco install nsis --yes --no-progress
+          if($LASTEXITCODE -ne 0){throw 'NSIS installer compiler failed'}
+          Copy-Item build/app.asar payload/app.asar -Force
+          $nsi=[IO.File]::ReadAllText((Join-Path $PWD 'Patch14-7-Standard-Update.nsi'))
+          if(!$nsi.Contains('__NEW_SHA__')){throw 'No installer SHA placeholder'}
+          $nsi=$nsi.Replace('__NEW_SHA__',$env:NEW_SHA.ToLowerInvariant())
+          [IO.File]::WriteAllText((Join-Path $PWD 'Patch14-7-Generated.nsi'),$nsi)
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' '/V4' 'Patch14-7-Generated.nsi'
+          if($LASTEXITCODE -ne 0){throw 'Windows EXE build failed'}
+          if(!(Test-Path 'dist-patch14-7/Ananda-Patch14.7-SETTINGS-REDESIGN-Installer.exe')){throw 'EXE missing'}
+          Write-Host 'BUILT_INSTALLER_SHA256:' (Get-FileHash 'dist-patch14-7/Ananda-Patch14.7-SETTINGS-REDESIGN-Installer.exe' -Algorithm SHA256).Hash
+      - name: Test in-place EXE upgrade with backup and preserve offline data
+        shell: pwsh
+        run: |
+          $dir=$env:ANANDA_INSTALL
+          $installer=(Resolve-Path 'dist-patch14-7/Ananda-Patch14.7-SETTINGS-REDESIGN-Installer.exe').Path
+          $p=Start-Process -FilePath $installer -ArgumentList @('/S',('/D='+$dir)) -PassThru
+          if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw 'Patch14.7 Windows upgrade timeout'}
+          if($p.ExitCode -ne 0){throw 'Patch14.7 failed on existing installation'}
+          $archive=Join-Path $dir 'resources/app.asar'
+          $backup=Join-Path $dir 'resources/app.asar.before-patch14-7'
+          if(!(Test-Path $backup)){throw 'Previous application backup is missing'}
+          if((Get-FileHash $backup -Algorithm SHA256).Hash -ne $env:BASE_SHA){throw 'Existing application backup mismatch'}
+          if((Get-FileHash $archive -Algorithm SHA256).Hash -ne $env:NEW_SHA){throw 'Newly installed app mismatch'}
+          $sentinel=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data/patch14-7-data-sentinel.txt'
+          if([IO.File]::ReadAllText($sentinel) -ne 'ANANDA_RECORDS_UNCHANGED'){throw 'NGO offline data changed'}
+          Write-Host 'PASS real EXE in-place update, old app backup, SHA verification and offline Data untouched'
+      - name: Verify Settings and earlier Classes Events registration and payment functionality
+        shell: pwsh
+        run: |
+          $exe=Join-Path $env:ANANDA_INSTALL 'Ananda Sangha Event Desk.exe'
+          $p=Start-Process -FilePath $exe -ArgumentList '--remote-debugging-port=9223' -PassThru
+          Start-Sleep -Seconds 7
+          if($p.HasExited){throw 'Updated app failed to launch'}
+          $tests=@(
+            'scripts/verify-four-section-settings-patch14-7-windows.js',
+            'scripts/verify-class-reports-xlsx-patch14-5-windows.js',
+            'scripts/verify-direct-view-single-yellow-patch14-4-windows.js',
+            'scripts/verify-beta574-reports-desktop.js',
+            'scripts/verify-patch14-existing-family-desktop.js',
+            'scripts/verify-patch13-student-volunteer-and-mobile-desktop.js',
+            'scripts/verify-patch12-register-under-desktop.js',
+            'scripts/verify-volunteer-cross-event-desktop.js'
+          )
+          foreach($test in $tests){
+            Write-Host "RUNNING_WINDOWS_TEST $test"
+            node $test
+            if($LASTEXITCODE -ne 0){throw "Regression in $test"}
+            Write-Host "PASSED_WINDOWS_TEST $test"
+          }
+          Write-Host 'PASS all Windows Settings, exports and existing workflows'
+      - name: Microsoft Defender antivirus scan of release EXE
+        shell: pwsh
+        run: |
+          $exe=(Resolve-Path 'dist-patch14-7/Ananda-Patch14.7-SETTINGS-REDESIGN-Installer.exe').Path
+          $status=Get-MpComputerStatus -ErrorAction Stop
+          if(!$status.AntivirusEnabled){throw 'Microsoft Defender unavailable'}
+          try{Update-MpSignature -ErrorAction Stop}catch{Write-Host 'Signature refresh unavailable' $_.Exception.Message}
+          Start-MpScan -ScanType CustomScan -ScanPath $exe -ErrorAction Stop
+          $hits=@(Get-MpThreatDetection -ErrorAction SilentlyContinue|Where-Object {($_.Resources -join ';') -match 'Ananda-Patch14.7-SETTINGS-REDESIGN-Installer.exe'})
+          if($hits.Count -gt 0){throw 'Windows Defender flagged Patch14.7'}
+          if(!(Test-Path $exe)){throw 'Installer quarantined'}
+          Write-Host 'PASS Windows Defender (not a guarantee of no future flag)'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ananda-patch14-7-verified-windows-installer
+          path: dist-patch14-7/Ananda-Patch14.7-SETTINGS-REDESIGN-Installer.exe
+          if-no-files-found: error
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ananda-patch14-7-screenshot-and-integrity
+          path: |
+            settings14-7-verification/*.png
+            patch14-7-source-audit.json
+          if-no-files-found: error
+  clamav:
+    needs: windows-verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-7-verified-windows-installer
+          path: audit
+      - name: Independently scan Windows EXE with ClamAV
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clamav clamav-freshclam
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam --verbose
+          test -s audit/Ananda-Patch14.7-SETTINGS-REDESIGN-Installer.exe
+          clamscan --infected --allmatch --max-filesize=200M --max-scansize=500M audit/Ananda-Patch14.7-SETTINGS-REDESIGN-Installer.exe
+          echo 'PASS independent ClamAV scan'
+  release:
+    needs: [windows-verify,clamav]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-7-verified-windows-installer
+          path: release
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-5.81.8-patch14-7-settings-redesign
+          name: Ananda Patch14.7 — Simplified Settings (Testing Patch)
+          prerelease: true
+          files: release/Ananda-Patch14.7-SETTINGS-REDESIGN-Installer.exe
+          body: |
+            Temporary Windows testing patch. Updates only the existing installed app.asar.
+            Changes: Four Settings sections (Security, Course Progression, AI Attendance,
+            Data & Backup), no Advanced Settings, Data & Backup includes original protected
+            Reset All Data in its separate collapsed Danger Zone. Import templates kept.
+            No change to left sidebar, records, payments, attendance, Events or Class logic.
+            Earlier approved patches preserved. Administrator password and confirmation
+            are mandatory before Reset All Data.
+            A backup of previous app.asar is saved as app.asar.before-patch14-7.
+            Actual Windows app and installer regression tests, offline Data preservation,
+            Microsoft Defender and independent ClamAV required for release.
+            Supports verified Patch14.1 through 14.6 existing installations.
+            Close Ananda, back up your Data folder, then run EXE and select the existing
+            Ananda installation. This is an unsigned testing patch; do not disable
+            or bypass antivirus or SmartScreen protections.
