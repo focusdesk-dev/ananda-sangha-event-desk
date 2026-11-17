@@ -17,7 +17,7 @@ async function main(){
  ws.addEventListener('message',event=>{
   const m=JSON.parse(String(event.data));
   if(m.id&&pending.has(m.id)){const cb=pending.get(m.id);pending.delete(m.id);cb(m)}
-  if(m.method==='Runtime.exceptionThrown')exceptions.push(String(m.params.exceptionDetails?.text||'error'));
+  if(m.method==='Runtime.exceptionThrown'){const d=m.params.exceptionDetails||{};exceptions.push(JSON.stringify({text:d.text,description:d.exception?.description||d.exception?.value||'',url:d.url,lineNumber:d.lineNumber,columnNumber:d.columnNumber,frames:d.stackTrace?.callFrames?.slice(0,5)}))}
  });
  const call=(method,params={})=>new Promise((resolve,reject)=>{
   const id=++seq,t=setTimeout(()=>{pending.delete(id);reject(Error('Timeout '+method))},30000);
@@ -190,6 +190,6 @@ async function main(){
   checks.map(cj=>'- **'+cj.status+'** '+cj.name+(cj.error?' — '+cj.error.split('\n')[0]:'')).join('\n')+
   '\n\nTotal '+report.passed+' passed / '+report.failed+' failed.\n');
  console.log('AUDIT_RESULT '+JSON.stringify({passed:report.passed,failed:report.failed,
-  failures:checks.filter(x=>x.status==='FAIL').map(x=>({name:x.name,error:x.error?.slice(0,170)}))}));
+  failures:checks.filter(x=>x.status==='FAIL').map(x=>({name:x.name,error:x.error?.slice(0,170)})),exceptions}));
 }
 main().catch(e=>{console.error(e.stack||String(e));process.exitCode=1});
