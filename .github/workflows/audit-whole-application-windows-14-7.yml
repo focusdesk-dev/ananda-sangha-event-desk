@@ -1,0 +1,118 @@
+name: Full Windows App Demo Audit — Patch14.7 (non-destructive)
+on:
+  push:
+    branches: [audit-whole-windows-app-enrol-first-click-20261117]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-windows-app-audit:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_SHA: 62873FC4FA13C02FBE3B350221E99C566AA12E96792B80AF62CACB3AFDE1999E
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install released Ananda 14.7 in isolated Windows test environment
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path audit-source,audit-source/unpacked,audit-base,audit-prior,audit-final,ananda-full-audit | Out-Null
+          gh release download ananda-5.81.8-patch14-1-add-member-update --repo focusdesk-dev/ananda-sangha-event-desk --pattern 'Ananda-Patch14.1-ADD-MEMBER-Update.zip' --dir audit-source
+          if($LASTEXITCODE -ne 0){throw 'Missing approved Ananda baseline code'}
+          Expand-Archive audit-source/Ananda-Patch14.1-ADD-MEMBER-Update.zip audit-source/unpacked -Force
+          if((Get-FileHash audit-source/unpacked/app.asar -Algorithm SHA256).Hash -ne '24F788CED0E3616EDAA52A1A6566BA0B58CAD6555CE34D09A00087E525E1A4EC'){throw 'Unexpected base archive'}
+          gh release download ananda-beta-5.81.8 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir audit-base
+          if($LASTEXITCODE -ne 0){throw 'Full Windows runtime unavailable'}
+          gh release download ananda-5.81.8-patch14-6-excel-formatting-dark-borders --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir audit-prior
+          if($LASTEXITCODE -ne 0){throw 'Patch14.6 installer unavailable'}
+          gh release download ananda-5.81.8-patch14-7-settings-redesign --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir audit-final
+          if($LASTEXITCODE -ne 0){throw 'Patch14.7 installer unavailable'}
+          $setup=(Get-ChildItem audit-base -Filter '*.exe'|Select-Object -First 1).FullName
+          $dir=Join-Path $env:RUNNER_TEMP 'AnandaFullAppQA20261117'
+          $p=Start-Process -FilePath $setup -ArgumentList @('/S',('/D='+$dir)) -Wait -PassThru
+          if($p.ExitCode -ne 0){throw 'Windows base install failed'}
+          $app=Join-Path $dir 'resources/app.asar'
+          Copy-Item audit-source/unpacked/app.asar $app -Force
+          foreach($folder in @('audit-prior','audit-final')){
+            $e=(Get-ChildItem $folder -Filter '*.exe'|Select-Object -First 1).FullName
+            $p=Start-Process -FilePath $e -ArgumentList @('/S',('/D='+$dir)) -PassThru
+            if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw 'Patch upgrade timed out'}
+            if($p.ExitCode -ne 0){throw "Failed Windows update $folder"}
+          }
+          if((Get-FileHash $app -Algorithm SHA256).Hash -ne $env:EXPECTED_SHA){throw 'Installed app is NOT the released 14.7 code'}
+          "ANANDA_INSTALL=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'AUDIT BASE CONFIRMED: released Patch14.7 Windows app'
+      - name: Run actual GUI demo and first-click student enrolment
+        shell: pwsh
+        run: |
+          $app=Join-Path $env:ANANDA_INSTALL 'Ananda Sangha Event Desk.exe'
+          $p=Start-Process -FilePath $app -ArgumentList '--remote-debugging-port=9223' -PassThru
+          Start-Sleep -Seconds 7
+          if($p.HasExited){throw 'Real Windows app failed to launch'}
+          node --check scripts/audit-whole-ananda-demo-windows.js
+          if($LASTEXITCODE -ne 0){throw 'Audit test source syntax failed'}
+          node scripts/audit-whole-ananda-demo-windows.js 2>&1 | Tee-Object -FilePath ananda-full-audit/journey.log
+          Write-Host 'GUI audit output saved, including failures; continue remaining comprehensive tests.'
+      - name: Run expanded regressions across Classes Events attendance payments and Settings
+        shell: pwsh
+        run: |
+          $tests=@(
+            'scripts/verify-four-section-settings-patch14-7-windows.js',
+            'scripts/verify-class-reports-xlsx-patch14-5-windows.js',
+            'scripts/verify-direct-view-single-yellow-patch14-4-windows.js',
+            'scripts/verify-beta574-reports-desktop.js',
+            'scripts/verify-patch14-existing-family-desktop.js',
+            'scripts/verify-patch13-student-volunteer-and-mobile-desktop.js',
+            'scripts/verify-patch12-register-under-desktop.js',
+            'scripts/verify-volunteer-cross-event-desktop.js',
+            'scripts/verify-frozen-classes-desktop.js',
+            'scripts/verify-beta578-full-journey.js',
+            'scripts/verify-beta576-consistency-desktop.js',
+            'scripts/verify-beta573-progress-desktop.js',
+            'scripts/verify-beta572-attendance-desktop.js',
+            'scripts/verify-beta575-masters-desktop.js',
+            'scripts/verify-beta577-master-cards-desktop.js',
+            'scripts/verify-search-dedupe-5811.js',
+            'scripts/verify-master-search-5812.js',
+            'scripts/verify-registration-lookup-5813.js',
+            'scripts/verify-search-display-5814.js',
+            'scripts/verify-volunteer-checkin-desktop-5815.js',
+            'scripts/verify-attendee-table-desktop-5816.js',
+            'scripts/verify-three-frozen-screens-desktop-5817.js',
+            'scripts/verify-desktop-kriya-journey.js',
+            'scripts/verify-approved-freezes-patch9-desktop.js',
+            'scripts/verify-prior-freezes-patch11-desktop.js'
+          )
+          $results=@()
+          foreach($t in $tests){
+            $short=Split-Path $t -Leaf
+            $log=Join-Path 'ananda-full-audit' ($short+'.log')
+            Write-Host "START_FULL_AUDIT $short"
+            & node $t *> $log
+            $code=$LASTEXITCODE
+            $result=if($code -eq 0){'PASS'}else{'FAIL'}
+            $results+=([pscustomobject]@{test=$short;status=$result;exitCode=$code})
+            $lines=Get-Content $log -ErrorAction SilentlyContinue
+            $last=@($lines|Select-Object -Last 6) -join ' | '
+            Write-Host "RESULT_FULL_AUDIT $short : $result -- $last"
+          }
+          $results | ConvertTo-Json -Depth 3 | Out-File ananda-full-audit/regression-results.json -Encoding utf8
+          $failed=@($results|Where-Object status -eq 'FAIL')
+          $passed=@($results|Where-Object status -eq 'PASS')
+          $md=@('# Ananda Whole Application Windows Regression Results','','Existing historical checks can fail if the frozen design has intentionally replaced them.','',
+            '| Test | Result |','|---|---|')
+          $md+=@($results|ForEach-Object {"| $($_.test) | $($_.status) |"})
+          $md+="";$md+="**$($passed.Count) passed / $($failed.Count) failed out of $($results.Count)**"
+          $md|Out-File ananda-full-audit/regression-summary.md -Encoding utf8
+          Write-Host 'FULL_REGRESSION_TOTAL_PASS:' $passed.Count
+          Write-Host 'FULL_REGRESSION_TOTAL_FAIL:' $failed.Count
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ananda-full-windows-demo-audit-results-147
+          path: ananda-full-audit/**
+          if-no-files-found: warn
