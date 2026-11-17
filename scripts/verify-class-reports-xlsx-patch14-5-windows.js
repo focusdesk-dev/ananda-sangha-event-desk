@@ -77,7 +77,7 @@ async function main(){
      return [...document.querySelectorAll('#v145ClassExportMenu [data-kind]')].map(el=>el.dataset.kind);
    });
    assert.deepEqual(menu,['0','1','2','all','csv']);
-   await run('(()=>{const button=document.querySelector("#v145ClassExportMenu [data-kind='+kind+']");button.click();return true})()');
+   await run('(()=>{const button=[...document.querySelectorAll("#v145ClassExportMenu [data-kind]")].find(x=>x.dataset.kind==="'+kind+'");if(!button)throw Error("Export choice absent");button.click();return true})()');
    const locked=await run("document.getElementById('v51SecurityModal')?.classList.contains('open')");
    if(locked){
     await fn(function(){
