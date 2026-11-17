@@ -55,6 +55,11 @@ async function main(){
    const cases=[['record','eventRecord'],['volunteers','daily'],['attendees',null],['items','items']];
    for(const [tabName,expectPage] of cases){
     document.querySelector('#v6EventTabs [data-v6-tab="'+tabName+'"]')?.click();
+    // Badge print mode intentionally hides the tabs. Return to its normal
+    // Badge & Scarf issue screen before checking the approved nav divider.
+    if(tabName==='items'&&getComputedStyle(document.getElementById('v6EventTabs')).display==='none'){
+      document.getElementById('v6BadgeBack')?.click();
+    }
     const page=document.querySelector('.page.active')?.id;
     const top=document.querySelector('.topbar');
     const n=document.getElementById('v6EventTabs');
