@@ -93,7 +93,8 @@
         }
         // Table header: navy medium boundary. Body: dark grid with medium
         // left/right/bottom outside edges; data and payment values unchanged.
-        if(rowNumber===3)style+=13; // second style block, borderId=2
+        if(rowNumber===1)style+=7*13; // gold accent under navy title
+        else if(rowNumber===3)style+=13; // second style block, borderId=2
         else if(rowNumber>=4){
           const last=rowNumber===items.length+3;
           const firstCol=i===0,lastCol=i===cols-1;
@@ -167,7 +168,8 @@
       border('thin','medium','thin','thin'),                 // 4 right outer edge
       border('thin','thin','thin','medium'),                 // 5 bottom edge
       border('medium','thin','thin','medium'),               // 6 bottom-left
-      border('thin','medium','thin','medium')                // 7 bottom-right
+      border('thin','medium','thin','medium'),               // 7 bottom-right
+      '<border><left/><right/><top/><bottom style="medium"><color rgb="FFFFBD22"/></bottom><diagonal/></border>' // 8 subtle gold accent below title
     ];
     const xf=(f,fl,nf=0,align='left',borderId=1)=>
       '<xf numFmtId="'+nf+'" fontId="'+f+'" fillId="'+fl+'" borderId="'+borderId+
@@ -180,9 +182,9 @@
       [7,8,0,'left'],[4,4,0,'right'],[4,5,0,'right'],
       [4,4,164,'right'],[4,5,164,'right']
     ];
-    // Each 13-style block corresponds to border IDs 1..7.
+    // Each 13-style block corresponds to border IDs 1..8.
     const styles=[];
-    for(let borderId=1;borderId<=7;borderId++)
+    for(let borderId=1;borderId<=8;borderId++)
       for(const def of base)styles.push(xf(def[0],def[1],def[2],def[3],borderId));
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
       '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
