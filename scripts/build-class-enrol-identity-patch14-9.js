@@ -19,9 +19,12 @@ async function main(){
  assert(addition.includes("window.anandaClassEnrolIdentityVersion='14.9'"));
  const authoritative='return p2v550EnrollFormBase.call(form,event);';
  const guarded='return v149ProtectedEnrolSubmit(form,event,p2v550EnrollFormBase);';
+ const oldIdentity='const student=p2v54StudentFromEnrollForm();';
+ const guardedIdentity='if(!v149ResolveEnrolIdentity(event))return;\n        const student=p2v54StudentFromEnrollForm();';
  assert.equal(before.split(authoritative).length,2,'Authoritative capture-phase handler changed unexpectedly');
- const after=before.replace(authoritative,guarded).replace(marker,addition+'\n'+marker);
- assert.equal(after.replace(addition+'\n'+marker,marker).replace(guarded,authoritative),before,
+ assert.equal(before.split(oldIdentity).length,2,'Authoritative progression identity lookup changed unexpectedly');
+ const after=before.replace(oldIdentity,guardedIdentity).replace(authoritative,guarded).replace(marker,addition+'\n'+marker);
+ assert.equal(after.replace(addition+'\n'+marker,marker).replace(guarded,authoritative).replace(guardedIdentity,oldIdentity),before,
   'Changes detected outside protected enrolment capture path');
  fs.writeFileSync(file,after,'utf8');
  await asar.createPackage(dir,output);
