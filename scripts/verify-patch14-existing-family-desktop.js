@@ -303,8 +303,10 @@ async function main(){
    if(!add)return {hasAdd:false,headerText:header?.textContent};
    const addBeforeSave=saveRegister?add.nextElementSibling===saveRegister:true;
    add.click();
-   const editor=wrapper?.querySelector('.v14-add-new');
-   const first=wrapper?.querySelector('.v88-group-details .v14-member-line')===editor;
+   // The family list rebuilds its DOM on Add, so inspect the fresh wrapper.
+   const fresh=document.querySelector('#v56GroupPlanning .v88-group-row[data-id="qaP14-hriday"]')?.closest('.v88-card-wrap');
+   const editor=fresh?.querySelector('.v14-add-new');
+   const first=fresh?.querySelector('.v88-group-details .v14-member-line')===editor;
    const draftCounts=[...(document.querySelector('#v56GroupPlanning .v88-group-row[data-id="qaP14-hriday"]')?.querySelectorAll('.v56-count strong')||[])].map(el=>Number(el.textContent));
    if(editor){
      editor.querySelector('.v14-name').value='ANOTHER SAVED FAMILY GUEST';
