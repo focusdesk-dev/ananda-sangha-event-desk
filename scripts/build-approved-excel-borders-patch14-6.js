@@ -18,7 +18,7 @@ async function main(){
  assert.equal(before.split(old).length,2,'Original approved Patch14.5 Excel exporter was modified unexpectedly');
  assert(replacement.includes("window.anandaClassReportsExcelStyleVersion='14.6'"));
  assert(!replacement.includes('</bottom/>'),'Invalid XML style closer still present');
- assert(replacement.includes('border(\\'medium\\''),'Table outline border missing');
+ assert(replacement.includes("border('medium'"),'Table outline border missing');
  const after=before.replace(old,replacement);
  assert.equal(after.replace(replacement,old),before,'Unexpected update outside Excel style generator');
  fs.writeFileSync(file,after,'utf8');
