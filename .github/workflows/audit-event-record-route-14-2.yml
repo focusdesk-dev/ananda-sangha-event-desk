@@ -63,14 +63,27 @@ jobs:
           if($p.HasExited){throw 'App failed to launch'}
           node scripts/verify-event-record-route-windows-patch14-2.js
           if($LASTEXITCODE -ne 0){throw 'Event Record real UI test failed'}
-          node scripts/verify-three-approved-patch10-desktop.js
-          if($LASTEXITCODE -ne 0){throw 'Approved Event Record existing test failed'}
-          node scripts/verify-patch14-existing-family-desktop.js
-          if($LASTEXITCODE -ne 0){throw 'Saved-family regression test failed'}
-          node scripts/verify-patch13-student-volunteer-and-mobile-desktop.js
-          if($LASTEXITCODE -ne 0){throw 'Phone/student/volunteer regression test failed'}
-          node scripts/verify-volunteer-cross-event-desktop.js
-          if($LASTEXITCODE -ne 0){throw 'Volunteer cross-event regression test failed'}
+          $failures=@()
+          $tests=@(
+            'scripts/verify-patch14-existing-family-desktop.js',
+            'scripts/verify-patch13-student-volunteer-and-mobile-desktop.js',
+            'scripts/verify-patch12-register-under-desktop.js',
+            'scripts/verify-volunteer-cross-event-desktop.js',
+            'scripts/verify-three-approved-patch10-desktop.js'
+          )
+          foreach($test in $tests){
+            Write-Host "RUNNING_REGR_TEST: $test"
+            node $test
+            if($LASTEXITCODE -ne 0){
+              Write-Host "FAILED_REGR_TEST: $test"
+              $failures+= $test
+            }else{
+              Write-Host "PASSED_REGR_TEST: $test"
+            }
+          }
+          if($failures.Count -gt 0){
+            throw ('Regression suites needing attention: '+($failures -join ', '))
+          }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
