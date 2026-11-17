@@ -91,14 +91,14 @@ jobs:
           $dir=$env:ANANDA_INSTALL
           $installer=(Resolve-Path 'dist-patch14-9/Ananda-Patch14.9-MASTER-CLASS-ENROL-FIX-Installer.exe').Path
           $p=Start-Process -FilePath $installer -ArgumentList @('/S',('/D='+$dir)) -PassThru
-          if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw 'Patch14.7 Windows upgrade timeout'}
-          if($p.ExitCode -ne 0){throw 'Patch14.7 failed on existing installation'}
+          if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw 'Patch14.9 Windows upgrade timeout'}
+          if($p.ExitCode -ne 0){throw 'Patch14.9 failed on existing installation'}
           $archive=Join-Path $dir 'resources/app.asar'
           $backup=Join-Path $dir 'resources/app.asar.before-patch14-9'
           if(!(Test-Path $backup)){throw 'Previous application backup is missing'}
           if((Get-FileHash $backup -Algorithm SHA256).Hash -ne $env:BASE_SHA){throw 'Existing application backup mismatch'}
           if((Get-FileHash $archive -Algorithm SHA256).Hash -ne $env:NEW_SHA){throw 'Newly installed app mismatch'}
-          $sentinel=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data/patch14-7-data-sentinel.txt'
+          $sentinel=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data/patch14-9-data-sentinel.txt'
           if([IO.File]::ReadAllText($sentinel) -ne 'ANANDA_RECORDS_UNCHANGED'){throw 'NGO offline data changed'}
           Write-Host 'PASS real EXE in-place update, old app backup, SHA verification and offline Data untouched'
       - name: Verify 48 student real batch enrolment, false duplicates, keyboard, older Classes and Events
