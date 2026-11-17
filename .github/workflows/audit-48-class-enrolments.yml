@@ -1,0 +1,66 @@
+name: Reproduce 24+24 class enrolment master orphans Windows Patch14.8
+on:
+  push:
+    branches: [audit-class-enrolment-master-orphans-20-students-20261118]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  qa-48-enrol:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install exact published 14.8 on separate test Windows
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path base,source,source/unpacked,previous146,previous147,previous148,enrol-batch-audit | Out-Null
+          gh release download ananda-5.81.8-patch14-1-add-member-update --repo focusdesk-dev/ananda-sangha-event-desk --pattern 'Ananda-Patch14.1-ADD-MEMBER-Update.zip' --dir source
+          if($LASTEXITCODE -ne 0){throw 'Base code missing'}
+          Expand-Archive source/Ananda-Patch14.1-ADD-MEMBER-Update.zip source/unpacked -Force
+          gh release download ananda-beta-5.81.8 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir base
+          if($LASTEXITCODE -ne 0){throw 'Base app unavailable'}
+          gh release download ananda-5.81.8-patch14-6-excel-formatting-dark-borders --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir previous146
+          if($LASTEXITCODE -ne 0){throw 'Patch14.6 unavailable'}
+          gh release download ananda-5.81.8-patch14-7-settings-redesign --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir previous147
+          if($LASTEXITCODE -ne 0){throw 'Patch14.7 unavailable'}
+          gh release download ananda-5.81.8-patch14-8-enrol-first-click-repair --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir previous148
+          if($LASTEXITCODE -ne 0){throw 'Patch14.8 unavailable'}
+          $exe=(Get-ChildItem base -Filter '*.exe'|Select-Object -First 1).FullName
+          $dest=Join-Path $env:RUNNER_TEMP 'AnandaFortyEightEnrolQA'
+          $p=Start-Process -FilePath $exe -ArgumentList @('/S',('/D='+$dest)) -Wait -PassThru
+          if($p.ExitCode -ne 0){throw 'Base installation failed'}
+          $app=Join-Path $dest 'resources/app.asar'
+          Copy-Item source/unpacked/app.asar $app -Force
+          foreach($dir in @('previous146','previous147','previous148')){
+            $e=(Get-ChildItem $dir -Filter '*.exe'|Select-Object -First 1).FullName
+            $p=Start-Process -FilePath $e -ArgumentList @('/S',('/D='+$dest)) -PassThru
+            if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw "Upgrade $dir timed out"}
+            if($p.ExitCode -ne 0){throw "Upgrade $dir failed"}
+          }
+          if((Get-FileHash $app -Algorithm SHA256).Hash -ne '430135AD8FBD0263E584D4463DB0B1D87851B66D517E77B9111713B51B7A64AD'){throw 'Not released 14.8 code'}
+          "ANANDA_INSTALL=$dest" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Test 48 students in real Windows registration and class enrolment
+        shell: pwsh
+        run: |
+          $exe=Join-Path $env:ANANDA_INSTALL 'Ananda Sangha Event Desk.exe'
+          $p=Start-Process -FilePath $exe -ArgumentList '--remote-debugging-port=9223' -PassThru
+          Start-Sleep -Seconds 7
+          if($p.HasExited){throw 'Packaged application did not launch'}
+          node --check scripts/audit-48-class-enrolments-windows.js
+          if($LASTEXITCODE -ne 0){throw 'Audit syntax error'}
+          node scripts/audit-48-class-enrolments-windows.js *> enrol-batch-audit/full-run.log
+          $code=$LASTEXITCODE
+          Get-Content enrol-batch-audit/full-run.log | Select-Object -Last 45 | ForEach-Object {Write-Host $_}
+          Write-Host 'AUDIT_SCRIPT_EXIT' $code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ananda-48-enrolment-existing-master-orphans
+          path: enrol-batch-audit/**
+          if-no-files-found: warn
