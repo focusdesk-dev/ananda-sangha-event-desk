@@ -2,11 +2,9 @@
   // An entered 10-digit mobile is the identity key, never merely a visual label.
   // Keep the approved single-click confirmation and every previous enrol rule.
   window.anandaClassEnrolIdentityVersion='14.9';
-  (function v149ProtectClassEnrollmentIdentity(){
-    const form=$('p2EnrollForm');
-    if(!form||typeof form.onsubmit!=='function')throw Error('Enrolment submit handler missing');
-    const original=form.onsubmit;
-    form.onsubmit=function(event){
+  // Called by the authoritative CAPTURE phase submit guard. That older
+  // guard calls a stored base handler directly and otherwise bypasses .onsubmit.
+  function v149ProtectedEnrolSubmit(form,event,original){
       const batch=p2ActiveBatch();
       const name=$('p2cEnrollName')?.value.trim()||'';
       const phone=normMobile($('p2cEnrollMobile')?.value||'');
@@ -60,7 +58,7 @@
       const beforeStudents=new Set(state.students.map(s=>s.id));
       const beforeEnrolments=new Set(state.classEnrollments.map(e=>e.id));
       try{
-        original.call(this,event);
+        original.call(form,event);
       }finally{
         const savedEnrolment=state.classEnrollments.some(e=>!beforeEnrolments.has(e.id));
         const approvalPending=$('p2v54OverrideModal')?.classList.contains('open')||
@@ -72,5 +70,12 @@
           state.students=state.students.filter(s=>beforeStudents.has(s.id)||
             state.classEnrollments.some(e=>e.studentId===s.id));
       }
-    };
+  }
+  // Also protect any explicit programmatic .onsubmit calls. Ordinary submit
+  // events use v149ProtectedEnrolSubmit from the capture-phase hook.
+  (function v149ProtectClassEnrollmentIdentity(){
+    const form=$('p2EnrollForm');
+    if(!form||typeof form.onsubmit!=='function')throw Error('Enrolment submit handler missing');
+    const original=form.onsubmit;
+    form.onsubmit=function(event){return v149ProtectedEnrolSubmit(this,event,original)};
   })();
