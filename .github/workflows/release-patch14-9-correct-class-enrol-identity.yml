@@ -1,0 +1,210 @@
+name: Ananda Patch14.9 Class Enrolment Identity and Master Link Fix
+on:
+  push:
+    branches: [patch14-9-enrol-master-identity-protection-20261118]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  windows-verify:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BASE_SHA: 430135AD8FBD0263E584D4463DB0B1D87851B66D517E77B9111713B51B7A64AD
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install actual approved Patch14.6 Windows application
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path base,source,source/unpacked,prior,prior147,prior148,build,payload,dist-patch14-9 | Out-Null
+          gh release download ananda-5.81.8-patch14-1-add-member-update --repo focusdesk-dev/ananda-sangha-event-desk --pattern 'Ananda-Patch14.1-ADD-MEMBER-Update.zip' --dir source
+          if($LASTEXITCODE -ne 0){throw 'Approved Patch14.1 source unavailable'}
+          Expand-Archive source/Ananda-Patch14.1-ADD-MEMBER-Update.zip source/unpacked -Force
+          if((Get-FileHash source/unpacked/app.asar -Algorithm SHA256).Hash -ne '24F788CED0E3616EDAA52A1A6566BA0B58CAD6555CE34D09A00087E525E1A4EC'){throw 'Unexpected original source'}
+          gh release download ananda-beta-5.81.8 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir base
+          if($LASTEXITCODE -ne 0){throw 'Base Windows application unavailable'}
+          gh release download ananda-5.81.8-patch14-6-excel-formatting-dark-borders --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir prior
+          if($LASTEXITCODE -ne 0){throw 'Existing Patch14.6 Windows updater unavailable'}
+          gh release download ananda-5.81.8-patch14-7-settings-redesign --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir prior147
+          if($LASTEXITCODE -ne 0){throw 'Released Patch14.7 updater unavailable'}
+          $setup=(Get-ChildItem base -Filter '*.exe' |Select-Object -First 1).FullName
+          $dir=Join-Path $env:RUNNER_TEMP 'AnandaPatch147VerifiedUpdater'
+          $p=Start-Process -FilePath $setup -ArgumentList @('/S',('/D='+$dir)) -PassThru -Wait
+          if($p.ExitCode -ne 0){throw 'Base Windows app installation failed'}
+          $archive=Join-Path $dir 'resources/app.asar'
+          Copy-Item source/unpacked/app.asar $archive -Force
+          $prior=(Get-ChildItem prior -Filter '*.exe'|Select-Object -First 1).FullName
+          $p=Start-Process -FilePath $prior -ArgumentList @('/S',('/D='+$dir)) -PassThru
+          if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw 'Prior Patch14.6 update timed out'}
+          if($p.ExitCode -ne 0){throw 'Prior Patch14.6 update failed'}
+          $patch147=(Get-ChildItem prior147 -Filter '*.exe'|Select-Object -First 1).FullName
+          $p=Start-Process -FilePath $patch147 -ArgumentList @('/S',('/D='+$dir)) -PassThru
+          if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw 'Prior Patch14.7 update timed out'}
+          if($p.ExitCode -ne 0){throw 'Prior Patch14.7 update failed'}
+          gh release download ananda-5.81.8-patch14-8-enrol-first-click-repair --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir prior148
+          if($LASTEXITCODE -ne 0){throw 'Approved Patch14.8 updater unavailable'}
+          $patch148=(Get-ChildItem prior148 -Filter '*.exe'|Select-Object -First 1).FullName
+          $p=Start-Process -FilePath $patch148 -ArgumentList @('/S',('/D='+$dir)) -PassThru
+          if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw 'Prior Patch14.8 updater timed out'}
+          if($p.ExitCode -ne 0){throw 'Prior Patch14.8 updater failed'}
+          if((Get-FileHash $archive -Algorithm SHA256).Hash -ne $env:BASE_SHA){throw 'Wrong Patch14.8 baseline app'}
+          $data=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data'
+          New-Item -ItemType Directory -Force -Path $data | Out-Null
+          [IO.File]::WriteAllText((Join-Path $data 'patch14-9-data-sentinel.txt'),'ANANDA_RECORDS_UNCHANGED')
+          "ANANDA_INSTALL=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Build single guarded source correction from exact Patch14.8
+        shell: pwsh
+        run: |
+          npm install --no-save --no-fund --no-audit @electron/asar
+          if($LASTEXITCODE -ne 0){throw 'ASAR dependency failed'}
+          node --check scripts/approved-class-enrol-identity-patch14-9.js
+          if($LASTEXITCODE -ne 0){throw 'New enrol identity guard invalid'}
+          node --check scripts/build-class-enrol-identity-patch14-9.js
+          if($LASTEXITCODE -ne 0){throw 'Scoped build script invalid'}
+          node scripts/build-class-enrol-identity-patch14-9.js (Join-Path $env:ANANDA_INSTALL 'resources/app.asar') build/app.asar build/unpacked
+          if($LASTEXITCODE -ne 0){throw 'Scoped enrolment patch refused or failed'}
+          $new=(Get-FileHash build/app.asar -Algorithm SHA256).Hash
+          if($new -ne '8E683747825430268DEE3B0717F658DD4DC42E6A62189CD7AE0334C0875A4B5C'){throw 'Installer payload differs from Windows regression-tested Patch14.9'}
+          "NEW_SHA=$new" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'VERIFIED_PATCH14_9_SHA256:' $new
+      - name: Compile real Windows EXE installer with SHA guards and rollback
+        shell: pwsh
+        run: |
+          choco install nsis --yes --no-progress
+          if($LASTEXITCODE -ne 0){throw 'NSIS installer compiler failed'}
+          Copy-Item build/app.asar payload/app.asar -Force
+          $nsi=[IO.File]::ReadAllText((Join-Path $PWD 'Patch14-9-Standard-Update.nsi'))
+          if(!$nsi.Contains('__NEW_SHA__')){throw 'No installer SHA placeholder'}
+          $nsi=$nsi.Replace('__NEW_SHA__',$env:NEW_SHA.ToLowerInvariant())
+          [IO.File]::WriteAllText((Join-Path $PWD 'Patch14-9-Generated.nsi'),$nsi)
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' '/V4' 'Patch14-9-Generated.nsi'
+          if($LASTEXITCODE -ne 0){throw 'Windows EXE build failed'}
+          if(!(Test-Path 'dist-patch14-9/Ananda-Patch14.9-MASTER-CLASS-ENROL-FIX-Installer.exe')){throw 'EXE missing'}
+          Write-Host 'BUILT_INSTALLER_SHA256:' (Get-FileHash 'dist-patch14-9/Ananda-Patch14.9-MASTER-CLASS-ENROL-FIX-Installer.exe' -Algorithm SHA256).Hash
+      - name: Test in-place EXE upgrade with backup and preserve offline data
+        shell: pwsh
+        run: |
+          $dir=$env:ANANDA_INSTALL
+          $installer=(Resolve-Path 'dist-patch14-9/Ananda-Patch14.9-MASTER-CLASS-ENROL-FIX-Installer.exe').Path
+          $p=Start-Process -FilePath $installer -ArgumentList @('/S',('/D='+$dir)) -PassThru
+          if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw 'Patch14.7 Windows upgrade timeout'}
+          if($p.ExitCode -ne 0){throw 'Patch14.7 failed on existing installation'}
+          $archive=Join-Path $dir 'resources/app.asar'
+          $backup=Join-Path $dir 'resources/app.asar.before-patch14-9'
+          if(!(Test-Path $backup)){throw 'Previous application backup is missing'}
+          if((Get-FileHash $backup -Algorithm SHA256).Hash -ne $env:BASE_SHA){throw 'Existing application backup mismatch'}
+          if((Get-FileHash $archive -Algorithm SHA256).Hash -ne $env:NEW_SHA){throw 'Newly installed app mismatch'}
+          $sentinel=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data/patch14-7-data-sentinel.txt'
+          if([IO.File]::ReadAllText($sentinel) -ne 'ANANDA_RECORDS_UNCHANGED'){throw 'NGO offline data changed'}
+          Write-Host 'PASS real EXE in-place update, old app backup, SHA verification and offline Data untouched'
+      - name: Verify 48 student real batch enrolment, false duplicates, keyboard, older Classes and Events
+        shell: pwsh
+        run: |
+          $exe=Join-Path $env:ANANDA_INSTALL 'Ananda Sangha Event Desk.exe'
+          $p=Start-Process -FilePath $exe -ArgumentList '--remote-debugging-port=9223' -PassThru
+          Start-Sleep -Seconds 7
+          if($p.HasExited){throw 'Updated app failed to launch'}
+          $tests=@(
+            'scripts/verify-class-enrol-identity-patch14-9-windows.js',
+            'scripts/test-first-click-enrol-patch14-8-windows.js',
+            'scripts/verify-four-section-settings-patch14-7-windows.js',
+            'scripts/verify-class-reports-xlsx-patch14-5-windows.js',
+            'scripts/verify-direct-view-single-yellow-patch14-4-windows.js',
+            'scripts/verify-beta574-reports-desktop.js',
+            'scripts/verify-patch14-existing-family-desktop.js',
+            'scripts/verify-patch13-student-volunteer-and-mobile-desktop.js',
+            'scripts/verify-patch12-register-under-desktop.js',
+            'scripts/verify-volunteer-cross-event-desktop.js',
+            'scripts/verify-beta569-typing-navigation.js',
+            'scripts/verify-beta563-keyboard.js'
+          )
+          foreach($test in $tests){
+            Write-Host "RUNNING_WINDOWS_TEST $test"
+            node $test
+            if($LASTEXITCODE -ne 0){throw "Regression in $test"}
+            Write-Host "PASSED_WINDOWS_TEST $test"
+          }
+          Write-Host 'PASS 24+24 students, stale selection repaired, orphan prevention, keyboard and previous workflows'
+      - name: Microsoft Defender antivirus scan of release EXE
+        shell: pwsh
+        run: |
+          $exe=(Resolve-Path 'dist-patch14-9/Ananda-Patch14.9-MASTER-CLASS-ENROL-FIX-Installer.exe').Path
+          $status=Get-MpComputerStatus -ErrorAction Stop
+          if(!$status.AntivirusEnabled){throw 'Microsoft Defender unavailable'}
+          try{Update-MpSignature -ErrorAction Stop}catch{Write-Host 'Signature refresh unavailable' $_.Exception.Message}
+          Start-MpScan -ScanType CustomScan -ScanPath $exe -ErrorAction Stop
+          $hits=@(Get-MpThreatDetection -ErrorAction SilentlyContinue|Where-Object {($_.Resources -join ';') -match 'Ananda-Patch14.9-MASTER-CLASS-ENROL-FIX-Installer.exe'})
+          if($hits.Count -gt 0){throw 'Windows Defender flagged Patch14.7'}
+          if(!(Test-Path $exe)){throw 'Installer quarantined'}
+          Write-Host 'PASS Windows Defender (not a guarantee of no future flag)'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ananda-patch14-9-identity-fixed-windows-exe
+          path: dist-patch14-9/Ananda-Patch14.9-MASTER-CLASS-ENROL-FIX-Installer.exe
+          if-no-files-found: error
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ananda-patch14-9-identity-source-audit
+          path: |
+            enrol-batch-audit/report.json
+            patch14-9-source-integrity.json
+          if-no-files-found: error
+  clamav:
+    needs: windows-verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-9-identity-fixed-windows-exe
+          path: audit
+      - name: Independently scan Windows EXE with ClamAV
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clamav clamav-freshclam
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam --verbose
+          test -s audit/Ananda-Patch14.9-MASTER-CLASS-ENROL-FIX-Installer.exe
+          clamscan --infected --allmatch --max-filesize=200M --max-scansize=500M audit/Ananda-Patch14.9-MASTER-CLASS-ENROL-FIX-Installer.exe
+          echo 'PASS independent ClamAV scan'
+  release:
+    needs: [windows-verify,clamav]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-9-identity-fixed-windows-exe
+          path: release
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-5.81.8-patch14-9-correct-class-enrol-identity
+          name: Ananda Patch14.9 — Correct Master-to-Class Enrolment (Testing Patch)
+          prerelease: true
+          files: release/Ananda-Patch14.9-MASTER-CLASS-ENROL-FIX-Installer.exe
+          body: |
+            Fixes verified bug in the Ananda 5.81.8 Patch14.8 Classes enrolment screen.
+            When two existing students share a name but have different mobile numbers,
+            selecting one and changing the mobile before Save can wrongly say 'Student
+            is already enrolled'. The intended student remains in Master but is not
+            added to the class batch. The app had a capture-phase listener that bypassed
+            the prior form handler, so both interception points are repaired safely.
+            Final identity is resolved by the entered valid mobile before progression
+            checks, and again before the actual save; different numbers never merge
+            silently. A missing payment mode cannot create an orphan Master-only entry.
+            All existing Master people and enrolment history remain untouched and
+            no student is automatically enrolled from old Master-only records.
+            Tested on real installed Windows: 24 existing + 24 new people, identical
+            names with different mobiles, exact false-duplicate case, payment
+            preflight, repeated enrolment, class roster, repeat-course waiver,
+            attendance, reports, Events, volunteers, frozen sidebar, Settings and
+            100 keyboard navigation cycles. No data schema changes.
+            Installation updates app.asar only; prior app backed up automatically.
+            Install into existing Ananda application folder without uninstalling.
+            UNSIGNED Windows .exe. Do not bypass Defender or SmartScreen.
