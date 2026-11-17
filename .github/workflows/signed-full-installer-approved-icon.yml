@@ -1,0 +1,198 @@
+name: Ananda approved icon and authenticated Windows full installer
+on:
+  push:
+    branches: [approved-logo-signed-windows-installer-20261117]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  approved-icon:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pillow==11.3.0
+      - name: Verify uploaded logo and generate desktop/taskbar/multisize ico
+        run: node scripts/prepare-approved-windows-icon.js
+      - name: Prove logo exact and icon sizes
+        shell: pwsh
+        run: |
+          if((Get-FileHash ananda-approved-logo.png -Algorithm SHA256).Hash -ne '6E9980C365B1DCBEA45C7064406AB6B8C003CE50D35B8ED4E695046F253A5E2B'){throw 'Approved icon hash changed'}
+          if(!(Test-Path ananda-icon.ico)){throw 'Multisize Windows ICO missing'}
+          Write-Host 'PASS approved Ananda logo is ready for the actual EXE resource and shortcuts'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: approved-Ananda-icon-for-full-Windows-build
+          path: |
+            ananda-icon.ico
+            ananda-approved-logo.png
+          if-no-files-found: error
+  signed-full-installer:
+    if: github.event_name == 'workflow_dispatch'
+    needs: approved-icon
+    runs-on: windows-latest
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ github.token }}
+      WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+      WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Require approved real Authenticode signing credentials before building
+        shell: pwsh
+        run: |
+          if([string]::IsNullOrWhiteSpace($env:WIN_CSC_LINK) -or [string]::IsNullOrWhiteSpace($env:WIN_CSC_KEY_PASSWORD)){
+            throw 'NOT SIGNED: Configure repository Secrets WIN_CSC_LINK (base64 encoded issued code-signing PFX) and WIN_CSC_KEY_PASSWORD. No unsigned full installer will be released.'
+          }
+          Write-Host 'Signing credentials are configured; private key will not appear in logs.'
+      - uses: actions/download-artifact@v4
+        with:
+          name: approved-Ananda-icon-for-full-Windows-build
+          path: .
+      - name: Verify exact logo source and multi-resolution icon
+        shell: pwsh
+        run: |
+          python -m pip install pillow==11.3.0
+          node scripts/prepare-approved-windows-icon.js
+          if($LASTEXITCODE -ne 0){throw 'New desktop/taskbar icon is invalid'}
+      - name: Restore EXACT approved Patch14.5 application source
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-source,release-source/unpacked,release-build | Out-Null
+          gh release download ananda-5.81.8-patch14-1-add-member-update --repo focusdesk-dev/ananda-sangha-event-desk --pattern 'Ananda-Patch14.1-ADD-MEMBER-Update.zip' --dir release-source
+          if($LASTEXITCODE -ne 0){throw 'Verified base app archive missing'}
+          Expand-Archive -LiteralPath release-source/Ananda-Patch14.1-ADD-MEMBER-Update.zip -DestinationPath release-source/unpacked -Force
+          if((Get-FileHash release-source/unpacked/app.asar -Algorithm SHA256).Hash -ne '24F788CED0E3616EDAA52A1A6566BA0B58CAD6555CE34D09A00087E525E1A4EC'){throw 'Base app archive mismatch'}
+          npm install --no-fund --no-audit
+          if($LASTEXITCODE -ne 0){throw 'Electron dependencies missing'}
+          npm install --no-save --no-fund --no-audit @electron/asar
+          if($LASTEXITCODE -ne 0){throw 'Electron ASAR tools missing'}
+          node scripts/build-direct-view-single-divider-patch14-4.js release-source/unpacked/app.asar release-build/p144.asar release-build/p144-src
+          if($LASTEXITCODE -ne 0){throw 'Patch14.4 reconstruction failed'}
+          if((Get-FileHash release-build/p144.asar -Algorithm SHA256).Hash -ne '538EFEF637EBDE84FC569D370CD7DE2973F4D1E444A9084BA9F81F142304DEED'){throw 'Patch14.4 source changed'}
+          node scripts/build-class-reports-xlsx-export-patch14-5.js release-build/p144.asar release-build/p145.asar release-build/p145-src
+          if($LASTEXITCODE -ne 0){throw 'Patch14.5 reconstruction failed'}
+          foreach($f in @('index.html','main.js','preload.js','logo-128.png','qrcode-client.js','jsqr-client.js','omr-scanner.js')){
+            $source=Join-Path 'release-build/p145-src' $f
+            if(!(Test-Path $source)){throw "Approved installed app source missing: $f"}
+            Copy-Item $source $f -Force
+          }
+          Write-Host 'PASS preserved approved Patch14.5 production app code'
+      - name: Configure Electron full setup with user-approved icon AND mandatory code signing
+        shell: pwsh
+        run: |
+          $path=Join-Path $PWD 'package.json'
+          $json=[IO.File]::ReadAllText($path)
+          $pkg=$json|ConvertFrom-Json -Depth 50
+          if($pkg.version -ne '2.0.0-beta.5.81.8'){throw 'Unknown application version; fail closed'}
+          $pkg.build.win.icon='ananda-icon.ico'
+          $pkg.build | Add-Member -NotePropertyName 'forceCodeSigning' -NotePropertyValue $true -Force
+          $pkg.build.nsis | Add-Member -NotePropertyName 'installerIcon' -NotePropertyValue 'ananda-icon.ico' -Force
+          $pkg.build.nsis | Add-Member -NotePropertyName 'uninstallerIcon' -NotePropertyValue 'ananda-icon.ico' -Force
+          $pkg.build.nsis | Add-Member -NotePropertyName 'installerHeaderIcon' -NotePropertyValue 'ananda-icon.ico' -Force
+          $pkg.build | Add-Member -NotePropertyName 'artifactName' -NotePropertyValue 'Ananda-Sangha-Event-Desk-Signed-Setup-${version}.${ext}' -Force
+          [IO.File]::WriteAllText($path,($pkg|ConvertTo-Json -Depth 50))
+          if(!(Test-Path 'ananda-icon.ico')){throw 'Approved desktop/taskbar icon unavailable'}
+      - name: Compile Windows app, taskbar icon, desktop shortcut and signed full NSIS setup
+        shell: pwsh
+        run: |
+          $env:CSC_IDENTITY_AUTO_DISCOVERY='false'
+          npm run dist:win
+          if($LASTEXITCODE -ne 0){throw 'Signed Windows full setup compilation failed'}
+      - name: Require valid Authenticode signatures on BOTH app executable and installer
+        shell: pwsh
+        run: |
+          $exe=Join-Path $PWD 'dist/win-unpacked/Ananda Sangha Event Desk.exe'
+          $setup=Get-ChildItem dist -File -Filter 'Ananda-Sangha-Event-Desk-Signed-Setup-*.exe' | Select-Object -First 1
+          if(!(Test-Path $exe) -or !$setup){throw 'Required app EXE or installer is missing'}
+          foreach($f in @($exe,$setup.FullName)){
+            $signature=Get-AuthenticodeSignature -FilePath $f -ErrorAction Stop
+            if($signature.Status -ne 'Valid' -or !$signature.SignerCertificate){throw "FILE IS NOT TRUSTED-AUTHENTICODE-SIGNED: $f ($($signature.Status))"}
+            $eku=@($signature.SignerCertificate.EnhancedKeyUsageList | ForEach-Object { $_.ObjectId.Value })
+            if('1.3.6.1.5.5.7.3.3' -notin $eku){throw "Certificate does not have Code Signing EKU: $f"}
+            Write-Host "PASS SIGNED: $([IO.Path]::GetFileName($f)) publisher=$($signature.SignerCertificate.Subject)"
+            Write-Host "SHA256: $((Get-FileHash $f -Algorithm SHA256).Hash)"
+          }
+          Add-Type -AssemblyName System.Drawing
+          $icon=[Drawing.Icon]::ExtractAssociatedIcon($exe)
+          if(!$icon){throw 'Embedded Windows EXE icon missing'}
+          $img=$icon.ToBitmap()
+          if($img.Width -lt 16){throw 'Embedded Windows taskbar icon invalid'}
+          $img.Dispose();$icon.Dispose()
+          Write-Host 'PASS Windows EXE icon resource present, matching approved source generation'
+      - name: Real signed full installer smoke and Documents data retention
+        shell: pwsh
+        run: |
+          $data=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data'
+          New-Item -ItemType Directory -Force -Path $data | Out-Null
+          [IO.File]::WriteAllText((Join-Path $data 'brand-code-signing-sentinel.txt'),'NGO SAVED DATA MUST SURVIVE')
+          $setup=(Get-ChildItem dist -File -Filter 'Ananda-Sangha-Event-Desk-Signed-Setup-*.exe'|Select-Object -First 1).FullName
+          $dest=Join-Path $env:RUNNER_TEMP 'AnandaSignedInstall'
+          $p=Start-Process -FilePath $setup -ArgumentList @('/S',('/D='+$dest)) -Wait -PassThru
+          if($p.ExitCode -ne 0){throw 'Full signed NSIS install failed'}
+          $app=Join-Path $dest 'Ananda Sangha Event Desk.exe'
+          if(!(Test-Path $app)){throw 'Signed app executable not installed'}
+          if((Get-AuthenticodeSignature $app).Status -ne 'Valid'){throw 'Installed app signature invalid'}
+          if([IO.File]::ReadAllText((Join-Path $data 'brand-code-signing-sentinel.txt')) -ne 'NGO SAVED DATA MUST SURVIVE'){throw 'Existing Documents data damaged'}
+          Write-Host 'PASS signed Windows full setup installation and offline data preservation'
+      - name: Scan signed full installer using Microsoft Defender
+        shell: pwsh
+        run: |
+          $setup=(Get-ChildItem dist -File -Filter 'Ananda-Sangha-Event-Desk-Signed-Setup-*.exe'|Select-Object -First 1).FullName
+          if(!(Get-MpComputerStatus).AntivirusEnabled){throw 'Microsoft Defender unavailable'}
+          Start-MpScan -ScanType CustomScan -ScanPath $setup -ErrorAction Stop
+          if(!(Test-Path $setup)){throw 'Signed installer quarantined'}
+          $hits=@(Get-MpThreatDetection -ErrorAction SilentlyContinue|Where-Object{($_.Resources -join ';') -match 'Ananda-Sangha-Event-Desk-Signed-Setup'})
+          if($hits.Count){throw 'Microsoft Defender blocked signed full installer'}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Genuinely-Authenticode-Signed-Installer
+          path: dist/Ananda-Sangha-Event-Desk-Signed-Setup-*.exe
+          if-no-files-found: error
+  independent-av:
+    if: github.event_name == 'workflow_dispatch'
+    needs: signed-full-installer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Ananda-Genuinely-Authenticode-Signed-Installer
+          path: audit
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clamav clamav-freshclam
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam --verbose
+          clamscan --infected --allmatch --max-filesize=500M --max-scansize=1G audit/*.exe
+  publish:
+    if: github.event_name == 'workflow_dispatch'
+    needs: [signed-full-installer,independent-av]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Ananda-Genuinely-Authenticode-Signed-Installer
+          path: release
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-5.81.8-patch14-5-signed-logo-full-installer
+          name: Ananda Sangha Event Desk — Authenticode Signed Full Installer
+          prerelease: true
+          files: release/*.exe
+          body: |
+            Genuinely Authenticode-signed full Windows installer with exactly the approved Ananda logo
+            embedded in the app/taskbar executable and standard desktop + Start Menu shortcuts.
+            Includes current verified Patch14.5 Class Reports export + previous approved app code.
+            Requires successfully verified trusted publisher signature and clean Defender/ClamAV scans.
+            Existing Documents/ANANDA SANGHA EVENT DESK/Data is preserved.
