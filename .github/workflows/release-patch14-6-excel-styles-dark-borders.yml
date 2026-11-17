@@ -1,0 +1,190 @@
+name: Ananda Patch14.6 Excel Styling and Dark Border Restoration
+on:
+  push:
+    branches: [patch14-6-restore-excel-styles-dark-borders-20261117]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  windows-verify:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      P145_SHA: BE8E5E71833718B645D7DC351F3D570B5EA7D06027958AD396F6963921D20EC6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Recreate exact released Patch14.5 Windows application before edits
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path source,source/unpacked,build,payload,dist-patch14-6,windows-base,patch144,patch145 | Out-Null
+          gh release download ananda-5.81.8-patch14-1-add-member-update --repo focusdesk-dev/ananda-sangha-event-desk --pattern 'Ananda-Patch14.1-ADD-MEMBER-Update.zip' --dir source
+          if($LASTEXITCODE -ne 0){throw 'Patch14.1 approved archive unavailable'}
+          Expand-Archive source/Ananda-Patch14.1-ADD-MEMBER-Update.zip source/unpacked -Force
+          if((Get-FileHash source/unpacked/app.asar -Algorithm SHA256).Hash -ne '24F788CED0E3616EDAA52A1A6566BA0B58CAD6555CE34D09A00087E525E1A4EC'){throw 'Wrong Patch14.1 source'}
+          gh release download ananda-beta-5.81.8 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir windows-base
+          if($LASTEXITCODE -ne 0){throw 'Full Windows installer unavailable'}
+          gh release download ananda-5.81.8-patch14-4-direct-view-one-yellow-divider --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir patch144
+          if($LASTEXITCODE -ne 0){throw 'Patch14.4 updater unavailable'}
+          gh release download ananda-5.81.8-patch14-5-class-reports-excel --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir patch145
+          if($LASTEXITCODE -ne 0){throw 'Patch14.5 updater unavailable'}
+          $setup=(Get-ChildItem windows-base -Filter '*.exe'|Select-Object -First 1).FullName
+          $dest=Join-Path $env:RUNNER_TEMP 'AnandaPatch146StyleAudit'
+          $p=Start-Process -FilePath $setup -ArgumentList @('/S',('/D='+$dest)) -PassThru -Wait
+          if($p.ExitCode -ne 0){throw 'Windows app base install failed'}
+          $archive=Join-Path $dest 'resources/app.asar'
+          Copy-Item source/unpacked/app.asar $archive -Force
+          foreach($folder in @('patch144','patch145')){
+            $exe=(Get-ChildItem $folder -Filter '*.exe' |Select-Object -First 1).FullName
+            $p=Start-Process -FilePath $exe -ArgumentList @('/S',('/D='+$dest)) -PassThru
+            if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw "Original $folder update timed out"}
+            if($p.ExitCode -ne 0){throw "Original $folder update failed"}
+          }
+          if((Get-FileHash $archive -Algorithm SHA256).Hash -ne $env:P145_SHA){throw 'Released Patch14.5 baseline differs'}
+          $data=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data'
+          New-Item -ItemType Directory -Force -Path $data | Out-Null
+          [IO.File]::WriteAllText((Join-Path $data 'patch14-6-data-sentinel.txt'),'UNCHANGED PRIOR NGO RECORDS')
+          "ANANDA_INSTALL=$dest" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Fix only exported XLSX styles.xml and dark cell borders
+        shell: pwsh
+        run: |
+          npm install --no-save --no-fund --no-audit @electron/asar
+          if($LASTEXITCODE -ne 0){throw 'ASAR packager unavailable'}
+          node --check scripts/approved-class-reports-xlsx-export-patch14-5.js
+          if($LASTEXITCODE -ne 0){throw 'Excel styles source syntax error'}
+          node --check scripts/build-approved-excel-borders-patch14-6.js
+          if($LASTEXITCODE -ne 0){throw 'Scoped build syntax error'}
+          $input=Join-Path $env:ANANDA_INSTALL 'resources/app.asar'
+          node scripts/build-approved-excel-borders-patch14-6.js $input build/app.asar build/unpacked
+          if($LASTEXITCODE -ne 0){throw 'Could not verify formatting-only change'}
+          $new=(Get-FileHash build/app.asar -Algorithm SHA256).Hash
+          "NEW_SHA=$new" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'NEW_PATCH14_6_APP_SHA:' $new
+      - name: Compile standard Windows Patch14.6 EXE
+        shell: pwsh
+        run: |
+          choco install nsis --yes --no-progress
+          if($LASTEXITCODE -ne 0){throw 'NSIS failed'}
+          Copy-Item build/app.asar payload/app.asar
+          $nsi=[IO.File]::ReadAllText((Join-Path $PWD 'Patch14-6-Standard-Update.nsi'))
+          if(!$nsi.Contains('__NEW_SHA__')){throw 'Missing integrity guard'}
+          [IO.File]::WriteAllText((Join-Path $PWD 'Patch14-6-Generated.nsi'),$nsi.Replace('__NEW_SHA__',$env:NEW_SHA.ToLowerInvariant()))
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' '/V4' 'Patch14-6-Generated.nsi'
+          if($LASTEXITCODE -ne 0){throw 'NSIS compilation failed'}
+          if(!(Test-Path 'dist-patch14-6/Ananda-Patch14.6-EXCEL-DARK-BORDERS-Installer.exe')){throw 'Installer missing'}
+          Write-Host 'INSTALLER_SHA256:' (Get-FileHash 'dist-patch14-6/Ananda-Patch14.6-EXCEL-DARK-BORDERS-Installer.exe' -Algorithm SHA256).Hash
+      - name: Verify actual Windows upgrade, previous code backup and offline data
+        shell: pwsh
+        run: |
+          $dest=$env:ANANDA_INSTALL
+          $exe=(Resolve-Path 'dist-patch14-6/Ananda-Patch14.6-EXCEL-DARK-BORDERS-Installer.exe').Path
+          $p=Start-Process -FilePath $exe -ArgumentList @('/S',('/D='+$dest)) -PassThru
+          if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw 'Patch14.6 installer timed out'}
+          if($p.ExitCode -ne 0){throw 'Patch14.6 installer failed'}
+          $archive=Join-Path $dest 'resources/app.asar'
+          $backup=Join-Path $dest 'resources/app.asar.before-patch14-6'
+          if(!(Test-Path $backup)){throw 'Previous code backup missing'}
+          if((Get-FileHash $backup -Algorithm SHA256).Hash -ne $env:P145_SHA){throw 'Previous code backup corrupted'}
+          if((Get-FileHash $archive -Algorithm SHA256).Hash -ne $env:NEW_SHA){throw 'Installed Patch14.6 SHA mismatch'}
+          $saved=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data/patch14-6-data-sentinel.txt'
+          if([IO.File]::ReadAllText($saved) -ne 'UNCHANGED PRIOR NGO RECORDS'){throw 'Offline data changed'}
+          Write-Host 'PASS installed app, code backup and existing Documents data untouched'
+      - name: Validate actual exported XLSX formatting and previous functionality
+        shell: pwsh
+        run: |
+          $app=Join-Path $env:ANANDA_INSTALL 'Ananda Sangha Event Desk.exe'
+          $p=Start-Process -FilePath $app -ArgumentList '--remote-debugging-port=9223' -PassThru
+          Start-Sleep -Seconds 7
+          if($p.HasExited){throw 'Installed Windows application failed to launch'}
+          $tests=@(
+            'scripts/verify-class-reports-xlsx-patch14-5-windows.js',
+            'scripts/verify-direct-view-single-yellow-patch14-4-windows.js',
+            'scripts/verify-beta574-reports-desktop.js',
+            'scripts/verify-patch14-existing-family-desktop.js',
+            'scripts/verify-patch13-student-volunteer-and-mobile-desktop.js',
+            'scripts/verify-patch12-register-under-desktop.js',
+            'scripts/verify-volunteer-cross-event-desktop.js'
+          )
+          foreach($test in $tests){
+            Write-Host "START_TEST $test"
+            node $test
+            if($LASTEXITCODE -ne 0){throw "Broken Windows test: $test"}
+            Write-Host "PASS_TEST $test"
+          }
+      - name: Scan exact Windows EXE with Microsoft Defender
+        shell: pwsh
+        run: |
+          $exe=(Resolve-Path 'dist-patch14-6/Ananda-Patch14.6-EXCEL-DARK-BORDERS-Installer.exe').Path
+          $status=Get-MpComputerStatus -ErrorAction Stop
+          if(!$status.AntivirusEnabled){throw 'Defender unavailable'}
+          try{Update-MpSignature -ErrorAction Stop}catch{Write-Host 'Definition update unavailable' $_.Exception.Message}
+          Start-MpScan -ScanType CustomScan -ScanPath $exe -ErrorAction Stop
+          $hits=@(Get-MpThreatDetection -ErrorAction SilentlyContinue | Where-Object{($_.Resources -join ';') -match 'Ananda-Patch14.6-EXCEL-DARK-BORDERS-Installer.exe'})
+          if($hits.Count -gt 0){throw 'Microsoft Defender detected installer'}
+          if(!(Test-Path $exe)){throw 'Installer quarantined'}
+          Write-Host 'PASS Defender scanned exact unsigned EXE'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ananda-patch14-6-actual-xlsx-preview
+          path: class-report-export-audit/*.xlsx
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ananda-patch14-6-verified-exe
+          path: dist-patch14-6/Ananda-Patch14.6-EXCEL-DARK-BORDERS-Installer.exe
+          if-no-files-found: error
+          compression-level: 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ananda-patch14-6-scoped-change-report
+          path: patch14-6-change-report.json
+          if-no-files-found: error
+  clamav:
+    needs: windows-verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-6-verified-exe
+          path: audit
+      - name: Independent ClamAV scan of exact installer
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clamav clamav-freshclam
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam --verbose
+          clamscan --infected --allmatch --max-filesize=200M --max-scansize=500M audit/Ananda-Patch14.6-EXCEL-DARK-BORDERS-Installer.exe
+  release:
+    needs: [windows-verify,clamav]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ananda-patch14-6-verified-exe
+          path: publish
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ananda-5.81.8-patch14-6-excel-formatting-dark-borders
+          name: Ananda Patch14.6 — Approved Excel Styling and Dark Borders
+          prerelease: true
+          files: publish/Ananda-Patch14.6-EXCEL-DARK-BORDERS-Installer.exe
+          body: |
+            Narrow correction for existing Ananda Patch14.1 to Patch14.5 Windows installations.
+            The previous generated Office styles.xml was malformed, causing Excel to discard
+            header colours, status highlighting and table borders despite preserving data.
+            Restores approved navy title / table header, yellow accent, alternate-row shading,
+            dark gridlines in every cell and a strong outer border.
+            Preserves the exact 3-row compact A4 landscape workbook layout, current records,
+            payment status/date logic, one yellow event divider, volunteers, Classes and Events.
+            Only the Excel export style generator in index.html changed, not data or schema.
+            The updater backs up the prior app.asar and never alters offline NGO data.
+            UNSIGNED: do not bypass SmartScreen or antivirus protection.
