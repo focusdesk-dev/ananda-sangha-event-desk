@@ -1,5 +1,5 @@
 'use strict';
-const assert=require('node:assert/strict'),fs=require('node:fs'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function unzip(bytes){
  let e=-1;for(let i=bytes.length-22;i>=Math.max(0,bytes.length-66000);i--)if(bytes.readUInt32LE(i)===0x06054b50){e=i;break}
  assert(e>=0,'XLSX is not a ZIP');
@@ -70,8 +70,18 @@ async function main(){
    return d.side;
   }
   const originalSide=await reports();
+  const saveFolder=path.join(process.cwd(),'class-report-export-audit');
+  fs.mkdirSync(saveFolder,{recursive:true});
+  try{
+    await call('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:saveFolder,eventsEnabled:true});
+    console.log('Using Chrome Browser download directory',saveFolder);
+  }catch(e){
+    await call('Page.setDownloadBehavior',{behavior:'allow',downloadPath:saveFolder});
+    console.log('Using legacy Chrome Page download directory',saveFolder);
+  }
   await run("(()=>{window.__qaXlsx=null;window.__qaErr=[];window.addEventListener('error',e=>window.__qaErr.push(e.message));window.addEventListener('unhandledrejection',e=>window.__qaErr.push(String(e.reason)));const old=URL.createObjectURL.bind(URL);URL.createObjectURL=blob=>{window.__qaXlsx=blob;return old(blob)};return true})()");
   async function exportMenu(kind){
+   const beforeFiles=new Set(fs.readdirSync(saveFolder));
    const menu=await fn(function(){
      document.getElementById('v574Export').click();
      return [...document.querySelectorAll('#v145ClassExportMenu [data-kind]')].map(el=>el.dataset.kind);
@@ -86,15 +96,23 @@ async function main(){
       document.getElementById('v51SecurityForm').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
     });
    }
-   for(let i=0;i<100;i++){if(await run("!!window.__qaXlsx"))break;await sleep(140)}
-   const base64=await run("window.__qaXlsx?window.__qaXlsx.arrayBuffer().then(b=>{let v='';for(const c of new Uint8Array(b))v+=String.fromCharCode(c);return btoa(v)}):''");
-   if(!base64||base64.length<=1000){
-    const dbg=await run("(()=>({err:window.__qaErr,security:document.getElementById('v51SecurityError')?.textContent,modal:document.getElementById('v51SecurityModal')?.className,toast:document.querySelector('#toast')?.textContent,menu:document.getElementById('v145ClassExportMenu')?.textContent,classPage:document.querySelector('.page.active')?.id,table:document.getElementById('v574Count')?.textContent}))()");
-    console.log('XLSX EXPORT DEBUG',JSON.stringify(dbg));
+   let found='';
+   for(let i=0;i<100;i++){
+     found=fs.readdirSync(saveFolder).find(name=>name.toLowerCase().endsWith('.xlsx')&&!beforeFiles.has(name))||'';
+     if(found)break;
+     await sleep(140);
    }
-   assert(base64&&base64.length>1000,'No XLSX exported after choosing menu option');
+   if(!found){
+     const dbg=await run("(()=>({err:window.__qaErr,security:document.getElementById('v51SecurityError')?.textContent,modal:document.getElementById('v51SecurityModal')?.className,toast:document.querySelector('#toast')?.textContent,classPage:document.querySelector('.page.active')?.id,table:document.getElementById('v574Count')?.textContent}))()");
+     console.log('XLSX DOWNLOAD DEBUG',JSON.stringify(dbg));
+     console.log('Download folder files:',fs.readdirSync(saveFolder));
+   }
+   assert(found,'XLSX was not saved by the actual Windows browser');
+   const bytes=fs.readFileSync(path.join(saveFolder,found));
+   assert(bytes.length>1000);
+   console.log('Actual Excel saved:',found,bytes.length);
    await run('window.__qaXlsx=null');
-   return unzip(Buffer.from(base64,'base64'));
+   return unzip(bytes);
   }
   const initial=await exportMenu('all');
   const reg=initial.get('xl/worksheets/sheet1.xml'),payment=initial.get('xl/worksheets/sheet2.xml'),both=initial.get('xl/worksheets/sheet3.xml');
