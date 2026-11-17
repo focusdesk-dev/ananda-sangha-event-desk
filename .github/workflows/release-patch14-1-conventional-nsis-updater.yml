@@ -75,7 +75,8 @@ jobs:
         run: |
           $exe=(Resolve-Path 'dist-patch14-1/Ananda-Patch14.1-ADD-MEMBER-Installer.exe').Path
           $dest=$env:ANANDA_TEST_INSTALL
-          $p=Start-Process -FilePath $exe -ArgumentList @('/S',('/D='+$dest)) -Wait -PassThru
+          $p=Start-Process -FilePath $exe -ArgumentList @('/S',('/D='+$dest)) -PassThru
+          if(!$p.WaitForExit(90000)) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue; throw 'Updater did not complete within 90 seconds (silent dialog or wrong installed source)' }
           Write-Host 'UPDATER_EXIT_CODE:' $p.ExitCode
           if($p.ExitCode -ne 0){throw 'Patch14.1 updater did not complete'}
           $archive=Join-Path $dest 'resources/app.asar'
