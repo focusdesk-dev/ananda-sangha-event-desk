@@ -22,7 +22,7 @@ async function main(){
  const fn=async f=>js('('+f.toString()+')()');
  try{
   const report=await fn(function(){
-   const sidebar=document.querySelector('aside')?.outerHTML;
+   const sidebar=document.querySelector('aside')?.outerHTML.replace(/nav-btn active/g,'nav-btn');
    const logo=document.querySelector('aside .brand-logo img')?.getAttribute('src');
    document.querySelector('aside [data-page="settings"]')?.click();
    const root=document.getElementById('settings'),home=document.getElementById('v147SettingsHome');
@@ -34,7 +34,7 @@ async function main(){
      allClosed:direct.every(x=>!x.open),
      noAdvanced:!root.textContent.toLowerCase().includes('advanced settings'),
      footer:root.querySelector('footer.v147-settings-footer')?.textContent,
-     sidebarSame:sidebar===document.querySelector('aside')?.outerHTML,
+     sidebarSame:sidebar===document.querySelector('aside')?.outerHTML.replace(/nav-btn active/g,'nav-btn'),
      sidebarLogo:logo,
      originalGridRemoved:!root.querySelector(':scope > .grid.two'),
      securityExists:!!root.querySelector('#v147SecurityContent #v52PasswordSettingsForm'),
