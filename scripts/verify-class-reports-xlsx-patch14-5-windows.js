@@ -66,6 +66,7 @@ async function main(){
        count:document.getElementById('v574Count')?.textContent,side:document.querySelector('aside')?.textContent};
    });
    assert.equal(d.version,'14.5');assert.equal(d.active,true);
+   assert.equal(await run('window.anandaClassReportsExcelStyleVersion'),'14.6','Corrected dark-border export patch not loaded');
    assert.match(d.count,/2 of 2/,'Only the two seeded enrolments should be visible');
    return d.side;
   }
@@ -116,6 +117,19 @@ async function main(){
   }
   const initial=await exportMenu('all');
   const reg=initial.get('xl/worksheets/sheet1.xml'),payment=initial.get('xl/worksheets/sheet2.xml'),both=initial.get('xl/worksheets/sheet3.xml');
+  const styleXml=initial.get('xl/styles.xml');
+  assert.ok(styleXml,'Excel shared style definitions missing');
+  assert.doesNotMatch(styleXml,/<\/bottom\s*\/>/,'Broken Office XML style close tag must never return');
+  const validation=await run('(()=>{const xml='+JSON.stringify(styleXml)+';const doc=new DOMParser().parseFromString(xml,"application/xml");return {errors:doc.getElementsByTagName("parsererror").length,borders:doc.getElementsByTagName("border").length,fills:doc.getElementsByTagName("fill").length,styleCount:doc.getElementsByTagName("cellXfs")[0]?.getElementsByTagName("xf").length}})()');
+  assert.equal(validation.errors,0,'Excel styles.xml must be valid parseable XML');
+  assert.ok(validation.borders>=8,'Dark grid and outer boundary styles missing');
+  assert.ok(validation.fills>=7,'Navy headers and alternating body fills missing');
+  assert.ok(validation.styleCount>=90,'Per-cell dark boundary styles missing');
+  assert.match(styleXml,/FF52657A/,'Dark grey cell dividers not defined');
+  assert.match(styleXml,/FF12376F/,'Approved navy blue header missing');
+  assert.match(styleXml,/style="medium"/,'Dark outer boundary missing');
+  console.log('PASS styles.xml valid, navy header, dark cell grid and medium outside boundary',JSON.stringify(validation));
+
   assert(reg&&payment&&both,'All three approved sheets must exist');
   for(const xml of [reg,payment,both]){
    assert.match(xml,/paperSize="9"/);
