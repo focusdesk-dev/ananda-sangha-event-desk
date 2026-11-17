@@ -242,19 +242,38 @@
       const info=header.querySelector('.v56-group-mobile');
       if(info)info.textContent=(group.mobile||'')+' · '+members.length+
         ' MEMBER'+(members.length===1?'':'S');
-      const add=header.querySelector('.v88-edit-group');
-      if(add){
-        add.textContent='+ ADD MEMBER';
-        add.onclick=e=>{
-          e.preventDefault();e.stopPropagation();
-          if(!header.classList.contains('v88-open'))header.click();
-          v14Editing.delete(group.id);v14Adding.add(group.id);
-          v56RenderGroupPlanning();
-          const fresh=[...box.querySelectorAll('.v88-card-wrap')]
-            .find(w=>w.querySelector('.v88-group-row')?.dataset.id===group.id);
-          fresh?.querySelector('.v14-add-new .v14-name')?.focus();
-        };
+      // PATCH 14.1: Saved family cards must ALWAYS expose + ADD MEMBER,
+      // independently of whether the legacy conditional edit action exists.
+      // Place it before the existing SAVE & REGISTER header action.
+      const saveRegister=[...header.querySelectorAll('button')].find(button=>
+        /SAVE\s*&\s*REGISTER/i.test(button.textContent||''));
+      let add=header.querySelector('.v88-edit-group');
+      if(!add){
+        add=document.createElement('button');
+        add.type='button';
+        add.className='btn small v88-edit-group v14-add-member';
+        if(saveRegister)saveRegister.before(add);
+        else header.append(add);
       }
+      add.classList.add('v14-add-member');
+      add.textContent='+ ADD MEMBER';
+      add.hidden=false;
+      add.style.display='inline-flex';
+      add.style.alignItems='center';
+      add.style.justifyContent='center';
+      add.style.whiteSpace='nowrap';
+      if(saveRegister&&add.nextElementSibling!==saveRegister)
+        saveRegister.before(add);
+      add.onclick=e=>{
+        e.preventDefault();e.stopPropagation();
+        if(!header.classList.contains('v88-open'))header.click();
+        // Each Add action is linked to the same persisted group and event.
+        v14Editing.delete(group.id);v14Adding.add(group.id);
+        v56RenderGroupPlanning();
+        const fresh=[...box.querySelectorAll('.v88-card-wrap')]
+          .find(w=>w.querySelector('.v88-group-row')?.dataset.id===group.id);
+        fresh?.querySelector('.v14-add-new .v14-name')?.focus();
+      };
       const old=wrapper.querySelector('.v88-group-details');
       if(!old)continue;
       old.replaceChildren();
@@ -263,13 +282,15 @@
       const label=document.createElement('span');
       label.textContent=members.length+' REGISTERED';
       head.append(title,label);old.append(head);
-      for(const member of members){
-        if(v14Editing.get(group.id)===member.id)old.append(v14Editor(group,member,false));
-        else old.append(v14ReadOnlyRow(group,member));
-      }
+      // Approved layout: the blank member editor opens at the TOP,
+      // directly beneath the family details heading, above saved members.
       if(v14Adding.has(group.id)){
         const inline=v14Editor(group,null,true);inline.classList.add('v14-add-new');
         old.append(inline);
+      }
+      for(const member of members){
+        if(v14Editing.get(group.id)===member.id)old.append(v14Editor(group,member,false));
+        else old.append(v14ReadOnlyRow(group,member));
       }
       if(!members.length&&!v14Adding.has(group.id)){
         const empty=document.createElement('p');empty.className='v14-empty';
@@ -285,6 +306,7 @@
     return result;
   };
   document.head.insertAdjacentHTML('beforeend','<style id="v14-family-member-style">'+
+    '#v56GroupPlanning .v14-add-member{background:#ffcb22!important;color:#07356e!important;border:1px solid #f2bb07!important;border-radius:8px;padding:9px 14px;font-size:11px;font-weight:800;box-shadow:none!important;cursor:pointer;flex-shrink:0}'+
     '#v56GroupPlanning .v14-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 11px;border-bottom:1px solid #e4e9f1;color:#092c61;font-size:12px}'+
     '#v56GroupPlanning .v14-head span{font-size:11px;font-weight:650;color:#647a92}'+
     '#v56GroupPlanning .v14-member-line{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 14px;border-top:1px solid #e6edf4;background:#fff}'+
