@@ -1,0 +1,65 @@
+name: Diagnose Enrol First Click Exception Patch14.7
+on:
+  push:
+    branches: [audit-whole-windows-app-enrol-first-click-20261117]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  actual-windows-app-audit:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_SHA: 62873FC4FA13C02FBE3B350221E99C566AA12E96792B80AF62CACB3AFDE1999E
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install released Ananda 14.7 in isolated Windows test environment
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path audit-source,audit-source/unpacked,audit-base,audit-prior,audit-final,ananda-full-audit | Out-Null
+          gh release download ananda-5.81.8-patch14-1-add-member-update --repo focusdesk-dev/ananda-sangha-event-desk --pattern 'Ananda-Patch14.1-ADD-MEMBER-Update.zip' --dir audit-source
+          if($LASTEXITCODE -ne 0){throw 'Missing approved Ananda baseline code'}
+          Expand-Archive audit-source/Ananda-Patch14.1-ADD-MEMBER-Update.zip audit-source/unpacked -Force
+          if((Get-FileHash audit-source/unpacked/app.asar -Algorithm SHA256).Hash -ne '24F788CED0E3616EDAA52A1A6566BA0B58CAD6555CE34D09A00087E525E1A4EC'){throw 'Unexpected base archive'}
+          gh release download ananda-beta-5.81.8 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir audit-base
+          if($LASTEXITCODE -ne 0){throw 'Full Windows runtime unavailable'}
+          gh release download ananda-5.81.8-patch14-6-excel-formatting-dark-borders --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir audit-prior
+          if($LASTEXITCODE -ne 0){throw 'Patch14.6 installer unavailable'}
+          gh release download ananda-5.81.8-patch14-7-settings-redesign --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir audit-final
+          if($LASTEXITCODE -ne 0){throw 'Patch14.7 installer unavailable'}
+          $setup=(Get-ChildItem audit-base -Filter '*.exe'|Select-Object -First 1).FullName
+          $dir=Join-Path $env:RUNNER_TEMP 'AnandaFullAppQA20261117'
+          $p=Start-Process -FilePath $setup -ArgumentList @('/S',('/D='+$dir)) -Wait -PassThru
+          if($p.ExitCode -ne 0){throw 'Windows base install failed'}
+          $app=Join-Path $dir 'resources/app.asar'
+          Copy-Item audit-source/unpacked/app.asar $app -Force
+          foreach($folder in @('audit-prior','audit-final')){
+            $e=(Get-ChildItem $folder -Filter '*.exe'|Select-Object -First 1).FullName
+            $p=Start-Process -FilePath $e -ArgumentList @('/S',('/D='+$dir)) -PassThru
+            if(!$p.WaitForExit(90000)){Stop-Process -Id $p.Id -Force;throw 'Patch upgrade timed out'}
+            if($p.ExitCode -ne 0){throw "Failed Windows update $folder"}
+          }
+          if((Get-FileHash $app -Algorithm SHA256).Hash -ne $env:EXPECTED_SHA){throw 'Installed app is NOT the released 14.7 code'}
+          "ANANDA_INSTALL=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'AUDIT BASE CONFIRMED: released Patch14.7 Windows app'
+      - name: Run actual GUI demo and first-click student enrolment
+        shell: pwsh
+        run: |
+          $app=Join-Path $env:ANANDA_INSTALL 'Ananda Sangha Event Desk.exe'
+          $p=Start-Process -FilePath $app -ArgumentList '--remote-debugging-port=9223' -PassThru
+          Start-Sleep -Seconds 7
+          if($p.HasExited){throw 'Real Windows app failed to launch'}
+          node --check scripts/audit-whole-ananda-demo-windows.js
+          if($LASTEXITCODE -ne 0){throw 'Audit test source syntax failed'}
+          node scripts/audit-whole-ananda-demo-windows.js 2>&1 | Tee-Object -FilePath ananda-full-audit/journey.log
+          Write-Host 'GUI audit output saved, including failures; continue remaining comprehensive tests.'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ananda-enrolment-first-click-trace-147
+          path: ananda-full-audit/**
+          if-no-files-found: warn
