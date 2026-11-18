@@ -37,10 +37,10 @@ jobs:
           npm install --no-save --no-audit --no-fund @electron/asar
           if($LASTEXITCODE -ne 0){throw 'ASAR tools failed'}
           node -e "require('@electron/asar').extractAll('build/base.asar','build/app')"
+          $env:ANANDA_INDEX_PATH='build/app/index.html'
           node scripts/apply-serial-attendance.js
           if($LASTEXITCODE -ne 0){throw 'Serial update failed'}
-          node -e "const fs=require('fs'),vm=require('vm');let s=fs.readFileSync('index.html','utf8');let a=s.indexOf('// PATCH 14.11 START'),b=s.indexOf('// PATCH 14.11 END');if(a<0||b<a)throw Error('patch missing');new vm.Script(s.slice(a,b));"
-          Copy-Item index.html build/app/index.html -Force
+          node -e "const fs=require('fs'),vm=require('vm');let s=fs.readFileSync('build/app/index.html','utf8');let a=s.indexOf('// PATCH 14.11 START'),b=s.indexOf('// PATCH 14.11 END');if(a<0||b<a)throw Error('patch missing');new vm.Script(s.slice(a,b));"
           node -e "require('@electron/asar').createPackage('build/app','payload/app.asar').then(()=>console.log('small archive ready'))"
           if($LASTEXITCODE -ne 0){throw 'Archive packaging failed'}
           $new=(Get-FileHash payload/app.asar -Algorithm SHA256).Hash.ToLowerInvariant()
