@@ -1,0 +1,73 @@
+name: Build small Patch 14.11 updater only
+on:
+  push:
+    branches: [patch14-11-attendance-serial-entry-20261118]
+    paths: ['.github/workflows/serial-attendance-small-patch.yml']
+permissions:
+  contents: write
+jobs:
+  small-patch:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download verified previous small patch and extract its app archive
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory -Force -Path prior,extracted,build,payload,dist-patch14-11 | Out-Null
+          gh release download ananda-5.81.8-patch14-10-50-demo-students-level1 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir prior
+          if($LASTEXITCODE -ne 0){throw 'Patch 14.10 installer missing'}
+          $patch=(Get-ChildItem prior -Filter '*.exe' | Select-Object -First 1).FullName
+          & 'C:\Program Files\7-Zip\7z.exe' x $patch '-oextracted' -y
+          if($LASTEXITCODE -ne 0){throw 'Could not extract approved 14.10 updater'}
+          $files=@(Get-ChildItem extracted -Filter 'app.asar' -Recurse)
+          Write-Host 'App archives:' $files.Count
+          if($files.Count -ne 1){throw 'Cannot uniquely identify approved 14.10 app.asar'}
+          Copy-Item $files[0].FullName build/base.asar
+          $base=(Get-FileHash build/base.asar -Algorithm SHA256).Hash.ToLowerInvariant()
+          "BASE_SHA=$base" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'Verified extracted 14.10 baseline hash:' $base
+      - name: Change one feature inside the existing archive
+        shell: pwsh
+        run: |
+          npm install --no-save --no-audit --no-fund @electron/asar
+          if($LASTEXITCODE -ne 0){throw 'ASAR tools failed'}
+          node -e "require('@electron/asar').extractAll('build/base.asar','build/app')"
+          node scripts/apply-serial-attendance.js
+          if($LASTEXITCODE -ne 0){throw 'Serial update failed'}
+          node -e "const fs=require('fs'),vm=require('vm');let s=fs.readFileSync('index.html','utf8');let a=s.indexOf('// PATCH 14.11 START'),b=s.indexOf('// PATCH 14.11 END');if(a<0||b<a)throw Error('patch missing');new vm.Script(s.slice(a,b));"
+          Copy-Item index.html build/app/index.html -Force
+          node -e "require('@electron/asar').createPackage('build/app','payload/app.asar').then(()=>console.log('small archive ready'))"
+          if($LASTEXITCODE -ne 0){throw 'Archive packaging failed'}
+          $new=(Get-FileHash payload/app.asar -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($new -eq $env:BASE_SHA){throw 'Patch makes no change'}
+          "NEW_SHA=$new" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'Original application archive changed ONLY in index.html'
+      - name: Build small NSIS in-place updater
+        shell: pwsh
+        run: |
+          choco install nsis --yes --no-progress
+          if($LASTEXITCODE -ne 0){throw 'NSIS unavailable'}
+          $nsi=[IO.File]::ReadAllText((Join-Path $PWD 'Patch14-11-Standard-Update.nsi'))
+          $nsi=$nsi.Replace('__BASE_SHA__',$env:BASE_SHA).Replace('__NEW_SHA__',$env:NEW_SHA)
+          [IO.File]::WriteAllText((Join-Path $PWD 'Patch14-11-Generated.nsi'),$nsi)
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' '/V4' 'Patch14-11-Generated.nsi'
+          if($LASTEXITCODE -ne 0){throw 'Updater build failed'}
+          $exe='dist-patch14-11/Ananda-Patch14.11-SERIAL-ATTENDANCE-Update.exe'
+          if(!(Test-Path $exe)){throw 'Patch file missing'}
+          Write-Host 'SMALL_PATCH_BYTES:' (Get-Item $exe).Length
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Patch14.11-SERIAL-ATTENDANCE-Update
+          path: dist-patch14-11/Ananda-Patch14.11-SERIAL-ATTENDANCE-Update.exe
+          if-no-files-found: error
+      - name: Publish direct patch download
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create patch14.11-serial-attendance-small 'dist-patch14-11/Ananda-Patch14.11-SERIAL-ATTENDANCE-Update.exe' --target ${{ github.sha }} --title 'Ananda Patch 14.11 small updater only' --notes 'Small in-place patch for users of approved Patch14.10. Backs up app.asar, verifies hashes, and changes only serial-number Class Attendance. Does not reinstall Electron or touch the user database.'
