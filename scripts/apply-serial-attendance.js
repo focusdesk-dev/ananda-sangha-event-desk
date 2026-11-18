@@ -1,6 +1,6 @@
 // Patch 14.11: isolated serial-number attendance UI. Baseline 14.10 is not otherwise modified.
 const fs=require('fs'), path=require('path'), assert=require('assert');
-const p=path.join(__dirname,'..','index.html');
+const p=process.env.ANANDA_INDEX_PATH || path.join(__dirname,'..','index.html');
 const original=fs.readFileSync(p,'utf8');
 const anchor='  function p2v510WireAttendance(){';
 assert(original.includes(anchor),'Attendance integration anchor not found');
