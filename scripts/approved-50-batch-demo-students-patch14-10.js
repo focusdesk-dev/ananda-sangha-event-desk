@@ -141,9 +141,11 @@
     }
   }
   function v150MountDemoAction(){
-    const batch=p2ActiveBatch(),header=$('p2ClassHeader');
-    if(!v150BatchIsLevel1(batch)||!header)return;
-    const actions=header.querySelector('.actions');
+    const batch=p2ActiveBatch(),enrolButton=$('p2EnrollStudent');
+    if(!v150BatchIsLevel1(batch)||!enrolButton)return;
+    // The frozen batch header has no .actions container. Keep the user-approved
+    // header unchanged; put the optional demo-data action beside ENROL STUDENT.
+    const actions=enrolButton.parentElement;
     if(!actions||actions.querySelector('#v150DemoButton'))return;
     const btn=document.createElement('button');
     btn.id='v150DemoButton';btn.type='button';
@@ -152,7 +154,7 @@
     btn.textContent=hasTest?'REMOVE TEST STUDENTS':'ADD 50 TEST STUDENTS';
     btn.title=hasTest?'Remove only tagged demo records':'Add 50 fictional students to THIS open Level 1 batch (20 Paid, 30 Unpaid)';
     btn.onclick=hasTest?v150RemoveDemo:v150SeedDemo;
-    actions.insertBefore(btn,actions.firstChild);
+    enrolButton.insertAdjacentElement('afterend',btn);
   }
   const v150ClassWorkspaceBase=p2RenderClassWorkspace;
   p2RenderClassWorkspace=function(){
