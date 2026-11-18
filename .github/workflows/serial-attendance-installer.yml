@@ -1,0 +1,47 @@
+name: Build Patch 14.11 Serial Attendance EXE
+on:
+  push:
+    branches: [patch14-11-attendance-serial-entry-20261118]
+    paths:
+      - '.github/workflows/serial-attendance-installer.yml'
+      - 'scripts/apply-serial-attendance.js'
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply only serial attendance feature
+        shell: pwsh
+        run: |
+          node --check scripts/apply-serial-attendance.js
+          node scripts/apply-serial-attendance.js
+          node -e "const fs=require('fs'),vm=require('vm');const s=fs.readFileSync('index.html','utf8');const a=s.indexOf('// PATCH 14.11 START'),b=s.indexOf('// PATCH 14.11 END');if(a<0||b<a)throw Error('Patch not injected');new vm.Script(s.slice(a,b));console.log('Serial attendance syntax OK')"
+      - name: Install dependencies
+        shell: pwsh
+        run: npm install --no-audit --no-fund
+      - name: Build Windows installer
+        shell: pwsh
+        run: npm run dist:win
+      - name: Package isolated patch installer
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem dist -Filter '*.exe' | Where-Object { $_.Name -notmatch 'uninstall' } | Select-Object -First 1
+          if (-not $exe) { throw 'Windows installer was not created' }
+          Copy-Item $exe.FullName 'Ananda-Patch14.11-SERIAL-ATTENDANCE-Installer.exe'
+          Get-FileHash 'Ananda-Patch14.11-SERIAL-ATTENDANCE-Installer.exe' -Algorithm SHA256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Patch14.11-SERIAL-ATTENDANCE-Installer
+          path: Ananda-Patch14.11-SERIAL-ATTENDANCE-Installer.exe
+          if-no-files-found: error
+      - name: Publish direct EXE download
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create patch14.11-serial-attendance 'Ananda-Patch14.11-SERIAL-ATTENDANCE-Installer.exe' --target ${{ github.sha }} --title 'Ananda Patch 14.11 - Serial Number Attendance' --notes 'Adds serial-number entry, preview and explicit confirmation to Class Attendance only. Based on Patch 14.10. No other application features changed.'
