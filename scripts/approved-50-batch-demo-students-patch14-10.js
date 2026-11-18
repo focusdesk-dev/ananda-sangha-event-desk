@@ -146,15 +146,18 @@
     // The frozen batch header has no .actions container. Keep the user-approved
     // header unchanged; put the optional demo-data action beside ENROL STUDENT.
     const actions=enrolButton.parentElement;
-    if(!actions||actions.querySelector('#v150DemoButton'))return;
-    const btn=document.createElement('button');
-    btn.id='v150DemoButton';btn.type='button';
-    btn.className='btn secondary small';
+    if(!actions)return;
+    let btn=actions.querySelector('#v150DemoButton');
+    if(!btn){
+      btn=document.createElement('button');
+      btn.id='v150DemoButton';btn.type='button';
+      btn.className='btn secondary small';
+      enrolButton.insertAdjacentElement('afterend',btn);
+    }
     const hasTest=v150Rows(batch).length>0;
     btn.textContent=hasTest?'REMOVE TEST STUDENTS':'ADD 50 TEST STUDENTS';
     btn.title=hasTest?'Remove only tagged demo records':'Add 50 fictional students to THIS open Level 1 batch (20 Paid, 30 Unpaid)';
     btn.onclick=hasTest?v150RemoveDemo:v150SeedDemo;
-    enrolButton.insertAdjacentElement('afterend',btn);
   }
   const v150ClassWorkspaceBase=p2RenderClassWorkspace;
   p2RenderClassWorkspace=function(){
