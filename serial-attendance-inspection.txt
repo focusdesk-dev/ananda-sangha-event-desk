@@ -1,606 +1,390 @@
-LINE COUNT: 11912
-MATCHES: 222
-
-==================== at line 159 ====================
-00152: @media(max-width:1100px){#p2v5WorkspaceGrid{grid-template-columns:1fr}#classWorkspace #p2ClassStats{grid-template-columns:repeat(3,1fr)}.p2v5-schedule-row{grid-template-columns:1fr 1fr}.p2v5-student-kpis{grid-template-columns:repeat(3,1fr)}}
-00153: </style>
-00154: 
-00155:     <script src="qrcode-client.js"></script>
-00156:     <script src="omr-scanner.js"></script>
-00157: <script src="jsqr-client.js"></script>
-00158: <style id="p2v530Style">
-00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
-00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
-00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
-00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
-00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
-00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
-00167: </style>
-00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
-00169: <style id="p2v570FrozenStyles">
-00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
-
-==================== at line 160 ====================
-00153: </style>
-00154: 
-00155:     <script src="qrcode-client.js"></script>
-00156:     <script src="omr-scanner.js"></script>
-00157: <script src="jsqr-client.js"></script>
-00158: <style id="p2v530Style">
-00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
-00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
-00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
-00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
-00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
-00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
-00167: </style>
-00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
-00169: <style id="p2v570FrozenStyles">
-00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
-00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
-
-==================== at line 161 ====================
-00154: 
-00155:     <script src="qrcode-client.js"></script>
-00156:     <script src="omr-scanner.js"></script>
-00157: <script src="jsqr-client.js"></script>
-00158: <style id="p2v530Style">
-00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
-00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
-00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
-00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
-00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
-00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
-00167: </style>
-00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
-00169: <style id="p2v570FrozenStyles">
-00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
-00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
-00172: body{background:#f8fafc}
-
-==================== at line 162 ====================
-00155:     <script src="qrcode-client.js"></script>
-00156:     <script src="omr-scanner.js"></script>
-00157: <script src="jsqr-client.js"></script>
-00158: <style id="p2v530Style">
-00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
-00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
-00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
-00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
-00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
-00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
-00167: </style>
-00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
-00169: <style id="p2v570FrozenStyles">
-00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
-00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
-00172: body{background:#f8fafc}
-00173: aside{background:linear-gradient(180deg,#082d65 0%,#06265a 100%);border-top:0}
-
-==================== at line 163 ====================
-00156:     <script src="omr-scanner.js"></script>
-00157: <script src="jsqr-client.js"></script>
-00158: <style id="p2v530Style">
-00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
-00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
-00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
-00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
-00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
-00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
-00167: </style>
-00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
-00169: <style id="p2v570FrozenStyles">
-00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
-00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
-00172: body{background:#f8fafc}
-00173: aside{background:linear-gradient(180deg,#082d65 0%,#06265a 100%);border-top:0}
-00174: aside .brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:22px 5px 30px}
-
-==================== at line 164 ====================
-00157: <script src="jsqr-client.js"></script>
-00158: <style id="p2v530Style">
-00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
-00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
-00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
-00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
-00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
-00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
-00167: </style>
-00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
-00169: <style id="p2v570FrozenStyles">
-00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
-00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
-00172: body{background:#f8fafc}
-00173: aside{background:linear-gradient(180deg,#082d65 0%,#06265a 100%);border-top:0}
-00174: aside .brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:22px 5px 30px}
-00175: aside .brand-logo{width:76px;height:76px;flex-basis:76px;background:transparent;border-radius:50%}
-
-==================== at line 165 ====================
-00158: <style id="p2v530Style">
-00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
-00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
-00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
-00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
-00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
-00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
-00167: </style>
-00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
-00169: <style id="p2v570FrozenStyles">
-00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
-00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
-00172: body{background:#f8fafc}
-00173: aside{background:linear-gradient(180deg,#082d65 0%,#06265a 100%);border-top:0}
-00174: aside .brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:22px 5px 30px}
-00175: aside .brand-logo{width:76px;height:76px;flex-basis:76px;background:transparent;border-radius:50%}
-00176: aside .brand-logo img{width:90px;left:-7px;top:-7px}
-
-==================== at line 166 ====================
-00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
-00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
-00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
-00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
-00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
-00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
-00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
-00167: </style>
-00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
-00169: <style id="p2v570FrozenStyles">
-00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
-00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
-00172: body{background:#f8fafc}
-00173: aside{background:linear-gradient(180deg,#082d65 0%,#06265a 100%);border-top:0}
-00174: aside .brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:22px 5px 30px}
-00175: aside .brand-logo{width:76px;height:76px;flex-basis:76px;background:transparent;border-radius:50%}
-00176: aside .brand-logo img{width:90px;left:-7px;top:-7px}
-00177: aside .brand h1{font-size:16px;line-height:1.35;font-weight:670;text-transform:none;letter-spacing:0;color:#fff}
-
-==================== at line 168 ====================
-00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
-00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
-00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
-00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
-00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
-00167: </style>
-00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
-00169: <style id="p2v570FrozenStyles">
-00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
-00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
-00172: body{background:#f8fafc}
-00173: aside{background:linear-gradient(180deg,#082d65 0%,#06265a 100%);border-top:0}
-00174: aside .brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:22px 5px 30px}
-00175: aside .brand-logo{width:76px;height:76px;flex-basis:76px;background:transparent;border-radius:50%}
-00176: aside .brand-logo img{width:90px;left:-7px;top:-7px}
-00177: aside .brand h1{font-size:16px;line-height:1.35;font-weight:670;text-transform:none;letter-spacing:0;color:#fff}
-00178: aside .brand small{display:none!important}
-00179: aside nav{gap:6px}
-
-==================== at line 254 ====================
-00247: #activeClasses .p2v56-chat-actions .p2v56-chat-delete{color:#7d4252}
-00248: #activeClasses .p2v56-chat-year{background:transparent;padding:0}
-00249: @media(max-width:1120px){#classes .p2-home-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#activeClasses .p2v510-year-card.p2v570-year-card{grid-template-columns:190px 1fr 1fr 45px}}
-00250: @media(max-width:800px){#classes .p2-home-grid{grid-template-columns:1fr}#activeClasses .p2v510-year-card.p2v570-year-card{grid-template-columns:160px 1fr 1fr 34px}#activeClasses .p2v570-metric{padding:15px}#activeClasses .p2v570-detail-inner{flex-wrap:wrap}#activeClasses .p2v570-detail-year{min-width:150px}}
-00251: </style>
-00252: <style id="p2v573Corrections">
-00253: body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important}
-00254: #classAttendanceHub #p2v510AttendanceNotice.p2v573-saved{display:none!important}
-00255: #studentProgress .p2v520-table td,#studentProgress .p2v520-table th{white-space:nowrap}
-00256: </style>
-00257: </head>
-00258: <body>
-00259: <div class="app">
-00260:   <aside>
-00261:     <div class="brand"><div class="brand-logo"><img src="logo-128.png" alt="Ananda Sangha Gurgaon circular emblem"></div><div><h1 id="brandName">ANANDA SANGHA GURGAON</h1><small>Event registration</small></div></div>
-00262:     <nav>
-00263:       <button class="nav-btn active" data-page="dashboard"><span>01</span> Dashboard</button>
-00264:       <button class="nav-btn" data-page="classes"><span>02</span> Classes</button>
-00265:       <button class="nav-btn" data-page="events"><span>03</span> Events</button>
-
-==================== at line 688 ====================
-00681:   function toast(msg){const e=$('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200)}
-00682:   function $(id){return document.getElementById(id)}
-00683:   function activeEvent(){return state.events.find(e=>e.id===state.activeEventId)||null}
-00684:   function dayKey(){return `${state.activeEventId||'none'}|${$('workingDate').value}`}
-00685:   function volName(v){return[v.firstName,v.lastName].filter(Boolean).join(' ')||v.name||''}
-00686:   function normMobile(value){let d=String(value??'').replace(/\D/g,'');if(d.length>10&&d.startsWith('91'))d=d.slice(-10);return d}
-00687:   function normName(value){return String(value??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ' ).replace(/\s+/g,' ').trim()}
-00688:   function masterPersonName(type,id){if(type==='volunteer'){const v=state.volunteers.find(x=>x.id===id);return v?volName(v):''}const a=state.attendeeMaster.find(x=>x.id===id);return a?.name||''}
-00689:   function referenceName(record){const type=record.referenceType||(record.referenceVolunteerId?'volunteer':null),id=record.referenceId||record.referenceVolunteerId;return type&&id?masterPersonName(type,id)||'Reference not found':'No reference'}
-00690:   function findAttendeeMaster(name,mobile,personalMobile=''){const n=normName(name),m=normMobile(mobile),pm=normMobile(personalMobile);if(!n||(!m&&!pm))return null;return state.attendeeMaster.find(p=>normName(p.name)===n&&((pm&&normMobile(p.personalMobile)===pm)||(m&&normMobile(p.mobile)===m&&!(p.category==='family'&&!p.personalMobile)&&!state.fami
-00691:   function findVolunteerMatch(name,mobile,typeHint=''){const n=normName(name),m=normMobile(mobile),byName=state.volunteers.filter(v=>normName(volName(v))===n),exact=byName.find(v=>!m||normMobile(v.mobile)===m);if(exact)return exact;if(/volunteer/i.test(typeHint)&&byName.length===1)return byName[0];return null}
-00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
-00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
-00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
-00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
-00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
-00697:   function activeVolunteers(){return state.volunteers}
-00698:   function dailyIds(){return state.daily[dayKey()]||[]}
-00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
-
-==================== at line 690 ====================
-00683:   function activeEvent(){return state.events.find(e=>e.id===state.activeEventId)||null}
-00684:   function dayKey(){return `${state.activeEventId||'none'}|${$('workingDate').value}`}
-00685:   function volName(v){return[v.firstName,v.lastName].filter(Boolean).join(' ')||v.name||''}
-00686:   function normMobile(value){let d=String(value??'').replace(/\D/g,'');if(d.length>10&&d.startsWith('91'))d=d.slice(-10);return d}
-00687:   function normName(value){return String(value??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ' ).replace(/\s+/g,' ').trim()}
-00688:   function masterPersonName(type,id){if(type==='volunteer'){const v=state.volunteers.find(x=>x.id===id);return v?volName(v):''}const a=state.attendeeMaster.find(x=>x.id===id);return a?.name||''}
-00689:   function referenceName(record){const type=record.referenceType||(record.referenceVolunteerId?'volunteer':null),id=record.referenceId||record.referenceVolunteerId;return type&&id?masterPersonName(type,id)||'Reference not found':'No reference'}
-00690:   function findAttendeeMaster(name,mobile,personalMobile=''){const n=normName(name),m=normMobile(mobile),pm=normMobile(personalMobile);if(!n||(!m&&!pm))return null;return state.attendeeMaster.find(p=>normName(p.name)===n&&((pm&&normMobile(p.personalMobile)===pm)||(m&&normMobile(p.mobile)===m&&!(p.category==='family'&&!p.personalMobile)&&!state.fami
-00691:   function findVolunteerMatch(name,mobile,typeHint=''){const n=normName(name),m=normMobile(mobile),byName=state.volunteers.filter(v=>normName(volName(v))===n),exact=byName.find(v=>!m||normMobile(v.mobile)===m);if(exact)return exact;if(/volunteer/i.test(typeHint)&&byName.length===1)return byName[0];return null}
-00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
-00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
-00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
-00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
-00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
-00697:   function activeVolunteers(){return state.volunteers}
-00698:   function dailyIds(){return state.daily[dayKey()]||[]}
-00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
-00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
-00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
-
-==================== at line 693 ====================
-00686:   function normMobile(value){let d=String(value??'').replace(/\D/g,'');if(d.length>10&&d.startsWith('91'))d=d.slice(-10);return d}
-00687:   function normName(value){return String(value??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ' ).replace(/\s+/g,' ').trim()}
-00688:   function masterPersonName(type,id){if(type==='volunteer'){const v=state.volunteers.find(x=>x.id===id);return v?volName(v):''}const a=state.attendeeMaster.find(x=>x.id===id);return a?.name||''}
-00689:   function referenceName(record){const type=record.referenceType||(record.referenceVolunteerId?'volunteer':null),id=record.referenceId||record.referenceVolunteerId;return type&&id?masterPersonName(type,id)||'Reference not found':'No reference'}
-00690:   function findAttendeeMaster(name,mobile,personalMobile=''){const n=normName(name),m=normMobile(mobile),pm=normMobile(personalMobile);if(!n||(!m&&!pm))return null;return state.attendeeMaster.find(p=>normName(p.name)===n&&((pm&&normMobile(p.personalMobile)===pm)||(m&&normMobile(p.mobile)===m&&!(p.category==='family'&&!p.personalMobile)&&!state.fami
-00691:   function findVolunteerMatch(name,mobile,typeHint=''){const n=normName(name),m=normMobile(mobile),byName=state.volunteers.filter(v=>normName(volName(v))===n),exact=byName.find(v=>!m||normMobile(v.mobile)===m);if(exact)return exact;if(/volunteer/i.test(typeHint)&&byName.length===1)return byName[0];return null}
-00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
-00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
-00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
-00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
-00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
-00697:   function activeVolunteers(){return state.volunteers}
-00698:   function dailyIds(){return state.daily[dayKey()]||[]}
-00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
-00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
-00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
-00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
-00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
-00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
-
-==================== at line 694 ====================
-00687:   function normName(value){return String(value??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ' ).replace(/\s+/g,' ').trim()}
-00688:   function masterPersonName(type,id){if(type==='volunteer'){const v=state.volunteers.find(x=>x.id===id);return v?volName(v):''}const a=state.attendeeMaster.find(x=>x.id===id);return a?.name||''}
-00689:   function referenceName(record){const type=record.referenceType||(record.referenceVolunteerId?'volunteer':null),id=record.referenceId||record.referenceVolunteerId;return type&&id?masterPersonName(type,id)||'Reference not found':'No reference'}
-00690:   function findAttendeeMaster(name,mobile,personalMobile=''){const n=normName(name),m=normMobile(mobile),pm=normMobile(personalMobile);if(!n||(!m&&!pm))return null;return state.attendeeMaster.find(p=>normName(p.name)===n&&((pm&&normMobile(p.personalMobile)===pm)||(m&&normMobile(p.mobile)===m&&!(p.category==='family'&&!p.personalMobile)&&!state.fami
-00691:   function findVolunteerMatch(name,mobile,typeHint=''){const n=normName(name),m=normMobile(mobile),byName=state.volunteers.filter(v=>normName(volName(v))===n),exact=byName.find(v=>!m||normMobile(v.mobile)===m);if(exact)return exact;if(/volunteer/i.test(typeHint)&&byName.length===1)return byName[0];return null}
-00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
-00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
-00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
-00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
-00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
-00697:   function activeVolunteers(){return state.volunteers}
-00698:   function dailyIds(){return state.daily[dayKey()]||[]}
-00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
-00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
-00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
-00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
-00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
-00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
-00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
-
-==================== at line 695 ====================
-00688:   function masterPersonName(type,id){if(type==='volunteer'){const v=state.volunteers.find(x=>x.id===id);return v?volName(v):''}const a=state.attendeeMaster.find(x=>x.id===id);return a?.name||''}
-00689:   function referenceName(record){const type=record.referenceType||(record.referenceVolunteerId?'volunteer':null),id=record.referenceId||record.referenceVolunteerId;return type&&id?masterPersonName(type,id)||'Reference not found':'No reference'}
-00690:   function findAttendeeMaster(name,mobile,personalMobile=''){const n=normName(name),m=normMobile(mobile),pm=normMobile(personalMobile);if(!n||(!m&&!pm))return null;return state.attendeeMaster.find(p=>normName(p.name)===n&&((pm&&normMobile(p.personalMobile)===pm)||(m&&normMobile(p.mobile)===m&&!(p.category==='family'&&!p.personalMobile)&&!state.fami
-00691:   function findVolunteerMatch(name,mobile,typeHint=''){const n=normName(name),m=normMobile(mobile),byName=state.volunteers.filter(v=>normName(volName(v))===n),exact=byName.find(v=>!m||normMobile(v.mobile)===m);if(exact)return exact;if(/volunteer/i.test(typeHint)&&byName.length===1)return byName[0];return null}
-00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
-00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
-00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
-00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
-00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
-00697:   function activeVolunteers(){return state.volunteers}
-00698:   function dailyIds(){return state.daily[dayKey()]||[]}
-00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
-00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
-00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
-00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
-00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
-00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
-00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
-00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
-
-==================== at line 696 ====================
-00689:   function referenceName(record){const type=record.referenceType||(record.referenceVolunteerId?'volunteer':null),id=record.referenceId||record.referenceVolunteerId;return type&&id?masterPersonName(type,id)||'Reference not found':'No reference'}
-00690:   function findAttendeeMaster(name,mobile,personalMobile=''){const n=normName(name),m=normMobile(mobile),pm=normMobile(personalMobile);if(!n||(!m&&!pm))return null;return state.attendeeMaster.find(p=>normName(p.name)===n&&((pm&&normMobile(p.personalMobile)===pm)||(m&&normMobile(p.mobile)===m&&!(p.category==='family'&&!p.personalMobile)&&!state.fami
-00691:   function findVolunteerMatch(name,mobile,typeHint=''){const n=normName(name),m=normMobile(mobile),byName=state.volunteers.filter(v=>normName(volName(v))===n),exact=byName.find(v=>!m||normMobile(v.mobile)===m);if(exact)return exact;if(/volunteer/i.test(typeHint)&&byName.length===1)return byName[0];return null}
-00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
-00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
-00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
-00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
-00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
-00697:   function activeVolunteers(){return state.volunteers}
-00698:   function dailyIds(){return state.daily[dayKey()]||[]}
-00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
-00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
-00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
-00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
-00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
-00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
-00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
-00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
-00707:   function allocation(type,id){const key=allocKey(type,id);return state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false})}
-
-==================== at line 699 ====================
-00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
-00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
-00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
-00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
-00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
-00697:   function activeVolunteers(){return state.volunteers}
-00698:   function dailyIds(){return state.daily[dayKey()]||[]}
-00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
-00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
-00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
-00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
-00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
-00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
-00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
-00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
-00707:   function allocation(type,id){const key=allocKey(type,id);return state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false})}
-00708:   function peopleToday(){
-00709:     const vols=dailyIds().map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean).map(v=>({type:'volunteer',id:v.id,name:volName(v),sub:`${v.mobile||'No mobile'}${v.birthday?' · Birthday '+fmt(v.birthday):''}`}));
-00710:     const atts=todaysAttendees().map(a=>({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo}${a.mobile?' · '+a.mobile:''}`}));
-
-==================== at line 700 ====================
-00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
-00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
-00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
-00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
-00697:   function activeVolunteers(){return state.volunteers}
-00698:   function dailyIds(){return state.daily[dayKey()]||[]}
-00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
-00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
-00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
-00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
-00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
-00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
-00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
-00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
-00707:   function allocation(type,id){const key=allocKey(type,id);return state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false})}
-00708:   function peopleToday(){
-00709:     const vols=dailyIds().map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean).map(v=>({type:'volunteer',id:v.id,name:volName(v),sub:`${v.mobile||'No mobile'}${v.birthday?' · Birthday '+fmt(v.birthday):''}`}));
-00710:     const atts=todaysAttendees().map(a=>({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo}${a.mobile?' · '+a.mobile:''}`}));
-00711:     return [...vols,...atts];
-
-==================== at line 701 ====================
-00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
-00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
-00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
-00697:   function activeVolunteers(){return state.volunteers}
-00698:   function dailyIds(){return state.daily[dayKey()]||[]}
-00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
-00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
-00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
-00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
-00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
-00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
-00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
-00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
-00707:   function allocation(type,id){const key=allocKey(type,id);return state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false})}
-00708:   function peopleToday(){
-00709:     const vols=dailyIds().map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean).map(v=>({type:'volunteer',id:v.id,name:volName(v),sub:`${v.mobile||'No mobile'}${v.birthday?' · Birthday '+fmt(v.birthday):''}`}));
-00710:     const atts=todaysAttendees().map(a=>({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo}${a.mobile?' · '+a.mobile:''}`}));
-00711:     return [...vols,...atts];
-00712:   }
-
-==================== at line 704 ====================
-00697:   function activeVolunteers(){return state.volunteers}
-00698:   function dailyIds(){return state.daily[dayKey()]||[]}
-00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
-00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
-00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
-00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
-00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
-00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
-00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
-00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
-00707:   function allocation(type,id){const key=allocKey(type,id);return state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false})}
-00708:   function peopleToday(){
-00709:     const vols=dailyIds().map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean).map(v=>({type:'volunteer',id:v.id,name:volName(v),sub:`${v.mobile||'No mobile'}${v.birthday?' · Birthday '+fmt(v.birthday):''}`}));
-00710:     const atts=todaysAttendees().map(a=>({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo}${a.mobile?' · '+a.mobile:''}`}));
-00711:     return [...vols,...atts];
-00712:   }
-00713:   function pendingPeople(){return peopleToday().map(p=>({p,a:allocation(p.type,p.id)})).filter(x=>(x.a.badgeIssued&&!x.a.badgeReturned)||(x.a.scarfIssued&&!x.a.scarfReturned))}
-00714:   function switchPage(id){if(id!==page){
-00715:     document.dispatchEvent(new Event('ananda:before-navigation'));
-
-==================== at line 705 ====================
-00698:   function dailyIds(){return state.daily[dayKey()]||[]}
-00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
-00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
-00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
-00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
-00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
-00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
-00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
-00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
-00707:   function allocation(type,id){const key=allocKey(type,id);return state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false})}
-00708:   function peopleToday(){
-00709:     const vols=dailyIds().map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean).map(v=>({type:'volunteer',id:v.id,name:volName(v),sub:`${v.mobile||'No mobile'}${v.birthday?' · Birthday '+fmt(v.birthday):''}`}));
-00710:     const atts=todaysAttendees().map(a=>({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo}${a.mobile?' · '+a.mobile:''}`}));
-00711:     return [...vols,...atts];
-00712:   }
-00713:   function pendingPeople(){return peopleToday().map(p=>({p,a:allocation(p.type,p.id)})).filter(x=>(x.a.badgeIssued&&!x.a.badgeReturned)||(x.a.scarfIssued&&!x.a.scarfReturned))}
-00714:   function switchPage(id){if(id!==page){
-00715:     document.dispatchEvent(new Event('ananda:before-navigation'));
-00716:     document.querySelectorAll('.modal-backdrop.open').forEach(modal=>{
-
-==================== at line 724 ====================
-00717:       if(modal.contains(document.activeElement))document.activeElement.blur();
-00718:       modal.classList.remove('open');
-00719:     });
-00720:   }if(['eventWorkspace','daily','checkin','register','items','reports','eventRecord'].includes(id)&&!activeEvent()){toast('Create or open an event first');id='events'}page=id;document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.pa
-00721:   document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));document.querySelectorAll('.go').forEach(b=>b.onclick=()=>switchPage(b.dataset.go));
-00722:   $('workingDate').onchange=renderAll;
-00723: 
-00724:   function renderAll(){renderHeader();renderDashboard();renderWorkspace();renderEvents();renderVolunteers();renderAttendeeMaster();renderDaily();renderReferences();renderCheckin();renderEventRegistrations();renderItems();renderReports();renderEventRecord();p2RenderAll();v52RenderSecuritySettings()}
-00725:   function renderHeader(){const ev=activeEvent();$('brandName').textContent=state.organization||'Annual Event Desk';if(ev){const dates=eventDates(ev),current=$('workingDate').value;$('workingDate').innerHTML=dates.map(d=>`<option value="${d}">${fmt(d)}</option>`).join('');$('workingDate').value=dates.includes(current)?current:dates[0]||''}else $('w
-00726:   function renderDashboard(){$('eventBanner').innerHTML='<div><h3>ANANDA SANGHA GURGAON</h3><p>Annual event registration and permanent records</p></div>';$('sVolunteers').textContent=activeVolunteers().length;$('sAttendeePeople').textContent=state.attendeeMaster.length}
-00727:   function renderWorkspace(){const ev=activeEvent();if(!ev){$('workspaceHeader').innerHTML='<div><h3>No event selected</h3><p>Create or open an event first.</p></div>';return}const pp=pendingPeople(),vols=dailyIds().length,atts=todaysAttendees().length;$('workspaceHeader').innerHTML=`<div><h3>${esc(ev.name)}</h3><p>${eventDateText(ev)} · ${esc(ev.v
-00728:   function fmt(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
-00729:   function eventDateText(ev){const labels=eventDates(ev).map(fmt);return labels.length<2?labels[0]||'No date':labels.length===2?labels.join(' & '):labels.slice(0,-1).join(', ')+' & '+labels.at(-1)}
-00730:   $('addEventDate').onclick=()=>addEventDateRow();
-00731:   function addEventDateRow(value=''){const row=document.createElement('div');row.className='event-date-row';row.innerHTML='<input class="event-date-input" type="date" required aria-label="Event date"><button type="button" class="icon-btn" aria-label="Remove event date">×</button>';row.querySelector('input').value=value;row.querySelector('button').o
-00732:   function setEventDateRows(dates=[]){$('eventDateRows').innerHTML='';(dates.length?dates:[today()]).forEach(addEventDateRow)}
-00733:   function selectedEventDates(){return[...new Set([...document.querySelectorAll('.event-date-input')].map(x=>x.value).filter(Boolean))].sort()}
-00734:   function resetEventForm(){$('eventForm').reset();$('eventEditId').value='';$('eventFormTitle').textContent='Create annual event';$('eventSaveButton').textContent='Save event';$('cancelEventEdit').classList.add('hidden');['badgeVolunteerRule','badgeAttendeeRule','scarfVolunteerRule','scarfAttendeeRule'].forEach(id=>$(id).checked=true);$('vipAttend
-00735:   function editEvent(id){const ev=state.events.find(e=>e.id===id),r=ev.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};$('eventEditId').value=ev.id;$('orgName').value=state.organization;$('eventName').value=ev.name;setEventDateRows(eventDates(ev));$('eventVenue').value=ev.venue||'';$('badgeV
-
-==================== at line 726 ====================
-00719:     });
-00720:   }if(['eventWorkspace','daily','checkin','register','items','reports','eventRecord'].includes(id)&&!activeEvent()){toast('Create or open an event first');id='events'}page=id;document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.pa
-00721:   document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));document.querySelectorAll('.go').forEach(b=>b.onclick=()=>switchPage(b.dataset.go));
-00722:   $('workingDate').onchange=renderAll;
-00723: 
-00724:   function renderAll(){renderHeader();renderDashboard();renderWorkspace();renderEvents();renderVolunteers();renderAttendeeMaster();renderDaily();renderReferences();renderCheckin();renderEventRegistrations();renderItems();renderReports();renderEventRecord();p2RenderAll();v52RenderSecuritySettings()}
-00725:   function renderHeader(){const ev=activeEvent();$('brandName').textContent=state.organization||'Annual Event Desk';if(ev){const dates=eventDates(ev),current=$('workingDate').value;$('workingDate').innerHTML=dates.map(d=>`<option value="${d}">${fmt(d)}</option>`).join('');$('workingDate').value=dates.includes(current)?current:dates[0]||''}else $('w
-00726:   function renderDashboard(){$('eventBanner').innerHTML='<div><h3>ANANDA SANGHA GURGAON</h3><p>Annual event registration and permanent records</p></div>';$('sVolunteers').textContent=activeVolunteers().length;$('sAttendeePeople').textContent=state.attendeeMaster.length}
-00727:   function renderWorkspace(){const ev=activeEvent();if(!ev){$('workspaceHeader').innerHTML='<div><h3>No event selected</h3><p>Create or open an event first.</p></div>';return}const pp=pendingPeople(),vols=dailyIds().length,atts=todaysAttendees().length;$('workspaceHeader').innerHTML=`<div><h3>${esc(ev.name)}</h3><p>${eventDateText(ev)} · ${esc(ev.v
-00728:   function fmt(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
-00729:   function eventDateText(ev){const labels=eventDates(ev).map(fmt);return labels.length<2?labels[0]||'No date':labels.length===2?labels.join(' & '):labels.slice(0,-1).join(', ')+' & '+labels.at(-1)}
-00730:   $('addEventDate').onclick=()=>addEventDateRow();
-00731:   function addEventDateRow(value=''){const row=document.createElement('div');row.className='event-date-row';row.innerHTML='<input class="event-date-input" type="date" required aria-label="Event date"><button type="button" class="icon-btn" aria-label="Remove event date">×</button>';row.querySelector('input').value=value;row.querySelector('button').o
-00732:   function setEventDateRows(dates=[]){$('eventDateRows').innerHTML='';(dates.length?dates:[today()]).forEach(addEventDateRow)}
-00733:   function selectedEventDates(){return[...new Set([...document.querySelectorAll('.event-date-input')].map(x=>x.value).filter(Boolean))].sort()}
-00734:   function resetEventForm(){$('eventForm').reset();$('eventEditId').value='';$('eventFormTitle').textContent='Create annual event';$('eventSaveButton').textContent='Save event';$('cancelEventEdit').classList.add('hidden');['badgeVolunteerRule','badgeAttendeeRule','scarfVolunteerRule','scarfAttendeeRule'].forEach(id=>$(id).checked=true);$('vipAttend
-00735:   function editEvent(id){const ev=state.events.find(e=>e.id===id),r=ev.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};$('eventEditId').value=ev.id;$('orgName').value=state.organization;$('eventName').value=ev.name;setEventDateRows(eventDates(ev));$('eventVenue').value=ev.venue||'';$('badgeV
-00736:   $('cancelEventEdit').onclick=resetEventForm;
-00737:   $('eventForm').onsubmit=e=>{e.preventDefault();const dates=selectedEventDates();if(!dates.length){toast('Select at least one event date');return}const id=$('eventEditId').value,ev={id:id||uid('ev'),name:$('eventName').value.trim(),dates,start:dates[0],end:dates.at(-1),venue:$('eventVenue').value.trim(),rules:{badgeVolunteer:$('badgeVolunteerRule'
-
-==================== at line 727 ====================
-00720:   }if(['eventWorkspace','daily','checkin','register','items','reports','eventRecord'].includes(id)&&!activeEvent()){toast('Create or open an event first');id='events'}page=id;document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.pa
-00721:   document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));document.querySelectorAll('.go').forEach(b=>b.onclick=()=>switchPage(b.dataset.go));
-00722:   $('workingDate').onchange=renderAll;
-00723: 
-00724:   function renderAll(){renderHeader();renderDashboard();renderWorkspace();renderEvents();renderVolunteers();renderAttendeeMaster();renderDaily();renderReferences();renderCheckin();renderEventRegistrations();renderItems();renderReports();renderEventRecord();p2RenderAll();v52RenderSecuritySettings()}
-00725:   function renderHeader(){const ev=activeEvent();$('brandName').textContent=state.organization||'Annual Event Desk';if(ev){const dates=eventDates(ev),current=$('workingDate').value;$('workingDate').innerHTML=dates.map(d=>`<option value="${d}">${fmt(d)}</option>`).join('');$('workingDate').value=dates.includes(current)?current:dates[0]||''}else $('w
-00726:   function renderDashboard(){$('eventBanner').innerHTML='<div><h3>ANANDA SANGHA GURGAON</h3><p>Annual event registration and permanent records</p></div>';$('sVolunteers').textContent=activeVolunteers().length;$('sAttendeePeople').textContent=state.attendeeMaster.length}
-00727:   function renderWorkspace(){const ev=activeEvent();if(!ev){$('workspaceHeader').innerHTML='<div><h3>No event selected</h3><p>Create or open an event first.</p></div>';return}const pp=pendingPeople(),vols=dailyIds().length,atts=todaysAttendees().length;$('workspaceHeader').innerHTML=`<div><h3>${esc(ev.name)}</h3><p>${eventDateText(ev)} · ${esc(ev.v
-00728:   function fmt(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
-00729:   function eventDateText(ev){const labels=eventDates(ev).map(fmt);return labels.length<2?labels[0]||'No date':labels.length===2?labels.join(' & '):labels.slice(0,-1).join(', ')+' & '+labels.at(-1)}
-00730:   $('addEventDate').onclick=()=>addEventDateRow();
-00731:   function addEventDateRow(value=''){const row=document.createElement('div');row.className='event-date-row';row.innerHTML='<input class="event-date-input" type="date" required aria-label="Event date"><button type="button" class="icon-btn" aria-label="Remove event date">×</button>';row.querySelector('input').value=value;row.querySelector('button').o
-00732:   function setEventDateRows(dates=[]){$('eventDateRows').innerHTML='';(dates.length?dates:[today()]).forEach(addEventDateRow)}
-00733:   function selectedEventDates(){return[...new Set([...document.querySelectorAll('.event-date-input')].map(x=>x.value).filter(Boolean))].sort()}
-00734:   function resetEventForm(){$('eventForm').reset();$('eventEditId').value='';$('eventFormTitle').textContent='Create annual event';$('eventSaveButton').textContent='Save event';$('cancelEventEdit').classList.add('hidden');['badgeVolunteerRule','badgeAttendeeRule','scarfVolunteerRule','scarfAttendeeRule'].forEach(id=>$(id).checked=true);$('vipAttend
-00735:   function editEvent(id){const ev=state.events.find(e=>e.id===id),r=ev.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};$('eventEditId').value=ev.id;$('orgName').value=state.organization;$('eventName').value=ev.name;setEventDateRows(eventDates(ev));$('eventVenue').value=ev.venue||'';$('badgeV
-00736:   $('cancelEventEdit').onclick=resetEventForm;
-00737:   $('eventForm').onsubmit=e=>{e.preventDefault();const dates=selectedEventDates();if(!dates.length){toast('Select at least one event date');return}const id=$('eventEditId').value,ev={id:id||uid('ev'),name:$('eventName').value.trim(),dates,start:dates[0],end:dates.at(-1),venue:$('eventVenue').value.trim(),rules:{badgeVolunteer:$('badgeVolunteerRule'
-00738:   function renderEvents(){$('orgName').value='ANANDA SANGHA GURGAON';$('eventList').innerHTML=state.events.length?state.events.slice().reverse().map(e=>`<div style="padding:13px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div class="name">${esc(e.name)}</div><div class="sub">${
-
-==================== at line 734 ====================
-00727:   function renderWorkspace(){const ev=activeEvent();if(!ev){$('workspaceHeader').innerHTML='<div><h3>No event selected</h3><p>Create or open an event first.</p></div>';return}const pp=pendingPeople(),vols=dailyIds().length,atts=todaysAttendees().length;$('workspaceHeader').innerHTML=`<div><h3>${esc(ev.name)}</h3><p>${eventDateText(ev)} · ${esc(ev.v
-00728:   function fmt(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
-00729:   function eventDateText(ev){const labels=eventDates(ev).map(fmt);return labels.length<2?labels[0]||'No date':labels.length===2?labels.join(' & '):labels.slice(0,-1).join(', ')+' & '+labels.at(-1)}
-00730:   $('addEventDate').onclick=()=>addEventDateRow();
-00731:   function addEventDateRow(value=''){const row=document.createElement('div');row.className='event-date-row';row.innerHTML='<input class="event-date-input" type="date" required aria-label="Event date"><button type="button" class="icon-btn" aria-label="Remove event date">×</button>';row.querySelector('input').value=value;row.querySelector('button').o
-00732:   function setEventDateRows(dates=[]){$('eventDateRows').innerHTML='';(dates.length?dates:[today()]).forEach(addEventDateRow)}
-00733:   function selectedEventDates(){return[...new Set([...document.querySelectorAll('.event-date-input')].map(x=>x.value).filter(Boolean))].sort()}
-00734:   function resetEventForm(){$('eventForm').reset();$('eventEditId').value='';$('eventFormTitle').textContent='Create annual event';$('eventSaveButton').textContent='Save event';$('cancelEventEdit').classList.add('hidden');['badgeVolunteerRule','badgeAttendeeRule','scarfVolunteerRule','scarfAttendeeRule'].forEach(id=>$(id).checked=true);$('vipAttend
-00735:   function editEvent(id){const ev=state.events.find(e=>e.id===id),r=ev.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};$('eventEditId').value=ev.id;$('orgName').value=state.organization;$('eventName').value=ev.name;setEventDateRows(eventDates(ev));$('eventVenue').value=ev.venue||'';$('badgeV
-00736:   $('cancelEventEdit').onclick=resetEventForm;
-00737:   $('eventForm').onsubmit=e=>{e.preventDefault();const dates=selectedEventDates();if(!dates.length){toast('Select at least one event date');return}const id=$('eventEditId').value,ev={id:id||uid('ev'),name:$('eventName').value.trim(),dates,start:dates[0],end:dates.at(-1),venue:$('eventVenue').value.trim(),rules:{badgeVolunteer:$('badgeVolunteerRule'
-00738:   function renderEvents(){$('orgName').value='ANANDA SANGHA GURGAON';$('eventList').innerHTML=state.events.length?state.events.slice().reverse().map(e=>`<div style="padding:13px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div class="name">${esc(e.name)}</div><div class="sub">${
-00739:   function eventRuleText(e){const r=e.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};return`Badge: ${r.badgeVolunteer?'volunteers':''}${r.badgeVolunteer&&r.badgeAttendee?' + ':''}${r.badgeAttendee?'attendees':''}${!r.badgeVolunteer&&!r.badgeAttendee?'not used':''} · Scarf: ${r.scarfVoluntee
-00740: 
-00741:   $('addVolunteer').onclick=()=>openVolunteer(undefined,false);document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).classList.remove('open'));
-00742:   function v92VolunteerMobileError(id,mobile){const digits=normMobile(mobile);if(!digits)return'';const duplicate=state.volunteers.find(person=>person.id!==id&&normMobile(person.mobile||'')===digits);return duplicate?`Mobile number ${digits} is already used by volunteer ${volName(duplicate)}. Each volunteer must have a unique 10-digit mobile number
-00743:   function v92WireMobileLimit(){const input=$('volunteerMobile');if(!input||input.dataset.v92Wire)return;input.dataset.v92Wire='1';input.oninput=()=>{input.value=input.value.replace(/\D/g,'').slice(0,10)};}
-00744:   function openVolunteer(id,forToday=false){addVolunteerForToday=!!forToday;const v=state.volunteers.find(x=>x.id===id);$('volunteerModalTitle').textContent=v?'Edit volunteer':addVolunteerForToday?'Add volunteer for today':'Add volunteer';$('volunteerId').value=v?.id||'';$('volunteerFirstName').value=v?.firstName||'';$('volunteerLastName').value=v?
-00745:   $('volunteerForm').onsubmit=e=>{e.preventDefault();const id=$('volunteerId').value,rawMobile=$('volunteerMobile').value.trim(),mobile=normMobile(rawMobile);if(rawMobile&&mobile.length!==10){toast('Mobile number must be exactly 10 digits');return}if(addVolunteerForToday&&!id&&mobile.length!==10){toast('Enter a valid 10-digit mobile number for the 
-
-==================== at line 735 ====================
-00728:   function fmt(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
-00729:   function eventDateText(ev){const labels=eventDates(ev).map(fmt);return labels.length<2?labels[0]||'No date':labels.length===2?labels.join(' & '):labels.slice(0,-1).join(', ')+' & '+labels.at(-1)}
-00730:   $('addEventDate').onclick=()=>addEventDateRow();
-00731:   function addEventDateRow(value=''){const row=document.createElement('div');row.className='event-date-row';row.innerHTML='<input class="event-date-input" type="date" required aria-label="Event date"><button type="button" class="icon-btn" aria-label="Remove event date">×</button>';row.querySelector('input').value=value;row.querySelector('button').o
-00732:   function setEventDateRows(dates=[]){$('eventDateRows').innerHTML='';(dates.length?dates:[today()]).forEach(addEventDateRow)}
-00733:   function selectedEventDates(){return[...new Set([...document.querySelectorAll('.event-date-input')].map(x=>x.value).filter(Boolean))].sort()}
-00734:   function resetEventForm(){$('eventForm').reset();$('eventEditId').value='';$('eventFormTitle').textContent='Create annual event';$('eventSaveButton').textContent='Save event';$('cancelEventEdit').classList.add('hidden');['badgeVolunteerRule','badgeAttendeeRule','scarfVolunteerRule','scarfAttendeeRule'].forEach(id=>$(id).checked=true);$('vipAttend
-00735:   function editEvent(id){const ev=state.events.find(e=>e.id===id),r=ev.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};$('eventEditId').value=ev.id;$('orgName').value=state.organization;$('eventName').value=ev.name;setEventDateRows(eventDates(ev));$('eventVenue').value=ev.venue||'';$('badgeV
-00736:   $('cancelEventEdit').onclick=resetEventForm;
-00737:   $('eventForm').onsubmit=e=>{e.preventDefault();const dates=selectedEventDates();if(!dates.length){toast('Select at least one event date');return}const id=$('eventEditId').value,ev={id:id||uid('ev'),name:$('eventName').value.trim(),dates,start:dates[0],end:dates.at(-1),venue:$('eventVenue').value.trim(),rules:{badgeVolunteer:$('badgeVolunteerRule'
-00738:   function renderEvents(){$('orgName').value='ANANDA SANGHA GURGAON';$('eventList').innerHTML=state.events.length?state.events.slice().reverse().map(e=>`<div style="padding:13px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div class="name">${esc(e.name)}</div><div class="sub">${
-00739:   function eventRuleText(e){const r=e.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};return`Badge: ${r.badgeVolunteer?'volunteers':''}${r.badgeVolunteer&&r.badgeAttendee?' + ':''}${r.badgeAttendee?'attendees':''}${!r.badgeVolunteer&&!r.badgeAttendee?'not used':''} · Scarf: ${r.scarfVoluntee
-00740: 
-00741:   $('addVolunteer').onclick=()=>openVolunteer(undefined,false);document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).classList.remove('open'));
-00742:   function v92VolunteerMobileError(id,mobile){const digits=normMobile(mobile);if(!digits)return'';const duplicate=state.volunteers.find(person=>person.id!==id&&normMobile(person.mobile||'')===digits);return duplicate?`Mobile number ${digits} is already used by volunteer ${volName(duplicate)}. Each volunteer must have a unique 10-digit mobile number
-00743:   function v92WireMobileLimit(){const input=$('volunteerMobile');if(!input||input.dataset.v92Wire)return;input.dataset.v92Wire='1';input.oninput=()=>{input.value=input.value.replace(/\D/g,'').slice(0,10)};}
-00744:   function openVolunteer(id,forToday=false){addVolunteerForToday=!!forToday;const v=state.volunteers.find(x=>x.id===id);$('volunteerModalTitle').textContent=v?'Edit volunteer':addVolunteerForToday?'Add volunteer for today':'Add volunteer';$('volunteerId').value=v?.id||'';$('volunteerFirstName').value=v?.firstName||'';$('volunteerLastName').value=v?
-00745:   $('volunteerForm').onsubmit=e=>{e.preventDefault();const id=$('volunteerId').value,rawMobile=$('volunteerMobile').value.trim(),mobile=normMobile(rawMobile);if(rawMobile&&mobile.length!==10){toast('Mobile number must be exactly 10 digits');return}if(addVolunteerForToday&&!id&&mobile.length!==10){toast('Enter a valid 10-digit mobile number for the 
-00746:   v92WireMobileLimit();
-
-==================== at line 739 ====================
-00732:   function setEventDateRows(dates=[]){$('eventDateRows').innerHTML='';(dates.length?dates:[today()]).forEach(addEventDateRow)}
-00733:   function selectedEventDates(){return[...new Set([...document.querySelectorAll('.event-date-input')].map(x=>x.value).filter(Boolean))].sort()}
-00734:   function resetEventForm(){$('eventForm').reset();$('eventEditId').value='';$('eventFormTitle').textContent='Create annual event';$('eventSaveButton').textContent='Save event';$('cancelEventEdit').classList.add('hidden');['badgeVolunteerRule','badgeAttendeeRule','scarfVolunteerRule','scarfAttendeeRule'].forEach(id=>$(id).checked=true);$('vipAttend
-00735:   function editEvent(id){const ev=state.events.find(e=>e.id===id),r=ev.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};$('eventEditId').value=ev.id;$('orgName').value=state.organization;$('eventName').value=ev.name;setEventDateRows(eventDates(ev));$('eventVenue').value=ev.venue||'';$('badgeV
-00736:   $('cancelEventEdit').onclick=resetEventForm;
-00737:   $('eventForm').onsubmit=e=>{e.preventDefault();const dates=selectedEventDates();if(!dates.length){toast('Select at least one event date');return}const id=$('eventEditId').value,ev={id:id||uid('ev'),name:$('eventName').value.trim(),dates,start:dates[0],end:dates.at(-1),venue:$('eventVenue').value.trim(),rules:{badgeVolunteer:$('badgeVolunteerRule'
-00738:   function renderEvents(){$('orgName').value='ANANDA SANGHA GURGAON';$('eventList').innerHTML=state.events.length?state.events.slice().reverse().map(e=>`<div style="padding:13px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div class="name">${esc(e.name)}</div><div class="sub">${
-00739:   function eventRuleText(e){const r=e.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};return`Badge: ${r.badgeVolunteer?'volunteers':''}${r.badgeVolunteer&&r.badgeAttendee?' + ':''}${r.badgeAttendee?'attendees':''}${!r.badgeVolunteer&&!r.badgeAttendee?'not used':''} · Scarf: ${r.scarfVoluntee
-00740: 
-00741:   $('addVolunteer').onclick=()=>openVolunteer(undefined,false);document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).classList.remove('open'));
-00742:   function v92VolunteerMobileError(id,mobile){const digits=normMobile(mobile);if(!digits)return'';const duplicate=state.volunteers.find(person=>person.id!==id&&normMobile(person.mobile||'')===digits);return duplicate?`Mobile number ${digits} is already used by volunteer ${volName(duplicate)}. Each volunteer must have a unique 10-digit mobile number
-00743:   function v92WireMobileLimit(){const input=$('volunteerMobile');if(!input||input.dataset.v92Wire)return;input.dataset.v92Wire='1';input.oninput=()=>{input.value=input.value.replace(/\D/g,'').slice(0,10)};}
-00744:   function openVolunteer(id,forToday=false){addVolunteerForToday=!!forToday;const v=state.volunteers.find(x=>x.id===id);$('volunteerModalTitle').textContent=v?'Edit volunteer':addVolunteerForToday?'Add volunteer for today':'Add volunteer';$('volunteerId').value=v?.id||'';$('volunteerFirstName').value=v?.firstName||'';$('volunteerLastName').value=v?
-00745:   $('volunteerForm').onsubmit=e=>{e.preventDefault();const id=$('volunteerId').value,rawMobile=$('volunteerMobile').value.trim(),mobile=normMobile(rawMobile);if(rawMobile&&mobile.length!==10){toast('Mobile number must be exactly 10 digits');return}if(addVolunteerForToday&&!id&&mobile.length!==10){toast('Enter a valid 10-digit mobile number for the 
-00746:   v92WireMobileLimit();
-00747:   $('volunteerSearch').oninput=renderVolunteers;
-00748:   function volunteerRows(source){const counts=new Map();state.volunteers.forEach(person=>{const digits=normMobile(person.mobile||'');if(digits)counts.set(digits,(counts.get(digits)||0)+1)});return source.map(v=>{const duplicate=normMobile(v.mobile||'')&&counts.get(normMobile(v.mobile||''))>1;return`<tr class="${duplicate?'v92-duplicate-row':''}"><t
-00749:   function renderVolunteers(){const q=$('volunteerSearch').value.toLowerCase();const list=state.volunteers.filter(v=>[volName(v),v.mobile,v.birthday].join(' ').toLowerCase().includes(q)).sort((a,b)=>volName(a).localeCompare(volName(b),undefined,{sensitivity:'base'}));$('volunteerTable').innerHTML=list.length?`<div class="table-wrap"><table><thead><
-00750:   function normalizeBirthday(value){const s=String(value??'').trim();if(!s)return'';if(/^\d+(\.\d+)?$/.test(s)){const n=Number(s);if(n>1000&&n<100000)return new Date(Date.UTC(1899,11,30)+Math.floor(n)*86400000).toISOString().slice(0,10)}let m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padSta
-
-==================== at line 755 ====================
-00748:   function volunteerRows(source){const counts=new Map();state.volunteers.forEach(person=>{const digits=normMobile(person.mobile||'');if(digits)counts.set(digits,(counts.get(digits)||0)+1)});return source.map(v=>{const duplicate=normMobile(v.mobile||'')&&counts.get(normMobile(v.mobile||''))>1;return`<tr class="${duplicate?'v92-duplicate-row':''}"><t
-00749:   function renderVolunteers(){const q=$('volunteerSearch').value.toLowerCase();const list=state.volunteers.filter(v=>[volName(v),v.mobile,v.birthday].join(' ').toLowerCase().includes(q)).sort((a,b)=>volName(a).localeCompare(volName(b),undefined,{sensitivity:'base'}));$('volunteerTable').innerHTML=list.length?`<div class="table-wrap"><table><thead><
-00750:   function normalizeBirthday(value){const s=String(value??'').trim();if(!s)return'';if(/^\d+(\.\d+)?$/.test(s)){const n=Number(s);if(n>1000&&n<100000)return new Date(Date.UTC(1899,11,30)+Math.floor(n)*86400000).toISOString().slice(0,10)}let m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padSta
-00751:   function importVolunteerRows(rows){if(rows.length<2)throw Error('No volunteer rows found');let headerRow=-1,idx=null;for(let i=0;i<Math.min(rows.length,15);i++){const h=rows[i].map(x=>String(x??'').trim().toLowerCase()),first=findColumn(h,['first name','firstname']),last=findColumn(h,['last name','surname','lastname']),full=findColumn(h,['full na
-00752:   $('volunteerImportFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const rows=f.name.toLowerCase().endsWith('.csv')?parseCsv(await f.text()):await parseXlsx(await f.arrayBuffer()),result=importVolunteerRows(rows);$('volunteerImportResult').textContent=`${result.count} volunteer${result.count===1?'':'s'} imported${result.duplic
-00753: 
-00754:   $('addAttendeeMaster').onclick=()=>openAttendeeMaster();$('attendeeMasterSearch').oninput=renderAttendeeMaster;$('attendeeMasterFilter').onchange=renderAttendeeMaster;
-00755:   function attendeeProgramCount(id){return new Set(state.attendees.filter(a=>a.masterId===id).map(a=>a.eventId)).size}
-00756:   function attendeeReferralCount(id){return state.attendees.filter(a=>a.referenceType==='attendee'&&a.referenceId===id).length}
-00757:   function typedReferenceOptions(selected='',excludeAttendeeId=''){const volunteers=state.volunteers.map(v=>`<option value="volunteer|${v.id}" ${selected===`volunteer|${v.id}`?'selected':''}>Volunteer · ${esc(volName(v))}</option>`).join(''),attendees=state.attendeeMaster.filter(a=>a.id!==excludeAttendeeId).map(a=>`<option value="attendee|${a.id}" 
-00758:   function openAttendeeMaster(id){const a=state.attendeeMaster.find(x=>x.id===id);$('attendeeMasterModalTitle').textContent=a?'Edit attendee':'Add attendee';$('attendeeMasterId').value=a?.id||'';$('attendeeMasterName').value=a?.name||'';$('attendeeMasterMobile').value=a?.mobile||'';$('attendeeMasterCategory').value=a?.category||'outside';$('attende
-00759:   $('attendeeMasterForm').onsubmit=e=>{e.preventDefault();const id=$('attendeeMasterId').value,name=$('attendeeMasterName').value.trim(),mobile=$('attendeeMasterMobile').value.trim(),existing=findAttendeeMaster(name,mobile),old=state.attendeeMaster.find(x=>x.id===id);if(existing&&existing.id!==id){toast('This attendee already exists in the master')
-00760:   function renderAttendeeMaster(){const q=normName($('attendeeMasterSearch').value),filter=$('attendeeMasterFilter').value;let list=state.attendeeMaster.filter(a=>[a.name,a.mobile,a.reviewNotes,masterPersonName(a.originalReferenceType,a.originalReferenceId)].join(' ').toLowerCase().includes(q));if(filter==='family')list=list.filter(a=>a.category===
-00761: 
-00762:   function dailyLookupReady(query=''){const raw=String(query||'').trim(),digits=normMobile(raw),name=normName(raw.replace(/[+\d()[\].,\-]/g,' '));return digits.length>=4||name.length>=2}
-00763:   function volunteerMasterMatches(query=''){const raw=String(query||'').trim();if(!dailyLookupReady(raw))return[];const digits=normMobile(raw),name=normName(raw.replace(/[+\d()[\].,\-]/g,' '));return state.volunteers.filter(v=>(digits.length>=4&&normMobile(v.mobile).includes(digits))||(name.length>=2&&normName(volName(v)).includes(name))).sort((a,b
-00764:   $('dailySearch').oninput=renderDaily;$('clearDaily').onclick=()=>{const date=$('workingDate').value,eventId=state.activeEventId;state.daily[dayKey()]=[];state.volunteerRegistrations.filter(r=>r.eventId===eventId).forEach(r=>r.checkins=volunteerRegistrationDates(r).filter(d=>d!==date));save();toast('Day selection cleared')};
-00765:   function renderDaily(){
-00766:     const ids=dailyIds(),rules=activeEvent()?.rules||{},query=$('dailySearch').value.trim();
-
-==================== at line 756 ====================
-00749:   function renderVolunteers(){const q=$('volunteerSearch').value.toLowerCase();const list=state.volunteers.filter(v=>[volName(v),v.mobile,v.birthday].join(' ').toLowerCase().includes(q)).sort((a,b)=>volName(a).localeCompare(volName(b),undefined,{sensitivity:'base'}));$('volunteerTable').innerHTML=list.length?`<div class="table-wrap"><table><thead><
-00750:   function normalizeBirthday(value){const s=String(value??'').trim();if(!s)return'';if(/^\d+(\.\d+)?$/.test(s)){const n=Number(s);if(n>1000&&n<100000)return new Date(Date.UTC(1899,11,30)+Math.floor(n)*86400000).toISOString().slice(0,10)}let m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padSta
-00751:   function importVolunteerRows(rows){if(rows.length<2)throw Error('No volunteer rows found');let headerRow=-1,idx=null;for(let i=0;i<Math.min(rows.length,15);i++){const h=rows[i].map(x=>String(x??'').trim().toLowerCase()),first=findColumn(h,['first name','firstname']),last=findColumn(h,['last name','surname','lastname']),full=findColumn(h,['full na
-00752:   $('volunteerImportFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const rows=f.name.toLowerCase().endsWith('.csv')?parseCsv(await f.text()):await parseXlsx(await f.arrayBuffer()),result=importVolunteerRows(rows);$('volunteerImportResult').textContent=`${result.count} volunteer${result.count===1?'':'s'} imported${result.duplic
-00753: 
-00754:   $('addAttendeeMaster').onclick=()=>openAttendeeMaster();$('attendeeMasterSearch').oninput=renderAttendeeMaster;$('attendeeMasterFilter').onchange=renderAttendeeMaster;
-00755:   function attendeeProgramCount(id){return new Set(state.attendees.filter(a=>a.masterId===id).map(a=>a.eventId)).size}
-00756:   function attendeeReferralCount(id){return state.attendees.filter(a=>a.referenceType==='attendee'&&a.referenceId===id).length}
-00757:   function typedReferenceOptions(selected='',excludeAttendeeId=''){const volunteers=state.volunteers.map(v=>`<option value="volunteer|${v.id}" ${selected===`volunteer|${v.id}`?'selected':''}>Volunteer · ${esc(volName(v))}</option>`).join(''),attendees=state.attendeeMaster.filter(a=>a.id!==excludeAttendeeId).map(a=>`<option value="attendee|${a.id}" 
-00758:   function openAttendeeMaster(id){const a=state.attendeeMaster.find(x=>x.id===id);$('attendeeMasterModalTitle').textContent=a?'Edit attendee':'Add attendee';$('attendeeMasterId').value=a?.id||'';$('attendeeMasterName').value=a?.name||'';$('attendeeMasterMobile').value=a?.mobile||'';$('attendeeMasterCategory').value=a?.category||'outside';$('attende
-00759:   $('attendeeMasterForm').onsubmit=e=>{e.preventDefault();const id=$('attendeeMasterId').value,name=$('attendeeMasterName').value.trim(),mobile=$('attendeeMasterMobile').value.trim(),existing=findAttendeeMaster(name,mobile),old=state.attendeeMaster.find(x=>x.id===id);if(existing&&existing.id!==id){toast('This attendee already exists in the master')
-00760:   function renderAttendeeMaster(){const q=normName($('attendeeMasterSearch').value),filter=$('attendeeMasterFilter').value;let list=state.attendeeMaster.filter(a=>[a.name,a.mobile,a.reviewNotes,masterPersonName(a.originalReferenceType,a.originalReferenceId)].join(' ').toLowerCase().includes(q));if(filter==='family')list=list.filter(a=>a.category===
-00761: 
-00762:   function dailyLookupReady(query=''){const raw=String(query||'').trim(),digits=normMobile(raw),name=normName(raw.replace(/[+\d()[\].,\-]
+ALL MATCHES=118
+02717:   }
+02718: 
+02719:   function p2cAttendanceStatus(en,date){
+02720:     if(!en?.attendance||!Object.prototype.hasOwnProperty.call(en.attendance,date))return null;
+02721:     return en.attendance[date]===true?true:en.attendance[date]===false?false:null;
+02722:   }
+02723:   function p2cCycleAttendance(en,date){
+02724:     en.attendance=en.attendance||{};const s=p2cAttendanceStatus(en,date);
+02725:     if(s===null)en.attendance[date]=true;else if(s===true)en.attendance[date]=false;else delete en.attendance[date];
+02726:     p2cSelectedEnrollmentId=en.id;save();
+02727:   }
+02728:   function p2cRenderAttendanceSummary(b,en){
+02729:     const box=$('p2cAttendanceSummary');if(!box)return;if(!en){box.innerHTML='<div class="p2-empty">Select a student to see attendance details.</div>';return}
+02730:     const p=p2cEnrollmentPerson(en),dates=[...new Set(b.sessionDates||[])].sort();let present=0,absent=0,unmarked=0;
+02731:     dates.forEach(d=>{const s=p2cAttendanceStatus(en,d);if(s===true)present++;else if(s===false)absent++;else unmarked++});
+02732:     const marked=present+absent,pct=marked?Math.round(present*100/marked):0;
+02733:     box.innerHTML=`<div class="p2c-summary-card"><h3>${esc(p.name)}</h3><div class="p2c-summary-mobile">${esc(p.mobile||'No mobile')}</div><div class="p2c-summary-kpis"><span><b>${dates.length}</b>Classes</span><span><b>${present}</b>Present</span><span><b>${absent}</b>Absent</span><span><b>${unmarked}</b>Not marked</span></div><div class="p2c-percent">${pct}% <small>of marked classes attended</small></div><div class="p2c-date-list">${dates.length?dates.map(d=>{const s=p2cAttendanceStatus(en,d),
+02734:   }
+02735:   function p2cRenderAttendanceGrid(){
+02736:     const b=p2ActiveBatch(),host=$('p2ClassRoster');if(!b||!host)return;const all=state.classEnrollments.filter(e=>e.batchId===b.id),q=p2cAttendanceQuery.trim().toLowerCase();
+02737:     const enrol=all.filter(e=>{const p=p2cEnrollmentPerson(e);return!q||[p.name,p.mobile,e.outcome].join(' ').toLowerCase().includes(q)});const dates=[...new Set(b.sessionDates||[])].sort();
+02738:     if(p2cSelectedEnrollmentId&&!all.some(e=>e.id===p2cSelectedEnrollmentId))p2cSelectedEnrollmentId='';if(!p2cSelectedEnrollmentId&&all[0])p2cSelectedEnrollmentId=all[0].id;
+02739:     host.innerHTML=`<div class="p2c-att-layout"><div class="p2c-att-main"><div class="p2c-att-toolbar"><input id="p2cAttendanceSearch" class="search" placeholder="Search name or mobile" value="${esc(p2cAttendanceQuery)}"><div class="p2c-att-help">Click a cell: <b>Present → Absent → Not marked</b>. Click again to correct an accidental mark.</div></div>${enrol.length?`<div class="p2c-grid-wrap"><table class="p2c-att-table"><thead><tr><th class="p2c-student-col">Student</th>${dates.map(d=>`<th>${fm
+02740:     const search=$('p2cAttendanceSearch');if(search){search.oninput=()=>{p2cAttendanceQuery=search.value;p2cRenderAttendanceGrid()}}
+02741:     host.querySelectorAll('.p2c-name').forEach(x=>x.onclick=()=>{p2cSelectedEnrollmentId=x.dataset.enrol;p2cRenderAttendanceGrid()});
+02742:     host.querySelectorAll('.p2c-att-cell').forEach(x=>x.onclick=()=>{const en=state.classEnrollments.find(e=>e.id===x.dataset.enrol);if(en)p2cCycleAttendance(en,x.dataset.date)});
+02743:     host.querySelectorAll('.p2c-complete').forEach(x=>x.onclick=()=>{const en=state.classEnrollments.find(e=>e.id===x.dataset.enrol);if(!en)return;en.outcome='Completed';en.completionDate=en.completionDate||today();p2cSelectedEnrollmentId=en.id;save();toast('Marked completed')});
+02744:     host.querySelectorAll('.p2c-incomplete').forEach(x=>x.onclick=()=>{const en=state.classEnrollments.find(e=>e.id===x.dataset.enrol);if(!en)return;en.outcome='Did Not Complete';en.completionDate='';p2cSelectedEnrollmentId=en.id;save();toast('Marked incomplete')});
+02745:     p2cRenderAttendanceSummary(b,all.find(e=>e.id===p2cSelectedEnrollmentId)||null);
+02746:   }
+02747: 
+02748:   function p2cNextWeekday(baseIso,day){let base=/^\d{4}-\d{2}-\d{2}$/.test(baseIso||'')?new Date(baseIso+'T12:00:00'):new Date(),diff=(Number(day)-base.getDay()+7)%7;if(diff===0)diff=7;base.setDate(base.getDate()+diff);return base.toISOString().slice(0,10)}
+02759: 
+02760:   const p2cRenderWorkspaceBase=p2RenderClassWorkspace;
+02761:   p2RenderClassWorkspace=function(){p2cRenderWorkspaceBase();p2cRenderScheduleCard();p2cRenderAttendanceGrid()};
+02762:   p2cInstallEnrollmentFlow();
+02763: 
+02764:   p2ExportBatches=function(){p2Csv(state.classEnrollments.map(e=>{const s=p2cEnrollmentPerson(e),b=state.classBatches.find(x=>x.id===e.batchId);return{Course:b?p2CourseName(b):(e.courseName||e.level||''),Batch:b?.name||'',Year:b?p2BatchYear(b):'',Student:s.name||'',Mobile:s.mobile||'',Enrolled:e.enrolledAt||'',Outcome:e.outcome||''}}),'Ananda_Class_Batch_Rosters.csv')};
+02765:   p2ExportEnrollments=function(){p2Csv(state.classEnrollments.map(e=>{const s=p2cEnrollmentPerson(e),b=state.classBatches.find(x=>x.id===e.batchId),dates=b?.sessionDates||[],present=dates.filter(d=>p2cAttendanceStatus(e,d)===true).length,absent=dates.filter(d=>p2cAttendanceStatus(e,d)===false).length;return{Student:s.name||'',Mobile:s.mobile||'',Course:b?p2CourseName(b):(e.courseName||e.level||''),Batch:b?.name||'',Year:b?p2BatchYear(b):'',Enrolled:e.enrolledAt||'',Present:present,Absent:absent,
+02766:   p2ExportSessions=function(){const rows=[];state.classEnrollments.forEach(e=>{const s=p2cEnrollmentPerson(e),b=state.classBatches.find(x=>x.id===e.batchId);(b?.sessionDates||[]).forEach(d=>rows.push({Student:s.name||'',Mobile:s.mobile||'',Course:b?p2CourseName(b):(e.courseName||e.level||''),Batch:b?.name||'',Session_Date:d,Attendance:p2cAttendanceStatus(e,d)===true?'Present':p2cAttendanceStatus(e,d)===false?'Absent':'Not marked'}))});p2Csv(rows,'Ananda_Class_Session_Attendance.csv')};
+02767: 
+02768: 
+02769:   // Preserve the canonical Level 4 → Kriya progression relationship.
+02782:     const oldGrid=page.querySelector('.grid.two');
+02783:     if(oldGrid){
+02784:       oldGrid.outerHTML=`<div id="p2v5WorkspaceGrid"><div class="card" id="p2v5AttendanceCard"><div class="card-head"><div><h3>Batch Roster &amp; Attendance</h3></div><button id="p2EnrollStudent" class="btn small" type="button">ENROL STUDENT</button></div><div id="p2ClassRoster"></div></div><div class="card" id="p2v5StudentCard"><div id="p2v5StudentDetails"></div></div></div>`;
+02785:     }
+02786:     const outreach=page.querySelector('#p2BatchOutreach')?.closest('.card');if(outreach)outreach.remove();
+02787:     if(!$('p2SessionList'))page.insertAdjacentHTML('beforeend','<div id="p2SessionList" style="display:none"></div>');
+02789:     p2cInstallEnrollmentFlow();
+02790:     if(!$('p2v5StudentEditModal'))document.body.insertAdjacentHTML('beforeend',`<div id="p2v5StudentEditModal" class="modal-backdrop"><form id="p2v5StudentEditForm" class="modal" style="max-width:600px"><div class="modal-head"><div><h3>Student Details</h3><div class="card-sub" id="p2v5EditStudentName"></div></div><button class="x" type="button" data-close="p2v5StudentEditModal">×</button></div><input type="hidden" id="p2v5EditEnrollmentId"><div class="form-grid"><div class="field"><label>PAYMENT
+02791:     if(!$('p2v5AttendanceEditModal'))document.body.insertAdjacentHTML('beforeend',`<div id="p2v5AttendanceEditModal" class="modal-backdrop"><div class="modal" style="max-width:520px"><div class="modal-head"><div><h3>Edit Attendance</h3><div class="card-sub" id="p2v5AttendanceEditTitle"></div></div><button class="x" type="button" data-close="p2v5AttendanceEditModal">×</button></div><div class="p2v5-modal-choice"><button class="btn" id="p2v5SetPresent" type="button">Present</button><button class="
+02792:     document.querySelectorAll('#p2v5StudentEditModal [data-close],#p2v5AttendanceEditModal [data-close]').forEach(x=>x.onclick=()=>x.closest('.modal-backdrop').classList.remove('open'));
+02793:     $('p2v5PaymentStatus').onchange=p2v5RefreshPaymentEditFields;
+02794:     $('p2v5StudentEditForm').onsubmit=p2v5SaveStudentDetails;
+02795:   }
+02837:   }
+02838: 
+02839:   function p2v5AttendanceState(en,date){if(!p2v5EnrollmentEligibleOn(en,date))return'na';const s=p2cAttendanceStatus(en,date);return s===true?'present':s===false?'absent':'blank'}
+02840:   function p2v5AttendanceCounts(b,en){const dates=p2v5ValidDates(b).filter(d=>p2v5EnrollmentEligibleOn(en,d));let present=0,absent=0,blank=0;dates.forEach(d=>{const s=p2v5AttendanceState(en,d);if(s==='present')present++;else if(s==='absent')absent++;else blank++});return{dates,present,absent,blank,pct:dates.length?Math.round(present*100/dates.length):0}}
+02841:   function p2v5MarkPresent(en,date){if(!en||!p2v5EnrollmentEligibleOn(en,date)||p2v5IsEnded(p2ActiveBatch()))return;en.attendance=en.attendance||{};const s=p2cAttendanceStatus(en,date);if(s===true)delete en.attendance[date];else en.attendance[date]=true;p2cSelectedEnrollmentId=en.id;save()}
+02842:   function p2v5MarkRemainingAbsent(b,date){if(p2v5IsEnded(b))return;let changed=0;state.classEnrollments.filter(e=>e.batchId===b.id&&p2v5EnrollmentEligibleOn(e,date)).forEach(en=>{if(p2cAttendanceStatus(en,date)===null){en.attendance=en.attendance||{};en.attendance[date]=false;changed++}});save();toast(changed?`${changed} remaining student${changed===1?'':'s'} marked absent for ${fmt(date)}`:'No remaining unmarked students for this class')}
+02843: 
+02844:   function p2v5OpenAttendanceEdit(en,date){
+02845:     const b=p2ActiveBatch();if(!b||p2v5IsEnded(b)||!p2v5EnrollmentEligibleOn(en,date))return;
+02846:     const p=p2v5Person(en);$('p2v5AttendanceEditTitle').textContent=`${p.name} · ${fmt(date)}`;$('p2v5AttendanceEditModal').classList.add('open');
+02847:     const apply=value=>{en.attendance=en.attendance||{};if(value===null)delete en.attendance[date];else en.attendance[date]=value;p2cSelectedEnrollmentId=en.id;$('p2v5AttendanceEditModal').classList.remove('open');save()};
+02848:     $('p2v5SetPresent').onclick=()=>apply(true);$('p2v5SetAbsent').onclick=()=>apply(false);$('p2v5SetUnmarked').onclick=()=>apply(null);
+02849:   }
+02850: 
+02854:   function p2v5GenerateDueNote(en,b){const p=p2v5Person(en),course=p2CourseName(b),fee=en.feeAmount||'—',due=en.dueDate?fmt(en.dueDate):'—';const doc=`<!doctype html><meta charset="utf-8"><title>Fee Due - ${esc(p.name)}</title><style>body{font-family:Arial,sans-serif;max-width:720px;margin:50px auto;color:#173f7d}h1{font-size:24px}.box{border:1px solid #ccd9e4;border-radius:12px;padding:22px}table{width:100%;border-collapse:collapse}td{padding:8px;border-bottom:1px solid #e4ebf1}strong{color:#10
+02855: 
+02856:   function p2v5RenderStudentDetails(b,en){const host=$('p2v5StudentDetails');if(!host)return;if(!en){host.innerHTML='<div class="p2-empty">Select a student to see details.</div>';return}const p=p2v5Person(en),c=p2v5AttendanceCounts(b,en),ended=p2v5IsEnded(b),paid=en.paymentStatus==='Paid';host.innerHTML=`<div class="p2v5-student-head"><div><h3>Student Details</h3><strong style="color:#102d5e;font-size:16px">${esc(p.name)}</strong><div class="p2v5-student-mobile">${esc(p.mobile||'No mobile')}</di
+02857:     $('p2v5EditStudent').onclick=()=>p2v5OpenStudentEdit(en);host.querySelectorAll('.p2v5-pencil').forEach(x=>x.onclick=()=>p2v5OpenAttendanceEdit(en,x.dataset.date));if($('p2v5GenerateNow'))$('p2v5GenerateNow').onclick=()=>p2v5GenerateDueNote(en,b)
+02858:   }
+02859: 
+02860:   function p2v5RenderAttendance(b){
+02861:     const host=$('p2ClassRoster');if(!host)return;const all=state.classEnrollments.filter(e=>e.batchId===b.id),q=p2cAttendanceQuery.trim().toLowerCase(),rows=all.filter(e=>{const p=p2v5Person(e);return!q||[p.name,p.mobile].join(' ').toLowerCase().includes(q)}),dates=p2v5ValidDates(b),ended=p2v5IsEnded(b);
+02862:     if(p2cSelectedEnrollmentId&&!all.some(e=>e.id===p2cSelectedEnrollmentId))p2cSelectedEnrollmentId='';if(!p2cSelectedEnrollmentId&&all[0])p2cSelectedEnrollmentId=all[0].id;
+02863:     host.innerHTML=`<div class="p2v5-att-toolbar"><input id="p2v5AttendanceSearch" class="search" placeholder="Search by name or mobile..." value="${esc(p2cAttendanceQuery)}"><div class="p2v5-legend"><span><i class="p2v5-dot present"></i>Present</span><span><i class="p2v5-dot absent"></i>Absent</span><span><i class="p2v5-dot blank"></i>Not marked</span></div></div>${rows.length?`<div class="p2v5-grid-wrap"><table class="p2v5-att-table"><thead><tr><th class="p2v5-name-col">Name</th>${dates.map(d=
+02864:     $('p2v5AttendanceSearch').oninput=()=>{p2cAttendanceQuery=$('p2v5AttendanceSearch').value;p2v5RenderAttendance(b)};
+02865:     host.querySelectorAll('.p2v5-name-button').forEach(x=>x.onclick=()=>{p2cSelectedEnrollmentId=x.dataset.enrol;p2v5RenderAttendance(b);p2v5RenderStudentDetails(b,all.find(e=>e.id===p2cSelectedEnrollmentId)||null)});
+02866:     host.querySelectorAll('.p2v5-att-cell:not(.na)').forEach(x=>x.onclick=()=>{const en=all.find(e=>e.id===x.dataset.enrol);p2v5MarkPresent(en,x.dataset.date)});
+02867:     host.querySelectorAll('.p2v5-bulk-btn').forEach(x=>x.onclick=()=>p2v5MarkRemainingAbsent(b,x.dataset.date));
+02868:     p2v5RenderStudentDetails(b,all.find(e=>e.id===p2cSelectedEnrollmentId)||null)
+02871:   function p2v5EndBatch(b){
+02872:     if(p2v5IsEnded(b))return;const dates=p2v5ValidDates(b),enrol=state.classEnrollments.filter(e=>e.batchId===b.id);if(!dates.length){toast('Add at least one class date before ending the batch');return}
+02873:     const missing=[];enrol.forEach(en=>dates.filter(d=>p2v5EnrollmentEligibleOn(en,d)).forEach(d=>{if(p2cAttendanceStatus(en,d)===null)missing.push([en,d])}));if(missing.length){toast(`Attendance is still unmarked in ${missing.length} place${missing.length===1?'':'s'}. Use each class column's Mark Remaining Absent button first.`);return}
+02874:     if(!confirm('End this batch? Attendance and final outcomes will be locked.'))return;
+02875:     const next=p2v5CourseNext(b),course=p2CourseForBatch(b);enrol.forEach(en=>{const eligible=dates.filter(d=>p2v5EnrollmentEligibleOn(en,d)),present=eligible.filter(d=>p2cAttendanceStatus(en,d)===true).length,absent=eligible.filter(d=>p2cAttendanceStatus(en,d)===false).length;if(eligible.length&&present===0&&absent===eligible.length){en.outcome='Withdrawn';en.eligibleFor=''}else if(present>0){en.outcome='Completed';en.completionDate=today();en.eligibleFor=p2FullChain.slice(3,7).includes(course?
+02876:   }
+02877: 
+02878:   function p2v5RenderStats(b){const enrol=state.classEnrollments.filter(e=>e.batchId===b.id),completed=enrol.filter(e=>e.outcome==='Completed').length,incomplete=enrol.filter(e=>['Withdrawn','Did Not Complete','Incomplete'].includes(e.outcome)).length,ended=p2v5IsEnded(b);$('p2ClassStats').innerHTML=`<div class="p2-kpi"><span>Enrolled</span><b>${enrol.length}</b></div><div class="p2-kpi"><span>Completed</span><b>${completed}</b></div><div class="p2-kpi"><span>Incomplete / Withdraw</span><b>${inc
+02880:   p2RenderClassWorkspace=function(){
+02881:     p2v5PrepareWorkspace();const b=p2ActiveBatch();if(!b){$('p2ClassHeader').innerHTML='<div><h3>No class batch selected</h3><p>Open a batch from Classes.</p></div>';$('p2ClassStats').innerHTML='';$('p2ClassRoster').innerHTML='';$('p2v5StudentDetails').innerHTML='';$('p2v5ScheduleCard')?.remove();return}
+02882:     p2v5RenderHeader(b);p2v5RenderSchedule(b);p2v5RenderStats(b);p2v5RenderAttendance(b)
+02883:   };
+02884: 
+02885:   // Correction 2: Class Batch "+" always opens the EXISTING enrolment form,
+02925:   };
+02926: 
+02927:   const p2v5FixRenderAttendanceBase=p2v5RenderAttendance;
+02928:   p2v5RenderAttendance=function(b){
+02929:     p2v5FixEnsureDates(b);const wanted=p2cAttendanceQuery;p2cAttendanceQuery='';p2v5FixRenderAttendanceBase(b);p2cAttendanceQuery=wanted;
+02930:     const host=$('p2ClassRoster'),search=$('p2v5AttendanceSearch');if(!host||!search)return;search.value=wanted;
+02931:     const applySearch=()=>{
+02932:       p2cAttendanceQuery=search.value;const q=p2cAttendanceQuery.trim().toLowerCase(),all=state.classEnrollments.filter(e=>e.batchId===b.id);
+02933:       host.querySelectorAll('.p2v5-att-table tbody tr').forEach(row=>{const btn=row.querySelector('.p2v5-name-button'),en=btn?all.find(e=>e.id===btn.dataset.enrol):null,p=en?p2v5Person(en):null;row.style.display=(!q||(p&&[p.name,p.mobile].join(' ').toLowerCase().includes(q)))?'':'none'});
+03010:   };
+03011: 
+03012:   const p2v5Fix2RenderAttendanceBase=p2v5RenderAttendance;
+03013:   p2v5RenderAttendance=function(b){
+03014:     p2v5Fix2RenderAttendanceBase(b);const body=$('p2ClassRoster')?.querySelector('.p2v5-att-table tbody');if(!body)return;
+03015:     [...body.querySelectorAll('tr')].sort((a,z)=>{const an=(a.querySelector('.p2v5-name-button')?.textContent||'').trim(),zn=(z.querySelector('.p2v5-name-button')?.textContent||'').trim();return an.localeCompare(zn,undefined,{sensitivity:'base',numeric:true})}).forEach(r=>body.appendChild(r));
+03016:   };
+03017: 
+03096: 
+03097:   function p2v53ProposedOutcome(b,en){
+03098:     const dates=p2v5ValidDates(b),present=dates.filter(d=>p2cAttendanceStatus(en,d)===true).length,absent=dates.filter(d=>p2cAttendanceStatus(en,d)===false).length;
+03099:     if(dates.length&&present===0&&absent===dates.length)return'Withdrawn';
+03100:     if(present>0)return'Completed';
+03101:     return en.outcome&&en.outcome!=='Enrolled'?en.outcome:'Did Not Complete'
+03102:   }
+03103:   function p2v53AttendanceSummary(b,en){const dates=p2v5ValidDates(b),present=dates.filter(d=>p2cAttendanceStatus(en,d)===true).length,absent=dates.filter(d=>p2cAttendanceStatus(en,d)===false).length,blank=dates.length-present-absent;return{present,absent,blank,total:dates.length,pct:dates.length?Math.round(present*100/dates.length):0}}
+03104:   function p2v53MissingAttendance(b){const dates=p2v5ValidDates(b),enrol=state.classEnrollments.filter(e=>e.batchId===b.id),missing=[];enrol.forEach(en=>dates.forEach(d=>{if(p2cAttendanceStatus(en,d)===null)missing.push([en,d])}));return missing}
+03105:   function p2v53ApplyFinalOutcomes(b){
+03106:     const enrol=state.classEnrollments.filter(e=>e.batchId===b.id),next=p2v5CourseNext(b),course=p2CourseForBatch(b);
+03107:     enrol.forEach(en=>{const out=p2v53ProposedOutcome(b,en);en.outcome=out;if(out==='Completed'){en.completionDate=en.completionDate||today();en.eligibleFor=course?.name==='Level 4'?'':next}else{en.completionDate='';en.eligibleFor=''}})
+03659:   p2v5RenderStudentDetails=function(b,en){
+03660:     const host=$('p2v5StudentDetails');if(!host)return;if(!en){host.innerHTML='<div class="p2-empty">Select a student to see details.</div>';return}
+03661:     const p=p2v5Person(en),c=p2v5AttendanceCounts(b,en),paid=en.paymentStatus==='Paid',fee=String(en.feeAmount||b.courseFee||'—');
+03662:     host.innerHTML=`<div class="p2v5-student-head"><div><h3>Student Details</h3><strong style="color:#102d5e;font-size:16px">${esc(p.name)}</strong><div class="p2v5-student-mobile">${esc(p.mobile||'No mobile')}</div></div><button id="p2v5EditStudent" class="btn secondary small" type="button">✎ Edit</button></div><div class="p2v5-student-kpis"><span><b>${c.dates.length}</b>Classes</span><span class="present"><b>${c.present}</b>Present</span><span class="absent"><b>${c.absent}</b>Absent</span><spa
+03663:     $('p2v5EditStudent').onclick=()=>p2v5OpenStudentEdit(en)
+03664:   };
+03665: 
+03666:   const p2v55RenderAttendanceBase=p2v5RenderAttendance;
+03667:   p2v5RenderAttendance=function(b){
+03668:     p2v55RenderAttendanceBase(b);const legend=$('p2ClassRoster')?.querySelector('.p2v5-legend');if(legend){const spans=[...legend.querySelectorAll('span')];spans.forEach(s=>{if(/not marked/i.test(s.textContent||''))s.remove()})}
+03669:   };
+03670:   function p2v55AttendanceViewport(){const w=$('p2ClassRoster')?.querySelector('.p2v5-grid-wrap');return{left:w?.scrollLeft||0,top:w?.scrollTop||0}}
+03671:   function p2v55RestoreAttendanceViewport(pos){requestAnimationFrame(()=>{const w=$('p2ClassRoster')?.querySelector('.p2v5-grid-wrap');if(w){w.scrollLeft=pos.left;w.scrollTop=pos.top}})}
+04131:     if(student){const n=student.querySelector('.no');if(n)n.textContent='04';const strong=student.querySelector('strong');if(strong)strong.textContent='Student Progress';const sm=student.querySelector('small');if(sm)sm.textContent='Search a student and view class history, progress and next-stage follow-up.'}
+04132:     if(reports){const n=reports.querySelector('.no');if(n)n.textContent='05';reports.onclick=()=>p2v59OpenClassReports()}
+04133:     attendance.onclick=()=>switchPage('classAttendanceHub')
+04134:   }
+04135: 
+04136:   function p2v59EnsureClassReportsPage(){
+04138:     const sec=document.createElement('section');sec.id='classReportsHub';sec.className='page';
+04139:     sec.innerHTML=`<div class='p2v59-class-reports'><div class='p2v59-class-report-title'><div></div><button id='p2v59ClassReportsBack' class='btn secondary' type='button'>← BACK</button></div><div id='p2v59ClassReportsPanel'></div></div>`;
+04140:     const base=$('classAttendanceHub')||$('phase2Reports')||$('classes');base.insertAdjacentElement('afterend',sec);
+04141:     $('p2v59ClassReportsBack').onclick=()=>switchPage('classes')
+04142:   }
+04143:   function p2v59CleanClassReportLabels(){
+04153:   }
+04154:   function p2v58EnsurePage(){
+04155:     if($('classAttendanceHub'))return;
+04156:     const sec=document.createElement('section');sec.id='classAttendanceHub';sec.className='page';
+04157:     sec.innerHTML=`<div class="p2v58-page">
+04158:       <div class="p2v58-title-row"><div><h2>CLASS ATTENDANCE</h2><p>MARK ATTENDANCE, PRINT QR ATTENDANCE SHEET, SCAN/UPLOAD ATTENDANCE SHEET</p></div><button id="p2v58Back" class="btn secondary" type="button">← BACK</button></div>
+04159:       <div class="p2v58-filters">
+04325: function p2v58BindPhoneListener(){
+04326:     if(p2v58PhoneListenerBound||!window.anandaAttendanceBridge?.onPhoneUpload)return;p2v58PhoneListenerBound=true;
+04327:     window.anandaAttendanceBridge.onPhoneUpload(payload=>{if(payload?.dataUrl){switchPage('classAttendanceHub');$('p2v58UploadPanel')?.classList.remove('hidden');p2v58HandleDataUrl(payload.dataUrl,payload.name||'Phone photo')}})
+04328:   }
+04329:   async function p2v58ConnectPhone(){
+04330:     const status=$('p2v58UploadStatus');
+04351:     const r=p2v58SwitchBase(id);
+04352:     if(id==='classes')p2v58PrepareClassesHome();
+04353:     if(id==='classAttendanceHub'){p2v58Render();$('pageTitle').textContent='Class Attendance';$('pageSubtitle').textContent='Attendance by class and date'}
+04354:     return r
+04355:   };
+04356: 
+04497:   // Only persisted true/false entries count. A fully recorded all-absent
+04498:   // session is valid, while unmarked/null rows and unsaved edits are not.
+04499:   function p2v510AttendanceSummary(){
+04500:     const rows=p2v538FullClassRows(),total=rows.length;
+04501:     let present=0,absent=0,changed=false;
+04502:     const draftReady=total>0&&rows.every(({en})=>Object.prototype.hasOwnProperty.call(p2v58Draft,en.id));
+04508:     return{total,present,absent,recorded:present+absent,changed};
+04509:   }
+04510:   function p2v510AttendanceSaved(){
+04511:     const s=p2v510AttendanceSummary();
+04512:     return s.total>0&&s.recorded===s.total;
+04513:   }
+04514:   function p2v510AttendanceNotice(){
+04515:     let n=$('p2v510AttendanceNotice');const actions=$('p2v58Manual')?.closest('.p2v58-actions');if(!actions)return;
+04516:     if(!n){n=document.createElement('div');n.id='p2v510AttendanceNotice';n.className='p2v510-att-saved';actions.insertAdjacentElement('afterend',n)}
+04517:     const s=p2v510AttendanceSummary(),complete=s.total>0&&s.recorded===s.total;
+04518:     const visible=p2v541SavedReview&&(s.recorded>0||s.changed);
+04519:     n.classList.toggle('hidden',!visible);
+04520:     n.classList.toggle('p2v573-saved',visible&&complete&&!s.changed);
+04533:     const rowHtml=(r,i)=>{const v=p2v58Draft[r.en.id],cls=v===true?' present':v===false?' absent':' pending';return `<label class="p2v58-row${cls}" data-search="${esc(((r.p.name||'')+' '+(r.p.mobile||'')).toLowerCase())}"><span class="p2v58-no">${String(i+1).padStart(2,'0')}</span><span class="p2v58-name">${esc(r.p.name||'Unnamed')}</span><input class="p2v58-check" type="checkbox" data-en="${r.en.id}" ${v===true?'checked':''}><span class="p2v58-box"></span></label>`};
+04534:     host.innerHTML=rows.length?`<div class="p2v58-namebar">NAME</div><div class="p2v58-two"><div>${left.map((r,i)=>rowHtml(r,i)).join('')}</div><div>${right.map((r,i)=>rowHtml(r,i+half)).join('')}</div></div>`:'<div class="p2-empty">No students are enrolled in this batch.</div>';
+04535:     host.querySelectorAll('.p2v58-check').forEach(x=>x.onchange=()=>{p2v58Draft[x.dataset.en]=x.checked?true:null;p2v58RenderRoster()});p2v58ApplySearch();p2v58UpdateTotals();p2v510AttendanceNotice()
+04536:   };
+04537:   p2v58UpdateTotals=function(){const rows=p2v58CurrentRows(),present=rows.filter(r=>p2v58Draft[r.en.id]===true).length,absent=rows.filter(r=>p2v58Draft[r.en.id]===false).length,pending=Math.max(0,rows.length-present-absent),x=$('p2v58Totals');if(x)x.innerHTML=`<span>Total: <b>${rows.length}</b></span><span class="green">Present: <b>${present}</b></span><span class="red">Absent: <b>${absent}</b></span><span class="pending">Unmarked: <b>${pending}</b></span>`};
+04538:   p2v58SaveAttendance=function(){
+04539:     const b=p2v58CurrentBatch();if(!b||!p2v58Date){toast('Choose a batch and date first');return}const rows=p2v58CurrentRows(),pending=rows.filter(r=>p2v58Draft[r.en.id]!==true&&p2v58Draft[r.en.id]!==false).length;if(pending){toast('Mark remaining absent before confirming attendance.');return}
+04540:     const wasSaved=p2v510AttendanceSaved();rows.forEach(({en})=>{en.attendance=en.attendance||{};en.attendance[p2v58Date]=p2v58Draft[en.id]===true});save();toast(wasSaved?'Attendance updated everywhere':'Attendance confirmed everywhere');p2v510AttendanceNotice()
+04541:   };
+04542:   function p2v510WireAttendance(){
+04543:     if($('p2v58Clear'))$('p2v58Clear').onclick=()=>{p2v58CurrentRows().forEach(r=>p2v58Draft[r.en.id]=null);p2v58RenderRoster()};
+04544:     if($('p2v58All')){$('p2v58All').textContent='MARK REMAINING ABSENT';$('p2v58All').onclick=()=>{p2v58CurrentRows().forEach(r=>{if(p2v58Draft[r.en.id]!==true&&p2v58Draft[r.en.id]!==false)p2v58Draft[r.en.id]=false});p2v58RenderRoster()}};
+04545:     if($('p2v58Confirm'))$('p2v58Confirm').onclick=()=>p2v58SaveAttendance();
+04546:     p2v510AttendanceNotice()
+04547:   }
+04548:   p2v510WireAttendance();
+04549: 
+04573:   p2v58BindPhoneListener=function(){
+04574:     if(p2v58PhoneListenerBound||!window.anandaAttendanceBridge?.onPhoneUpload)return;p2v58PhoneListenerBound=true;
+04575:     window.anandaAttendanceBridge.onPhoneUpload(payload=>{if(payload?.dataUrl){switchPage('classAttendanceHub');$('p2v58UploadPanel')?.classList.remove('hidden');p2v58HandleDataUrl(payload.dataUrl,payload.name||'Phone photo',payload.attendancePayload||'')}})
+04576:   };
+04577:   p2v58BindPhoneListener();
+04578: 
+04581: 
+04582:   const p2v510SwitchBase=switchPage;
+04583:   switchPage=function(id){const previous=page;if(id==='events'&&previous!=='events'){p2v510EventView='landing';p2v510EventYear=''}const r=p2v510SwitchBase.apply(this,arguments);if(id==='events'){p2v510EnsureEventLanding();p2v510RenderEventView();renderEvents()}if(id==='classes'){p2v510ClassYear='';p2RenderClasses()}if(id==='classAttendanceHub'){p2v510WireAttendance();p2v58RenderRoster()}return r};
+04584: 
+04585:   (function p2v510Style(){
+04586:     const st=document.createElement('style');st.id='p2v510Style';st.textContent=`
+04587:       #classAttendanceHub .p2v58-title-row{display:none!important}
+04588:       #classAttendanceHub .p2v58-filters{grid-template-columns:repeat(3,1fr)!important}
+04589:       #classAttendanceHub .p2v58-date-only{display:none!important}
+04590:       #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(3,1fr)!important}
+04591:       #p2v58Edit,#p2v58Save{display:none!important}
+04592:       .p2v510-att-saved{margin:10px 0 12px;padding:11px 14px;border-radius:9px;background:#edf9f1;border:1px solid #cbead5;color:#16723f;font-size:12px}.p2v510-att-saved.hidden{display:none!important}
+04593:       .p2v58-row.absent{background:#fff3f3!important}.p2v58-row.absent .p2v58-name{color:#9f2929}.p2v58-row.absent .p2v58-box{background:#e33434!important;border-color:#e33434!important}.p2v58-row.absent .p2v58-box:after{content:'×'!important;position:absolute;color:#fff;font-size:15px;font-weight:900;left:2px;top:-4px}
+04597:       #events #p2v510EventOriginal{grid-template-columns:1fr!important}#events #eventForm{max-width:none}
+04598:       aside .brand:focus{outline:2px solid #f2bf2d;outline-offset:5px;border-radius:8px}
+04599:       @media(max-width:900px){.p2v510-year-grid{grid-template-columns:1fr}#classAttendanceHub .p2v58-filters,#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
+04600:     `;document.head.appendChild(st)
+04601:   })();
+04602:   p2v510EnsureEventLanding();p2v510RenderEventView();
+04671:     const box=p2v511EnsureReview();if(!box)return;
+04672:     box.classList.remove('hidden');
+04673:     box.innerHTML=`<div><strong>REVIEW DETECTED ATTENDANCE</strong><p>${present} present mark${present===1?'':'s'} detected on sheet ${page} of ${total}. Green ✓ = detected present. Review the names, then use <b>MARK REMAINING ABSENT</b> and <b>${p2v510AttendanceSaved()?'UPDATE':'CONFIRM'} ATTENDANCE</b>.</p>${message?`<small>${esc(message)}</small>`:''}</div>`
+04674:   }
+04675:   async function p2v511ApplyPhotoBlob(blob,name='Attendance photo',attendancePayload=''){
+04676:     const status=$('p2v58UploadStatus');if(status)status.textContent='Reading QR and handwritten attendance marks...';
+05357:     let present=0,absent=0,blank=0,rows;
+05358:     if(specific){
+05359:       rows=ers.map((r,i)=>{const v=p2cAttendanceStatus(r.en,p2v517AttReport.date);if(v===true)present++;else if(v===false)absent++;else blank++;return{...r,i,v}})
+05360:     }else{
+05361:       rows=ers.map((r,i)=>{const a=p2v53AttendanceSummary(b,r.en);present+=a.present;absent+=a.absent;blank+=a.blank;return{...r,i,a}})
+05362:     }
+06162:       p2v58Draft[x.dataset.en]=x.checked?true:null;p2v58RenderRoster()
+06163:     });
+06164:     p2v58ApplySearch();p2v58UpdateTotals();p2v510AttendanceNotice()
+06165:   };
+06166: 
+06167:   function p2v524SyncSelectors(b,date){
+06300:       } else if(mode==='waiting'){
+06301:         note.textContent='AWAITING NEW SCAN · Upload the marked sheet. Previously saved Present/Absent entries are hidden, not deleted.';
+06302:       } else if(p2v510AttendanceSaved()){
+06303:         note.textContent='PREVIOUSLY SAVED CLASS ATTENDANCE · These are existing records, NOT results from a new QR scan. Select SCAN / UPLOAD to analyse a new sheet.';
+06304:       } else {
+06305:         note.textContent='MANUAL ATTENDANCE · No new QR scan result is being displayed.';
+06316:       p2v528RenderRosterBase();
+06317:       const bar=$('p2v58Roster')?.querySelector('.p2v58-namebar');
+06318:       if(bar&&!p2v524ScanSession)bar.textContent=p2v510AttendanceSaved()?'PREVIOUSLY SAVED CLASS ATTENDANCE':'MANUAL CLASS ROSTER';
+06319:       p2v528ModeNotice(p2v524ScanSession?'scan':'manual');
+06320:     };
+06321:     function p2v528LeaveScan(){
+06598:     const p2v531Style=document.createElement('style');
+06599:     p2v531Style.id='p2v531ButtonGrid';
+06600:     p2v531Style.textContent='#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}@media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}@media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}';
+06601:     document.head.appendChild(p2v531Style);
+06602:     // BETA531 QR-FIRST AI MODE. Prints a phone-scannable QR, then automatically
+06603:     // analyses the photo on the desktop; volunteer reviews/marks absent/saves.
+06618:       p2v535RefreshQueuedPhoto();
+06619:     }
+06620:     const p2v531ClassRoot=$('classAttendanceHub')?.querySelector('.p2v58-page');
+06621:     function p2v531MoveReview(){
+06622:       const panel=$('p2v531ReviewInside');if(!panel||!p2v531ClassRoot)return;
+06623:       const ids=['p2v511Review','p2v58Roster','p2v529FullClassOverview'];
+06652:       // Hide old saved-status banner during AI review. Save controls are locked
+06653:       // until a new photo has actually been analysed.
+06654:       const savedBanner=$('p2v510AttendanceNotice');
+06655:       if(savedBanner)savedBanner.style.display=p2v531Active?'none':'';
+06656:       const waiting=p2v531Active&&p2v528AwaitingPhoto&&!p2v524ScanSession;
+06657:       for(const id of ['p2v58All','p2v58Confirm','p2v58Save','p2v58Clear']){
+06708:           return;
+06709:         }
+06710:         switchPage('classAttendanceHub');$('p2v58UploadPanel')?.classList.remove('hidden');
+06711:         return p2v530OldPhoneHandler(payload.dataUrl,payload.name||'Phone photo',payload.attendancePayload||'');
+06712:       }
+06713:       if(p2v530AiBusy){
+06721:         return;
+06722:       }
+06723:       switchPage('classAttendanceHub');
+06724:       p2v536KeepUnifiedPanel();
+06725:       try{
+06726:         const blob=await(await fetch(payload.dataUrl)).blob();
+06933:       // The full-class roster replaces older renderers: refresh its saved
+06934:       // indicator every time a date, batch or checkbox changes.
+06935:       if(typeof p2v510AttendanceNotice==='function')p2v510AttendanceNotice();
+06936:       for(const id of ['p2v58Confirm','p2v58All']){
+06937:         const btn=$(id);if(btn)btn.disabled=false;
+06938:       }
+07012:     p2v536Style.id='p2v536Style';
+07013:     p2v536Style.textContent=
+07014:       '#classAttendanceHub .p2v58-title-row{display:flex!important;align-items:center;justify-content:space-between}'+
+07015:       '#classAttendanceHub .p2v58-title-row p,#classAttendanceHub .p2v58-actions,'+
+07016:       '#classAttendanceHub #p2v58UploadPanel,#classAttendanceHub #p2v58QrDetected,'+
+07017:       '#classAttendanceHub #p2v529FullClassOverview,#classAttendanceHub #p2v528ModeNotice,'+
+07018:       '#classAttendanceHub #p2v511Review,#classAttendanceHub #p2v531ReviewInside,'+
+07019:       '#classAttendanceHub #p2v58Save{display:none!important}'+
+07020:       '#classAttendanceHub #p2v530Panel{display:block!important;padding:12px 14px;margin:12px 0}'+
+07021:       '#classAttendanceHub #p2v531Print{min-height:44px}'+
+07022:       '#classAttendanceHub .p2v58-list-head{border-top:1px solid #e6edf3}'+
+07023:       '#classAttendanceHub .p2v58-row{cursor:pointer}';
+07024:     document.head.appendChild(p2v536Style);
+07025:     const aiPanel=$('p2v530Panel');
+07026:     if(aiPanel){
+07059:     switchPage=function(id){
+07060:       const result=p2v536OriginalSwitch.apply(this,arguments);
+07061:       if(id==='classAttendanceHub'){
+07062:         p2v536KeepUnifiedPanel();
+07063:         p2v536RenderFullRoster();
+07064:       }
+07109:     const style=document.createElement('style');style.id='p2v537AttendancePolish';
+07110:     style.textContent=
+07111:       '#classAttendanceHub .p2v58-page{max-width:1300px;margin:auto;line-height:1.5}'+
+07112:       '#classAttendanceHub .p2v58-title-row{padding-bottom:14px;border-bottom:1px solid #e5edf4;margin-bottom:16px}'+
+07113:       '#classAttendanceHub .p2v58-title-row h2{font-size:24px;font-weight:650;letter-spacing:-.02em;text-transform:none}'+
+07114:       '#classAttendanceHub .p2v58-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:end;margin-bottom:14px}'+
+07115:       '#classAttendanceHub .p2v58-filters .p2v58-date-only{display:none}'+
+07116:       '#classAttendanceHub .p2v58-filters select{width:100%;min-width:0}'+
+07117:       '#classAttendanceHub #p2v530Panel{margin:8px 0 16px;padding:0!important;border:0!important;box-shadow:none!important;background:transparent!important}'+
+07118:       '#classAttendanceHub #p2v531Print{min-height:42px;width:auto;padding:10px 18px;font-size:13px;font-weight:600;text-transform:none;border-radius:8px}'+
+07119:       '#classAttendanceHub .p2v58-upload-buttons{margin:0 0 12px;gap:12px}'+
+07120:       '#classAttendanceHub .p2v537-status{display:flex;flex-direction:column;gap:3px;border:0!important;border-left:3px solid #1b5a9c!important;border-radius:0!important;padding:8px 14px!important;background:#f8fbfe;color:#244970!important}'+
+07121:       '#classAttendanceHub .p2v537-status strong{font-size:13px;font-weight:700}'+
+07122:       '#classAttendanceHub .p2v537-status span{color:#596e83;font-size:12px}'+
+07123:       '#classAttendanceHub .p2v537-status small{margin-top:5px;font-size:12px}'+
+07124:       '#classAttendanceHub .p2v537-status .p2v537-error{color:#a22828}'+
+07125:       '#classAttendanceHub .p2v58-list-head{margin-top:12px;border-top:1px solid #e9eff5!important}'+
+07126:       '#classAttendanceHub .p2v58-footer{border-top:1px solid #e8eef4}'+
+07127:       '@media(max-width:700px){#classAttendanceHub .p2v58-filters{grid-template-columns:1fr;gap:10px}}';
+07128:     document.head.appendChild(style);
+07129:     $('p2v531Print').textContent='Print attendance sheets';
+07130:     const head=$('classAttendanceHub')?.querySelector('.p2v58-title-row h2');
+07131:     if(head)head.textContent='Class attendance';
+07132:     const tab=$('classAttendanceHub')?.querySelector('.p2v58-tab');
+07133:     if(tab)tab.textContent='Attendance list';
+07134:     $('p2v58All').textContent='Mark remaining absent';
+07135:     $('p2v58Confirm').textContent='Confirm attendance';
+08025:         const from=Number.isSafeInteger(number)&&number>0?number:1;
+08026:         const applicable=list.filter(x=>x.conducted&&x.number>=from);
+08027:         const present=applicable.filter(x=>p2cAttendanceStatus(en,x.date)===true).length;
+08028:         const absent=applicable.filter(x=>p2cAttendanceStatus(en,x.date)===false).length;
+08029:         const unresolved=applicable.length-present-absent;
+08030:         return{present,absent,unresolved,total:applicable.length,
+08031:           pct:applicable.length?Math.round(100*present/applicable.length):null};
+08181:               '<div class="field" style="margin-top:8px"><label>'+esc(x.date)+'</label>'+
+08182:               '<select class="p2v566-attendance" data-date="'+esc(x.date)+'">'+
+08183:               '<option value="true" '+(p2cAttendanceStatus(en,x.date)===true?'selected':'')+'>Present</option>'+
+08184:               '<option value="false" '+(p2cAttendanceStatus(en,x.date)===false?'selected':'')+'>Absent</option>'+
+08185:               '<option value="unset" '+(p2cAttendanceStatus(en,x.date)===null?'selected':'')+'>Not recorded</option></select></div>').join('');
+08186:           $('p2v566CorrectionForm').onsubmit=event=>{
+08187:             event.preventDefault();
+08188:             const proposedId=$('p2v566Student').value||en.studentId;
+09129:   // Do not alter photo scan, QR, class-wide confirmation or enrollment state.
+09130:   (function p2v572FrozenAttendance(){
+09131:     const hub=document.getElementById('classAttendanceHub');
+09132:     if(!hub||document.getElementById('p2v572AttendanceStyle'))return;
+09133:     const style=document.createElement('style');
+09134:     style.id='p2v572AttendanceStyle';
+09135:     style.textContent="\n  /* Frozen Class Attendance screen: approved dark-blue register and subtle absent rows. */\n  body:has(#classAttendanceHub.page.active) .topbar{\n    border-bottom:3px solid #ffc329!important;\n    padding-bottom:17px!important;\n    margin-bottom:19px!important;\n    align-items:center;\n  }\n  body:has(#classAttendanceHub.page.active) .topbar #pageTitle{\n    font-size:29px!important;font-weight:690!important;letter-spacing:-.025em!important;\n    text-transform:upper
+09136:     document.head.appendChild(style);
+09137:     // Keep the live processing/photograph status when meaningful; suppress only
+09138:     // the generic repeated instruction or duplicate success message.
+09271:       <p><b>${show(x.course)}</b> · ${show(x.b.name)} · ${show(p2BatchYear(x.b))}</p>
+09272:       <h4>Attendance sessions</h4>
+09273:       <table><thead><tr><th>Date</th><th>Attendance</th></tr></thead><tbody>${p2v5ValidDates(x.b).map(date=>{const a=p2cAttendanceStatus(x.en,date);return `<tr><td>${show(fmt(date))}</td><td>${a===true?'Present':a===false?'Absent':'Not marked'}</td></tr>`}).join('')||'<tr><td colspan="2">No sessions</td></tr>'}</tbody></table>
+09274:       <h4>Course history</h4>${history.map(en=>{const b=currentBatches().find(b=>String(b.id)===String(en.batchId));return b?`<div class="v574-history"><b>${show(nameOf(b))} · ${show(b.name)}</b><span>${show(p2BatchYear(b))} · ${show(status(en,b))} · ${p2v53AttendanceSummary(b,en).pct}%</span></div>`:''}).join('')}`;
+09275:     g('v574Close').onclick=()=>detail(null);
+09276:   }
+09277:   function csvEntry(x){
+09278:     const s=r.session?p2cAttendanceStatus(x.en,r.session):null;
+09279:     return {Student:x.p.name||'',Phone:x.p.mobile||'',Course:x.course,Batch:x.b.name||'',Year:String(p2BatchYear(x.b)),Present:x.a.present,Absent:x.a.absent,Not_Marked:x.a.blank,Attendance_Percent:x.a.pct,Session_Date:r.session||'',Session_Attendance:r.session?(s===true?'Present':s===false?'Absent':'Not marked'):'',Payment:payment(x.en,x.b,x.student),Progression:x.progress};
+09280:   }
+09281:   function update(){
+09290:     g('v574Summary').innerHTML=`<span><b>${unique.size}</b> Students</span><span><b>${finished}</b> Completed</span><span><b>${pending}</b> Review / Paused</span><span><b>${eligible}</b> Eligible</span><span><b>${avg}%</b> Attendance</span>`;
+09291:     g('v574Tbody').innerHTML=current.map((x,i)=>{
+09292:       const s=r.session?p2cAttendanceStatus(x.en,r.session):null;
+09293:       const attendance=r.session?(s===true?'Present':s===false?'Absent':'Not marked'):x.a.pct+'%';
+09294:       return `<tr><td><button class="v574-name" type="button" data-report-index="${(r.page-1)*per+i}">${show(x.p.name)}</button></td><td>${show(x.p.mobile)}</td><td>${show(x.course)}</td><td>${show(x.b.name)}</td><td>${show(attendance)}</td><td>${show(payment(x.en,x.b,x.student))}</td><td>${show(x.progress)}</td></tr>`;
+09295:     }).join('')||'<tr><td colspan="7" class="v574-empty">No matching students.</td></tr>';
