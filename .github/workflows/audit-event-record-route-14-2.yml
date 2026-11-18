@@ -1,0 +1,95 @@
+name: Audit Event Record UI regression (no release)
+on:
+  push:
+    branches: [fix-event-record-ui-regression-20261117]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit-windows-ui:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate targeted route fix without changing application data
+        shell: pwsh
+        run: |
+          node --check scripts/approved-event-record-route-patch14-2.js
+          node scripts/verify-event-record-route-patch14-2.js
+          if($LASTEXITCODE -ne 0){throw 'Source route regression failed'}
+      - name: Download EXACT approved Patch14.1 application code
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path input,output | Out-Null
+          gh release download ananda-5.81.8-patch14-1-add-member-update --repo focusdesk-dev/ananda-sangha-event-desk --pattern 'Ananda-Patch14.1-ADD-MEMBER-Update.zip' --dir input
+          if($LASTEXITCODE -ne 0){throw 'Approved Patch14.1 release unavailable'}
+          Expand-Archive -LiteralPath input/Ananda-Patch14.1-ADD-MEMBER-Update.zip -DestinationPath input/unpacked -Force
+          if(!(Test-Path input/unpacked/app.asar)){throw 'App archive missing'}
+          $hash=(Get-FileHash input/unpacked/app.asar -Algorithm SHA256).Hash
+          if($hash -ne '24F788CED0E3616EDAA52A1A6566BA0B58CAD6555CE34D09A00087E525E1A4EC'){throw 'Unexpected released code'}
+      - name: Produce disposable patched archive for UI tests — not distributed
+        shell: pwsh
+        run: |
+          npm install --no-save --no-fund --no-audit @electron/asar
+          if($LASTEXITCODE -ne 0){throw 'ASAR packager missing'}
+          node scripts/build-event-record-route-patch14-2.js input/unpacked/app.asar output/app.asar output/extracted
+          if($LASTEXITCODE -ne 0){throw 'Strict scoped source change verification failed'}
+      - name: Install verified Windows runtime and substitute proposed archive
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path windows-base | Out-Null
+          gh release download ananda-beta-5.81.8 --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir windows-base
+          if($LASTEXITCODE -ne 0){throw 'Base installer unavailable'}
+          $setup=(Get-ChildItem windows-base -Filter '*.exe'|Select-Object -First 1).FullName
+          $dest=Join-Path $env:RUNNER_TEMP 'AnandaUIRoute142Test'
+          $p=Start-Process -FilePath $setup -ArgumentList @('/S',('/D='+$dest)) -PassThru -Wait
+          if($p.ExitCode -ne 0){throw 'Windows base install failed'}
+          $archive=Join-Path $dest 'resources/app.asar'
+          if(!(Test-Path $archive)){throw 'Base app archive missing'}
+          Copy-Item output/app.asar $archive -Force
+          if((Get-FileHash $archive -Algorithm SHA256).Hash -ne (Get-FileHash output/app.asar -Algorithm SHA256).Hash){throw 'Installed candidate differs from built code'}
+          "ANANDA_ROUTE_TEST_INSTALL=$dest" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Run real packaged Event Record test + existing family/event regression suites
+        shell: pwsh
+        run: |
+          $app=Join-Path $env:ANANDA_ROUTE_TEST_INSTALL 'Ananda Sangha Event Desk.exe'
+          $p=Start-Process -FilePath $app -ArgumentList '--remote-debugging-port=9223' -PassThru
+          Start-Sleep -Seconds 7
+          if($p.HasExited){throw 'App failed to launch'}
+          node scripts/verify-event-record-route-windows-patch14-2.js
+          if($LASTEXITCODE -ne 0){throw 'Event Record real UI test failed'}
+          $failures=@()
+          $tests=@(
+            'scripts/verify-patch14-existing-family-desktop.js',
+            'scripts/verify-patch13-student-volunteer-and-mobile-desktop.js',
+            'scripts/verify-patch12-register-under-desktop.js',
+            'scripts/verify-volunteer-cross-event-desktop.js'
+          )
+          # Patch10 hidden submission test is superseded by the Patch12 form.
+          # Current Patch12 test verifies student and volunteer family saves.
+          foreach($test in $tests){
+            Write-Host "RUNNING_REGR_TEST: $test"
+            node $test
+            if($LASTEXITCODE -ne 0){
+              Write-Host "FAILED_REGR_TEST: $test"
+              $failures+= $test
+            }else{
+              Write-Host "PASSED_REGR_TEST: $test"
+            }
+          }
+          if($failures.Count -gt 0){
+            throw ('Regression suites needing attention: '+($failures -join ', '))
+          }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: event-record-route-audit-not-installer
+          path: |
+            ui-route-artifacts/*.png
+            event-record-route-build-report.json
+          if-no-files-found: warn
