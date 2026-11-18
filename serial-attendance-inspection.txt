@@ -1,0 +1,606 @@
+LINE COUNT: 11912
+MATCHES: 222
+
+==================== at line 159 ====================
+00152: @media(max-width:1100px){#p2v5WorkspaceGrid{grid-template-columns:1fr}#classWorkspace #p2ClassStats{grid-template-columns:repeat(3,1fr)}.p2v5-schedule-row{grid-template-columns:1fr 1fr}.p2v5-student-kpis{grid-template-columns:repeat(3,1fr)}}
+00153: </style>
+00154: 
+00155:     <script src="qrcode-client.js"></script>
+00156:     <script src="omr-scanner.js"></script>
+00157: <script src="jsqr-client.js"></script>
+00158: <style id="p2v530Style">
+00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
+00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
+00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
+00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
+00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
+00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
+00167: </style>
+00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
+00169: <style id="p2v570FrozenStyles">
+00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
+
+==================== at line 160 ====================
+00153: </style>
+00154: 
+00155:     <script src="qrcode-client.js"></script>
+00156:     <script src="omr-scanner.js"></script>
+00157: <script src="jsqr-client.js"></script>
+00158: <style id="p2v530Style">
+00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
+00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
+00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
+00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
+00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
+00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
+00167: </style>
+00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
+00169: <style id="p2v570FrozenStyles">
+00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
+00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
+
+==================== at line 161 ====================
+00154: 
+00155:     <script src="qrcode-client.js"></script>
+00156:     <script src="omr-scanner.js"></script>
+00157: <script src="jsqr-client.js"></script>
+00158: <style id="p2v530Style">
+00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
+00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
+00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
+00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
+00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
+00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
+00167: </style>
+00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
+00169: <style id="p2v570FrozenStyles">
+00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
+00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
+00172: body{background:#f8fafc}
+
+==================== at line 162 ====================
+00155:     <script src="qrcode-client.js"></script>
+00156:     <script src="omr-scanner.js"></script>
+00157: <script src="jsqr-client.js"></script>
+00158: <style id="p2v530Style">
+00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
+00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
+00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
+00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
+00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
+00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
+00167: </style>
+00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
+00169: <style id="p2v570FrozenStyles">
+00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
+00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
+00172: body{background:#f8fafc}
+00173: aside{background:linear-gradient(180deg,#082d65 0%,#06265a 100%);border-top:0}
+
+==================== at line 163 ====================
+00156:     <script src="omr-scanner.js"></script>
+00157: <script src="jsqr-client.js"></script>
+00158: <style id="p2v530Style">
+00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
+00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
+00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
+00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
+00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
+00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
+00167: </style>
+00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
+00169: <style id="p2v570FrozenStyles">
+00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
+00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
+00172: body{background:#f8fafc}
+00173: aside{background:linear-gradient(180deg,#082d65 0%,#06265a 100%);border-top:0}
+00174: aside .brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:22px 5px 30px}
+
+==================== at line 164 ====================
+00157: <script src="jsqr-client.js"></script>
+00158: <style id="p2v530Style">
+00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
+00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
+00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
+00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
+00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
+00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
+00167: </style>
+00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
+00169: <style id="p2v570FrozenStyles">
+00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
+00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
+00172: body{background:#f8fafc}
+00173: aside{background:linear-gradient(180deg,#082d65 0%,#06265a 100%);border-top:0}
+00174: aside .brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:22px 5px 30px}
+00175: aside .brand-logo{width:76px;height:76px;flex-basis:76px;background:transparent;border-radius:50%}
+
+==================== at line 165 ====================
+00158: <style id="p2v530Style">
+00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
+00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
+00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
+00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
+00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
+00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
+00167: </style>
+00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
+00169: <style id="p2v570FrozenStyles">
+00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
+00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
+00172: body{background:#f8fafc}
+00173: aside{background:linear-gradient(180deg,#082d65 0%,#06265a 100%);border-top:0}
+00174: aside .brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:22px 5px 30px}
+00175: aside .brand-logo{width:76px;height:76px;flex-basis:76px;background:transparent;border-radius:50%}
+00176: aside .brand-logo img{width:90px;left:-7px;top:-7px}
+
+==================== at line 166 ====================
+00159:   #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+00160:   #classAttendanceHub #p2v530AI{background:#1b579c;color:white;border-color:#1b579c;font-weight:900}
+00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
+00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
+00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
+00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
+00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
+00167: </style>
+00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
+00169: <style id="p2v570FrozenStyles">
+00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
+00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
+00172: body{background:#f8fafc}
+00173: aside{background:linear-gradient(180deg,#082d65 0%,#06265a 100%);border-top:0}
+00174: aside .brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:22px 5px 30px}
+00175: aside .brand-logo{width:76px;height:76px;flex-basis:76px;background:transparent;border-radius:50%}
+00176: aside .brand-logo img{width:90px;left:-7px;top:-7px}
+00177: aside .brand h1{font-size:16px;line-height:1.35;font-weight:670;text-transform:none;letter-spacing:0;color:#fff}
+
+==================== at line 168 ====================
+00161:   #classAttendanceHub #p2v530AI small{color:#e8f2ff}
+00162:   #classAttendanceHub #p2v530Panel.hidden{display:none!important}
+00163:   #classAttendanceHub #p2v530Panel{margin:12px 0 14px;background:#f6faff;border-color:#bfd8ee}
+00164:   #classAttendanceHub #p2v530Analyze{background:#174f96;color:white}
+00165:   @media(max-width:900px){#classAttendanceHub .p2v58-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+00166:   @media(max-width:550px){#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
+00167: </style>
+00168: <style id="p2v531Style">#classAttendanceHub .p2v531-step{background:#fff;border:1px solid #bcd4e9;border-radius:10px;padding:11px 8px;color:#184782;text-align:center;min-height:59px}#classAttendanceHub .p2v531-step b{display:block;font-size:11px}#classAttendanceHub .p2v531-step small{font-size:10px;line-height:1.2}#classAttendanceHub #p2v531Print{b
+00169: <style id="p2v570FrozenStyles">
+00170: /* Frozen Classes home and year pages: Ananda navy/gold, one title, less clutter. */
+00171: :root{--ananda-navy:#082d65;--ananda-gold:#ffc329;--ananda-soft:#f7faff}
+00172: body{background:#f8fafc}
+00173: aside{background:linear-gradient(180deg,#082d65 0%,#06265a 100%);border-top:0}
+00174: aside .brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:22px 5px 30px}
+00175: aside .brand-logo{width:76px;height:76px;flex-basis:76px;background:transparent;border-radius:50%}
+00176: aside .brand-logo img{width:90px;left:-7px;top:-7px}
+00177: aside .brand h1{font-size:16px;line-height:1.35;font-weight:670;text-transform:none;letter-spacing:0;color:#fff}
+00178: aside .brand small{display:none!important}
+00179: aside nav{gap:6px}
+
+==================== at line 254 ====================
+00247: #activeClasses .p2v56-chat-actions .p2v56-chat-delete{color:#7d4252}
+00248: #activeClasses .p2v56-chat-year{background:transparent;padding:0}
+00249: @media(max-width:1120px){#classes .p2-home-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#activeClasses .p2v510-year-card.p2v570-year-card{grid-template-columns:190px 1fr 1fr 45px}}
+00250: @media(max-width:800px){#classes .p2-home-grid{grid-template-columns:1fr}#activeClasses .p2v510-year-card.p2v570-year-card{grid-template-columns:160px 1fr 1fr 34px}#activeClasses .p2v570-metric{padding:15px}#activeClasses .p2v570-detail-inner{flex-wrap:wrap}#activeClasses .p2v570-detail-year{min-width:150px}}
+00251: </style>
+00252: <style id="p2v573Corrections">
+00253: body:has(#studentProgress.page.active) #v51SecurityButton{display:none!important}
+00254: #classAttendanceHub #p2v510AttendanceNotice.p2v573-saved{display:none!important}
+00255: #studentProgress .p2v520-table td,#studentProgress .p2v520-table th{white-space:nowrap}
+00256: </style>
+00257: </head>
+00258: <body>
+00259: <div class="app">
+00260:   <aside>
+00261:     <div class="brand"><div class="brand-logo"><img src="logo-128.png" alt="Ananda Sangha Gurgaon circular emblem"></div><div><h1 id="brandName">ANANDA SANGHA GURGAON</h1><small>Event registration</small></div></div>
+00262:     <nav>
+00263:       <button class="nav-btn active" data-page="dashboard"><span>01</span> Dashboard</button>
+00264:       <button class="nav-btn" data-page="classes"><span>02</span> Classes</button>
+00265:       <button class="nav-btn" data-page="events"><span>03</span> Events</button>
+
+==================== at line 688 ====================
+00681:   function toast(msg){const e=$('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200)}
+00682:   function $(id){return document.getElementById(id)}
+00683:   function activeEvent(){return state.events.find(e=>e.id===state.activeEventId)||null}
+00684:   function dayKey(){return `${state.activeEventId||'none'}|${$('workingDate').value}`}
+00685:   function volName(v){return[v.firstName,v.lastName].filter(Boolean).join(' ')||v.name||''}
+00686:   function normMobile(value){let d=String(value??'').replace(/\D/g,'');if(d.length>10&&d.startsWith('91'))d=d.slice(-10);return d}
+00687:   function normName(value){return String(value??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ' ).replace(/\s+/g,' ').trim()}
+00688:   function masterPersonName(type,id){if(type==='volunteer'){const v=state.volunteers.find(x=>x.id===id);return v?volName(v):''}const a=state.attendeeMaster.find(x=>x.id===id);return a?.name||''}
+00689:   function referenceName(record){const type=record.referenceType||(record.referenceVolunteerId?'volunteer':null),id=record.referenceId||record.referenceVolunteerId;return type&&id?masterPersonName(type,id)||'Reference not found':'No reference'}
+00690:   function findAttendeeMaster(name,mobile,personalMobile=''){const n=normName(name),m=normMobile(mobile),pm=normMobile(personalMobile);if(!n||(!m&&!pm))return null;return state.attendeeMaster.find(p=>normName(p.name)===n&&((pm&&normMobile(p.personalMobile)===pm)||(m&&normMobile(p.mobile)===m&&!(p.category==='family'&&!p.personalMobile)&&!state.fami
+00691:   function findVolunteerMatch(name,mobile,typeHint=''){const n=normName(name),m=normMobile(mobile),byName=state.volunteers.filter(v=>normName(volName(v))===n),exact=byName.find(v=>!m||normMobile(v.mobile)===m);if(exact)return exact;if(/volunteer/i.test(typeHint)&&byName.length===1)return byName[0];return null}
+00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
+00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
+00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
+00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
+00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
+00697:   function activeVolunteers(){return state.volunteers}
+00698:   function dailyIds(){return state.daily[dayKey()]||[]}
+00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
+
+==================== at line 690 ====================
+00683:   function activeEvent(){return state.events.find(e=>e.id===state.activeEventId)||null}
+00684:   function dayKey(){return `${state.activeEventId||'none'}|${$('workingDate').value}`}
+00685:   function volName(v){return[v.firstName,v.lastName].filter(Boolean).join(' ')||v.name||''}
+00686:   function normMobile(value){let d=String(value??'').replace(/\D/g,'');if(d.length>10&&d.startsWith('91'))d=d.slice(-10);return d}
+00687:   function normName(value){return String(value??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ' ).replace(/\s+/g,' ').trim()}
+00688:   function masterPersonName(type,id){if(type==='volunteer'){const v=state.volunteers.find(x=>x.id===id);return v?volName(v):''}const a=state.attendeeMaster.find(x=>x.id===id);return a?.name||''}
+00689:   function referenceName(record){const type=record.referenceType||(record.referenceVolunteerId?'volunteer':null),id=record.referenceId||record.referenceVolunteerId;return type&&id?masterPersonName(type,id)||'Reference not found':'No reference'}
+00690:   function findAttendeeMaster(name,mobile,personalMobile=''){const n=normName(name),m=normMobile(mobile),pm=normMobile(personalMobile);if(!n||(!m&&!pm))return null;return state.attendeeMaster.find(p=>normName(p.name)===n&&((pm&&normMobile(p.personalMobile)===pm)||(m&&normMobile(p.mobile)===m&&!(p.category==='family'&&!p.personalMobile)&&!state.fami
+00691:   function findVolunteerMatch(name,mobile,typeHint=''){const n=normName(name),m=normMobile(mobile),byName=state.volunteers.filter(v=>normName(volName(v))===n),exact=byName.find(v=>!m||normMobile(v.mobile)===m);if(exact)return exact;if(/volunteer/i.test(typeHint)&&byName.length===1)return byName[0];return null}
+00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
+00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
+00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
+00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
+00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
+00697:   function activeVolunteers(){return state.volunteers}
+00698:   function dailyIds(){return state.daily[dayKey()]||[]}
+00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
+00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
+00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
+
+==================== at line 693 ====================
+00686:   function normMobile(value){let d=String(value??'').replace(/\D/g,'');if(d.length>10&&d.startsWith('91'))d=d.slice(-10);return d}
+00687:   function normName(value){return String(value??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ' ).replace(/\s+/g,' ').trim()}
+00688:   function masterPersonName(type,id){if(type==='volunteer'){const v=state.volunteers.find(x=>x.id===id);return v?volName(v):''}const a=state.attendeeMaster.find(x=>x.id===id);return a?.name||''}
+00689:   function referenceName(record){const type=record.referenceType||(record.referenceVolunteerId?'volunteer':null),id=record.referenceId||record.referenceVolunteerId;return type&&id?masterPersonName(type,id)||'Reference not found':'No reference'}
+00690:   function findAttendeeMaster(name,mobile,personalMobile=''){const n=normName(name),m=normMobile(mobile),pm=normMobile(personalMobile);if(!n||(!m&&!pm))return null;return state.attendeeMaster.find(p=>normName(p.name)===n&&((pm&&normMobile(p.personalMobile)===pm)||(m&&normMobile(p.mobile)===m&&!(p.category==='family'&&!p.personalMobile)&&!state.fami
+00691:   function findVolunteerMatch(name,mobile,typeHint=''){const n=normName(name),m=normMobile(mobile),byName=state.volunteers.filter(v=>normName(volName(v))===n),exact=byName.find(v=>!m||normMobile(v.mobile)===m);if(exact)return exact;if(/volunteer/i.test(typeHint)&&byName.length===1)return byName[0];return null}
+00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
+00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
+00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
+00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
+00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
+00697:   function activeVolunteers(){return state.volunteers}
+00698:   function dailyIds(){return state.daily[dayKey()]||[]}
+00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
+00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
+00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
+00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
+00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
+00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
+
+==================== at line 694 ====================
+00687:   function normName(value){return String(value??'').trim().toLowerCase().replace(/[^a-z0-9]+/g,' ' ).replace(/\s+/g,' ').trim()}
+00688:   function masterPersonName(type,id){if(type==='volunteer'){const v=state.volunteers.find(x=>x.id===id);return v?volName(v):''}const a=state.attendeeMaster.find(x=>x.id===id);return a?.name||''}
+00689:   function referenceName(record){const type=record.referenceType||(record.referenceVolunteerId?'volunteer':null),id=record.referenceId||record.referenceVolunteerId;return type&&id?masterPersonName(type,id)||'Reference not found':'No reference'}
+00690:   function findAttendeeMaster(name,mobile,personalMobile=''){const n=normName(name),m=normMobile(mobile),pm=normMobile(personalMobile);if(!n||(!m&&!pm))return null;return state.attendeeMaster.find(p=>normName(p.name)===n&&((pm&&normMobile(p.personalMobile)===pm)||(m&&normMobile(p.mobile)===m&&!(p.category==='family'&&!p.personalMobile)&&!state.fami
+00691:   function findVolunteerMatch(name,mobile,typeHint=''){const n=normName(name),m=normMobile(mobile),byName=state.volunteers.filter(v=>normName(volName(v))===n),exact=byName.find(v=>!m||normMobile(v.mobile)===m);if(exact)return exact;if(/volunteer/i.test(typeHint)&&byName.length===1)return byName[0];return null}
+00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
+00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
+00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
+00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
+00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
+00697:   function activeVolunteers(){return state.volunteers}
+00698:   function dailyIds(){return state.daily[dayKey()]||[]}
+00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
+00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
+00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
+00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
+00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
+00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
+00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
+
+==================== at line 695 ====================
+00688:   function masterPersonName(type,id){if(type==='volunteer'){const v=state.volunteers.find(x=>x.id===id);return v?volName(v):''}const a=state.attendeeMaster.find(x=>x.id===id);return a?.name||''}
+00689:   function referenceName(record){const type=record.referenceType||(record.referenceVolunteerId?'volunteer':null),id=record.referenceId||record.referenceVolunteerId;return type&&id?masterPersonName(type,id)||'Reference not found':'No reference'}
+00690:   function findAttendeeMaster(name,mobile,personalMobile=''){const n=normName(name),m=normMobile(mobile),pm=normMobile(personalMobile);if(!n||(!m&&!pm))return null;return state.attendeeMaster.find(p=>normName(p.name)===n&&((pm&&normMobile(p.personalMobile)===pm)||(m&&normMobile(p.mobile)===m&&!(p.category==='family'&&!p.personalMobile)&&!state.fami
+00691:   function findVolunteerMatch(name,mobile,typeHint=''){const n=normName(name),m=normMobile(mobile),byName=state.volunteers.filter(v=>normName(volName(v))===n),exact=byName.find(v=>!m||normMobile(v.mobile)===m);if(exact)return exact;if(/volunteer/i.test(typeHint)&&byName.length===1)return byName[0];return null}
+00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
+00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
+00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
+00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
+00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
+00697:   function activeVolunteers(){return state.volunteers}
+00698:   function dailyIds(){return state.daily[dayKey()]||[]}
+00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
+00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
+00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
+00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
+00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
+00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
+00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
+00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
+
+==================== at line 696 ====================
+00689:   function referenceName(record){const type=record.referenceType||(record.referenceVolunteerId?'volunteer':null),id=record.referenceId||record.referenceVolunteerId;return type&&id?masterPersonName(type,id)||'Reference not found':'No reference'}
+00690:   function findAttendeeMaster(name,mobile,personalMobile=''){const n=normName(name),m=normMobile(mobile),pm=normMobile(personalMobile);if(!n||(!m&&!pm))return null;return state.attendeeMaster.find(p=>normName(p.name)===n&&((pm&&normMobile(p.personalMobile)===pm)||(m&&normMobile(p.mobile)===m&&!(p.category==='family'&&!p.personalMobile)&&!state.fami
+00691:   function findVolunteerMatch(name,mobile,typeHint=''){const n=normName(name),m=normMobile(mobile),byName=state.volunteers.filter(v=>normName(volName(v))===n),exact=byName.find(v=>!m||normMobile(v.mobile)===m);if(exact)return exact;if(/volunteer/i.test(typeHint)&&byName.length===1)return byName[0];return null}
+00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
+00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
+00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
+00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
+00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
+00697:   function activeVolunteers(){return state.volunteers}
+00698:   function dailyIds(){return state.daily[dayKey()]||[]}
+00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
+00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
+00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
+00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
+00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
+00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
+00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
+00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
+00707:   function allocation(type,id){const key=allocKey(type,id);return state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false})}
+
+==================== at line 699 ====================
+00692:   function findVolunteerIdentity(name,mobile,personalMobile=''){const n=normName(name),phones=[normMobile(mobile),normMobile(personalMobile)].filter(Boolean);if(!n||!phones.length)return null;return state.volunteers.find(v=>normName(volName(v))===n&&phones.includes(normMobile(v.mobile)))||null}
+00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
+00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
+00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
+00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
+00697:   function activeVolunteers(){return state.volunteers}
+00698:   function dailyIds(){return state.daily[dayKey()]||[]}
+00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
+00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
+00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
+00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
+00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
+00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
+00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
+00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
+00707:   function allocation(type,id){const key=allocKey(type,id);return state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false})}
+00708:   function peopleToday(){
+00709:     const vols=dailyIds().map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean).map(v=>({type:'volunteer',id:v.id,name:volName(v),sub:`${v.mobile||'No mobile'}${v.birthday?' · Birthday '+fmt(v.birthday):''}`}));
+00710:     const atts=todaysAttendees().map(a=>({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo}${a.mobile?' · '+a.mobile:''}`}));
+
+==================== at line 700 ====================
+00693:   function mergeVolunteerAttendeeDuplicates(){const duplicateMasters=new Map();state.attendeeMaster.forEach(person=>{const volunteer=findVolunteerIdentity(person.name,person.mobile,person.personalMobile);if(volunteer)duplicateMasters.set(person.id,volunteer)});if(!duplicateMasters.size)return;let changed=false;const removeAttendance=new Set();state
+00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
+00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
+00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
+00697:   function activeVolunteers(){return state.volunteers}
+00698:   function dailyIds(){return state.daily[dayKey()]||[]}
+00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
+00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
+00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
+00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
+00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
+00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
+00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
+00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
+00707:   function allocation(type,id){const key=allocKey(type,id);return state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false})}
+00708:   function peopleToday(){
+00709:     const vols=dailyIds().map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean).map(v=>({type:'volunteer',id:v.id,name:volName(v),sub:`${v.mobile||'No mobile'}${v.birthday?' · Birthday '+fmt(v.birthday):''}`}));
+00710:     const atts=todaysAttendees().map(a=>({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo}${a.mobile?' · '+a.mobile:''}`}));
+00711:     return [...vols,...atts];
+
+==================== at line 701 ====================
+00694:   function findReference(text,mobile=''){const n=normName(text),m=normMobile(mobile);if(!n&&!m)return null;const vol=state.volunteers.find(v=>(m&&normMobile(v.mobile)===m)||(n&&(normName(volName(v))===n||normName(volName(v)).includes(n)||n.includes(normName(volName(v))))));if(vol)return{type:'volunteer',id:vol.id};const att=state.attendeeMaster.fin
+00695:   function migrateLegacyPeople(){let changed=false;state.attendees.forEach(a=>{a.checkins=attendeeDates(a);if(!a.referenceType&&a.referenceVolunteerId){a.referenceType='volunteer';a.referenceId=a.referenceVolunteerId;changed=true}if(!a.masterId){let p=findAttendeeMaster(a.name,a.mobile);if(!p){p={id:uid('person'),name:a.name||'Unnamed attendee',mob
+00696:   function flagMissingAttendeeMobiles(){let changed=false;state.attendeeMaster.forEach(p=>{if(!normMobile(p.mobile)){p.needsReview=true;if(!String(p.reviewNotes||'').includes('Mobile number required'))p.reviewNotes=[p.reviewNotes,'Mobile number required'].filter(Boolean).join(' · ');changed=true}});state.attendees.forEach(a=>{if(!normMobile(a.mobil
+00697:   function activeVolunteers(){return state.volunteers}
+00698:   function dailyIds(){return state.daily[dayKey()]||[]}
+00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
+00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
+00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
+00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
+00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
+00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
+00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
+00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
+00707:   function allocation(type,id){const key=allocKey(type,id);return state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false})}
+00708:   function peopleToday(){
+00709:     const vols=dailyIds().map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean).map(v=>({type:'volunteer',id:v.id,name:volName(v),sub:`${v.mobile||'No mobile'}${v.birthday?' · Birthday '+fmt(v.birthday):''}`}));
+00710:     const atts=todaysAttendees().map(a=>({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo}${a.mobile?' · '+a.mobile:''}`}));
+00711:     return [...vols,...atts];
+00712:   }
+
+==================== at line 704 ====================
+00697:   function activeVolunteers(){return state.volunteers}
+00698:   function dailyIds(){return state.daily[dayKey()]||[]}
+00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
+00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
+00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
+00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
+00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
+00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
+00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
+00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
+00707:   function allocation(type,id){const key=allocKey(type,id);return state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false})}
+00708:   function peopleToday(){
+00709:     const vols=dailyIds().map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean).map(v=>({type:'volunteer',id:v.id,name:volName(v),sub:`${v.mobile||'No mobile'}${v.birthday?' · Birthday '+fmt(v.birthday):''}`}));
+00710:     const atts=todaysAttendees().map(a=>({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo}${a.mobile?' · '+a.mobile:''}`}));
+00711:     return [...vols,...atts];
+00712:   }
+00713:   function pendingPeople(){return peopleToday().map(p=>({p,a:allocation(p.type,p.id)})).filter(x=>(x.a.badgeIssued&&!x.a.badgeReturned)||(x.a.scarfIssued&&!x.a.scarfReturned))}
+00714:   function switchPage(id){if(id!==page){
+00715:     document.dispatchEvent(new Event('ananda:before-navigation'));
+
+==================== at line 705 ====================
+00698:   function dailyIds(){return state.daily[dayKey()]||[]}
+00699:   function attendeeDates(a){return a.checkins||((a.checkedIn&&a.date)?[a.date]:[])}
+00700:   function todaysAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId&&attendeeDates(a).includes($('workingDate').value))}
+00701:   function allEventAttendees(){return state.attendees.filter(a=>a.eventId===state.activeEventId)}
+00702:   function allEventVolunteerRegistrations(){return state.volunteerRegistrations.filter(r=>r.eventId===state.activeEventId)}
+00703:   function volunteerRegistrationDates(r){return r.checkins||[]}
+00704:   function allEventRegisteredCount(){return allEventAttendees().length+allEventVolunteerRegistrations().length}
+00705:   function nextRegNo(){const year=eventDates(activeEvent())[0]?.slice(0,4)||String(new Date().getFullYear());return`R${year}-${String(allEventAttendees().length+1).padStart(4,'0')}`}
+00706:   function allocKey(type,id){return `${state.activeEventId}|${$('workingDate').value}|${type}|${id}`}
+00707:   function allocation(type,id){const key=allocKey(type,id);return state.allocations[key]||(state.allocations[key]={badgeIssued:false,badgeReturned:false,scarfIssued:false,scarfReturned:false})}
+00708:   function peopleToday(){
+00709:     const vols=dailyIds().map(id=>state.volunteers.find(v=>v.id===id)).filter(Boolean).map(v=>({type:'volunteer',id:v.id,name:volName(v),sub:`${v.mobile||'No mobile'}${v.birthday?' · Birthday '+fmt(v.birthday):''}`}));
+00710:     const atts=todaysAttendees().map(a=>({type:'attendee',id:a.id,name:a.name,sub:`${a.regNo}${a.mobile?' · '+a.mobile:''}`}));
+00711:     return [...vols,...atts];
+00712:   }
+00713:   function pendingPeople(){return peopleToday().map(p=>({p,a:allocation(p.type,p.id)})).filter(x=>(x.a.badgeIssued&&!x.a.badgeReturned)||(x.a.scarfIssued&&!x.a.scarfReturned))}
+00714:   function switchPage(id){if(id!==page){
+00715:     document.dispatchEvent(new Event('ananda:before-navigation'));
+00716:     document.querySelectorAll('.modal-backdrop.open').forEach(modal=>{
+
+==================== at line 724 ====================
+00717:       if(modal.contains(document.activeElement))document.activeElement.blur();
+00718:       modal.classList.remove('open');
+00719:     });
+00720:   }if(['eventWorkspace','daily','checkin','register','items','reports','eventRecord'].includes(id)&&!activeEvent()){toast('Create or open an event first');id='events'}page=id;document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.pa
+00721:   document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));document.querySelectorAll('.go').forEach(b=>b.onclick=()=>switchPage(b.dataset.go));
+00722:   $('workingDate').onchange=renderAll;
+00723: 
+00724:   function renderAll(){renderHeader();renderDashboard();renderWorkspace();renderEvents();renderVolunteers();renderAttendeeMaster();renderDaily();renderReferences();renderCheckin();renderEventRegistrations();renderItems();renderReports();renderEventRecord();p2RenderAll();v52RenderSecuritySettings()}
+00725:   function renderHeader(){const ev=activeEvent();$('brandName').textContent=state.organization||'Annual Event Desk';if(ev){const dates=eventDates(ev),current=$('workingDate').value;$('workingDate').innerHTML=dates.map(d=>`<option value="${d}">${fmt(d)}</option>`).join('');$('workingDate').value=dates.includes(current)?current:dates[0]||''}else $('w
+00726:   function renderDashboard(){$('eventBanner').innerHTML='<div><h3>ANANDA SANGHA GURGAON</h3><p>Annual event registration and permanent records</p></div>';$('sVolunteers').textContent=activeVolunteers().length;$('sAttendeePeople').textContent=state.attendeeMaster.length}
+00727:   function renderWorkspace(){const ev=activeEvent();if(!ev){$('workspaceHeader').innerHTML='<div><h3>No event selected</h3><p>Create or open an event first.</p></div>';return}const pp=pendingPeople(),vols=dailyIds().length,atts=todaysAttendees().length;$('workspaceHeader').innerHTML=`<div><h3>${esc(ev.name)}</h3><p>${eventDateText(ev)} · ${esc(ev.v
+00728:   function fmt(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
+00729:   function eventDateText(ev){const labels=eventDates(ev).map(fmt);return labels.length<2?labels[0]||'No date':labels.length===2?labels.join(' & '):labels.slice(0,-1).join(', ')+' & '+labels.at(-1)}
+00730:   $('addEventDate').onclick=()=>addEventDateRow();
+00731:   function addEventDateRow(value=''){const row=document.createElement('div');row.className='event-date-row';row.innerHTML='<input class="event-date-input" type="date" required aria-label="Event date"><button type="button" class="icon-btn" aria-label="Remove event date">×</button>';row.querySelector('input').value=value;row.querySelector('button').o
+00732:   function setEventDateRows(dates=[]){$('eventDateRows').innerHTML='';(dates.length?dates:[today()]).forEach(addEventDateRow)}
+00733:   function selectedEventDates(){return[...new Set([...document.querySelectorAll('.event-date-input')].map(x=>x.value).filter(Boolean))].sort()}
+00734:   function resetEventForm(){$('eventForm').reset();$('eventEditId').value='';$('eventFormTitle').textContent='Create annual event';$('eventSaveButton').textContent='Save event';$('cancelEventEdit').classList.add('hidden');['badgeVolunteerRule','badgeAttendeeRule','scarfVolunteerRule','scarfAttendeeRule'].forEach(id=>$(id).checked=true);$('vipAttend
+00735:   function editEvent(id){const ev=state.events.find(e=>e.id===id),r=ev.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};$('eventEditId').value=ev.id;$('orgName').value=state.organization;$('eventName').value=ev.name;setEventDateRows(eventDates(ev));$('eventVenue').value=ev.venue||'';$('badgeV
+
+==================== at line 726 ====================
+00719:     });
+00720:   }if(['eventWorkspace','daily','checkin','register','items','reports','eventRecord'].includes(id)&&!activeEvent()){toast('Create or open an event first');id='events'}page=id;document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.pa
+00721:   document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));document.querySelectorAll('.go').forEach(b=>b.onclick=()=>switchPage(b.dataset.go));
+00722:   $('workingDate').onchange=renderAll;
+00723: 
+00724:   function renderAll(){renderHeader();renderDashboard();renderWorkspace();renderEvents();renderVolunteers();renderAttendeeMaster();renderDaily();renderReferences();renderCheckin();renderEventRegistrations();renderItems();renderReports();renderEventRecord();p2RenderAll();v52RenderSecuritySettings()}
+00725:   function renderHeader(){const ev=activeEvent();$('brandName').textContent=state.organization||'Annual Event Desk';if(ev){const dates=eventDates(ev),current=$('workingDate').value;$('workingDate').innerHTML=dates.map(d=>`<option value="${d}">${fmt(d)}</option>`).join('');$('workingDate').value=dates.includes(current)?current:dates[0]||''}else $('w
+00726:   function renderDashboard(){$('eventBanner').innerHTML='<div><h3>ANANDA SANGHA GURGAON</h3><p>Annual event registration and permanent records</p></div>';$('sVolunteers').textContent=activeVolunteers().length;$('sAttendeePeople').textContent=state.attendeeMaster.length}
+00727:   function renderWorkspace(){const ev=activeEvent();if(!ev){$('workspaceHeader').innerHTML='<div><h3>No event selected</h3><p>Create or open an event first.</p></div>';return}const pp=pendingPeople(),vols=dailyIds().length,atts=todaysAttendees().length;$('workspaceHeader').innerHTML=`<div><h3>${esc(ev.name)}</h3><p>${eventDateText(ev)} · ${esc(ev.v
+00728:   function fmt(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
+00729:   function eventDateText(ev){const labels=eventDates(ev).map(fmt);return labels.length<2?labels[0]||'No date':labels.length===2?labels.join(' & '):labels.slice(0,-1).join(', ')+' & '+labels.at(-1)}
+00730:   $('addEventDate').onclick=()=>addEventDateRow();
+00731:   function addEventDateRow(value=''){const row=document.createElement('div');row.className='event-date-row';row.innerHTML='<input class="event-date-input" type="date" required aria-label="Event date"><button type="button" class="icon-btn" aria-label="Remove event date">×</button>';row.querySelector('input').value=value;row.querySelector('button').o
+00732:   function setEventDateRows(dates=[]){$('eventDateRows').innerHTML='';(dates.length?dates:[today()]).forEach(addEventDateRow)}
+00733:   function selectedEventDates(){return[...new Set([...document.querySelectorAll('.event-date-input')].map(x=>x.value).filter(Boolean))].sort()}
+00734:   function resetEventForm(){$('eventForm').reset();$('eventEditId').value='';$('eventFormTitle').textContent='Create annual event';$('eventSaveButton').textContent='Save event';$('cancelEventEdit').classList.add('hidden');['badgeVolunteerRule','badgeAttendeeRule','scarfVolunteerRule','scarfAttendeeRule'].forEach(id=>$(id).checked=true);$('vipAttend
+00735:   function editEvent(id){const ev=state.events.find(e=>e.id===id),r=ev.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};$('eventEditId').value=ev.id;$('orgName').value=state.organization;$('eventName').value=ev.name;setEventDateRows(eventDates(ev));$('eventVenue').value=ev.venue||'';$('badgeV
+00736:   $('cancelEventEdit').onclick=resetEventForm;
+00737:   $('eventForm').onsubmit=e=>{e.preventDefault();const dates=selectedEventDates();if(!dates.length){toast('Select at least one event date');return}const id=$('eventEditId').value,ev={id:id||uid('ev'),name:$('eventName').value.trim(),dates,start:dates[0],end:dates.at(-1),venue:$('eventVenue').value.trim(),rules:{badgeVolunteer:$('badgeVolunteerRule'
+
+==================== at line 727 ====================
+00720:   }if(['eventWorkspace','daily','checkin','register','items','reports','eventRecord'].includes(id)&&!activeEvent()){toast('Create or open an event first');id='events'}page=id;document.querySelectorAll('.page').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav-btn').forEach(x=>x.classList.toggle('active',x.dataset.pa
+00721:   document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>switchPage(b.dataset.page));document.querySelectorAll('.go').forEach(b=>b.onclick=()=>switchPage(b.dataset.go));
+00722:   $('workingDate').onchange=renderAll;
+00723: 
+00724:   function renderAll(){renderHeader();renderDashboard();renderWorkspace();renderEvents();renderVolunteers();renderAttendeeMaster();renderDaily();renderReferences();renderCheckin();renderEventRegistrations();renderItems();renderReports();renderEventRecord();p2RenderAll();v52RenderSecuritySettings()}
+00725:   function renderHeader(){const ev=activeEvent();$('brandName').textContent=state.organization||'Annual Event Desk';if(ev){const dates=eventDates(ev),current=$('workingDate').value;$('workingDate').innerHTML=dates.map(d=>`<option value="${d}">${fmt(d)}</option>`).join('');$('workingDate').value=dates.includes(current)?current:dates[0]||''}else $('w
+00726:   function renderDashboard(){$('eventBanner').innerHTML='<div><h3>ANANDA SANGHA GURGAON</h3><p>Annual event registration and permanent records</p></div>';$('sVolunteers').textContent=activeVolunteers().length;$('sAttendeePeople').textContent=state.attendeeMaster.length}
+00727:   function renderWorkspace(){const ev=activeEvent();if(!ev){$('workspaceHeader').innerHTML='<div><h3>No event selected</h3><p>Create or open an event first.</p></div>';return}const pp=pendingPeople(),vols=dailyIds().length,atts=todaysAttendees().length;$('workspaceHeader').innerHTML=`<div><h3>${esc(ev.name)}</h3><p>${eventDateText(ev)} · ${esc(ev.v
+00728:   function fmt(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
+00729:   function eventDateText(ev){const labels=eventDates(ev).map(fmt);return labels.length<2?labels[0]||'No date':labels.length===2?labels.join(' & '):labels.slice(0,-1).join(', ')+' & '+labels.at(-1)}
+00730:   $('addEventDate').onclick=()=>addEventDateRow();
+00731:   function addEventDateRow(value=''){const row=document.createElement('div');row.className='event-date-row';row.innerHTML='<input class="event-date-input" type="date" required aria-label="Event date"><button type="button" class="icon-btn" aria-label="Remove event date">×</button>';row.querySelector('input').value=value;row.querySelector('button').o
+00732:   function setEventDateRows(dates=[]){$('eventDateRows').innerHTML='';(dates.length?dates:[today()]).forEach(addEventDateRow)}
+00733:   function selectedEventDates(){return[...new Set([...document.querySelectorAll('.event-date-input')].map(x=>x.value).filter(Boolean))].sort()}
+00734:   function resetEventForm(){$('eventForm').reset();$('eventEditId').value='';$('eventFormTitle').textContent='Create annual event';$('eventSaveButton').textContent='Save event';$('cancelEventEdit').classList.add('hidden');['badgeVolunteerRule','badgeAttendeeRule','scarfVolunteerRule','scarfAttendeeRule'].forEach(id=>$(id).checked=true);$('vipAttend
+00735:   function editEvent(id){const ev=state.events.find(e=>e.id===id),r=ev.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};$('eventEditId').value=ev.id;$('orgName').value=state.organization;$('eventName').value=ev.name;setEventDateRows(eventDates(ev));$('eventVenue').value=ev.venue||'';$('badgeV
+00736:   $('cancelEventEdit').onclick=resetEventForm;
+00737:   $('eventForm').onsubmit=e=>{e.preventDefault();const dates=selectedEventDates();if(!dates.length){toast('Select at least one event date');return}const id=$('eventEditId').value,ev={id:id||uid('ev'),name:$('eventName').value.trim(),dates,start:dates[0],end:dates.at(-1),venue:$('eventVenue').value.trim(),rules:{badgeVolunteer:$('badgeVolunteerRule'
+00738:   function renderEvents(){$('orgName').value='ANANDA SANGHA GURGAON';$('eventList').innerHTML=state.events.length?state.events.slice().reverse().map(e=>`<div style="padding:13px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div class="name">${esc(e.name)}</div><div class="sub">${
+
+==================== at line 734 ====================
+00727:   function renderWorkspace(){const ev=activeEvent();if(!ev){$('workspaceHeader').innerHTML='<div><h3>No event selected</h3><p>Create or open an event first.</p></div>';return}const pp=pendingPeople(),vols=dailyIds().length,atts=todaysAttendees().length;$('workspaceHeader').innerHTML=`<div><h3>${esc(ev.name)}</h3><p>${eventDateText(ev)} · ${esc(ev.v
+00728:   function fmt(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
+00729:   function eventDateText(ev){const labels=eventDates(ev).map(fmt);return labels.length<2?labels[0]||'No date':labels.length===2?labels.join(' & '):labels.slice(0,-1).join(', ')+' & '+labels.at(-1)}
+00730:   $('addEventDate').onclick=()=>addEventDateRow();
+00731:   function addEventDateRow(value=''){const row=document.createElement('div');row.className='event-date-row';row.innerHTML='<input class="event-date-input" type="date" required aria-label="Event date"><button type="button" class="icon-btn" aria-label="Remove event date">×</button>';row.querySelector('input').value=value;row.querySelector('button').o
+00732:   function setEventDateRows(dates=[]){$('eventDateRows').innerHTML='';(dates.length?dates:[today()]).forEach(addEventDateRow)}
+00733:   function selectedEventDates(){return[...new Set([...document.querySelectorAll('.event-date-input')].map(x=>x.value).filter(Boolean))].sort()}
+00734:   function resetEventForm(){$('eventForm').reset();$('eventEditId').value='';$('eventFormTitle').textContent='Create annual event';$('eventSaveButton').textContent='Save event';$('cancelEventEdit').classList.add('hidden');['badgeVolunteerRule','badgeAttendeeRule','scarfVolunteerRule','scarfAttendeeRule'].forEach(id=>$(id).checked=true);$('vipAttend
+00735:   function editEvent(id){const ev=state.events.find(e=>e.id===id),r=ev.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};$('eventEditId').value=ev.id;$('orgName').value=state.organization;$('eventName').value=ev.name;setEventDateRows(eventDates(ev));$('eventVenue').value=ev.venue||'';$('badgeV
+00736:   $('cancelEventEdit').onclick=resetEventForm;
+00737:   $('eventForm').onsubmit=e=>{e.preventDefault();const dates=selectedEventDates();if(!dates.length){toast('Select at least one event date');return}const id=$('eventEditId').value,ev={id:id||uid('ev'),name:$('eventName').value.trim(),dates,start:dates[0],end:dates.at(-1),venue:$('eventVenue').value.trim(),rules:{badgeVolunteer:$('badgeVolunteerRule'
+00738:   function renderEvents(){$('orgName').value='ANANDA SANGHA GURGAON';$('eventList').innerHTML=state.events.length?state.events.slice().reverse().map(e=>`<div style="padding:13px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div class="name">${esc(e.name)}</div><div class="sub">${
+00739:   function eventRuleText(e){const r=e.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};return`Badge: ${r.badgeVolunteer?'volunteers':''}${r.badgeVolunteer&&r.badgeAttendee?' + ':''}${r.badgeAttendee?'attendees':''}${!r.badgeVolunteer&&!r.badgeAttendee?'not used':''} · Scarf: ${r.scarfVoluntee
+00740: 
+00741:   $('addVolunteer').onclick=()=>openVolunteer(undefined,false);document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).classList.remove('open'));
+00742:   function v92VolunteerMobileError(id,mobile){const digits=normMobile(mobile);if(!digits)return'';const duplicate=state.volunteers.find(person=>person.id!==id&&normMobile(person.mobile||'')===digits);return duplicate?`Mobile number ${digits} is already used by volunteer ${volName(duplicate)}. Each volunteer must have a unique 10-digit mobile number
+00743:   function v92WireMobileLimit(){const input=$('volunteerMobile');if(!input||input.dataset.v92Wire)return;input.dataset.v92Wire='1';input.oninput=()=>{input.value=input.value.replace(/\D/g,'').slice(0,10)};}
+00744:   function openVolunteer(id,forToday=false){addVolunteerForToday=!!forToday;const v=state.volunteers.find(x=>x.id===id);$('volunteerModalTitle').textContent=v?'Edit volunteer':addVolunteerForToday?'Add volunteer for today':'Add volunteer';$('volunteerId').value=v?.id||'';$('volunteerFirstName').value=v?.firstName||'';$('volunteerLastName').value=v?
+00745:   $('volunteerForm').onsubmit=e=>{e.preventDefault();const id=$('volunteerId').value,rawMobile=$('volunteerMobile').value.trim(),mobile=normMobile(rawMobile);if(rawMobile&&mobile.length!==10){toast('Mobile number must be exactly 10 digits');return}if(addVolunteerForToday&&!id&&mobile.length!==10){toast('Enter a valid 10-digit mobile number for the 
+
+==================== at line 735 ====================
+00728:   function fmt(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}
+00729:   function eventDateText(ev){const labels=eventDates(ev).map(fmt);return labels.length<2?labels[0]||'No date':labels.length===2?labels.join(' & '):labels.slice(0,-1).join(', ')+' & '+labels.at(-1)}
+00730:   $('addEventDate').onclick=()=>addEventDateRow();
+00731:   function addEventDateRow(value=''){const row=document.createElement('div');row.className='event-date-row';row.innerHTML='<input class="event-date-input" type="date" required aria-label="Event date"><button type="button" class="icon-btn" aria-label="Remove event date">×</button>';row.querySelector('input').value=value;row.querySelector('button').o
+00732:   function setEventDateRows(dates=[]){$('eventDateRows').innerHTML='';(dates.length?dates:[today()]).forEach(addEventDateRow)}
+00733:   function selectedEventDates(){return[...new Set([...document.querySelectorAll('.event-date-input')].map(x=>x.value).filter(Boolean))].sort()}
+00734:   function resetEventForm(){$('eventForm').reset();$('eventEditId').value='';$('eventFormTitle').textContent='Create annual event';$('eventSaveButton').textContent='Save event';$('cancelEventEdit').classList.add('hidden');['badgeVolunteerRule','badgeAttendeeRule','scarfVolunteerRule','scarfAttendeeRule'].forEach(id=>$(id).checked=true);$('vipAttend
+00735:   function editEvent(id){const ev=state.events.find(e=>e.id===id),r=ev.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};$('eventEditId').value=ev.id;$('orgName').value=state.organization;$('eventName').value=ev.name;setEventDateRows(eventDates(ev));$('eventVenue').value=ev.venue||'';$('badgeV
+00736:   $('cancelEventEdit').onclick=resetEventForm;
+00737:   $('eventForm').onsubmit=e=>{e.preventDefault();const dates=selectedEventDates();if(!dates.length){toast('Select at least one event date');return}const id=$('eventEditId').value,ev={id:id||uid('ev'),name:$('eventName').value.trim(),dates,start:dates[0],end:dates.at(-1),venue:$('eventVenue').value.trim(),rules:{badgeVolunteer:$('badgeVolunteerRule'
+00738:   function renderEvents(){$('orgName').value='ANANDA SANGHA GURGAON';$('eventList').innerHTML=state.events.length?state.events.slice().reverse().map(e=>`<div style="padding:13px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div class="name">${esc(e.name)}</div><div class="sub">${
+00739:   function eventRuleText(e){const r=e.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};return`Badge: ${r.badgeVolunteer?'volunteers':''}${r.badgeVolunteer&&r.badgeAttendee?' + ':''}${r.badgeAttendee?'attendees':''}${!r.badgeVolunteer&&!r.badgeAttendee?'not used':''} · Scarf: ${r.scarfVoluntee
+00740: 
+00741:   $('addVolunteer').onclick=()=>openVolunteer(undefined,false);document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).classList.remove('open'));
+00742:   function v92VolunteerMobileError(id,mobile){const digits=normMobile(mobile);if(!digits)return'';const duplicate=state.volunteers.find(person=>person.id!==id&&normMobile(person.mobile||'')===digits);return duplicate?`Mobile number ${digits} is already used by volunteer ${volName(duplicate)}. Each volunteer must have a unique 10-digit mobile number
+00743:   function v92WireMobileLimit(){const input=$('volunteerMobile');if(!input||input.dataset.v92Wire)return;input.dataset.v92Wire='1';input.oninput=()=>{input.value=input.value.replace(/\D/g,'').slice(0,10)};}
+00744:   function openVolunteer(id,forToday=false){addVolunteerForToday=!!forToday;const v=state.volunteers.find(x=>x.id===id);$('volunteerModalTitle').textContent=v?'Edit volunteer':addVolunteerForToday?'Add volunteer for today':'Add volunteer';$('volunteerId').value=v?.id||'';$('volunteerFirstName').value=v?.firstName||'';$('volunteerLastName').value=v?
+00745:   $('volunteerForm').onsubmit=e=>{e.preventDefault();const id=$('volunteerId').value,rawMobile=$('volunteerMobile').value.trim(),mobile=normMobile(rawMobile);if(rawMobile&&mobile.length!==10){toast('Mobile number must be exactly 10 digits');return}if(addVolunteerForToday&&!id&&mobile.length!==10){toast('Enter a valid 10-digit mobile number for the 
+00746:   v92WireMobileLimit();
+
+==================== at line 739 ====================
+00732:   function setEventDateRows(dates=[]){$('eventDateRows').innerHTML='';(dates.length?dates:[today()]).forEach(addEventDateRow)}
+00733:   function selectedEventDates(){return[...new Set([...document.querySelectorAll('.event-date-input')].map(x=>x.value).filter(Boolean))].sort()}
+00734:   function resetEventForm(){$('eventForm').reset();$('eventEditId').value='';$('eventFormTitle').textContent='Create annual event';$('eventSaveButton').textContent='Save event';$('cancelEventEdit').classList.add('hidden');['badgeVolunteerRule','badgeAttendeeRule','scarfVolunteerRule','scarfAttendeeRule'].forEach(id=>$(id).checked=true);$('vipAttend
+00735:   function editEvent(id){const ev=state.events.find(e=>e.id===id),r=ev.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};$('eventEditId').value=ev.id;$('orgName').value=state.organization;$('eventName').value=ev.name;setEventDateRows(eventDates(ev));$('eventVenue').value=ev.venue||'';$('badgeV
+00736:   $('cancelEventEdit').onclick=resetEventForm;
+00737:   $('eventForm').onsubmit=e=>{e.preventDefault();const dates=selectedEventDates();if(!dates.length){toast('Select at least one event date');return}const id=$('eventEditId').value,ev={id:id||uid('ev'),name:$('eventName').value.trim(),dates,start:dates[0],end:dates.at(-1),venue:$('eventVenue').value.trim(),rules:{badgeVolunteer:$('badgeVolunteerRule'
+00738:   function renderEvents(){$('orgName').value='ANANDA SANGHA GURGAON';$('eventList').innerHTML=state.events.length?state.events.slice().reverse().map(e=>`<div style="padding:13px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div class="name">${esc(e.name)}</div><div class="sub">${
+00739:   function eventRuleText(e){const r=e.rules||{badgeVolunteer:true,badgeAttendee:true,scarfVolunteer:true,scarfAttendee:true,vipAttending:false};return`Badge: ${r.badgeVolunteer?'volunteers':''}${r.badgeVolunteer&&r.badgeAttendee?' + ':''}${r.badgeAttendee?'attendees':''}${!r.badgeVolunteer&&!r.badgeAttendee?'not used':''} · Scarf: ${r.scarfVoluntee
+00740: 
+00741:   $('addVolunteer').onclick=()=>openVolunteer(undefined,false);document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).classList.remove('open'));
+00742:   function v92VolunteerMobileError(id,mobile){const digits=normMobile(mobile);if(!digits)return'';const duplicate=state.volunteers.find(person=>person.id!==id&&normMobile(person.mobile||'')===digits);return duplicate?`Mobile number ${digits} is already used by volunteer ${volName(duplicate)}. Each volunteer must have a unique 10-digit mobile number
+00743:   function v92WireMobileLimit(){const input=$('volunteerMobile');if(!input||input.dataset.v92Wire)return;input.dataset.v92Wire='1';input.oninput=()=>{input.value=input.value.replace(/\D/g,'').slice(0,10)};}
+00744:   function openVolunteer(id,forToday=false){addVolunteerForToday=!!forToday;const v=state.volunteers.find(x=>x.id===id);$('volunteerModalTitle').textContent=v?'Edit volunteer':addVolunteerForToday?'Add volunteer for today':'Add volunteer';$('volunteerId').value=v?.id||'';$('volunteerFirstName').value=v?.firstName||'';$('volunteerLastName').value=v?
+00745:   $('volunteerForm').onsubmit=e=>{e.preventDefault();const id=$('volunteerId').value,rawMobile=$('volunteerMobile').value.trim(),mobile=normMobile(rawMobile);if(rawMobile&&mobile.length!==10){toast('Mobile number must be exactly 10 digits');return}if(addVolunteerForToday&&!id&&mobile.length!==10){toast('Enter a valid 10-digit mobile number for the 
+00746:   v92WireMobileLimit();
+00747:   $('volunteerSearch').oninput=renderVolunteers;
+00748:   function volunteerRows(source){const counts=new Map();state.volunteers.forEach(person=>{const digits=normMobile(person.mobile||'');if(digits)counts.set(digits,(counts.get(digits)||0)+1)});return source.map(v=>{const duplicate=normMobile(v.mobile||'')&&counts.get(normMobile(v.mobile||''))>1;return`<tr class="${duplicate?'v92-duplicate-row':''}"><t
+00749:   function renderVolunteers(){const q=$('volunteerSearch').value.toLowerCase();const list=state.volunteers.filter(v=>[volName(v),v.mobile,v.birthday].join(' ').toLowerCase().includes(q)).sort((a,b)=>volName(a).localeCompare(volName(b),undefined,{sensitivity:'base'}));$('volunteerTable').innerHTML=list.length?`<div class="table-wrap"><table><thead><
+00750:   function normalizeBirthday(value){const s=String(value??'').trim();if(!s)return'';if(/^\d+(\.\d+)?$/.test(s)){const n=Number(s);if(n>1000&&n<100000)return new Date(Date.UTC(1899,11,30)+Math.floor(n)*86400000).toISOString().slice(0,10)}let m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padSta
+
+==================== at line 755 ====================
+00748:   function volunteerRows(source){const counts=new Map();state.volunteers.forEach(person=>{const digits=normMobile(person.mobile||'');if(digits)counts.set(digits,(counts.get(digits)||0)+1)});return source.map(v=>{const duplicate=normMobile(v.mobile||'')&&counts.get(normMobile(v.mobile||''))>1;return`<tr class="${duplicate?'v92-duplicate-row':''}"><t
+00749:   function renderVolunteers(){const q=$('volunteerSearch').value.toLowerCase();const list=state.volunteers.filter(v=>[volName(v),v.mobile,v.birthday].join(' ').toLowerCase().includes(q)).sort((a,b)=>volName(a).localeCompare(volName(b),undefined,{sensitivity:'base'}));$('volunteerTable').innerHTML=list.length?`<div class="table-wrap"><table><thead><
+00750:   function normalizeBirthday(value){const s=String(value??'').trim();if(!s)return'';if(/^\d+(\.\d+)?$/.test(s)){const n=Number(s);if(n>1000&&n<100000)return new Date(Date.UTC(1899,11,30)+Math.floor(n)*86400000).toISOString().slice(0,10)}let m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padSta
+00751:   function importVolunteerRows(rows){if(rows.length<2)throw Error('No volunteer rows found');let headerRow=-1,idx=null;for(let i=0;i<Math.min(rows.length,15);i++){const h=rows[i].map(x=>String(x??'').trim().toLowerCase()),first=findColumn(h,['first name','firstname']),last=findColumn(h,['last name','surname','lastname']),full=findColumn(h,['full na
+00752:   $('volunteerImportFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const rows=f.name.toLowerCase().endsWith('.csv')?parseCsv(await f.text()):await parseXlsx(await f.arrayBuffer()),result=importVolunteerRows(rows);$('volunteerImportResult').textContent=`${result.count} volunteer${result.count===1?'':'s'} imported${result.duplic
+00753: 
+00754:   $('addAttendeeMaster').onclick=()=>openAttendeeMaster();$('attendeeMasterSearch').oninput=renderAttendeeMaster;$('attendeeMasterFilter').onchange=renderAttendeeMaster;
+00755:   function attendeeProgramCount(id){return new Set(state.attendees.filter(a=>a.masterId===id).map(a=>a.eventId)).size}
+00756:   function attendeeReferralCount(id){return state.attendees.filter(a=>a.referenceType==='attendee'&&a.referenceId===id).length}
+00757:   function typedReferenceOptions(selected='',excludeAttendeeId=''){const volunteers=state.volunteers.map(v=>`<option value="volunteer|${v.id}" ${selected===`volunteer|${v.id}`?'selected':''}>Volunteer · ${esc(volName(v))}</option>`).join(''),attendees=state.attendeeMaster.filter(a=>a.id!==excludeAttendeeId).map(a=>`<option value="attendee|${a.id}" 
+00758:   function openAttendeeMaster(id){const a=state.attendeeMaster.find(x=>x.id===id);$('attendeeMasterModalTitle').textContent=a?'Edit attendee':'Add attendee';$('attendeeMasterId').value=a?.id||'';$('attendeeMasterName').value=a?.name||'';$('attendeeMasterMobile').value=a?.mobile||'';$('attendeeMasterCategory').value=a?.category||'outside';$('attende
+00759:   $('attendeeMasterForm').onsubmit=e=>{e.preventDefault();const id=$('attendeeMasterId').value,name=$('attendeeMasterName').value.trim(),mobile=$('attendeeMasterMobile').value.trim(),existing=findAttendeeMaster(name,mobile),old=state.attendeeMaster.find(x=>x.id===id);if(existing&&existing.id!==id){toast('This attendee already exists in the master')
+00760:   function renderAttendeeMaster(){const q=normName($('attendeeMasterSearch').value),filter=$('attendeeMasterFilter').value;let list=state.attendeeMaster.filter(a=>[a.name,a.mobile,a.reviewNotes,masterPersonName(a.originalReferenceType,a.originalReferenceId)].join(' ').toLowerCase().includes(q));if(filter==='family')list=list.filter(a=>a.category===
+00761: 
+00762:   function dailyLookupReady(query=''){const raw=String(query||'').trim(),digits=normMobile(raw),name=normName(raw.replace(/[+\d()[\].,\-]/g,' '));return digits.length>=4||name.length>=2}
+00763:   function volunteerMasterMatches(query=''){const raw=String(query||'').trim();if(!dailyLookupReady(raw))return[];const digits=normMobile(raw),name=normName(raw.replace(/[+\d()[\].,\-]/g,' '));return state.volunteers.filter(v=>(digits.length>=4&&normMobile(v.mobile).includes(digits))||(name.length>=2&&normName(volName(v)).includes(name))).sort((a,b
+00764:   $('dailySearch').oninput=renderDaily;$('clearDaily').onclick=()=>{const date=$('workingDate').value,eventId=state.activeEventId;state.daily[dayKey()]=[];state.volunteerRegistrations.filter(r=>r.eventId===eventId).forEach(r=>r.checkins=volunteerRegistrationDates(r).filter(d=>d!==date));save();toast('Day selection cleared')};
+00765:   function renderDaily(){
+00766:     const ids=dailyIds(),rules=activeEvent()?.rules||{},query=$('dailySearch').value.trim();
+
+==================== at line 756 ====================
+00749:   function renderVolunteers(){const q=$('volunteerSearch').value.toLowerCase();const list=state.volunteers.filter(v=>[volName(v),v.mobile,v.birthday].join(' ').toLowerCase().includes(q)).sort((a,b)=>volName(a).localeCompare(volName(b),undefined,{sensitivity:'base'}));$('volunteerTable').innerHTML=list.length?`<div class="table-wrap"><table><thead><
+00750:   function normalizeBirthday(value){const s=String(value??'').trim();if(!s)return'';if(/^\d+(\.\d+)?$/.test(s)){const n=Number(s);if(n>1000&&n<100000)return new Date(Date.UTC(1899,11,30)+Math.floor(n)*86400000).toISOString().slice(0,10)}let m=s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padSta
+00751:   function importVolunteerRows(rows){if(rows.length<2)throw Error('No volunteer rows found');let headerRow=-1,idx=null;for(let i=0;i<Math.min(rows.length,15);i++){const h=rows[i].map(x=>String(x??'').trim().toLowerCase()),first=findColumn(h,['first name','firstname']),last=findColumn(h,['last name','surname','lastname']),full=findColumn(h,['full na
+00752:   $('volunteerImportFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const rows=f.name.toLowerCase().endsWith('.csv')?parseCsv(await f.text()):await parseXlsx(await f.arrayBuffer()),result=importVolunteerRows(rows);$('volunteerImportResult').textContent=`${result.count} volunteer${result.count===1?'':'s'} imported${result.duplic
+00753: 
+00754:   $('addAttendeeMaster').onclick=()=>openAttendeeMaster();$('attendeeMasterSearch').oninput=renderAttendeeMaster;$('attendeeMasterFilter').onchange=renderAttendeeMaster;
+00755:   function attendeeProgramCount(id){return new Set(state.attendees.filter(a=>a.masterId===id).map(a=>a.eventId)).size}
+00756:   function attendeeReferralCount(id){return state.attendees.filter(a=>a.referenceType==='attendee'&&a.referenceId===id).length}
+00757:   function typedReferenceOptions(selected='',excludeAttendeeId=''){const volunteers=state.volunteers.map(v=>`<option value="volunteer|${v.id}" ${selected===`volunteer|${v.id}`?'selected':''}>Volunteer · ${esc(volName(v))}</option>`).join(''),attendees=state.attendeeMaster.filter(a=>a.id!==excludeAttendeeId).map(a=>`<option value="attendee|${a.id}" 
+00758:   function openAttendeeMaster(id){const a=state.attendeeMaster.find(x=>x.id===id);$('attendeeMasterModalTitle').textContent=a?'Edit attendee':'Add attendee';$('attendeeMasterId').value=a?.id||'';$('attendeeMasterName').value=a?.name||'';$('attendeeMasterMobile').value=a?.mobile||'';$('attendeeMasterCategory').value=a?.category||'outside';$('attende
+00759:   $('attendeeMasterForm').onsubmit=e=>{e.preventDefault();const id=$('attendeeMasterId').value,name=$('attendeeMasterName').value.trim(),mobile=$('attendeeMasterMobile').value.trim(),existing=findAttendeeMaster(name,mobile),old=state.attendeeMaster.find(x=>x.id===id);if(existing&&existing.id!==id){toast('This attendee already exists in the master')
+00760:   function renderAttendeeMaster(){const q=normName($('attendeeMasterSearch').value),filter=$('attendeeMasterFilter').value;let list=state.attendeeMaster.filter(a=>[a.name,a.mobile,a.reviewNotes,masterPersonName(a.originalReferenceType,a.originalReferenceId)].join(' ').toLowerCase().includes(q));if(filter==='family')list=list.filter(a=>a.category===
+00761: 
+00762:   function dailyLookupReady(query=''){const raw=String(query||'').trim(),digits=normMobile(raw),name=normName(raw.replace(/[+\d()[\].,\-]
