@@ -48,10 +48,13 @@ async function main(){
   await send('Page.reload',{ignoreCache:true});await pause(600);
   const before=await run(function(){
     document.querySelector('aside .nav-btn[data-page="classes"]')?.click();
+    document.getElementById('p2ClassBatches')?.click();
+    const year=[...document.querySelectorAll('#p2ClassList .p2v510-class-year')].find(x=>x.dataset.year==='2026');
+    if(!year)throw Error('Class batch 2026 selector missing');
+    year.click();
     const b=document.querySelector('#p2ClassList .p2v56-chat-class[data-id="qa-genuine-level1"]');
-    // In case the batch is not in the first year view, navigate via preserved active batch.
-    if(b)b.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));
-    else document.getElementById('p2ClassesAttendance')?.click();
+    if(!b)throw Error('Existing test fixture Level1 batch not visible');
+    b.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));
     const btn=document.getElementById('v150DemoButton');
     return{version:window.anandaLevel1DemoStudentsVersion,page:document.querySelector('.page.active')?.id,
       button:btn?.textContent.trim(),students:JSON.parse(localStorage.getItem('annualEventRegistration.v1')).students.length,
@@ -97,7 +100,14 @@ async function main(){
    x=>x.version==='14.10'&&x.testMasters===50&&x.testEnrolments===50&&x.realEnrolmentExists);
   const removed=await run(function(){
     document.querySelector('aside .nav-btn[data-page="classes"]')?.click();
-    document.getElementById('p2ClassesAttendance')?.click();
+    document.getElementById('p2ClassBatches')?.click();
+    const year=[...document.querySelectorAll('#p2ClassList .p2v510-class-year')].find(x=>x.dataset.year==='2026');
+    if(!year)throw Error('Expected class year 2026 selector missing');
+    year.click();
+    const activeId=JSON.parse(localStorage.getItem('annualEventRegistration.v1')).activeClassBatchId;
+    const card=document.querySelector('#p2ClassList .p2v56-chat-class[data-id="'+activeId+'"]');
+    if(!card)throw Error('Selected batch '+activeId+' missing');
+    card.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));
     const prior=window.confirm;window.confirm=()=>true;
     try{document.getElementById('v150DemoButton').click()}finally{window.confirm=prior}
     const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
@@ -119,7 +129,14 @@ async function main(){
   await send('Page.reload',{ignoreCache:true});await pause(440);
   const wrongBatch=await run(function(){
     document.querySelector('aside .nav-btn[data-page="classes"]')?.click();
-    document.getElementById('p2ClassesAttendance')?.click();
+    document.getElementById('p2ClassBatches')?.click();
+    const year=[...document.querySelectorAll('#p2ClassList .p2v510-class-year')].find(x=>x.dataset.year==='2026');
+    if(!year)throw Error('Expected class year 2026 selector missing');
+    year.click();
+    const activeId=JSON.parse(localStorage.getItem('annualEventRegistration.v1')).activeClassBatchId;
+    const card=document.querySelector('#p2ClassList .p2v56-chat-class[data-id="'+activeId+'"]');
+    if(!card)throw Error('Selected batch '+activeId+' missing');
+    card.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));
     return{batchIsLevel2:document.getElementById('p2ClassHeader')?.textContent.includes('Level 2'),
       testButton:!!document.getElementById('v150DemoButton'),
       demoEnrolments:JSON.parse(localStorage.getItem('annualEventRegistration.v1')).classEnrollments.filter(x=>x.__anandaDemoSet).length};
@@ -133,7 +150,14 @@ async function main(){
   await send('Page.reload',{ignoreCache:true});await pause(440);
   const noFee=await run(function(){
     document.querySelector('aside .nav-btn[data-page="classes"]')?.click();
-    document.getElementById('p2ClassesAttendance')?.click();
+    document.getElementById('p2ClassBatches')?.click();
+    const year=[...document.querySelectorAll('#p2ClassList .p2v510-class-year')].find(x=>x.dataset.year==='2026');
+    if(!year)throw Error('Expected class year 2026 selector missing');
+    year.click();
+    const activeId=JSON.parse(localStorage.getItem('annualEventRegistration.v1')).activeClassBatchId;
+    const card=document.querySelector('#p2ClassList .p2v56-chat-class[data-id="'+activeId+'"]');
+    if(!card)throw Error('Selected batch '+activeId+' missing');
+    card.dispatchEvent(new MouseEvent('dblclick',{bubbles:true}));
     const btn=document.getElementById('v150DemoButton');
     btn?.click();
     const s=JSON.parse(localStorage.getItem('annualEventRegistration.v1'));
