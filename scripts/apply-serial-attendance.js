@@ -5,7 +5,7 @@ const original=fs.readFileSync(p,'utf8');
 const anchor='  function p2v510WireAttendance(){';
 assert(original.includes(anchor),'Attendance integration anchor not found');
 assert(!original.includes('p14SerialAttendanceBar'),'Serial attendance patch already applied');
-const patch=String.raw\`
+const patch=String.raw`
   // PATCH 14.11 START -- serial-number entry only; do not edit frozen screens.
   (function installP14SerialAttendance(){
     const hub=document.getElementById('classAttendanceHub');
@@ -48,7 +48,7 @@ const patch=String.raw\`
       if(!b||!date){toast('Choose a batch and class date first');return}
       if(typeof p2v5IsEnded==='function'&&p2v5IsEnded(b)){toast('Ended batches cannot be edited');return}
       const input=document.getElementById('p14SerialInput').value.trim();
-      if(!input||!/^\\s*\\d+(?:\\s*,\\s*\\d+)*\\s*$/.test(input)){toast('Enter serial numbers separated by commas');return}
+      if(!input||!/^\s*\d+(?:\s*,\s*\d+)*\s*$/.test(input)){toast('Enter serial numbers separated by commas');return}
       const tokens=input.split(',').map(x=>Number(x.trim()));
       if(tokens.some(x=>!Number.isSafeInteger(x)||x<1)){toast('Invalid serial number');return}
       const chosen=new Set(tokens),roster=rosterEntries(date),byNumber=new Map(roster.map(x=>[x.number,x]));
@@ -85,9 +85,9 @@ const patch=String.raw\`
     const obs=new MutationObserver(mount);obs.observe(hub,{childList:true,subtree:true});mount();
   })();
   // PATCH 14.11 END
-\`;
-const changed=original.replace(anchor,patch+'\\n'+anchor);
+`;
+const changed=original.replace(anchor,patch+'\n'+anchor);
 assert.strictEqual(changed.split('PATCH 14.11 START').length,2);
-assert.strictEqual(changed.replace(patch+'\\n',''),original,'Only patch addition is permitted');
+assert.strictEqual(changed.replace(patch+'\n',''),original,'Only patch addition is permitted');
 fs.writeFileSync(p,changed);
 console.log('Serial attendance patch inserted; original application preserved');
