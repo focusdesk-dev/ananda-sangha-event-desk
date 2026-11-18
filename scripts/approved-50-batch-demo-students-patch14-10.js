@@ -93,6 +93,7 @@
       state.classEnrollments.push(...generated.enrolments);
       if(v150Rows(batch).length!==50)throw Error('The 50 enrolments did not match the selected batch.');
       save();
+      v150MountDemoAction();
       const persisted=JSON.parse(localStorage.getItem(KEY)||'{}');
       const got=(persisted.classEnrollments||[]).filter(e=>e.__anandaDemoSet===v150Marker&&e.batchId===batch.id);
       const masterIds=new Set((persisted.students||[]).filter(s=>s.__anandaDemoSet===v150Marker&&s.__anandaDemoBatchId===batch.id).map(s=>s.id));
@@ -131,6 +132,7 @@
       const removedIds=new Set(previousStudents.filter(s=>testStudentIds.has(s.id)&&!state.students.some(y=>y.id===s.id)).map(s=>s.id));
       state.outreach=state.outreach.filter(o=>!removedIds.has(o.studentId));
       save();
+      v150MountDemoAction();
       toast('Removed '+ids.size+' TEST enrolments; all real records preserved');
     }catch(err){
       state.students=previousStudents;state.classEnrollments=previousEnrollments;state.outreach=previousOutreach;
