@@ -1,0 +1,449 @@
+LINES:11912 MATCHES:83
+04046   let p2v58Course='';
+04047   let p2v58Batch='';
+04048   let p2v58Date='';
+04049   let p2v58Draft={};
+04050   let p2v58UploadLocked=false;
+04051   let p2v58LastUploadName='';
+04052   let p2v58PhoneUrl='';
+04053   let p2v58PhoneQr='';
+04084     const all=p2v58Batches();return p2v58Course?all.filter(b=>p2v58CourseKey(b)===p2v58Course):all
+04085   }
+04086   function p2v58CurrentBatch(){return state.classBatches.find(b=>b.id===p2v58Batch)||null}
+04087   function p2v58CurrentRows(){
+04088     const b=p2v58CurrentBatch();if(!b)return[];
+04089     return state.classEnrollments.filter(e=>e.batchId===b.id).map(en=>({en,p:p2v5Person(en)})).sort((a,z)=>(a.p.name||'').localeCompare(z.p.name||'',undefined,{sensitivity:'base',numeric:true}))
+04090   }
+04091   function p2v58EnsureSelection(){
+04092     const all=p2v58Batches();
+04093     if(!all.length){p2v58Course='';p2v58Batch='';p2v58Date='';return}
+04094     let b=state.classBatches.find(x=>x.id===p2v58Batch)||state.classBatches.find(x=>x.id===state.activeClassBatchId)||all[0];
+04095     if(!p2v58Course)p2v58Course=p2v58CourseKey(b);
+04096     let pool=all.filter(x=>p2v58CourseKey(x)===p2v58Course);
+04097     if(!pool.some(x=>x.id===b.id))b=pool[0]||all[0];
+04098     p2v58Batch=b.id;
+04099     const dates=p2v58Dates(b);
+04100     if(!dates.includes(p2v58Date))p2v58Date=dates[0]||b.start||'';
+04101   }
+04102   function p2v58SessionNo(b,date){const i=p2v58Dates(b).indexOf(date);return i>=0?i+1:1}
+04103   function p2v58AttendanceValue(en,date){return en.attendance&&Object.prototype.hasOwnProperty.call(en.attendance,date)?en.attendance[date]===true?true:en.attendance[date]===false?false:null:null}
+04104   function p2v58ResetDraft(){
+04105     p2v58Draft={};p2v58CurrentRows().forEach(({en})=>p2v58Draft[en.id]=p2v58AttendanceValue(en,p2v58Date))
+04106   }
+04107   function p2v58Counts(){const rows=p2v58CurrentRows(),present=rows.filter(r=>p2v58Draft[r.en.id]===true).length,absent=rows.filter(r=>p2v58Draft[r.en.id]===false).length;return{total:rows.length,present,absent,pending:Math.max(0,rows.length-present-absent)}}
+04108   function p2v58LockSelectors(lock){
+04109     p2v58UploadLocked=!!lock;
+04222     anchor.insertAdjacentElement('afterend',sec);
+04223     $('p2v58Back').onclick=()=>switchPage('classes');
+04224     $('p2v58Course').onchange=()=>{p2v58Course=$('p2v58Course').value;p2v58Batch='';p2v58Date='';p2v58UploadLocked=false;p2v58Render()};
+04225     $('p2v58Batch').onchange=()=>{p2v58Batch=$('p2v58Batch').value;p2v58Date='';p2v58UploadLocked=false;p2v58Render()};
+04226     $('p2v58Date').onchange=()=>{p2v58Date=$('p2v58Date').value;p2v58UploadLocked=false;p2v58ResetDraft();p2v58RenderRoster()};
+04227     $('p2v58Manual').onclick=()=>{p2v58LockSelectors(false);$('p2v58UploadPanel').classList.add('hidden');$('p2v58Search').focus()};
+04228     $('p2v58Edit').onclick=()=>{p2v58LockSelectors(false);$('p2v58UploadPanel').classList.add('hidden');p2v58ResetDraft();p2v58RenderRoster()};
+04229     $('p2v58Print').onclick=()=>p2v58PrintSheet();
+04230     $('p2v58Upload').onclick=()=>$('p2v58UploadPanel').classList.toggle('hidden');
+04250     df.innerHTML=dates.map(d=>`<option value="${d}" ${d===p2v58Date?'selected':''}>${esc(fmt(d))}</option>`).join('');
+04251     $('p2v58DateOnly').textContent=p2v58Date?fmt(p2v58Date):'No class date';
+04252     if(!p2v524ScanSession)p2v58ResetDraft();p2v58RenderRoster();p2v58LockSelectors(p2v58UploadLocked)
+04253   }
+04254 
+04255   function p2v58RenderRoster(){
+04256     const host=$('p2v58Roster');if(!host)return;
+04306     const b=state.classBatches.find(x=>String(x.id)===String(data.batchId));
+04307     if(!b||!p2v58Dates(b).includes(String(data.date))){p2v58LockSelectors(false);if(status)status.innerHTML='<span class="bad">QR is valid, but this batch/date is not in this database. Select class manually.</span>';return false}
+04308     p2v58Course=p2v58CourseKey(b);p2v58Batch=b.id;p2v58Date=String(data.date);p2v58UploadLocked=true;p2v58LastUploadName=name||'';p2v58Render();
+04309     $('p2v58UploadPanel').classList.remove('hidden');p2v58LockSelectors(true);
+04310     if(status)status.innerHTML=`<span class="good"><b>QR detected ✓</b> ${esc(p2CourseName(b))} · ${esc(b.name)} · ${esc(fmt(p2v58Date))}. Class, batch and date selected automatically.${name?' · '+esc(name):''}</span>`;
+04311     return true
+04312   }
+04498   // session is valid, while unmarked/null rows and unsaved edits are not.
+04499   function p2v510AttendanceSummary(){
+04500     const rows=p2v538FullClassRows(),total=rows.length;
+04501     let present=0,absent=0,changed=false;
+04502     const draftReady=total>0&&rows.every(({en})=>Object.prototype.hasOwnProperty.call(p2v58Draft,en.id));
+04503     rows.forEach(({en})=>{
+04504       const v=p2v58AttendanceValue(en,p2v58Date);
+04529     if($('p2v58Confirm'))$('p2v58Confirm').textContent=complete&&p2v541SavedReview?'Update attendance':'Confirm attendance';
+04530   }
+04531   p2v58RenderRoster=function(){
+04532     const host=$('p2v58Roster');if(!host)return;const rows=p2v58CurrentRows(),half=Math.ceil(rows.length/2),left=rows.slice(0,half),right=rows.slice(half);
+04533     const rowHtml=(r,i)=>{const v=p2v58Draft[r.en.id],cls=v===true?' present':v===false?' absent':' pending';return `<label class="p2v58-row${cls}" data-search="${esc(((r.p.name||'')+' '+(r.p.mobile||'')).toLowerCase())}"><span class="p2v58-no">${String(i+1).padStart(2,'0')}</span><span class="p2v58-name">${esc(r.p.name||'Unnamed')}</span><input class="p2v58-check" type="checkbox" data-en="${r.en.id}" ${v===true?'checked':''}><span class="p2v58-box"></span></label>`};
+04534     host.innerHTML=rows.length?`<div class="p2v58-namebar">NAME</div><div class="p2v58-two"><div>${left.map((r,i)=>rowHtml(r,i)).join('')}</div><div>${right.map((r,i)=>rowHtml(r,i+half)).join('')}</div></div>`:'<div class="p2-empty">No students are enrolled in this batch.</div>';
+04535     host.querySelectorAll('.p2v58-check').forEach(x=>x.onchange=()=>{p2v58Draft[x.dataset.en]=x.checked?true:null;p2v58RenderRoster()});p2v58ApplySearch();p2v58UpdateTotals();p2v510AttendanceNotice()
+05400   let p2v518ActiveRows=null,p2v518ActiveSnapshot=null;
+05401   const p2v518CurrentRowsBase=p2v58CurrentRows;
+05402   p2v58CurrentRows=function(){return p2v518ActiveRows||p2v518CurrentRowsBase()};
+05403 
+05404   const P2V518_DOC={anchor:[[7,7],[203,7],[7,290],[203,290]],top:70,bottom:275,left:7,right:108};
+05405   function p2v518Geometry(count){const rows=Math.max(1,Math.ceil(Math.max(1,count)/2));return{rows,rowHeight:Math.min(30,(P2V518_DOC.bottom-P2V518_DOC.top)/rows)}}
+05406   function p2v518Id(){return 'AS'+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase()}
+05529     const ok=await p2v58ApplyQrRaw(raw,name);if(!ok)return;
+05530     if(Number(data.v)!==2||!data.sheetId){
+05531       p2v518ClearScanScope();p2v58Draft={};p2v58CurrentRows().forEach(r=>p2v58Draft[r.en.id]=null);p2v58RenderRoster();
+05532       if(status)status.innerHTML='<span class="bad">This is an older attendance sheet without a frozen roster. Select/mark it manually or print a new sheet.</span>';return
+05533     }
+05534     const snap=state.attendanceSheetSnapshots?.[String(data.sheetId)];
+05535     if(!snap||String(snap.batchId)!==String(data.batchId)||String(snap.date)!==String(data.date)){
+05536       p2v518ClearScanScope();p2v58Draft={};p2v58CurrentRows().forEach(r=>p2v58Draft[r.en.id]=null);p2v58RenderRoster();
+05537       if(status)status.innerHTML='<span class="bad">The exact printed-sheet roster is not available in this database. No attendance was guessed.</span>';return
+05538     }
+05539     const mapped=p2v518RowsForSnapshot(snap);
+05540     if(mapped.missing.length){
+05543     p2v518ActiveSnapshot=snap;p2v518ActiveRows=mapped.out;
+05544     // Fresh scan: never inherit old attendance into machine detection.
+05545     p2v58Draft={};p2v518ActiveRows.forEach(r=>p2v58Draft[r.en.id]=null);
+05546     const det=p2v518Detect(prep,p2v518ActiveRows.length);
+05547     if(!det.ok){p2v58RenderRoster();p2v511ShowReview(0,Number(data.sheet||1),Number(data.totalSheets||1),det.reason);if(status)status.innerHTML='<span class="bad">'+esc(det.reason)+'</span>';return}
+05548     let present=0;const detected=[];
+05549     p2v518ActiveRows.forEach((r,i)=>{const hit=!!det.marks[i]?.present;p2v58Draft[r.en.id]=hit?true:null;if(hit){present++;detected.push(r.p.name||r.sheetRow?.name||'Unnamed')}});
+05655     if(Number(data.v)!==3||data.layout!==P2V519_LAYOUT||!data.sheetId){
+05656       p2v518ClearScanScope();
+05657       p2v58Draft={};p2v58CurrentRows().forEach(r=>p2v58Draft[r.en.id]=null);p2v58RenderRoster();
+05658       if(status)status.innerHTML='<span class="bad">This sheet uses an older print calibration. Print a new attendance sheet for automatic scanning.</span>';return
+05659     }
+05660     const snap=state.attendanceSheetSnapshots?.[String(data.sheetId)];
+05661     if(!snap||snap.layout!==P2V519_LAYOUT||String(snap.batchId)!==String(data.batchId)||String(snap.date)!==String(data.date)){
+05662       p2v518ClearScanScope();p2v58Draft={};p2v58CurrentRows().forEach(r=>p2v58Draft[r.en.id]=null);p2v58RenderRoster();
+05663       if(status)status.innerHTML='<span class="bad">The exact printed-sheet roster is not available. No attendance was guessed.</span>';return
+05664     }
+05665     const mapped=p2v518RowsForSnapshot(snap);
+05666     if(mapped.missing.length){
+05669     p2v518ActiveSnapshot=snap;p2v518ActiveRows=mapped.out;
+05670     // Every machine scan begins blank. Saved/manual attendance cannot leak into detection.
+05671     p2v58Draft={};p2v518ActiveRows.forEach(r=>p2v58Draft[r.en.id]=null);
+05672     const det=p2v519Detect(prep,p2v518ActiveRows.length);
+05673     if(!det.ok){p2v58RenderRoster();p2v511ShowReview(0,Number(data.sheet||1),Number(data.totalSheets||1),det.reason);if(status)status.innerHTML='<span class="bad">'+esc(det.reason)+'</span>';return}
+05674     let present=0;const detected=[];
+05675     p2v518ActiveRows.forEach((r,i)=>{const hit=!!det.marks[i]?.present;p2v58Draft[r.en.id]=hit?true:null;if(hit){present++;detected.push(r.p.name||r.sheetRow?.name||'Unnamed')}});
+05803     if(Number(data.v)!==4||data.layout!==P2V520_LAYOUT||!data.sheetId){
+05804       p2v518ClearScanScope();
+05805       p2v58Draft={};p2v58CurrentRows().forEach(r=>p2v58Draft[r.en.id]=null);p2v58RenderRoster();
+05806       if(status)status.innerHTML='<span class="bad">This sheet uses an older print calibration. Print a new 40-name attendance sheet for automatic scanning.</span>';return
+05807     }
+05808     const snap=state.attendanceSheetSnapshots?.[String(data.sheetId)];
+05809     if(!snap||snap.layout!==P2V520_LAYOUT||String(snap.batchId)!==String(data.batchId)||String(snap.date)!==String(data.date)){
+05810       p2v518ClearScanScope();p2v58Draft={};p2v58CurrentRows().forEach(r=>p2v58Draft[r.en.id]=null);p2v58RenderRoster();
+05811       if(status)status.innerHTML='<span class="bad">The exact printed-sheet roster is not available. No attendance was guessed.</span>';return
+05812     }
+05813     const mapped=p2v518RowsForSnapshot(snap);
+05814     if(mapped.missing.length){
+05816     }
+05817     p2v518ActiveSnapshot=snap;p2v518ActiveRows=mapped.out;
+05818     p2v58Draft={};p2v518ActiveRows.forEach(r=>p2v58Draft[r.en.id]=null);
+05819     const det=p2v520Detect(prep,p2v518ActiveRows.length);
+05820     if(!det.ok){p2v58RenderRoster();p2v511ShowReview(0,Number(data.sheet||1),Number(data.totalSheets||1),det.reason);if(status)status.innerHTML='<span class="bad">'+esc(det.reason)+'</span>';return}
+05821     let present=0;const detected=[];
+05822     p2v518ActiveRows.forEach((r,i)=>{const hit=!!det.marks[i]?.present;p2v58Draft[r.en.id]=hit?true:null;if(hit){present++;detected.push(r.p.name||r.sheetRow?.name||'Unnamed')}});
+05981     if(Number(data.v)!==5||data.layout!==P2V521_LAYOUT||!data.sheetId){
+05982       p2v518ClearScanScope();
+05983       p2v58Draft={};p2v58CurrentRows().forEach(r=>p2v58Draft[r.en.id]=null);p2v58RenderRoster();
+05984       if(status)status.innerHTML='<span class="bad">This sheet uses an older print calibration. Print the approved 30-name sheet again for automatic scanning.</span>';return
+05985     }
+05986     const snap=state.attendanceSheetSnapshots?.[String(data.sheetId)];
+05987     if(!snap||snap.layout!==P2V521_LAYOUT||String(snap.batchId)!==String(data.batchId)||String(snap.date)!==String(data.date)){
+05988       p2v518ClearScanScope();p2v58Draft={};p2v58CurrentRows().forEach(r=>p2v58Draft[r.en.id]=null);p2v58RenderRoster();
+05989       if(status)status.innerHTML='<span class="bad">The exact printed-sheet roster is not available. No attendance was guessed.</span>';return
+05990     }
+05991     const mapped=p2v518RowsForSnapshot(snap);
+05992     if(mapped.missing.length){
+05994     }
+05995     p2v518ActiveSnapshot=snap;p2v518ActiveRows=mapped.out;
+05996     p2v58Draft={};p2v518ActiveRows.forEach(r=>p2v58Draft[r.en.id]=null);
+05997     const det=p2v521Detect(prep,p2v518ActiveRows.length);
+05998     if(!det.ok){p2v58RenderRoster();p2v511ShowReview(0,Number(data.sheet||1),Number(data.totalSheets||1),det.reason);if(status)status.innerHTML='<span class="bad">'+esc(det.reason)+'</span>';return}
+05999     let present=0;const detected=[];
+06000     p2v518ActiveRows.forEach((r,i)=>{
+06118   // reviewing a 30-name printed sheet.
+06119 
+06120   let p2v524ScanSession=null;
+06121 
+06122   function p2v524ClearSession(){
+06123     p2v524ScanSession=null;
+06124     p2v518ActiveRows=null;
+06125     p2v518ActiveSnapshot=null
+06126   }
+06127 
+06131   }
+06132   function p2v524DisplayNumber(r,i){
+06133     const local=p2v524LocalPosition(r,i),sheet=Number(p2v524ScanSession?.snapshot?.sheet||1);
+06134     return (Math.max(1,sheet)-1)*30+local
+06135   }
+06136 
+06137   const p2v524RenderRosterBase=p2v58RenderRoster;
+06138   p2v58RenderRoster=function(){
+06139     if(!p2v524ScanSession)return p2v524RenderRosterBase();
+06140     const host=$('p2v58Roster');if(!host)return;
+06141     const rows=p2v524ScanSession.rows||[],left=[],right=[];
+06142     rows.forEach((r,i)=>{
+06143       const pos=p2v524LocalPosition(r,i);
+06144       const slot=Number.isInteger(r?.sheetRow?.scanSlot)?r.sheetRow.scanSlot:i;
+06145       (slot<15?left:right).push({r,i,pos})
+06156     };
+06157     host.innerHTML=rows.length
+06158       ?'<div class="p2v58-namebar">PRINTED SHEET '+esc(String(p2v524ScanSession.snapshot?.sheet||1))+' OF '+esc(String(p2v524ScanSession.snapshot?.totalSheets||1))+' · '+esc(String(p2v524ScanSession.snapshot?.sheetId||''))+'</div>'+
+06159        '<div class="p2v58-two"><div>'+left.map(rowHtml).join('')+'</div><div>'+right.map(rowHtml).join('')+'</div></div>'
+06160       :'<div class="p2-empty">No students were stored in this printed sheet.</div>';
+06161     host.querySelectorAll('.p2v58-check').forEach(x=>x.onchange=()=>{
+06162       p2v58Draft[x.dataset.en]=x.checked?true:null;p2v58RenderRoster()
+06167   function p2v524SyncSelectors(b,date){
+06168     p2v58EnsurePage();
+06169     p2v58Course=p2v58CourseKey(b);p2v58Batch=b.id;p2v58Date=String(date);p2v58UploadLocked=true;
+06170 
+06171     const cf=$('p2v58Course'),courses=p2v58CourseOptions();
+06172     if(cf)cf.innerHTML=courses.map(c=>'<option value="'+esc(c.id)+'" '+(c.id===p2v58Course?'selected':'')+'>'+esc(c.name)+'</option>').join('');
+06173 
+06188   function p2v524BlankCurrentFullRoster(){
+06189     p2v524ClearSession();
+06190     p2v58Draft={};
+06191     p2v518CurrentRowsBase().forEach(r=>p2v58Draft[r.en.id]=null);
+06192     p2v524RenderRosterBase()
+06193   }
+06194 
+06244     p2v518ActiveSnapshot=snap;
+06245     p2v518ActiveRows=mapped.out;
+06246     p2v524ScanSession={snapshot:snap,rows:mapped.out,data};
+06247     p2v524SyncSelectors(b,String(data.date));
+06248     p2v58Draft={};
+06249     p2v518ActiveRows.forEach(r=>p2v58Draft[r.en.id]=null);
+06250 
+06251     let present=0;const detected=[];
+06252     p2v518ActiveRows.forEach((r,i)=>{
+06296       note.style.cssText='margin:10px 0 8px;border:1px solid #a9c7df;background:#f2f8ff;color:#163f7e;border-radius:10px;padding:10px 13px;font-size:13px;font-weight:700';
+06297       if(mode==='scan'){
+06298         const sc=p2v524ScanSession;
+06299         note.textContent='NEW SCAN REVIEW · PRINTED SHEET '+String(sc?.snapshot?.sheetId||'')+' · '+(sc?.rows?.length||0)+' printed names only · No saved absences inherited';
+06300       } else if(mode==='waiting'){
+06301         note.textContent='AWAITING NEW SCAN · Upload the marked sheet. Previously saved Present/Absent entries are hidden, not deleted.';
+06302       } else if(p2v510AttendanceSaved()){
+06306       }
+06307     }
+06308     const p2v528RenderRosterBase=p2v58RenderRoster;
+06309     p2v58RenderRoster=function(){
+06310       if(p2v528AwaitingPhoto&&!p2v524ScanSession){
+06311         const host=$('p2v58Roster');
+06312         if(host)host.innerHTML='<div class="p2-empty" style="padding:28px 14px">Waiting for the marked attendance photo. No saved attendance is being treated as a new scan result.</div>';
+06313         const totals=$('p2v58Totals');if(totals)totals.textContent='New scan not yet analysed';
+06314         p2v528ModeNotice('waiting');return
+06315       }
+06316       p2v528RenderRosterBase();
+06317       const bar=$('p2v58Roster')?.querySelector('.p2v58-namebar');
+06318       if(bar&&!p2v524ScanSession)bar.textContent=p2v510AttendanceSaved()?'PREVIOUSLY SAVED CLASS ATTENDANCE':'MANUAL CLASS ROSTER';
+06319       p2v528ModeNotice(p2v524ScanSession?'scan':'manual');
+06320     };
+06321     function p2v528LeaveScan(){
+06322       p2v528AwaitingPhoto=false;
+06323       p2v528MarkedRemainingAbsent=false;
+06328     }
+06329     $('p2v58Upload')?.addEventListener('click',()=>{
+06330       if(!$('p2v58UploadPanel')?.classList.contains('hidden')&&!p2v524ScanSession){
+06331         p2v528AwaitingPhoto=true;
+06332         p2v528MarkedRemainingAbsent=false;
+06333         $('p2v511Review')?.classList.add('hidden');
+06334         p2v58RenderRoster();
+06344     p2v511ApplyPhotoBlob=async function(...args){
+06345       await p2v528AnalyzePhotoBase(...args);
+06346       if(p2v524ScanSession){
+06347         p2v528AwaitingPhoto=false;
+06348         p2v528MarkedRemainingAbsent=false;
+06349         p2v58RenderRoster();
+06350       }else if(p2v528AwaitingPhoto){
+06353     };
+06354     $('p2v58All')?.addEventListener('click',()=>{
+06355       if(p2v524ScanSession)p2v528MarkedRemainingAbsent=true;
+06356     });
+06357     const p2v528SaveAttendanceBase=p2v58SaveAttendance;
+06358     p2v58SaveAttendance=function(...args){
+06359       if(p2v528AwaitingPhoto&&!p2v524ScanSession){
+06360         toast('Upload and review the new attendance sheet first. Existing attendance was not changed.');return;
+06361       }
+06362       if(p2v524ScanSession){
+06363         const rows=p2v524ScanSession.rows||[];
+06364         if(rows.length>30||!rows.length||new Set(rows.map(r=>String(r.en.id))).size!==rows.length){
+06365           toast('Sheet roster failed validation. Attendance was not saved.');return;
+06366         }
+06367         const anyAbsent=rows.some(r=>p2v58Draft[r.en.id]===false);
+06377     // specific printed-sheet review. Do not silently imply the other page was scanned.
+06378     const p2v529RenderRosterBase=p2v58RenderRoster;
+06379     p2v58RenderRoster=function(){
+06380       p2v529RenderRosterBase();
+06381       const roster=$('p2v58Roster');if(!roster)return;
+06382       let overview=$('p2v529FullClassOverview');
+06383       const sc=p2v524ScanSession;
+06384       if(!sc){overview?.remove();return;}
+06385       if(!overview){
+06386         overview=document.createElement('section');
+06387         overview.id='p2v529FullClassOverview';
+06431     }
+06432     function p2v530Begin(){
+06433       if(p2v524ScanSession&&!window.confirm('Switching to AI will replace the current unsaved scan review. Continue?'))return;
+06434       p2v524ClearSession();p2v58ResetDraft();
+06435       p2v528AwaitingPhoto=true;p2v528MarkedRemainingAbsent=false;
+06436       $('p2v58UploadPanel')?.classList.add('hidden');
+06437       $('p2v530Panel')?.classList.remove('hidden');
+06540           throw Error('Sheet '+data.sheet+' was not accepted: no marks detected. Retake its photo. Previously recognised pages are preserved.');
+06541         p2v518ActiveSnapshot=snap;p2v518ActiveRows=mapped.out;
+06542         p2v524ScanSession={snapshot:snap,rows:mapped.out,data};
+06543         p2v524SyncSelectors(b,String(data.date));
+06544         p2v536MergeAiSheet(data,mapped.out,numbers,present);
+06545         p2v537ProcessedFingerprints.add(seenKey);
+06546         p2v528AwaitingPhoto=false;p2v528MarkedRemainingAbsent=false;
+06609       button.style.display=p2v531PendingPhone?'inline-flex':'none';
+06610       button.disabled=p2v530AiBusy;
+06611       button.textContent=p2v524ScanSession
+06612         ?'DISCARD UNSAVED REVIEW & PROCESS RECEIVED PHOTO'
+06613         :'Retry received photo';
+06614     }
+06615     function p2v535QueuePhoto(payload,message){
+06636     }
+06637     const p2v531RosterBase=p2v58RenderRoster;
+06638     p2v58RenderRoster=function(){
+06639       if(p2v531Active&&p2v528AwaitingPhoto&&!p2v524ScanSession){
+06640         // Show a clearly unmarked class checklist until a photo arrives.
+06641         p2v528AwaitingPhoto=false;
+06642         try{p2v531RosterBase();}
+06643         finally{p2v528AwaitingPhoto=true;}
+06654       const savedBanner=$('p2v510AttendanceNotice');
+06655       if(savedBanner)savedBanner.style.display=p2v531Active?'none':'';
+06656       const waiting=p2v531Active&&p2v528AwaitingPhoto&&!p2v524ScanSession;
+06657       for(const id of ['p2v58All','p2v58Confirm','p2v58Save','p2v58Clear']){
+06658         const button=$(id);if(button)button.disabled=!!waiting;
+06659       }
+06660     };
+06663     const p2v531SavedBase=p2v58SaveAttendance;
+06664     p2v58SaveAttendance=function(...args){
+06665       const sc=p2v524ScanSession;
+06666       const ready=sc&&sc.rows.every(r=>p2v58Draft[r.en.id]!==null&&p2v58Draft[r.en.id]!==undefined);
+06667       const absent=sc&&sc.rows.some(r=>p2v58Draft[r.en.id]===false);
+06668       const canSave=ready&&(!absent||p2v528MarkedRemainingAbsent);
+06669       const result=p2v531SavedBase(...args);
+06682       p2v531Active=true;
+06683       p2v530Begin();
+06684       p2v58Draft={};p2v518CurrentRowsBase().forEach(r=>p2v58Draft[r.en.id]=null);
+06685       p2v531Active=true;p2v58RenderRoster();p2v531MoveReview();
+06686       p2v530SetStatus('AI mode ready: select course/batch/date, then PRINT AI ATTENDANCE SHEETS. Scan the printed QR on the phone to take a picture.');
+06687     };
+06688     $('p2v531Print')?.addEventListener('click',async ()=>{
+06739     $('p2v535RetryQueued')?.addEventListener('click',async()=>{
+06740       if(!p2v531PendingPhone||p2v530AiBusy)return;
+06741       if(p2v524ScanSession&&!window.confirm(
+06742         'Discard the CURRENT UNSAVED attendance review and process the received AI photo? Previously SAVED attendance will not be changed.')){
+06743         return;
+06744       }
+06745       const next=p2v531PendingPhone;
+06746       p2v531PendingPhone=null;
+06747       // Do not save, assign absences, or overwrite permanent student records.
+06748       p2v524ClearSession();p2v58Draft={};
+06749       p2v528AwaitingPhoto=true;p2v528MarkedRemainingAbsent=false;
+06750       $('p2v511Review')?.classList.add('hidden');
+06751       p2v535RefreshQueuedPhoto();
+06752       p2v531HandlePhone(next).catch(err=>p2v530SetStatus('Queued AI photo could not be processed: '+String(err?.message||err),true));
+06759     document.addEventListener('click',e=>{
+06760       const id=e.target.closest('button')?.id;
+06761       if(id==='p2v530AI')setTimeout(()=>{p2v531Active=true;p2v58Draft={};p2v518CurrentRowsBase().forEach(r=>p2v58Draft[r.en.id]=null);p2v58RenderRoster();p2v531MoveReview();p2v530SetStatus('Ready to print AI Attendance sheets; after QR scanning, phone upload automatically triggers AI analysis.');},0);
+06762       if(id==='p2v58Manual'||id==='p2v58Edit'||id==='p2v58Upload'){p2v531Active=false;p2v531MoveReview();}
+06763     });
+06764     p2v531MoveReview();
+06765 
+06818     // v5.38: use the complete enrolled batch independently of the legacy
+06819     // sheet-scoped row provider. Sheet 2 must not limit absent marking.
+06820     function p2v538FullClassRows(){
+06821       const b=p2v58CurrentBatch();
+06822       if(!b)return[];
+06823       return state.classEnrollments.filter(en=>String(en.batchId)===String(b.id))
+06824         .map(en=>({en,p:p2v5Person(en)}))
+06830       if(p2v536SessionKey===key)return;
+06831       p2v536SessionKey=key;p2v536Draft={};
+06832       const rows=p2v538FullClassRows();
+06833       // Completed, confirmed attendance may be edited directly from this screen.
+06834       // Incomplete/partial legacy records never masquerade as a saved class.
+06835       const confirmed=rows.length>0&&rows.every(r=>{
+06836         const value=p2v58AttendanceValue(r.en,p2v58Date);
+06845       p2v536EnsureSession();
+06846       // Print produces a new distinct attempt, without touching persistent records.
+06847       for(const r of p2v538FullClassRows())p2v536Draft[r.en.id]=null;
+06848       p2v541SavedReview=false;p2v541MixedPrintRuns=false;
+06849       p2v536ScannedSheets=new Set();p2v537ProcessedFingerprints=new Set();p2v537RecognisedEnrollments=new Set();
+06850       p2v536ExpectedPages=Number(total||0);
+06851       p2v536PrintRunId=String(runId||'');
+06852       p2v536Confirmed=false;p2v58Draft=p2v536Draft;
+06853       if(typeof p2v524ClearSession==='function')p2v524ClearSession();
+06854       p2v536RenderFullRoster();
+06855     }
+06856     function p2v536KeepUnifiedPanel(){
+06857       // Never discard earlier AI results when another photo arrives.
+06858       p2v531Active=false;
+06865       const runId=String(data.printRunId||'');
+06866       const page=Number(data.sheet),pages=Number(data.totalSheets);
+06867       const full=p2v538FullClassRows();
+06868       const expectedPages=Math.ceil(full.length/30);
+06869       if(!Number.isInteger(page)||page<1||!Number.isInteger(pages)||pages!==expectedPages||page>expectedPages)
+06870         throw Error('The printed sheet count does not match this class. No attendance was changed.');
+06871       if(String(data.batchId)!==String(p2v58CurrentBatch()?.id)||String(data.date)!==String(p2v58Date))
+06890       p2v536ScannedSheets.add(Number(data.sheet));
+06891       p2v536Confirmed=false;
+06892       p2v58Draft=p2v536Draft;
+06893     }
+06894     function p2v536RenderFullRoster(){
+06895       const host=$('p2v58Roster');if(!host)return;
+06896       p2v536EnsureSession();
+06897       p2v58Draft=p2v536Draft;
+06898       // A scan can still hold a specific snapshot internally for validation.
+06899       // It must never restrict the visible class list.
+06900       const rows=p2v538FullClassRows();
+06901       const half=Math.ceil(rows.length/2),left=rows.slice(0,half),right=rows.slice(half);
+06902       const makeRow=(r,i)=>{
+06903         const v=p2v536Draft[r.en.id],cls=v===true?' present':v===false?' absent':' pending';
+06904         return '<label class="p2v58-row'+cls+'" data-search="'+esc(((r.p.name||'')+' '+(r.p.mobile||'')).toLowerCase())+'">'+
+06916         p2v536Draft[input.dataset.en]=input.checked?true:null;
+06917         p2v536Confirmed=false;
+06918         p2v536RenderFullRoster();
+06919       });
+06920       $('p2v529FullClassOverview')?.remove();
+06921       $('p2v528ModeNotice')?.remove();
+06922       $('p2v511Review')?.classList.add('hidden');
+06938       }
+06939     }
+06940     p2v58RenderRoster=p2v536RenderFullRoster;
+06941     function p2v536MarkRemainingAbsent(){
+06942       p2v536EnsureSession();
+06943       // The active scan may hold only the last printed sheet. Use the whole
+06944       // batch, NEVER p2v58CurrentRows()/p2v518ActiveRows (sheet-scoped).
+06945       const rows=p2v538FullClassRows();
+06946       if(!rows.length){toast('No students in this class.');return}
+06947       if(p2v536ExpectedPages>0&&p2v536ScannedSheets.size<p2v536ExpectedPages){
+06948         toast('Scan every printed page before marking remaining students absent. '+p2v536ScannedSheets.size+' of '+p2v536ExpectedPages+' processed.');return;
+06949       }
+06955       });
+06956       p2v536Confirmed=false;
+06957       p2v58Draft=p2v536Draft;
+06958       p2v536RenderFullRoster();
+06959       const pending=rows.filter(({en})=>p2v536Draft[en.id]!==true&&p2v536Draft[en.id]!==false).length;
+06960       if(pending)throw Error('Attendance review is incomplete: '+pending+' students still unmarked.');
+06961       toast(marked+' remaining student'+(marked===1?'':'s')+' marked absent across all '+rows.length+' class students. Review and confirm to save.');
+06962     }
+06993       p2v536EnsureSession();
+06994       const b=p2v58CurrentBatch();if(!b||!p2v58Date){toast('Choose a batch and class date.');return}
+06995       const rows=p2v538FullClassRows();
+06996       if(!rows.length){toast('No students enrolled. Nothing was saved.');return}
+06997       const pending=rows.filter(r=>p2v536Draft[r.en.id]!==true&&p2v536Draft[r.en.id]!==false);
+06998       if(pending.length){toast('Review every student or click MARK REMAINING ABSENT before confirming. '+pending.length+' students are Unmarked.');return}
+06999       if(p2v536ScannedSheets.size&&p2v536ScannedSheets.size<p2v536ExpectedPages){
+07004       save();p2v536Confirmed=true;p2v541SavedReview=true;
+07005       p2v530SetStatus('');
+07006       p2v536RenderFullRoster();
+07007       p2v573ShowAttendanceSaved();
+07008     }
+07009 
+07010     // Simplify visible UI without breaking QR photo receipt or settings.
+07061       if(id==='classAttendanceHub'){
+07062         p2v536KeepUnifiedPanel();
+07063         p2v536RenderFullRoster();
+07064       }
+07065       return result;
+07066     };
+07067     p2v536KeepUnifiedPanel();
+07068     p2v536RenderFullRoster();
+07069 
+07070 
+07071 
+07072     // Correction 3: one volunteer status. Save confirmation is separate.
