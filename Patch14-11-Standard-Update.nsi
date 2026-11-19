@@ -16,22 +16,34 @@ ShowInstDetails show
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_LANGUAGE "English"
+!macro TryInstallPath FOLDER
+  StrCmp $9 "found" +4
+  IfFileExists "${FOLDER}\resources\app.asar" 0 +2
+    StrCpy $INSTDIR "${FOLDER}"
+  IfFileExists "${FOLDER}\resources\app.asar" 0 +2
+    StrCpy $9 "found"
+!macroend
 Function .onInit
-  IfSilent done
+  StrCpy $9 ""
   ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\org.anandasangha.gurgaon.eventdesk" "InstallLocation"
-  IfFileExists "$0\Ananda Sangha Event Desk.exe" 0 +2
-    StrCpy $INSTDIR "$0"
-  IfFileExists "$LOCALAPPDATA\Programs\ananda-sangha-event-desk\Ananda Sangha Event Desk.exe" 0 +2
-    StrCpy $INSTDIR "$LOCALAPPDATA\Programs\ananda-sangha-event-desk"
-  done:
+  !insertmacro TryInstallPath "$0"
+  ReadRegStr $0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\org.anandasangha.gurgaon.eventdesk" "InstallLocation"
+  !insertmacro TryInstallPath "$0"
+  ReadRegStr $0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Ananda Sangha Event Desk" "InstallLocation"
+  !insertmacro TryInstallPath "$0"
+  ReadRegStr $0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Ananda Sangha Event Desk" "InstallLocation"
+  !insertmacro TryInstallPath "$0"
+  !insertmacro TryInstallPath "$LOCALAPPDATA\Programs\ananda-sangha-event-desk"
+  !insertmacro TryInstallPath "$LOCALAPPDATA\Programs\Ananda Sangha Event Desk"
+  !insertmacro TryInstallPath "$LOCALAPPDATA\ananda-sangha-event-desk"
+  !insertmacro TryInstallPath "$PROGRAMFILES64\Ananda Sangha Event Desk"
+  !insertmacro TryInstallPath "$PROGRAMFILES\Ananda Sangha Event Desk"
+  !insertmacro TryInstallPath "$PROGRAMFILES64\ananda-sangha-event-desk"
+  !insertmacro TryInstallPath "$PROGRAMFILES\ananda-sangha-event-desk"
 FunctionEnd
 Section "Apply Serial Attendance Only"
-  IfFileExists "$INSTDIR\Ananda Sangha Event Desk.exe" foundExe
-    MessageBox MB_ICONSTOP "Existing Ananda installation not found. No files changed." /SD IDOK
-    Abort
-  foundExe:
   IfFileExists "$INSTDIR\resources\app.asar" foundAsar
-    MessageBox MB_ICONSTOP "Existing Ananda application archive missing. No files changed." /SD IDOK
+    MessageBox MB_ICONSTOP "Ananda installation not found at: $INSTDIR. Select the application installation folder containing resources\app.asar, NOT the Documents data folder. No files changed." /SD IDOK
     Abort
   foundAsar:
   IfFileExists "$INSTDIR\resources\app.asar.before-patch14-11" 0 noBackup
