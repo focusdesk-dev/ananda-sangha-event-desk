@@ -1,0 +1,127 @@
+
+  // PATCH 14.12 START: unified serial entry; no other application changes.
+  (function p1412UnifiedAttendance(){
+    const hub=document.getElementById('classAttendanceHub');if(!hub)return;
+    let filter='all',lastKey='',pending=null;
+    const style=document.createElement('style');
+    style.id='p1412Style';
+    style.textContent='#p1412Bar{display:flex;align-items:end;gap:13px;flex-wrap:wrap;padding:12px 14px;margin:12px 0;border:1px solid #edcd68;border-radius:9px;background:#fff9e9;color:#103775}#p1412Bar strong{margin-bottom:11px}#p1412Bar label{display:block;font-size:12px;font-weight:650;margin-bottom:5px}#p1412Bar .field{flex:1;min-width:180px}#p1412Bar input{box-sizing:border-box;width:100%;height:39px;padding:9px 12px;border:1px solid #adc5dc;border-radius:7px;font:inherit;background:white}#p1412Preview{background:#ffc329;color:#082d65;border:0;border-radius:8px;padding:11px 18px;font-weight:750;cursor:pointer}#p1412Review{display:flex;gap:17px;align-items:center;flex-wrap:wrap;padding:13px;margin:10px 0;background:#f0f5ff;border:1px solid #ccddf7;border-radius:10px;color:#123875}#p1412Review strong{margin-right:auto}#p1412Review span{text-align:center}#p1412Review b{display:block;font-size:21px}#p1412Review button{padding:8px 13px;border-radius:7px;background:white;border:1px solid #bdd0ec;color:#123875;cursor:pointer}#p1412Review button.active{background:#0c397a;color:white}#p1412Review[hidden],#p1412Modal[hidden]{display:none!important}#p1412Modal{position:fixed;inset:0;z-index:999999;background:#0b295d80;display:flex;align-items:center;justify-content:center;padding:20px}#p1412Modal .pane{width:min(480px,100%);background:white;border-radius:11px;overflow:hidden;box-shadow:0 14px 46px #09234d57}#p1412Modal .heading{padding:16px 22px;background:#0a367a;color:white;font-weight:750;font-size:18px}#p1412Modal .content{padding:20px 22px;color:#123875}#p1412Modal .buttons{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}#p1412Modal button{padding:10px 16px;border-radius:7px;border:1px solid #bdcde2;background:white;cursor:pointer}#p1412Modal #p1412Confirm{background:#ffc329;border-color:#ffc329;font-weight:750;color:#092e68}';
+    document.head.appendChild(style);
+    const modal=document.createElement('div');modal.id='p1412Modal';modal.hidden=true;
+    modal.innerHTML='<div class="pane" role="dialog" aria-modal="true"><div class="heading">Preview Attendance Changes</div><div class="content"><div id="p1412Details"></div><p id="p1412Totals"></p><p id="p1412Warning" style="font-size:12px;color:#6b788b"></p><div class="buttons"><button id="p1412Cancel">Cancel</button><button id="p1412Confirm">Confirm &amp; Save</button></div></div></div>';
+    document.body.appendChild(modal);
+    const cancel=()=>{pending=null;modal.hidden=true};
+    modal.querySelector('#p1412Cancel').onclick=cancel;
+    modal.addEventListener('click',e=>{if(e.target===modal)cancel()});
+    function getRows(){
+      const batch=p2v58CurrentBatch();
+      const entries=[...hub.querySelectorAll('#p2v58Roster .p2v58-row')].map(row=>{
+        const no=Number(row.querySelector('.p2v58-no')?.textContent?.trim());
+        const id=row.querySelector('.p2v58-check')?.dataset.en;
+        const en=state.classEnrollments.find(e=>String(e.id)===String(id));
+        return{no,en,row};
+      });
+      const count=state.classEnrollments.filter(e=>String(e.batchId)===String(batch?.id)).length;
+      if(!count||entries.length!==count||entries.some(r=>!Number.isSafeInteger(r.no)||r.no<1||!r.en)||new Set(entries.map(r=>r.no)).size!==entries.length)throw Error('Show the complete attendance list before marking by S.No.');
+      return entries;
+    }
+    function applicable(en){return typeof p2v5EnrollmentEligibleOn!=='function'||p2v5EnrollmentEligibleOn(en,p2v58Date)}
+    function countMarked(){return Object.values(p2v58Draft).filter(x=>x===true||x===false).length}
+    function selectedKey(){return String(p2v58CurrentBatch()?.id||'')+'|'+String(p2v58Date||'')}
+    function applyFilter(){
+      hub.querySelectorAll('#p2v58Roster .p2v58-row').forEach(row=>{
+        const id=row.querySelector('.p2v58-check')?.dataset.en,v=p2v58Draft[id];
+        row.style.display=filter==='all'||filter==='absent'&&v===false||filter==='check'&&v!==true&&v!==false?'':'none';
+      });
+      for(const [id,value] of [['p1412All','all'],['p1412CheckFilter','check'],['p1412AbsentFilter','absent']]){
+        const b=document.getElementById(id);if(b)b.classList.toggle('active',filter===value);
+      }
+    }
+    function updateReview(){
+      const area=document.getElementById('p1412Review');if(!area)return;
+      const show=countMarked()>0||p2v510AttendanceSaved();area.hidden=!show;
+      if(!show){filter='all';applyFilter();return}
+      const eligible=getRows().filter(r=>applicable(r.en));
+      const p=eligible.filter(r=>p2v58Draft[r.en.id]===true).length;
+      const a=eligible.filter(r=>p2v58Draft[r.en.id]===false).length;
+      const c=eligible.length-p-a;
+      document.getElementById('p1412PresentCount').textContent=p;
+      document.getElementById('p1412AbsentCount').textContent=a;
+      document.getElementById('p1412CheckCount').textContent=c;
+      document.getElementById('p1412All').textContent='All ('+getRows().length+')';
+      document.getElementById('p1412CheckFilter').textContent='Show Check ('+c+')';
+      document.getElementById('p1412AbsentFilter').textContent='Absent ('+a+')';
+      applyFilter();
+    }
+    function mount(){
+      const k=selectedKey();
+      if(lastKey&&k!==lastKey){filter='all';cancel();hub.querySelectorAll('#p1412Bar input').forEach(x=>x.value='')}
+      lastKey=k;
+      const roster=hub.querySelector('#p2v58Roster');if(!roster?.parentElement)return;
+      if(!document.getElementById('p1412Bar')){
+        const bar=document.createElement('div');bar.id='p1412Bar';
+        bar.innerHTML='<strong>MARK BY S.NO.</strong><div class="field"><label for="p1412Present">Mark Present (S.No.)</label><input id="p1412Present" placeholder="e.g. 1, 3, 5"></div><div class="field"><label for="p1412Absent">Mark Absent (S.No.)</label><input id="p1412Absent" placeholder="e.g. 8, 19"></div><button id="p1412Preview">Preview</button>';
+        roster.parentElement.insertBefore(bar,roster);
+        bar.querySelector('#p1412Preview').onclick=preview;
+      }
+      if(!document.getElementById('p1412Review')){
+        const review=document.createElement('div');review.id='p1412Review';review.hidden=true;
+        review.innerHTML='<strong>ATTENDANCE REVIEW</strong><span><b id="p1412PresentCount">0</b>Present</span><span><b id="p1412AbsentCount">0</b>Absent</span><span><b id="p1412CheckCount">0</b>Check</span><button id="p1412CheckFilter">Show Check</button><button id="p1412All" class="active">All</button><button id="p1412AbsentFilter">Absent</button>';
+        roster.parentElement.insertBefore(review,document.getElementById('p1412Bar'));
+        [['p1412All','all'],['p1412CheckFilter','check'],['p1412AbsentFilter','absent']].forEach(pair=>review.querySelector('#'+pair[0]).onclick=()=>{filter=pair[1];applyFilter()});
+      }
+      try{updateReview()}catch(e){/* No data mutation during rerender. */}
+    }
+    function parse(id){
+      const s=document.getElementById(id).value.trim();
+      if(!s)return[];
+      if(!/^\d+(?:\s*,\s*\d+)*$/.test(s))throw Error('Use comma-separated serial numbers.');
+      const nums=s.split(',').map(x=>Number(x.trim()));
+      if(nums.some(x=>!Number.isSafeInteger(x)||x<1)||new Set(nums).size!==nums.length)throw Error('Invalid or duplicate serial number.');
+      return nums;
+    }
+    function preview(){
+      const b=p2v58CurrentBatch(),date=p2v58Date;
+      if(!b||!date){toast('Select course, batch and date.');return}
+      if(typeof p2v5IsEnded==='function'&&p2v5IsEnded(b)){toast('This batch is locked.');return}
+      let rows,pNumbers,aNumbers;
+      try{rows=getRows();pNumbers=parse('p1412Present');aNumbers=parse('p1412Absent')}catch(e){toast(e.message);return}
+      if(!pNumbers.length&&!aNumbers.length){toast('Enter serial numbers to mark.');return}
+      const present=new Set(pNumbers),absent=new Set(aNumbers),index=new Map(rows.map(r=>[r.no,r]));
+      if([...present].some(n=>absent.has(n))){toast('A number cannot be both Present and Absent.');return}
+      const invalid=[...present,...absent].filter(n=>!index.has(n)||!applicable(index.get(n).en));
+      if(invalid.length){toast('Invalid or Not Applicable: '+invalid.join(', '));return}
+      const eligible=rows.filter(r=>applicable(r.en));
+      const correction=countMarked()>0||p2v510AttendanceSaved();
+      let changed=0;
+      for(const r of eligible){
+        if(correction&&!present.has(r.no)&&!absent.has(r.no))continue;
+        if(p2v58Draft[r.en.id]!==present.has(r.no))changed++;
+      }
+      pending={batchId:b.id,date,rosterIds:rows.map(r=>String(r.en.id)).join('|'),present,absent,correction,snapshot:eligible.map(r=>[r.en.id,p2v58Draft[r.en.id]])};
+      document.getElementById('p1412Details').textContent=(p2CourseName(b)||'Class')+' · '+(b.name||'Batch')+' · '+fmt(date);
+      document.getElementById('p1412Totals').textContent=(correction?'Correction mode: ':'Full attendance entry: ')+pNumbers.length+' Present, '+aNumbers.length+' Absent · '+changed+' change(s) to confirm.';
+      document.getElementById('p1412Warning').textContent=correction?'Only these serial numbers will change. All others are preserved.':'Remaining applicable students become Absent. Not Applicable students and all other dates remain unchanged.';
+      modal.hidden=false;
+    }
+    modal.querySelector('#p1412Confirm').onclick=()=>{
+      if(!pending)return;
+      const d=pending,b=p2v58CurrentBatch();
+      if(!b||b.id!==d.batchId||p2v58Date!==d.date||(typeof p2v5IsEnded==='function'&&p2v5IsEnded(b))){cancel();toast('Selection changed; preview again.');return}
+      let rows;try{rows=getRows()}catch(e){cancel();toast(e.message);return}
+      const eligible=rows.filter(r=>applicable(r.en));
+      if(rows.map(r=>String(r.en.id)).join('|')!==d.rosterIds||eligible.some((r,i)=>String(r.en.id)!==String(d.snapshot[i]?.[0])||p2v58Draft[r.en.id]!==d.snapshot[i]?.[1])){cancel();toast('Attendance or roster changed. Preview again.');return}
+      for(const r of eligible){
+        if(d.correction&&!d.present.has(r.no)&&!d.absent.has(r.no))continue;
+        const v=d.present.has(r.no);
+        r.en.attendance=r.en.attendance||{};r.en.attendance[d.date]=v;
+        p2v58Draft[r.en.id]=v;
+      }
+      cancel();document.getElementById('p1412Present').value='';document.getElementById('p1412Absent').value='';
+      save();if(typeof p2v58RenderRoster==='function')p2v58RenderRoster();toast('Attendance saved for '+fmt(d.date));mount();
+    };
+    let queued=false;
+    new MutationObserver(()=>{if(queued)return;queued=true;Promise.resolve().then(()=>{queued=false;mount()})}).observe(hub,{childList:true,subtree:true});
+    mount();
+  })();
+  // PATCH 14.12 END
