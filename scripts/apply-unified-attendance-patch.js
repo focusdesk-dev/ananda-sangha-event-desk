@@ -1,0 +1,14 @@
+const fs=require('fs'),assert=require('assert'),path=require('path');
+const file=process.env.ANANDA_INDEX_PATH||'index.html';
+const source=fs.readFileSync(file,'utf8');
+const begin=source.indexOf('// PATCH 14.11 START');
+const marker='// PATCH 14.11 END';const end=source.indexOf(marker,begin);
+assert(begin>=0&&end>begin,'Expected exact Patch14.11 baseline');
+assert(!source.includes('PATCH 14.12 START'),'Patch already applied');
+const patch=fs.readFileSync(path.join(__dirname,'unified-attendance-snippet.txt'),'utf8');
+assert(patch.includes('PATCH 14.12 START')&&patch.includes('PATCH 14.12 END'),'Patch content unavailable');
+const result=source.slice(0,begin)+patch+source.slice(end+marker.length);
+assert(result.slice(0,begin)===source.slice(0,begin));
+assert(result.slice(begin+patch.length)===source.slice(end+marker.length));
+fs.writeFileSync(file,result);
+console.log('PASS: replaced only serial-number attendance feature; original app preserved.');
