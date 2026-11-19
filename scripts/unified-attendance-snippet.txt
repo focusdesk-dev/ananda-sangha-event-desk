@@ -37,6 +37,7 @@
         const b=document.getElementById(id);if(b)b.classList.toggle('active',filter===value);
       }
     }
+    function setText(id,value){const e=document.getElementById(id),text=String(value);if(e&&e.textContent!==text)e.textContent=text}
     function updateReview(){
       const area=document.getElementById('p1412Review');if(!area)return;
       const show=countMarked()>0||p2v510AttendanceSaved();area.hidden=!show;
@@ -45,12 +46,12 @@
       const p=eligible.filter(r=>p2v58Draft[r.en.id]===true).length;
       const a=eligible.filter(r=>p2v58Draft[r.en.id]===false).length;
       const c=eligible.length-p-a;
-      document.getElementById('p1412PresentCount').textContent=p;
-      document.getElementById('p1412AbsentCount').textContent=a;
-      document.getElementById('p1412CheckCount').textContent=c;
-      document.getElementById('p1412All').textContent='All ('+getRows().length+')';
-      document.getElementById('p1412CheckFilter').textContent='Show Check ('+c+')';
-      document.getElementById('p1412AbsentFilter').textContent='Absent ('+a+')';
+      setText('p1412PresentCount',p);
+      setText('p1412AbsentCount',a);
+      setText('p1412CheckCount',c);
+      setText('p1412All','All ('+getRows().length+')');
+      setText('p1412CheckFilter','Show Check ('+c+')');
+      setText('p1412AbsentFilter','Absent ('+a+')');
       applyFilter();
     }
     function mount(){
