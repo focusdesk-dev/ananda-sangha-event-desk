@@ -53,7 +53,7 @@ jobs:
           choco install nsis --yes --no-progress
           if($LASTEXITCODE -ne 0){throw 'NSIS unavailable'}
           $nsi=[IO.File]::ReadAllText((Join-Path $PWD 'Patch14-11-Standard-Update.nsi'))
-          $nsi=$nsi.Replace('__BASE_SHA__',$env:BASE_SHA).Replace('__NEW_SHA__',$env:NEW_SHA).Replace('Ananda-Patch14.11-SERIAL-ATTENDANCE-FIX-Update.exe','Ananda-Patch14.11-SERIAL-ATTENDANCE-FIX-Update.exe')
+          $nsi=$nsi.Replace('__BASE_SHA__',$env:BASE_SHA).Replace('__NEW_SHA__',$env:NEW_SHA).Replace('Ananda-Patch14.11-SERIAL-ATTENDANCE-Update.exe','Ananda-Patch14.11-SERIAL-ATTENDANCE-FIX-Update.exe')
           [IO.File]::WriteAllText((Join-Path $PWD 'Patch14-11-Generated.nsi'),$nsi)
           & 'C:\Program Files (x86)\NSIS\makensis.exe' '/V4' 'Patch14-11-Generated.nsi'
           if($LASTEXITCODE -ne 0){throw 'Updater build failed'}
