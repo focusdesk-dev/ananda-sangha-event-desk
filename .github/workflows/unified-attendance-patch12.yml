@@ -1,0 +1,85 @@
+name: Build Patch 14.12 unified serial attendance updater
+on:
+  push:
+    branches: [patch14-12-unified-attendance-entry-20261120]
+    paths: ['.github/workflows/unified-attendance-patch12.yml']
+permissions:
+  contents: write
+jobs:
+  small-patch:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download verified previous small patch and extract its app archive
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          New-Item -ItemType Directory -Force -Path prior,extracted,build,payload,dist-patch14-12 | Out-Null
+          gh release download patch14.11-serial-attendance-small-fix --repo focusdesk-dev/ananda-sangha-event-desk --pattern '*.exe' --dir prior
+          if($LASTEXITCODE -ne 0){throw 'Patch 14.11 installer missing'}
+          $patch=(Get-ChildItem prior -Filter '*.exe' | Select-Object -First 1).FullName
+          & 'C:\Program Files\7-Zip\7z.exe' x $patch '-oextracted' -y
+          if($LASTEXITCODE -ne 0){throw 'Could not extract approved 14.10 updater'}
+          $files=@(Get-ChildItem extracted -Filter 'app.asar' -Recurse)
+          Write-Host 'App archives:' $files.Count
+          if($files.Count -ne 1){throw 'Cannot uniquely identify approved 14.10 app.asar'}
+          Copy-Item $files[0].FullName build/base.asar
+          $base=(Get-FileHash build/base.asar -Algorithm SHA256).Hash.ToLowerInvariant()
+          "BASE_SHA=$base" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'Verified extracted 14.11 baseline hash:' $base
+      - name: Change one feature inside the existing archive
+        shell: pwsh
+        run: |
+          npm install --no-save --no-audit --no-fund @electron/asar
+          if($LASTEXITCODE -ne 0){throw 'ASAR tools failed'}
+          node -e "require('@electron/asar').extractAll('build/base.asar','build/app')"
+          $env:ANANDA_INDEX_PATH='build/app/index.html'
+          node scripts/apply-unified-attendance-patch.js
+          if($LASTEXITCODE -ne 0){throw 'Serial update failed'}
+          node -e "const fs=require('fs'),vm=require('vm');let s=fs.readFileSync('build/app/index.html','utf8');let a=s.indexOf('// PATCH 14.12 START'),b=s.indexOf('// PATCH 14.12 END');if(a<0||b<a)throw Error('patch missing');new vm.Script(s.slice(a,b));"
+          node -e "require('@electron/asar').createPackage('build/app','payload/app.asar').then(()=>console.log('small archive ready'))"
+          if($LASTEXITCODE -ne 0){throw 'Archive packaging failed'}
+          $new=(Get-FileHash payload/app.asar -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($new -eq $env:BASE_SHA){throw 'Patch makes no change'}
+          "NEW_SHA=$new" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host 'Original application archive changed ONLY in index.html'
+      - name: Build small NSIS in-place updater
+        shell: pwsh
+        run: |
+          choco install nsis --yes --no-progress
+          if($LASTEXITCODE -ne 0){throw 'NSIS unavailable'}
+          $nsi=[IO.File]::ReadAllText((Join-Path $PWD 'Patch14-12-Standard-Update.nsi'))
+          $nsi=$nsi.Replace('__BASE_SHA__',$env:BASE_SHA).Replace('__NEW_SHA__',$env:NEW_SHA)
+          [IO.File]::WriteAllText((Join-Path $PWD 'Patch14-12-Generated.nsi'),$nsi)
+          & 'C:\Program Files (x86)\NSIS\makensis.exe' '/V4' 'Patch14-12-Generated.nsi'
+          if($LASTEXITCODE -ne 0){throw 'Updater build failed'}
+          $exe='dist-patch14-12/Ananda-Patch14.12-UNIFIED-ATTENDANCE-Update.exe'
+          if(!(Test-Path $exe)){throw 'Patch file missing'}
+          Write-Host 'SMALL_PATCH_BYTES:' (Get-Item $exe).Length
+      - name: Verify in-place patch installation and original data remains unchanged
+        shell: pwsh
+        run: |
+          $dir=Join-Path $env:RUNNER_TEMP 'Ananda Installed Test'
+          New-Item -ItemType Directory -Path (Join-Path $dir 'resources') -Force | Out-Null
+          Copy-Item build/base.asar (Join-Path $dir 'resources/app.asar')
+          $exe=(Resolve-Path 'dist-patch14-12/Ananda-Patch14.12-UNIFIED-ATTENDANCE-Update.exe').Path
+          $proc=Start-Process -FilePath $exe -ArgumentList @('/S',('/D='+$dir)) -PassThru -Wait
+          if($proc.ExitCode -ne 0){throw 'Patch failed on existing app folder'}
+          if((Get-FileHash (Join-Path $dir 'resources/app.asar') -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:NEW_SHA){throw 'Patched archive hash mismatch'}
+          if((Get-FileHash (Join-Path $dir 'resources/app.asar.before-patch14-12') -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:BASE_SHA){throw 'Backup mismatch'}
+          Write-Host 'PASS existing installed archive update, backup and hash validation'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Patch14.11-SERIAL-ATTENDANCE-Update
+          path: dist-patch14-12/Ananda-Patch14.12-UNIFIED-ATTENDANCE-Update.exe
+          if-no-files-found: error
+      - name: Publish direct patch download
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create patch14.12-unified-attendance 'dist-patch14-12/Ananda-Patch14.12-UNIFIED-ATTENDANCE-Update.exe' --target ${{ github.sha }} --title 'Ananda Patch 14.12 - Unified Attendance Small Update' --notes 'Small in-place patch over verified Patch14.11. Uses one serial-number bar for full manual entry or correction, with safe preview and confirmation. Does not reinstall Electron or touch the user database.'
