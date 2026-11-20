@@ -1,0 +1,111 @@
+
+  // PATCH 14.13: historical class information; no synthetic attendance records.
+  (function p1413HistoricalStudentRecords(){
+    const form=document.getElementById('p2StudentForm'),modal=document.getElementById('p2StudentModal');
+    if(!form||!modal)return;
+    const mobile=document.getElementById('p2StudentMobile');
+    const anchor=mobile?.closest('.field');
+    if(!anchor||document.getElementById('p1413HistoricalLevel'))return;
+    const fields=[
+      ['p1413HistoricalLevel','CLASS LEVEL (LAST COMPLETED)','<option value="">Not specified</option>'+['Level 1','Level 2','Level 3','Level 4'].map(n=>'<option>'+n+'</option>').join('')],
+      ['p1413HistoricalBatch','BATCH','<input id="p1413HistoricalBatch" placeholder="e.g. Batch 1" maxlength="80">'],
+      ['p1413HistoricalYear','YEAR','<input id="p1413HistoricalYear" inputmode="numeric" maxlength="4" placeholder="e.g. 2020">'],
+      ['p1413HistoricalStatus','COMPLETION STATUS','<option value="">Select status</option><option>Completed</option><option>Paused</option><option>Unknown</option>']
+    ];
+    const fragments=[];
+    for(const [id,label,html] of fields){
+      fragments.push('<div class="field p1413-historical"><label for="'+id+'">'+label+'</label>'+
+        (html.startsWith('<input')?html:'<select id="'+id+'">'+html+'</select>')+'</div>');
+    }
+    anchor.insertAdjacentHTML('afterend',fragments.join(''));
+    const note=document.createElement('div');
+    note.className='p2-note';note.id='p1413HistoricalNote';
+    note.style.cssText='margin-top:8px;font-size:11px';
+    note.textContent='Historical classes are recorded without inventing past attendance. Completing a past level requires administrator confirmation.';
+    const link=document.getElementById('p2StudentLinkInfo');
+    link?.insertAdjacentElement('beforebegin',note);
+    const originalOpen=p2OpenStudent;
+    p2OpenStudent=function(id){
+      const result=originalOpen.apply(this,arguments);
+      const student=id?p2FindStudent(id):null;
+      const records=Array.isArray(student?.historicalClassRecords)?student.historicalClassRecords:[];
+      const last=records.slice().sort((a,b)=>Number(b.year)-Number(a.year))[0]||{};
+      document.getElementById('p1413HistoricalLevel').value=last.level||'';
+      document.getElementById('p1413HistoricalBatch').value=last.batch||'';
+      document.getElementById('p1413HistoricalYear').value=last.year||'';
+      document.getElementById('p1413HistoricalStatus').value=last.status||'';
+      return result;
+    };
+    const existingHandler=form.onsubmit;
+    form.addEventListener('submit',function(e){
+      const level=document.getElementById('p1413HistoricalLevel').value;
+      const batch=document.getElementById('p1413HistoricalBatch').value.trim();
+      const year=document.getElementById('p1413HistoricalYear').value.trim();
+      const status=document.getElementById('p1413HistoricalStatus').value;
+      if(!level&&!batch&&!year&&!status)return;
+      e.preventDefault();e.stopImmediatePropagation();
+      if(!level||!batch||!/^(19\d\d|20\d\d)$/.test(year)||Number(year)>new Date().getFullYear()||!['Completed','Paused','Unknown'].includes(status)){
+        toast('Select class level, batch, valid historical year and completion status.');return;
+      }
+      const name=document.getElementById('p2StudentName').value.trim();
+      const phone=normMobile(document.getElementById('p2StudentMobile').value);
+      if(!name||phone.length!==10){toast('Name and valid 10-digit mobile are required.');return;}
+      // Reject basic identity conflicts before invoking the password gate.
+      const currentId=document.getElementById('p2StudentId').value;
+      if(state.students.some(s=>s.id!==currentId&&normMobile(s.mobile)===phone)){
+        toast('This mobile already belongs to another student.');return;
+      }
+      const commit=()=>{
+        const existedId=document.getElementById('p2StudentId').value;
+        existingHandler.call(form,{preventDefault(){}});
+        const student=existedId?p2FindStudent(existedId):state.students.find(s=>normMobile(s.mobile)===phone);
+        if(!student)return;
+        const list=Array.isArray(student.historicalClassRecords)?student.historicalClassRecords.slice():[];
+        const record={level,batch,year:Number(year),status,source:'Historical entry',
+          recordedAt:new Date().toISOString(),recordedBy:'administrator',
+          verifiedByAdmin:status==='Completed'};
+        const index=list.findIndex(x=>x.level===level&&x.batch===batch&&Number(x.year)===Number(year));
+        if(index>=0)list[index]=record;else list.push(record);
+        student.historicalClassRecords=list;
+        save();
+        toast('Student and historical class record saved');
+      };
+      if(status==='Completed')v51RequireAdmin(commit,'confirm historical '+level+' completion for '+name);
+      else commit();
+    },true);
+    // Level 1,2,3 historical completions can support entry to the next level.
+    // This never authorises Kriya or bypasses a required Acharya decision.
+    const originalRequirement=p2v55ProgressionRequirement;
+    p2v55ProgressionRequirement=function(studentId,batchId){
+      const result=originalRequirement.apply(this,arguments);
+      if(result.ok)return result;
+      const batch=state.classBatches.find(x=>x.id===batchId);
+      const target=p2v550Stage(batch);
+      const prev=target==='Level 2'?'Level 1':target==='Level 3'?'Level 2':target==='Level 4'?'Level 3':'';
+      if(!prev)return result;
+      const s=p2FindStudent(studentId);
+      const completed=Array.isArray(s?.historicalClassRecords)&&s.historicalClassRecords.some(r=>
+        r.level===prev&&r.status==='Completed'&&r.verifiedByAdmin===true&&
+        Number.isInteger(Number(r.year))&&Number(r.year)>=1900&&Number(r.year)<=new Date().getFullYear());
+      return completed?{ok:true,reason:'Verified historical '+prev+' completion'}:result;
+    };
+    // Display historical entries in the individual student's progression view.
+    const originalProgress=p2RenderProgressDetail;
+    p2RenderProgressDetail=function(studentId){
+      const ret=originalProgress.apply(this,arguments);
+      const student=p2FindStudent(studentId),host=document.getElementById('p2ProgressDetail');
+      if(!host||!student)return ret;
+      host.querySelector('#p1413PastCourses')?.remove();
+      const records=Array.isArray(student.historicalClassRecords)?student.historicalClassRecords:[];
+      if(records.length){
+        const panel=document.createElement('div');panel.id='p1413PastCourses';panel.className='card';
+        panel.style.marginTop='12px';
+        panel.innerHTML='<div class="card-head"><h3>Historical class records</h3></div>'+
+          records.slice().sort((a,b)=>Number(a.year)-Number(b.year)).map(r=>'<div style="padding:7px 0;border-bottom:1px solid #e7edf5">'+
+          esc(String(r.year))+' · '+esc(r.level)+' · '+esc(r.batch)+' — '+esc(r.status)+'</div>').join('');
+        host.append(panel);
+      }
+      return ret;
+    };
+  })();
+  // PATCH 14.13 END
