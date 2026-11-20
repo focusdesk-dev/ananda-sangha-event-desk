@@ -1,15 +1,15 @@
-; Ananda Patch14.13 ONLY: update app.asar, preserve installed application and user data
+; Ananda Patch14.13.1 ONLY: update app.asar, preserve installed application and user data
 Unicode True
 !include "MUI2.nsh"
 !include "StrFunc.nsh"
 ${StrStr}
 ${StrCase}
-Name "Ananda Patch 14.13 - Enrolment History and Counts Corrections"
-OutFile "dist-patch14-13/Ananda-Patch14.13-ENROL-HISTORY-COUNTS-Update.exe"
+Name "Ananda Patch 14.13.1 - Enrolment History and Counts Corrections"
+OutFile "dist-patch14-13-1/Ananda-Patch14.13.1.1-ENROL-HISTORY-COUNTS-Update.exe"
 RequestExecutionLevel user
 InstallDir "$LOCALAPPDATA\Programs\ananda-sangha-event-desk"
 ShowInstDetails show
-!define MUI_WELCOMEPAGE_TITLE "Ananda Patch 14.13 — Unified Attendance Review"
+!define MUI_WELCOMEPAGE_TITLE "Ananda Patch 14.13.1 — Unified Attendance Review"
 !define MUI_WELCOMEPAGE_TEXT "This update fixes Review Required authorisation, conducted counts and historical student entry. Existing screens and user data remain untouched. Close Ananda before continuing. Data and Electron executable remain untouched."
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_DIRECTORY
@@ -46,8 +46,8 @@ Section "Apply Serial Attendance Only"
     MessageBox MB_ICONSTOP "Ananda installation not found at: $INSTDIR. Select the application installation folder containing resources\app.asar, NOT the Documents data folder. No files changed." /SD IDOK
     Abort
   foundAsar:
-  IfFileExists "$INSTDIR\resources\app.asar.before-patch14-13" 0 noBackup
-    MessageBox MB_ICONSTOP "Patch14.13 backup exists. No files changed." /SD IDOK
+  IfFileExists "$INSTDIR\resources\app.asar.before-patch14-13-1" 0 noBackup
+    MessageBox MB_ICONSTOP "Patch14.13.1 backup exists. No files changed." /SD IDOK
     Abort
   noBackup:
   nsExec::ExecToStack 'certutil.exe -hashfile "$INSTDIR\resources\app.asar" SHA256'
@@ -63,7 +63,7 @@ Section "Apply Serial Attendance Only"
     MessageBox MB_ICONSTOP "This patch needs verified Patch14.12. Your installed version differs. No changes." /SD IDOK
     Abort
   baseOk:
-  Rename "$INSTDIR\resources\app.asar" "$INSTDIR\resources\app.asar.before-patch14-13"
+  Rename "$INSTDIR\resources\app.asar" "$INSTDIR\resources\app.asar.before-patch14-13-1"
   IfErrors 0 saved
     MessageBox MB_ICONSTOP "Close Ananda and retry. Backup failed." /SD IDOK
     Abort
@@ -82,7 +82,7 @@ Section "Apply Serial Attendance Only"
     StrCmp $2 "" restore success
   restore:
     Delete "$INSTDIR\resources\app.asar"
-    Rename "$INSTDIR\resources\app.asar.before-patch14-13" "$INSTDIR\resources\app.asar"
+    Rename "$INSTDIR\resources\app.asar.before-patch14-13-1" "$INSTDIR\resources\app.asar"
     MessageBox MB_ICONSTOP "Patch verification failed. Previous application restored." /SD IDOK
     Abort
   success:
