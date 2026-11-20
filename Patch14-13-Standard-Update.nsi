@@ -5,7 +5,7 @@ Unicode True
 ${StrStr}
 ${StrCase}
 Name "Ananda Patch 14.13.1 - Enrolment History and Counts Corrections"
-OutFile "dist-patch14-13-1/Ananda-Patch14.13.1.1-ENROL-HISTORY-COUNTS-Update.exe"
+OutFile "dist-patch14-13/Ananda-Patch14.13.1-ENROL-HISTORY-COUNTS-Update.exe"
 RequestExecutionLevel user
 InstallDir "$LOCALAPPDATA\Programs\ananda-sangha-event-desk"
 ShowInstDetails show
