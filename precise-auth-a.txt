@@ -1,0 +1,176 @@
+07600:           if(b.end!==endBefore)save();
+07601:         }
+07602:         return result;
+07603:       };
+07604:       const p2v547EditDateBase=p2v5Fix2EditClassDate;
+07605:       p2v5Fix2EditClassDate=function(b,oldDate,newDate){
+07606:         const result=p2v547EditDateBase(b,oldDate,newDate);
+07607:         if(result&&b?.scheduleType==='custom'){
+07608:           const before=b.end;
+07609:           p2v547RefreshCustomEnd(b);
+07610:           if(b.end!==before)save();
+07611:         }
+07612:         return result;
+07613:       };
+07614:       // When a custom batch form changes its class count, keep an existing
+07615:       // manual End Date, but clear a previously auto-derived end if the newly
+07616:       // requested number of sessions is no longer fully dated.
+07617:       const p2v547CountInput=$('p2v537ClassCount');
+07618:       const p2v547CountBase=p2v547CountInput?.oninput;
+07619:       if(p2v547CountInput)p2v547CountInput.oninput=function(ev){
+07620:         if(typeof p2v547CountBase==='function')p2v547CountBase.call(this,ev);
+07621:         const b=state.classBatches.find(x=>x.id===$('p2BatchId').value);
+07622:         if(b?.scheduleType!=='custom'||!b.endFromCustomSessions)return;
+07623:         const count=Number(p2v547CountInput.value),dated=(b.plannedSessions||[]).filter(x=>!!x.date).length;
+07624:         if(count!==dated)$('p2BatchEnd').value='';
+07625:       };
+07626:       // Styling scoped to the Class Schedule; no individual dates in the
+07627:       // New Class Batch form itself.
+07628:       const p2v547Style=document.createElement('style');
+07629:       p2v547Style.id='p2v547Style';
+07630:       p2v547Style.textContent=
+07631:         '#p2v5ScheduleCard .p2v547-session-links{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}'+
+07632:         '#p2v5ScheduleCard .p2v547-session-date{padding:6px 9px;border:1px solid #d7e3ee;border-radius:6px;background:#fff;color:#17447e;font-size:12px;cursor:pointer}'+
+07633:         '#p2v5ScheduleCard .p2v547-session-date:hover{border-color:#276fb9;background:#eff7ff}'+
+07634:         '#p2v5ScheduleCard .p2v547-session-date:disabled{cursor:default;opacity:.65}';
+07635:       document.head.appendChild(p2v547Style);
+07636: 
+07637:       // BETA 5.49 — Individual dates in Class Schedule only.
+07638:       // BETA 5.50 — Level 1 → 4 → Kriya → Kriya 2 → 3 → 4.
+07639:       // An Acharya decision is a separate, auditable record; neither
+07640:       // attendance nor an administrator enrollment override is an approval.
+07641:       function p2v550Stage(b){
+07642:         if(!b)return '';
+07643:         const id=String(b.courseId||'').trim().toLowerCase();
+07644:         const byId={
+07645:           'course-l1':'Level 1','course-l2':'Level 2','course-l3':'Level 3',
+07646:           'course-l4':'Level 4','course-kriya':'Kriya',
+07647:           'course-kriya2':'Kriya 2','course-kriya3':'Kriya 3','course-kriya4':'Kriya 4'
+07648:         };
+07649:         if(byId[id])return byId[id];
+07650:         // Legacy records and renamed labels must use the same progression gate.
+07651:         const normal=value=>String(value||'').trim().toLowerCase().replace(/\s+/g,' ');
+07652:         const titles=[p2CourseForBatch(b)?.name,b.courseName,b.level,p2CourseName(b)];
+07653:         for(const title of titles){
+07654:           const match=p2FullChain.find(stage=>normal(stage)===normal(title));
+07655:           if(match)return match;
+07656:         }
+07657:         return '';
+07658:       }
+07659:       function p2v550Completed(studentId,source){
+07660:         if(!studentId||!source)return false;
+07661:         if(source==='Kriya'){
+07662:           const student=p2FindStudent(studentId);
+07663:           // Older Kriyaban records remain valid as evidence that Kriya was received.
+07664:           if(student&&(student.kriyabanId||student.kriyaDate||student.kriyaYear))return true;
+07665:         }
+07666:         return state.classEnrollments.some(en=>{
+07667:           if(en.studentId!==studentId||en.outcome!=='Completed')return false;
+07668:           const batch=state.classBatches.find(b=>b.id===en.batchId);
+07669:           return batch?p2v550Stage(batch)===source:en.level===source;
+07670:         });
+07671:       }
+07672:       function p2v550Decision(student,target){
+07673:         const record=student?.acharyaProgressionApprovals?.[target];
+07674:         return record&&record.status==='Approved'&&record.approvedAt&&
+07675:           (record.acharyaId||record.approvedBy==='administrator')&&!record.revokedAt?record:null;
+07676:       }
+07677:       const p2v550RequirementBase=p2v55ProgressionRequirement;
+07678:       p2v55ProgressionRequirement=function(studentId,batchId){
+07679:         const batch=state.classBatches.find(b=>b.id===batchId);
+07680:         if(!batch)return{ok:false,reason:'Class batch not found.'};
+07681:         const target=p2v550Stage(batch),index=p2FullChain.indexOf(target);
+07682:         if(index<0&&/^(kriya|level\s*[1-4])\b/i.test(String(p2CourseName(batch))))
+07683:           return{ok:false,reason:'Unrecognised progression course. Correct its course mapping before enrolment.'};
+07684:         if(index<=0)return p2v550RequirementBase(studentId,batchId);
+07685:         const student=p2FindStudent(studentId),previous=p2FullChain[index-1];
+07686:         if(index<4){
+07687:           // Stable course IDs must preserve the Level 1–4 prerequisite even
+07688:           // when an administrator renames the displayed course title.
+07689:           if(!student)return{ok:false,reason:'Select an existing student before enrolling in '+target+'.'};
+07690:           const qualifies=p2StudentEnrollments(student.id).some(en=>{
+07691:             const prior=state.classBatches.find(x=>x.id===en.batchId);
+07692:             const source=prior?p2v550Stage(prior):en.level;
+07693:             if(source!==previous)return false;
+07694:             if(!prior)return false;
+07695:             // Review Required, Joined, or a generic administrator override must
+07696:             // NEVER be mistaken for a valid progression decision.
+07697:             if(p2v546ApprovedException(en,prior))return true;
+07698:             const decision=p2v519Decision(prior,en);
+07699:             return decision.key==='Eligible'&&(en.outcome==='Completed'||!prior.endedAt);
+07700:           });
+07701:           return qualifies?{ok:true,reason:''}:
+07702:             {ok:false,reason:'Review Required — a recorded Acharya exception for '+previous+' is required before enrolling in '+target+'.'};
+07703:         }
+07704:         if(!student)return{ok:false,reason:'Select an existing student before enrolling in '+target+'.'};
+07705:         if(!p2v550Completed(student.id,previous))
+07706:           return{ok:false,reason:previous+' must be completed before enrolling in '+target+'.'};
+07707:         if(!p2v550Decision(student,target))
+07708:           return{ok:false,reason:'Acharya approval for '+target+' is required. Record the decision in the '+previous+' batch first.'};
+07709:         return{ok:true,reason:''};
+07710:       };
+07711:       // Enrollment methods must enforce the real Acharya decision independently
+07712:       // of the older administrator password override dialog.
+07713:       const p2v550CreateEnrollmentBase=p2CreateEnrollment;
+07714:       p2CreateEnrollment=function(studentId,batchId){
+07715:         const b=state.classBatches.find(x=>x.id===batchId);
+07716:         const index=p2FullChain.indexOf(p2v550Stage(b));
+07717:         // The final enrolment guard is authoritative, including ambiguous
+07718:         // legacy Kriya courses that must never fall through to generic override.
+07719:         const check=p2v55ProgressionRequirement(studentId,batchId);
+07720:         if(!check.ok&&(index>0||/Unrecognised progression course/.test(check.reason))){
+07721:           toast(check.reason);return null;
+07722:         }
+07723:         return p2v550CreateEnrollmentBase(studentId,batchId);
+07724:       };
+07725:       // A Class Batch render can re-run p2cInstallEnrollmentFlow() and replace
+07726:       // the form's .onsubmit. A document CAPTURE listener survives all those
+07727:       // rebindings and authoritatively guards every form submission.
+07728:       const p2v550EnrollFormBase=$('p2EnrollForm').onsubmit;
+07729:       document.addEventListener('submit',function(event){
+07730:         if(event.target?.id!=='p2EnrollForm')return;
+07731:         event.preventDefault();
+07732:         event.stopImmediatePropagation();
+07733:         const form=event.target;
+07734:         const batch=p2ActiveBatch();
+07735:         if(!batch){toast('No class batch selected');return}
+07736:         const target=p2v550Stage(batch),index=p2FullChain.indexOf(target);
+07737:         const student=p2v54StudentFromEnrollForm();
+07738:         // Never rely on another handler or a status calculation to enforce
+07739:         // Acharya permission. A Kriya stage requires its own explicit decision.
+07740:         if(index>=4&&!p2v550Decision(student,target)){
+07741:           const previous=p2FullChain[index-1];
+07742:           const prior=student&&p2StudentEnrollments(student.id).find(en=>
+07743:             p2v550Stage(state.classBatches.find(b=>b.id===en.batchId))===previous);
+07744:           if(prior&&p2v550Completed(student.id,previous)){
+07745:             p2v550OpenApproval(student.id,prior.batchId);
+07746:           }else{
+07747:             toast(previous+' must be completed before Acharya approval for '+target+'.');
+07748:           }
+07749:           return;
+07750:         }
+07751:         const unmapped=p2v55ProgressionRequirement(student?.id||'',batch?.id||'');
+07752:         if(/Unrecognised progression course/.test(unmapped.reason||'')){
+07753:           event.preventDefault();toast(unmapped.reason);return;
+07754:         }
+07755:         if(index>0){
+07756:           const check=p2v55ProgressionRequirement(student?.id||'',batch.id);
+07757:           if(!check.ok){
+07758:             event.preventDefault();
+07759:             if(index<4&&student){
+07760:               const previous=p2FullChain[index-1];
+07761:               const candidates=p2StudentEnrollments(student.id).filter(e=>{
+07762:                 const source=state.classBatches.find(b=>b.id===e.batchId);
+07763:                 return source&&p2v550Stage(source)===previous&&
+07764:                   !p2v546ApprovedException(e,source);
+07765:               }).sort((a,z)=>{
+07766:                 const first=state.classBatches.find(b=>b.id===a.batchId);
+07767:                 const last=state.classBatches.find(b=>b.id===z.batchId);
+07768:                 return String(last?.endedAt||last?.end||last?.start||'').localeCompare(
+07769:                   String(first?.endedAt||first?.end||first?.start||''));
+07770:               });
+07771:               const en=candidates[0];
+07772:               if(en){p2v557OpenReviewApproval(student.id,en.batchId,batch.id);return}
+07773:             }
+07774:             if(index>=4&&student&&p2v550Completed(student.id,p2FullChain[index-1])&&
+07775:                !p2v550Decision(student,target)){

@@ -1,0 +1,151 @@
+07850:         if(enrolled.length)return enrolled.sort((a,b)=>p2FullChain.indexOf(b)-p2FullChain.indexOf(a))[0];
+07851:         return p2v550StageBefore(student);
+07852:       };
+07853:       let p2v550Pending=null;
+07854:       // Beta 5.66 — one authenticated, positive approval; no competing dropdowns.
+07855:       function p2v550ApprovalModal(){
+07856:         if($('p2v550ApprovalModal'))return;
+07857:         document.body.insertAdjacentHTML('beforeend',
+07858:           '<div id="p2v550ApprovalModal" class="modal-backdrop" style="background:rgba(30,42,62,.12)"><form id="p2v550ApprovalForm" class="modal" style="max-width:420px">'+
+07859:           '<div class="modal-head"><h3>Approve progression</h3><button type="button" class="x" id="p2v550Close">×</button></div>'+
+07860:           '<div id="p2v550ApprovalInfo" class="p2-note"></div>'+
+07861:           '<div class="field full"><label for="p2v550Notes">Notes (optional)</label><textarea id="p2v550Notes" rows="2"></textarea></div>'+
+07862:           '<div class="field full"><label for="p2v566Password">Administrator password</label><input id="p2v566Password" type="password" autocomplete="current-password" required></div>'+
+07863:           '<div id="p2v566ApprovalError" role="alert" style="color:#a53f46;font-size:13px"></div>'+
+07864:           '<div class="actions"><button class="btn" type="submit" id="p2v566Accept">Accept</button><button class="btn secondary" id="p2v550Cancel" type="button">Cancel</button></div>'+
+07865:           '</form></div>');
+07866:         const close=()=>{$('p2v550ApprovalModal').classList.remove('open');$('p2v566Password').value='';p2v550Pending=null};
+07867:         $('p2v550Close').onclick=$('p2v550Cancel').onclick=close;
+07868:         $('p2v550ApprovalForm').onsubmit=async event=>{
+07869:           event.preventDefault();
+07870:           if(!p2v550Pending)return;
+07871:           const button=$('p2v566Accept'),error=$('p2v566ApprovalError');
+07872:           const password=$('p2v566Password').value,record=v51SecurityRecord(),ctx={...p2v550Pending},notes=$('p2v550Notes').value.trim();
+07873:           if(!record){error.textContent='Set an administrator password in Settings first.';return}
+07874:           if(!password){error.textContent='Enter the administrator password.';return}
+07875:           button.disabled=true;error.textContent='';
+07876:           try{
+07877:             const hash=await v51PasswordHash(password,record.salt);
+07878:             if(hash!==record.hash){error.textContent='Incorrect password.';return}
+07879:             const person=p2FindStudent(ctx.studentId),source=state.classBatches.find(b=>b.id===ctx.sourceBatchId);
+07880:             if(!person||!source||p2v550Stage(source)!==ctx.from||!p2v550Completed(person.id,ctx.from)){
+07881:               error.textContent='The source course or student record changed. Review the record.';return;
+07882:             }
+07883:             // Repeated clicks never create a second authorization.
+07884:             if(p2v550Decision(person,ctx.next)){close();toast('Already approved.');return}
+07885:             const now=new Date().toISOString();
+07886:             person.acharyaProgressionApprovals=person.acharyaProgressionApprovals||{};
+07887:             person.acharyaProgressionHistory=person.acharyaProgressionHistory||[];
+07888:             const previous=person.acharyaProgressionApprovals[ctx.next];
+07889:             if(previous)person.acharyaProgressionHistory.push({...previous,target:ctx.next});
+07890:             person.acharyaProgressionApprovals[ctx.next]={
+07891:               status:'Approved',approvedAt:now,decidedAt:now,approvedBy:'administrator',
+07892:               approverRole:'Administrator',sourceLevel:ctx.from,sourceBatchId:ctx.sourceBatchId,
+07893:               notes
+07894:             };
+07895:             // Retain approval even when there is no uniquely identifiable active batch.
+07896:             const candidates=state.classBatches.filter(b=>!b.endedAt&&!b.archivedAt&&
+07897:               p2v550Stage(b)===ctx.next&&p2v56ChatStatus(b).toLowerCase()==='current');
+07898:             let enrolled=false;
+07899:             if(candidates.length===1){
+07900:               const target=candidates[0];
+07901:               enrolled=state.classEnrollments.some(en=>en.batchId===target.id&&en.studentId===ctx.studentId)||
+07902:                 !!p2CreateEnrollment(ctx.studentId,target.id);
+07903:             }
+07904:             close();
+07905:             save();
+07906:             if(p2v520View==='student'&&p2v520History)p2v520Render();
+07907:             toast(enrolled?'Approved and enrolled.':'Approved for '+ctx.next+'.');
+07908:           }catch(err){error.textContent='Unable to save approval. Try again.'}
+07909:           finally{$('p2v566Password').value='';button.disabled=false}
+07910:         };
+07911:       }
+07912:       function p2v550OpenApproval(studentId,sourceBatchId){
+07913:         const source=state.classBatches.find(b=>b.id===sourceBatchId),from=p2v550Stage(source);
+07914:         const next=p2NextLevel(from),student=p2FindStudent(studentId);
+07915:         if(!student||!next||p2FullChain.indexOf(next)<4)return;
+07916:         if(!p2v550Completed(studentId,from)){
+07917:           toast('Complete '+from+' before recording an Acharya decision.');return;
+07918:         }
+07919:         p2v550ApprovalModal();
+07920:         p2v550Pending={studentId,sourceBatchId,from,next};
+07921:         $('p2v550ApprovalInfo').textContent=student.name+' · '+from+' → '+next;
+07922:         $('p2v550Notes').value='';$('p2v566Password').value='';$('p2v566ApprovalError').textContent='';
+07923:         $('p2v550ApprovalModal').classList.add('open');
+07924:       }
+07925:       function p2v557OpenReviewApproval(studentId,sourceBatchId,targetBatchId){
+07926:         const source=state.classBatches.find(b=>b.id===sourceBatchId);
+07927:         const target=state.classBatches.find(b=>b.id===targetBatchId);
+07928:         const student=p2FindStudent(studentId);
+07929:         const en=state.classEnrollments.find(e=>e.studentId===studentId&&e.batchId===sourceBatchId);
+07930:         const level=p2v550Stage(target);
+07931:         if(!source||!target||!student||!en||!['Level 2','Level 3','Level 4'].includes(level)){
+07932:           toast('Select the student and their preceding class for review.');return;
+07933:         }
+07934:         if(!$('p2v557ReviewModal')){
+07935:           document.body.insertAdjacentHTML('beforeend',
+07936:             '<div id="p2v557ReviewModal" class="modal-backdrop"><form id="p2v557ReviewForm" class="modal" style="max-width:480px">'+
+07937:             '<div class="modal-head"><h3>Review Required</h3><button class="x" type="button" data-close="p2v557ReviewModal">×</button></div>'+
+07938:             '<p id="p2v557ReviewInfo" class="p2-note"></p>'+
+07939:             '<div class="field"><label for="p2v557ReviewReason">Notes (optional)</label><textarea id="p2v557ReviewReason"></textarea></div>'+
+07940:             '<div class="actions"><button class="btn secondary" type="button" data-close="p2v557ReviewModal">Cancel</button>'+
+07941:             '<button class="btn" type="submit">Accept</button></div></form></div>');
+07942:           $('p2v557ReviewModal').querySelectorAll('[data-close]').forEach(button=>
+07943:             button.onclick=()=>$('p2v557ReviewModal').classList.remove('open'));
+07944:         }
+07945:         $('p2v557ReviewInfo').textContent=student.name+' · '+p2v550Stage(source)+' → '+level+
+07946:           '. Approval must be recorded before enrolment.';
+07947:         $('p2v557ReviewReason').value='';
+07948:         $('p2v557ReviewForm').onsubmit=event=>{
+07949:           event.preventDefault();
+07950:           const reason=$('p2v557ReviewReason').value.trim();
+07951:           v51RequireAdmin(()=>{
+07952:             const prior=state.classEnrollments.find(x=>x.id===en.id),batch=state.classBatches.find(x=>x.id===source.id);
+07953:             if(!prior||!batch)return;
+07954:             const now=new Date().toISOString();
+07955:             const record={approved:true,approvedAt:now,approvedBy:'administrator',approverRole:'Administrator',
+07956:               reason,batchId:batch.id,targetCourse:level};
+07957:             prior.acharyaExceptionHistory=Array.isArray(prior.acharyaExceptionHistory)?prior.acharyaExceptionHistory:[];
+07958:             if(prior.acharyaException)prior.acharyaExceptionHistory.push({...prior.acharyaException});
+07959:             prior.acharyaException=record;
+07960:             if(batch.endedAt){
+07961:               prior.progressionFinalStatus={key:'Eligible',label:'Eligible for '+level,cls:'green'};
+07962:               prior.eligibleFor=level;
+07963:             }
+07964:             // An exception is the decision: do not ask for a second approval or submit.
+07965:             const destination=state.classBatches.find(x=>x.id===target.id);
+07966:             const already=state.classEnrollments.find(x=>x.studentId===student.id&&x.batchId===target.id);
+07967:             const canEnrol=destination&&!destination.endedAt&&destination.status!=='Completed';
+07968:             let enrolled=already||null;
+07969:             if(canEnrol&&!already)enrolled=p2CreateEnrollment(student.id,target.id);
+07970:             $('p2v557ReviewModal').classList.remove('open');
+07971:             save();
+07972:             toast(enrolled?'Approved and enrolled in '+target.name+'.':'Approved — awaiting an available batch.');
+07973:           },'record Acharya Review Required exception for '+student.name);
+07974:         };
+07975:         $('p2v557ReviewModal').classList.add('open');
+07976:       }
+07977:       function p2v550RenderApprovals(){
+07978:         // Progression decisions belong in Student Wise or the actual enrolment
+07979:         // workflow, never as a duplicate class-batch approval table.
+07980:         $('p2v550ApprovalCard')?.remove();
+07981:       }
+07982:       const p2v550WorkspaceBase=p2RenderClassWorkspace;
+07983:       p2RenderClassWorkspace=function(){
+07984:         const result=p2v550WorkspaceBase();
+07985:         p2v550RenderApprovals();
+07986:         return result;
+07987:       };
+07988:       const p2v550OutreachBase=p2RenderOutreach;
+07989:       p2RenderOutreach=function(level){
+07990:         const canonical=p2v550Stage(p2ActiveBatch())||level;
+07991:         const result=p2v550OutreachBase(canonical);
+07992:         const from=p2FullChain.indexOf(canonical),next=p2NextLevel(canonical);
+07993:         level=canonical;
+07994:         if(from>=3&&from<7&&$('p2BatchOutreach')){
+07995:           const pending=state.students.filter(student=>p2v550Completed(student.id,level)&&
+07996:             !p2v550Decision(student,next)&&
+07997:             !state.classEnrollments.some(en=>en.studentId===student.id&&
+07998:               p2v550Stage(state.classBatches.find(b=>b.id===en.batchId))===next)).length;
+07999:           if(pending){
+08000:             const msg=document.createElement('p');

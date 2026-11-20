@@ -1,0 +1,116 @@
+08190:             if(student&&p2v565RejectAcharya(student.name,student.mobile,student.id))return;
+08191:             if(proposedId!==en.studentId&&state.classEnrollments.some(e=>e!==en&&e.batchId===batch.id&&e.studentId===proposedId)){
+08192:               toast('Student is already enrolled in this batch.');return;
+08193:             }
+08194:             const before={studentId:en.studentId,outcome:en.outcome,attendance:{...(en.attendance||{})},
+08195:               progressionFinalStatus:en.progressionFinalStatus?{...en.progressionFinalStatus}:null};
+08196:             en.studentId=proposedId;
+08197:             en.attendance={...(en.attendance||{})};
+08198:             modal.querySelectorAll('.p2v566-attendance').forEach(select=>{
+08199:               if(select.value==='unset')delete en.attendance[select.dataset.date];
+08200:               else en.attendance[select.dataset.date]=select.value==='true';
+08201:             });
+08202:             en.outcome=$('p2v566Outcome').value;
+08203:             const next=p2NextLevel(p2v519Stage(batch));
+08204:             const stage=p2v519Stage(batch);
+08205:             if(['Level 1','Level 2','Level 3'].includes(stage)){
+08206:               const a=p2v519Attendance(batch,en);
+08207:               const eligible=en.outcome==='Completed'&&a.total>0&&a.unresolved===0&&
+08208:                 (a.pct>=p2v546MinimumFor(batch)||p2v546ApprovedException(en,batch));
+08209:               en.progressionFinalStatus={key:eligible?'Eligible':'Review Required',
+08210:                 label:eligible?'Eligible for '+next:'Review Required',cls:eligible?'green':'amber'};
+08211:               en.eligibleFor=eligible?next:'';
+08212:             }
+08213:             state.classCorrectionHistory=Array.isArray(state.classCorrectionHistory)?state.classCorrectionHistory:[];
+08214:             state.classCorrectionHistory.push({date:new Date().toISOString(),actor:'administrator',
+08215:               batchId:batch.id,enrollmentId:en.id,reason:$('p2v566Reason').value.trim(),before,
+08216:               after:{studentId:en.studentId,outcome:en.outcome,attendance:{...en.attendance},
+08217:                 progressionFinalStatus:en.progressionFinalStatus?{...en.progressionFinalStatus}:null}});
+08218:             modal.classList.remove('open');
+08219:             if(p2v519Stage(batch)==='Kriya')p2v567SyncKriyaMaster();
+08220:             save();
+08221:             toast('Student correction saved. Batch remains ended.');
+08222:             p2v519RenderSummary();
+08223:           };
+08224:           modal.classList.add('open');
+08225:         },'correct an ended batch student record');
+08226:       }
+08227:       function p2v519RenderSummary(){
+08228:         const ws=$('classWorkspace'),b=p2ActiveBatch();if(!ws||!b)return;
+08229:         ws.classList.add('p2v519-summary-mode');
+08230:         ws.classList.toggle('p2v519-show-schedule',p2v519ScheduleMode);
+08231:         const ended=!!b.endedAt,stage=p2v519Stage(b),year=p2BatchYear(b);
+08232:         const rows=state.classEnrollments.filter(en=>en.batchId===b.id).slice().sort((x,y)=>
+08233:           p2v5Person(x).name.localeCompare(p2v5Person(y).name,undefined,{sensitivity:'base'}));
+08234:         const stats=rows.map(en=>({en,person:p2v5Person(en),
+08235:           attendance:p2v519Attendance(b,en),decision:p2v519Decision(b,en)}));
+08236:         const count=Math.max(Number(b.numberOfClasses)||0,b.plannedSessions?.length||0,p2v5ValidDates(b).length);
+08237:         const conducted=p2v519Plan(b).filter(x=>x.conducted).length;
+08238:         const eligible=stats.filter(x=>x.decision.key==='Eligible').length;
+08239:         const review=stats.filter(x=>x.decision.key==='Review Required').length;
+08240:         // Old monthly, attendance and End Batch summary panels are hidden via
+08241:         // page-scoped CSS; they remain in the DOM for existing dedicated flows.
+08242:         $('p2ClassHeader').innerHTML='<div class="p2v519-heading"><div>'+
+08243:           '<h3>'+esc(p2CourseName(b))+' · '+esc(b.name)+'</h3>'+
+08244:           '<p>'+esc(String(year||'Year pending'))+' · '+
+08245:           (b.start?fmt(b.start):'Start pending')+' — '+
+08246:           (b.end?fmt(b.end):'End not scheduled')+
+08247:           ' · '+esc(p2AcharyaNames(b).join(', ')||'Acharya not assigned')+' · '+esc(p2VolunteerNames(b).join(', ')||'No volunteers')+' · '+esc(b.scheduleType||'Custom')+'</p></div>'+
+08248:           '<span class="p2v519-status">'+(ended?'Ended':b.start&&b.start>today()?'Upcoming':'Active')+'</span></div>'+
+08249:           '<div class="p2v519-actions">'+
+08250: 
+08251:           '<button type="button" class="btn secondary" id="p2v519Edit">Edit Batch</button>'+
+08252:           '<button type="button" class="btn secondary" id="p2v519Schedule">'+(p2v519ScheduleMode?'Back to Summary':'Class Schedule')+'</button>'+
+08253:           (!ended?'<button type="button" class="btn secondary" id="p2v519Enroll">Enrol Student</button>':'')+
+08254:           (!ended?'<button type="button" class="btn secondary" id="p2v519End">End Batch</button>':'')+'</div>';
+08255: 
+08256:         $('p2v519Edit').onclick=()=>p2OpenBatch(b.id);
+08257:         $('p2v519Schedule').onclick=()=>{p2v519ScheduleMode=!p2v519ScheduleMode;p2v519RenderSummary()};
+08258:         $('p2v519Enroll')?.addEventListener('click',()=>$('p2EnrollStudent')?.click());
+08259:         let host=$('p2v519Summary');
+08260:         if(!host){host=document.createElement('section');host.id='p2v519Summary';
+08261:           $('p2ClassHeader').insertAdjacentElement('afterend',host)}
+08262:         host.style.display=p2v519ScheduleMode?'none':'block';
+08263:         // The legacy approval card lives inside the old attendance grid.
+08264:         // Move the existing working approval UI outside that hidden grid,
+08265:         // preserving its handlers and the original Acharya approval records.
+08266:         const approval=$('p2v550ApprovalCard');
+08267:         if(approval)host.insertAdjacentElement('afterend',approval);
+08268:         host.innerHTML='<div class="p2v519-kpis">'+
+08269:           [['Students Enrolled',rows.length],['Classes Conducted',conducted+' / '+count],
+08270:            ['Eligible for Next Level',eligible],['Review Required',review]].map(x=>
+08271:             '<div><span>'+x[0]+'</span><strong>'+x[1]+'</strong></div>').join('')+
+08272:           '</div><div class="p2v519-student-head"><h3>Student progression</h3>'+
+08273:           (!ended?'<small>Provisional eligibility</small>':'<small>Finalised results</small>')+
+08274:           '</div><div class="p2v553-roster-layout"><div class="p2v519-table-scroll"><table class="p2v519-table"><thead><tr>'+
+08275:           '<th>Student</th><th>Attendance</th><th>Participation</th>'+
+08276:           '<th>Next level</th><th>Payment</th><th>History</th></tr></thead><tbody>'+
+08277:           (stats.length?stats.map(row=>{
+08278:             const en=row.en,a=row.attendance,d=row.decision;
+08279:             const outcome=ended?(en.outcome==='Withdrawn'||en.outcome==='Did Not Complete'?'Paused':en.outcome||'Completed'):
+08280:               (en.outcome==='Withdrawn'?'Paused':'In Progress');
+08281:             return'<tr><td><button type="button" class="p2v526-select" data-id="'+esc(en.studentId)+'">'+esc(row.person.name||'Unnamed')+'</button></td>'+
+08282:               '<td>'+(a.pct===null?'Not assessed':a.pct+'%')+'</td>'+
+08283:               '<td>'+esc(outcome)+'</td><td>'+esc(d.label)+'</td>'+
+08284:               '<td>'+esc(p2v563PaymentLabel(en,b))+'</td>'+
+08285:               '<td><button class="p2v519-history" data-id="'+esc(en.studentId)+'">View history</button>'+              (ended?'<button type="button" class="btn secondary small p2v566-edit" data-id="'+esc(en.id)+'">Edit</button>':'')+'</td></tr>';
+08286:           }).join(''):'<tr><td colspan="6">No students enrolled in this batch.</td></tr>')+
+08287:           '</tbody></table></div><aside id="p2v526StudentDetail" class="p2v526-detail" aria-live="polite"></aside></div>';
+08288:         host.querySelectorAll('.p2v526-select').forEach(button=>button.onclick=()=>{
+08289:           const r=stats.find(x=>x.en.studentId===button.dataset.id);if(!r)return;
+08290:           const fee=Number(b.courseFee)||0;
+08291:           const payment=p2v563PaymentLabel(r.en,b);
+08292:           const detail=$('p2v526StudentDetail');
+08293:           detail.innerHTML='<strong>'+esc(r.person.name||'Student')+'</strong>'+
+08294:             '<span>Attendance: '+(r.attendance.pct===null?'Not assessed':r.attendance.pct+'%')+
+08295:             ' · '+esc(r.decision.label)+' · Fee: '+(fee?'₹'+fee:'Free')+
+08296:             ' · Payment: '+esc(payment)+'</span>'+
+08297:             '<button type="button" class="btn secondary small" id="p2v526FullHistory">View full history</button>';
+08298:           $('p2v526FullHistory').onclick=()=>{
+08299:             p2v56ChatProgressStudent=r.en.studentId;
+08300:             p2v56ChatProgressMode='student';switchPage('studentProgress');
+08301:           };
+08302:         });
+08303:         host.querySelectorAll('.p2v566-edit').forEach(btn=>btn.onclick=()=>p2v566EditEndedStudent(btn.dataset.id));
+08304:         $('p2v519End')?.addEventListener('click',()=>p2v519Finalise(b));
+08305:         host.querySelectorAll('.p2v519-history').forEach(btn=>btn.onclick=()=>{

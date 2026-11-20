@@ -1,0 +1,106 @@
+07270:           if(!result||!result.ok)toast((result&&result.error)||'Could not open Backup folder');
+07271:         };
+07272:       }
+07273: 
+07274:       if(window.anandaDesktop&&typeof window.anandaDesktop.dataLocation==='function'){
+07275:         window.anandaDesktop.dataLocation().then(result=>{if(result&&result.ok&&$('v123DataLocation'))$('v123DataLocation').textContent=result.path}).catch(()=>{});
+07276:       }
+07277: 
+07278:       setTimeout(async()=>{
+07279:         if(!window.anandaDesktop||typeof window.anandaDesktop.autoBackupState!=='function')return;
+07280:         try{
+07281:           const result=await window.anandaDesktop.autoBackupState(JSON.stringify(state));
+07282:           if(result&&result.ok&&result.created)toast('Automatic 5-day backup created');
+07283:         }catch{}
+07284:       },1800);
+07285: 
+07286:       const prodVolunteerFirst=$('volunteerFirstName'),prodVolunteerLast=$('volunteerLastName'),prodVolunteerMobile=$('volunteerMobile'),prodVolunteerBirthday=$('volunteerBirthday');
+07287:       if(prodVolunteerFirst&&!prodVolunteerFirst.dataset.prodEnterFlow){
+07288:         prodVolunteerFirst.dataset.prodEnterFlow='1';
+07289:         prodVolunteerFirst.addEventListener('keydown',event=>{if(event.key!=='Enter'||event.altKey||event.ctrlKey||event.metaKey)return;event.preventDefault();event.stopPropagation();const value=prodVolunteerFirst.value.trim();if(value.includes(' ')&&!prodVolunteerLast.value.trim()){const parts=value.split(/\s+/);prodVolunteerFirst.value=parts.shift()||'';prodVolunteerLast.value=parts.join(' ');prodVolunteerMobile?.focus();return}if(prodVolunteerLast?.value.trim())prodVolunteerMobile?.focus();else prodVolunteerLast?.focus()});
+07290:         prodVolunteerLast?.addEventListener('keydown',event=>{if(event.key!=='Enter'||event.altKey||event.ctrlKey||event.metaKey)return;event.preventDefault();event.stopPropagation();prodVolunteerMobile?.focus()});
+07291:         prodVolunteerMobile?.addEventListener('keydown',event=>{if(event.key!=='Enter'||event.altKey||event.ctrlKey||event.metaKey)return;event.preventDefault();event.stopPropagation();prodVolunteerBirthday?.focus()});
+07292:       }
+07293: 
+07294:       document.querySelectorAll('form button[type="submit"]').forEach(button=>button.title='Save • Alt+S');
+07295:       ['addVolunteer','addAttendeeMaster','addKriyaban','addVip','v48AddVolunteer','v36NewRegistration'].forEach(id=>{const button=$(id);if(button)button.title=(button.title?button.title+' • ':'')+'Keyboard: +'});
+07296: 
+07297:       // CORRECTION 18 — global minimum attendance; finalised batches keep
+07298:       // their own permanently recorded threshold and progression decisions.
+07299:       // This works with the existing password gate. No other permission UI.
+07300:       function p2v546Setting(){
+07301:         if(!state.courseProgression||typeof state.courseProgression!=='object')
+07302:           state.courseProgression={minimumAttendance:50,audit:[]};
+07303:         if(!Array.isArray(state.courseProgression.audit))state.courseProgression.audit=[];
+07304:         const value=Number(state.courseProgression.minimumAttendance);
+07305:         if(!Number.isInteger(value)||value<0||value>100)state.courseProgression.minimumAttendance=50;
+07306:         return state.courseProgression;
+07307:       }
+07308:       function p2v546MinimumFor(b){
+07309:         // Status labels and a passed end date do NOT formally end a batch.
+07310:         // Legacy ended batches without a snapshot retain their old 50% baseline.
+07311:         if(b?.endedAt){
+07312:           const frozen=Number(b.minimumAttendanceAtEnd);
+07313:           return b.minimumAttendanceAtEnd!==undefined&&Number.isInteger(frozen)&&frozen>=0&&frozen<=100?frozen:50;
+07314:         }
+07315:         return p2v546Setting().minimumAttendance;
+07316:       }
+07317:       function p2v546Level(b){const name=p2CourseName(b);return p2Levels.includes(name)?name:(p2Levels.includes(b?.level)?b.level:'')}
+07318:       function p2v546ApprovedException(en,b){
+07319:         // Enrollment administration overrides are NOT attendance waivers.
+07320:         // A distinct recorded, approved Acharya attendance exception is needed.
+07321:         const a=en?.acharyaException||en?.attendanceException;
+07322:         if(!a||a.approved!==true||!a.approvedAt||!a.approvedBy)return false;
+07323:         if(a.batchId&&String(a.batchId)!==String(b?.id))return false;
+07324:         if(a.expiresAt&&String(a.expiresAt)<today())return false;
+07325:         if(a.revokedAt)return false;
+07326:         return true;
+07327:       }
+07328:       function p2v546AttendancePct(b,en){
+07329:         // Use the class's established attendance summary so the threshold and
+07330:         // the displayed attendance percentage use the same denominator.
+07331:         const a=p2v53AttendanceSummary(b,en);
+07332:         return a.total?a.present*100/a.total:0;
+07333:       }
+07334:       function p2v546Eligibility(en,b){
+07335:         if(!b)return{key:'Review Required',label:'Review Required',cls:'amber'};
+07336:         const level=p2v546Level(b),pct=p2v546AttendancePct(b,en),min=p2v546MinimumFor(b);
+07337:         if(level==='Level 4'){
+07338:           const person=en.studentId?p2FindStudent(en.studentId):null;
+07339:           const received=!!(person&&(person.kriyabanId||person.kriyaDate||person.kriyaYear));
+07340:           return received?{key:'Joined',label:'Kriya Received',cls:'blue'}:
+07341:             {key:'Review Required',label:'Acharya Decision Required',cls:'amber'};
+07342:         }
+07343:         if(!p2Levels.slice(0,3).includes(level))
+07344:           return{key:'Not Eligible',label:'Not Eligible',cls:'gray'};
+07345:         const next=p2NextLevel(level);
+07346:         if(b.endedAt&&en.progressionFinalStatus)return{...en.progressionFinalStatus};
+07347:         const joined=!!en.studentId&&state.classEnrollments.some(
+07348:           x=>x.studentId===en.studentId&&x.level===next);
+07349:         if(joined)return{key:'Joined',label:'Joined '+next,cls:'blue'};
+07350:         if(b.endedAt){
+07351:           // Do not retrospectively reclassify old finalised batches.
+07352:           return en.outcome==='Completed'
+07353:             ?{key:'Eligible',label:'Eligible for '+next,cls:'green'}
+07354:             :{key:'Not Eligible',label:'Not Eligible',cls:'gray'};
+07355:         }
+07356:         if(p2v546ApprovedException(en,b))return{key:'Eligible',label:'Eligible for '+next,cls:'green'};
+07357:         if(p2v53AttendanceSummary(b,en).total===0)
+07358:           return{key:'Review Required',label:'Review Required',cls:'amber'};
+07359:         const passed=pct>=min||p2v546ApprovedException(en,b);
+07360:         return passed?{key:'Eligible',label:'Eligible for '+next,cls:'green'}:
+07361:           {key:'Review Required',label:'Review Required',cls:'amber'};
+07362:       }
+07363:       function p2v546QualifiesHistory(level,history){
+07364:         const i=p2Levels.indexOf(level);
+07365:         if(i<=0)return true;
+07366:         const previous=p2Levels[i-1];
+07367:         return history.some(en=>{
+07368:           if(en.level!==previous)return false;
+07369:           const b=state.classBatches.find(x=>x.id===en.batchId);
+07370:           if(!b)return en.outcome==='Completed'; // Existing imported history.
+07371:           if(b.endedAt)return en.outcome==='Completed';
+07372:           if(previous==='Level 4')return false; // Acharya decides Kriya.
+07373:           return p2v546Eligibility(en,b).key==='Eligible'||
+07374:             p2v546Eligibility(en,b).key==='Joined';
+07375:         });
