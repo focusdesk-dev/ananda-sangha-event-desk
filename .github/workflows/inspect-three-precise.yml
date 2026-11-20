@@ -1,0 +1,28 @@
+name: Extract exact correction functions
+on:
+  push:
+    branches: [patch14-13-enrol-conducted-history-20261120]
+    paths: ['.github/workflows/inspect-three-precise.yml']
+permissions:
+  contents: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Write source ranges
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path('index.html').read_text().splitlines()
+          spans={'auth-a':(7600,7775),'auth-b':(7850,8000),'conducted':(8190,8305),'student':(605,608),'save-student':(2578,2587),'historical-functions':(7270,7375),'password':(3420,3610)}
+          for name,(a,b) in spans.items():
+            Path('precise-'+name+'.txt').write_text('\n'.join(f'{i+1:05d}: {src[i]}' for i in range(a-1,b))[:100000])
+          PY
+      - name: Commit
+        run: |
+          git config user.name "Ananda QA"
+          git config user.email "actions@users.noreply.github.com"
+          git add precise-*.txt
+          git commit -m "Exact correction source"
+          git push
