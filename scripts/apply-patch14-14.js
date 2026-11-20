@@ -52,7 +52,7 @@ replaceOnce(openTitle,openTitle+
 replaceOnce("  $('p2StudentForm').onsubmit=e=>{e.preventDefault();",
             "  $('p2StudentForm').onsubmit=async e=>{e.preventDefault();",
             'student save handler async');
-const saveAnchor="if(!id)state.students.push(s);p2LinkStudent(s);";
+const saveAnchor="Object.assign(s,{name,mobile,kriyaDate:$('p2StudentKriyaDate').value,kriyaYear:$('p2StudentKriyaYear').value.trim(),notes:$('p2StudentNotes').value.trim()});";
 const saveHistory=fs.readFileSync(path.join(__dirname,'patch14-14-history-save.txt'),'utf8');
 replaceOnce(saveAnchor,saveHistory+saveAnchor,'historical save');
 const saveEnd="toast(id?'Student updated':'Student added')};";
