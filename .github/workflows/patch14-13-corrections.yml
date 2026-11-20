@@ -1,4 +1,4 @@
-name: Build Patch 14.13.1 verified three fixes updater
+name: Build verified Patch 14.13.1 three fixes updater
 on:
   push:
     branches: [patch14-13-enrol-conducted-history-20261120]
