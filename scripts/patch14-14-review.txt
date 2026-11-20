@@ -1,0 +1,92 @@
+      function p2v557OpenReviewApproval(studentId,sourceBatchId,targetBatchId){
+        const source=state.classBatches.find(b=>b.id===sourceBatchId);
+        const target=state.classBatches.find(b=>b.id===targetBatchId);
+        const student=p2FindStudent(studentId);
+        const en=state.classEnrollments.find(e=>e.studentId===studentId&&e.batchId===sourceBatchId);
+        const level=p2v550Stage(target);
+        if(!source||!target||!student||!en||!['Level 2','Level 3','Level 4'].includes(level)){
+          toast('Select the student and preceding class for review.');return;
+        }
+        if(!$('p2v557ReviewModal')){
+          document.body.insertAdjacentHTML('beforeend',
+            '<div id="p2v557ReviewModal" class="modal-backdrop"><form id="p2v557ReviewForm" class="modal" style="max-width:480px">'+
+            '<div class="modal-head"><h3>Review Required</h3><button class="x" type="button" data-close="p2v557ReviewModal">×</button></div>'+
+            '<p id="p2v557ReviewInfo" class="p2-note"></p>'+
+            '<div class="field"><label for="p2v557ReviewReason">Notes (optional)</label><textarea id="p2v557ReviewReason"></textarea></div>'+
+            '<div class="field hidden" id="p1414ReviewPasswordRow"><label for="p1414ReviewPassword">Administrator password</label>'+
+              '<input id="p1414ReviewPassword" type="password" autocomplete="current-password">'+
+              '<div id="p1414ReviewError" style="font-size:12px;color:#b91c1c;margin-top:5px"></div></div>'+
+            '<div class="actions"><button class="btn secondary" id="p1414ReviewCancel" type="button">Cancel</button>'+
+              '<button class="btn" type="submit" id="p1414ReviewAccept">Accept</button></div></form></div>');
+        }
+        const popup=$('p2v557ReviewModal'),parent=$('p2EnrollModal');
+        const passwordRow=$('p1414ReviewPasswordRow');
+        passwordRow.classList.add('hidden');
+        $('p1414ReviewPassword').value='';
+        $('p1414ReviewError').textContent='';
+        $('p1414ReviewAccept').textContent='Accept';
+        $('p1414ReviewAccept').disabled=false;
+        $('p2v557ReviewReason').value='';
+        $('p2v557ReviewInfo').textContent=student.name+' · '+p2v550Stage(source)+' → '+level+
+          '. Administrator authorisation is required before enrolment.';
+        const close=restore=>{
+          popup.classList.remove('open');
+          passwordRow.classList.add('hidden');
+          $('p1414ReviewPassword').value='';
+          if(restore&&parent?.dataset.p1414ReviewSuspended==='1')parent.classList.add('open');
+          if(parent)delete parent.dataset.p1414ReviewSuspended;
+        };
+        popup.querySelectorAll('[data-close]').forEach(el=>el.onclick=()=>close(true));
+        $('p1414ReviewCancel').onclick=()=>close(true);
+        $('p2v557ReviewForm').onsubmit=async event=>{
+          event.preventDefault();
+          if(passwordRow.classList.contains('hidden')){
+            passwordRow.classList.remove('hidden');
+            $('p1414ReviewAccept').textContent='Verify & Enrol';
+            $('p1414ReviewPassword').focus();
+            return;
+          }
+          const btn=$('p1414ReviewAccept'),pass=$('p1414ReviewPassword').value;
+          const security=v51SecurityRecord();
+          if(!security){$('p1414ReviewError').textContent='Set the administrator password in Settings first.';return}
+          if(!pass){$('p1414ReviewError').textContent='Enter the administrator password.';return}
+          btn.disabled=true;
+          try{
+            const hash=await v51PasswordHash(pass,security.salt);
+            if(hash!==security.hash){
+              $('p1414ReviewError').textContent='Incorrect password.';
+              $('p1414ReviewPassword').value='';return;
+            }
+            const prior=state.classEnrollments.find(x=>x.id===en.id);
+            const batch=state.classBatches.find(x=>x.id===source.id);
+            const destination=state.classBatches.find(x=>x.id===target.id);
+            if(!prior||!batch||!destination||prior.studentId!==student.id){
+              $('p1414ReviewError').textContent='The class record changed. Close and reopen.';return;
+            }
+            const reason=$('p2v557ReviewReason').value.trim(),now=new Date().toISOString();
+            const record={approved:true,approvedAt:now,approvedBy:'administrator',
+              approverRole:'Administrator',reason,batchId:batch.id,targetCourse:level};
+            prior.acharyaExceptionHistory=Array.isArray(prior.acharyaExceptionHistory)?prior.acharyaExceptionHistory:[];
+            if(prior.acharyaException)prior.acharyaExceptionHistory.push({...prior.acharyaException});
+            prior.acharyaException=record;
+            if(batch.endedAt){
+              prior.progressionFinalStatus={key:'Eligible',label:'Eligible for '+level,cls:'green'};
+              prior.eligibleFor=level;
+            }
+            const already=state.classEnrollments.find(x=>x.studentId===student.id&&x.batchId===target.id);
+            const canEnrol=!destination.endedAt&&destination.status!=='Completed';
+            let enrolled=already||null;
+            if(canEnrol&&!already)enrolled=p2CreateEnrollment(student.id,target.id);
+            close(false);
+            save();
+            toast(enrolled?'Approved and enrolled in '+target.name+'.':'Approved — awaiting an available batch.');
+          }catch(error){
+            $('p1414ReviewError').textContent='Unable to verify password. No changes were saved.';
+          }finally{btn.disabled=false}
+        };
+        if(parent?.classList.contains('open')){
+          parent.dataset.p1414ReviewSuspended='1';
+          parent.classList.remove('open');
+        }
+        popup.classList.add('open');
+      }
