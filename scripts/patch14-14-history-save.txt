@@ -1,0 +1,26 @@
+    const historyLevel=$('p1414HistoryLevel').value;
+    const historyBatch=$('p1414HistoryBatch').value.trim();
+    const historyYear=$('p1414HistoryYear').value.trim();
+    const historyStatus=$('p1414HistoryStatus').value;
+    const hasHistory=!!(historyLevel||historyBatch||historyYear||historyStatus);
+    if(hasHistory){
+      if(!historyLevel||!historyBatch||!historyStatus||!/^(19\d{2}|20\d{2})$/.test(historyYear)||Number(historyYear)>new Date().getFullYear()){
+        toast('Enter historical class level, batch, year and status.');return;
+      }
+      const verified=historyStatus==='Completed';
+      if(verified){
+        const sec=v51SecurityRecord(),pass=$('p1414HistoryPassword').value;
+        if(!sec){toast('Set the administrator password before confirming historical completion.');return}
+        if(!pass){$('p1414HistoryPasswordField').classList.remove('hidden');$('p1414HistoryPassword').focus();toast('Administrator password required to confirm historical completion.');return}
+        try{
+          const digest=await v51PasswordHash(pass,sec.salt);
+          if(digest!==sec.hash){toast('Incorrect administrator password. Nothing saved.');return}
+        }catch(error){toast('Could not verify administrator password. Nothing saved.');return}
+      }
+      const records=Array.isArray(s.historicalClassRecords)?s.historicalClassRecords.slice():[];
+      const i=records.findIndex(r=>r.level===historyLevel&&r.batch===historyBatch&&Number(r.year)===Number(historyYear));
+      const record={level:historyLevel,batch:historyBatch,year:Number(historyYear),
+        status:historyStatus,verifiedByAdmin:verified,recordedAt:new Date().toISOString()};
+      if(i>=0)records[i]=record;else records.push(record);
+      s.historicalClassRecords=records;
+    }
