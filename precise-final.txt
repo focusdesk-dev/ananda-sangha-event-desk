@@ -1,0 +1,441 @@
+function v51RequireAdmin MATCHES [1452]
+01450:   function v51RefreshSecurityButton(){const button=$('v51SecurityButton');button.textContent=v51MasterUnlocked?'🔓 Lock master lists':'🔒 Master lists';button.classList.toggle('unlocked',v51MasterUnlocked)}
+01451:   function v51CloseSecurity(clearPending=true){$('v51SecurityModal').classList.remove('open');$('v51Password').value='';$('v51PasswordConfirm').value='';$('v51SecurityError').textContent='';if(clearPending)v51PendingAction=null}
+01452:   function v51OpenSecurity(action=null,purpose='open protected master data'){v51PendingAction=action;const setup=!v51SecurityRecord();$('v51SecurityTitle').textContent=setup?'Set administrator password':'Administrator password required';$('v51SecurityText').textContent=setup?'Create a password for the permanent master lists and all data exports. It cannot be recovered from the app, so keep it safely.':`Enter the administrator password to ${purpose}.`;$('v51ConfirmField').classList.toggle('hidden',!setup);$('v51Password').autocomplete=setup?'new-password':'current-password';$('v51SecuritySubmit').textContent=setup?'Set password & continue':'Unlock & continue';$('v51SecurityModal').classList.add('open');setTimeout(()=>$('v51Password').focus(),0)}
+01453:   function v51RequireAdmin(action,purpose){if(v51MasterUnlocked){action?.();return true}v51OpenSecurity(action,purpose);return false}
+01454:   $('v51SecurityForm').onsubmit=async event=>{event.preventDefault();const password=$('v51Password').value,record=v51SecurityRecord(),setup=!record;$('v51SecurityError').textContent='';if(password.length<6){$('v51SecurityError').textContent='Use at least 6 characters.';return}try{if(setup){if(password!==$('v51PasswordConfirm').value){$('v51SecurityError').textContent='The two passwords do not match.';return}const salt=v51Hex(crypto.getRandomValues(new Uint8Array(16))),hash=await v51PasswordHash(password,salt);localStorage.setItem(V51_SECURITY_KEY,JSON.stringify({salt,hash,createdAt:new Date().toISOString()}))}else{const hash=await v51PasswordHash(password,record.salt);if(hash!==record.hash){$('v51SecurityError').textContent='Incorrect password.';return}}const action=v51PendingAction;v51PendingAction=null;v51MasterUnlocked=true;v51CloseSecurity(false);v51RefreshSecurityButton();renderAll();toast('Master lists unlocked for this session');action?.()}catch(error){$('v51SecurityError').textContent=error.message||'Password security could not be started.'}};
+01455:   $('v51SecurityClose').onclick=$('v51SecurityCancel').onclick=()=>v51CloseSecurity();
+01456:   const v51SwitchPageBefore=switchPage;
+01457:   switchPage=function(id){if(v51ProtectedPages.has(id)&&!v51MasterUnlocked){v51RequireAdmin(()=>v51SwitchPageBefore(id),`open the ${id==='attendeeMaster'?'Attendee':id[0].toUpperCase()+id.slice(1)} Master`);return}v51SwitchPageBefore(id)};
+01458:   $('v51SecurityButton').onclick=()=>{if(!v51MasterUnlocked){v51OpenSecurity(null,'unlock the permanent master lists');return}v52LockMasterLists(true)};
+01459:   function v51LockedMaster(container,label){container.innerHTML=`<div class="master-locked"><strong>🔒 ${esc(label)} is locked</strong>Enter the administrator password to open this permanent list.</div>`}
+01460:   const v51RenderVolunteersBefore=renderVolunteers;
+01461:   renderVolunteers=function(){if(!v51MasterUnlocked){v51LockedMaster($('volunteerTable'),'Volunteer Master');return}v51RenderVolunteersBefore()};
+01462:   const v51RenderAttendeesBefore=renderAttendeeMaster;
+01463:   renderAttendeeMaster=function(){if(!v51MasterUnlocked){v51LockedMaster($('attendeeMasterTable'),'Attendee Master');return}v51RenderAttendeesBefore()};
+01464:   const v51RenderKriyabansBefore=v46RenderKriyabans;
+01465:   v46RenderKriyabans=function(){if(!v51MasterUnlocked){v51LockedMaster($('kriyabanTable'),'Kriyaban Master');return}v51RenderKriyabansBefore()};
+01466:   const v51RenderVipsBefore=v47RenderVips;
+01467:   v47RenderVips=function(){if(!v51MasterUnlocked){v51LockedMaster($('vipTable'),'VIP Master');return}v51RenderVipsBefore()};
+01468: 
+01469:   function v51ReportData(){const event=activeEvent();if(!event)return null;const days=eventDates(event).map(date=>{const assigned=v36RosterIds(event.id,date),volunteers=v36CheckedVolunteerIds(event.id,date),attendees=v36RowsForDate(date),arrived=attendees.filter(row=>row.checkins.includes(date));return{date,assigned:assigned.length,volunteers:volunteers.length,attendees:attendees.length,arrived:arrived.length,expected:assigned.length+attendees.length,actual:volunteers.length+arrived.length}}),volunteerIds=new Set([...Object.entries(state.volunteerRosters).filter(([key])=>key.startsWith(event.id+'|')).flatMap(([,ids])=>ids),...Object.entries(state.daily).filter(([key])=>key.startsWith(event.id+'|')).flatMap(([,ids])=>ids)]),volunteers=[...volunteerIds].map(id=>{const person=state.volunteers.find(volunteer=>volunteer.id===id),assigned=eventDates(event).filter(date=>v36RosterIds(event.id,date).includes(id)),checked=eventDates(event).filter(date=>v36CheckedVolunteerIds(event.id,date).includes(id));return{name:person?volName(person):'Volunteer not found',mobile:person?.mobile||'',assigned,checked}}).sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base'})),attendees=v36AllAttendeeRows().slice().sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base'})),che
+01470:   function v51Xml(value){return String(value??'').replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[character]))}
+01471:   function v51ExcelColumn(index){let name='';for(index++;index;index=Math.floor((index-1)/26))name=String.fromCharCode(65+(index-1)%26)+name;return name}
+01472:   function v51SheetXml(rows){const body=rows.map((row,rowIndex)=>`<row r="${rowIndex+1}">${row.map((value,columnIndex)=>{const ref=v51ExcelColumn(columnIndex)+(rowIndex+1),style=rowIndex===0?' s="1"':'';return typeof value==='number'&&Number.isFinite(value)?`<c r="${ref}"${style}><v>${value}</v></c>`:`<c r="${ref}" t="inlineStr"${style}><is><t xml:space="preserve">${v51Xml(value)}</t></is></c>`}).join('')}</row>`).join('');return`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${body}</sheetData></worksheet>`}
+01473:   function v51Crc32(bytes){if(!v51Crc32.table){v51Crc32.table=Array.from({length:256},(_,index)=>{let crc=index;for(let bit=0;bit<8;bit++)crc=(crc&1)?0xedb88320^(crc>>>1):crc>>>1;return crc>>>0})}let crc=0xffffffff;for(const byte of bytes)crc=v51Crc32.table[(crc^byte)&255]^(crc>>>8);return(crc^0xffffffff)>>>0}
+01474:   function v51Zip(files){const encoder=new TextEncoder(),locals=[],centrals=[];let offset=0;const now=new Date(),dosTime=(now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1),dosDate=((Math.max(1980,now.getFullYear())-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate();files.forEach(file=>{const name=encoder.encode(file.name),data=typeof file.data==='string'?encoder.encode(file.data):file.data,crc=v51Crc32(data),local=new Uint8Array(30+name.length),lv=new DataView(local.buffer);lv.setUint32(0,0x04034b50,true);lv.setUint16(4,20,true);lv.setUint16(6,0x0800,true);lv.setUint16(8,0,true);lv.setUint16(10,dosTime,true);lv.setUint16(12,dosDate,true);lv.setUint32(14,crc,true);lv.setUint32(18,data.length,true);lv.setUint32(22,data.length,true);lv.setUint16(26,name.length,true);local.set(name,30);locals.push(local,data);const central=new Uint8Array(46+name.length),cv=new DataView(central.buffer);cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint16(8,0x0800,true);cv.setUint16(10,0,true);cv.setUint16(12,dosTime,true);cv.setUint16(14,dosDate,true);cv.setUint32(16,crc,true);cv.setUint32(20,data.length,true);cv.setUint32(24,data.length,true);cv.setUint16(28,name.length,true);cv.setUint32(42,offset,true);central.set(name,46);centrals.push(central);of
+01475:   function v51DownloadBlob(name,blob){const link=document.createElement('a'),url=URL.createObjectURL(blob);link.href=url;link.download=name;link.style.display='none';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+01476:   function v51ReportFileStem(event){return(event.name||'event-report').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'event-report'}
+01477:   function v51ExportExcel(){const report=v51ReportData();if(!report){toast('Open an event first');return}const sheets=[{name:'Summary',rows:[['ANANDA SANGHA GURGAON EVENT REPORT',''],['Event',report.event.name],['Event dates',eventDateText(report.event)],['Venue',report.event.venue||''],['Generated',new Date().toLocaleString()],[],['Total registrations',report.summary.registrations],['Unique checked in',report.summary.checked],['Volunteers involved',report.summary.volunteers],['Attendees involved',report.summary.attendees],['Families / Groups',report.summary.groups]]},{name:'Day Summary',rows:[['Event Date','Volunteers Planned','Volunteers Arrived','Attendees Expected','Attendees Arrived','Expected Total','Actual Total'],...report.days.map(day=>[fmt(day.date),day.assigned,day.volunteers,day.attendees,day.arrived,day.expected,day.actual])]},{name:'Volunteers',rows:[['Volunteer','Mobile','Assigned Dates','Checked-in Dates'],...report.volunteers.map(person=>[person.name,person.mobile,person.assigned.map(fmt).join(', '),person.checked.map(fmt).join(', ')])]},{name:'Attendees',rows:[['Attendee','Type','Mobile','Linked Group / Volunteer','Registration Date','Check-in Dates'],...report.attendees.map(person=>[person.name,person.type,person.mobile,person.group||'',person.registrationDate?
+01478:   function v51PdfSafe(value){return String(value??'').normalize('NFKD').replace(/[^\x20-\x7E]/g,'?').replace(/([\\()])/g,'\\$1')}
+01479:   function v51WrapLine(value,width=92){const text=String(value??''),words=text.split(/\s+/),lines=[];let line='';words.forEach(word=>{if(!line)line=word;else if((line+' '+word).length<=width)line+=' '+word;else{lines.push(line);line=word}});if(line||!lines.length)lines.push(line);return lines}
+01480:   function v51PdfBlob(lines){const expanded=lines.flatMap(line=>v51WrapLine(line)),chunks=[];for(let index=0;index<expanded.length;index+=52)chunks.push(expanded.slice(index,index+52));if(!chunks.length)chunks.push(['No report data']);const objects={1:'<< /Type /Catalog /Pages 2 0 R >>',3:'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'},pageIds=[];chunks.forEach((chunk,index)=>{const pageId=4+index*2,contentId=pageId+1;pageIds.push(pageId);const content=`BT\n/F1 9 Tf\n42 800 Td\n12 TL\n${chunk.map(line=>`(${v51PdfSafe(line)}) Tj\nT*`).join('')}\nET`;objects[pageId]=`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ${contentId} 0 R >>`;objects[contentId]=`<< /Length ${content.length} >>\nstream\n${content}\nendstream`});objects[2]=`<< /Type /Pages /Kids [${pageIds.map(id=>id+' 0 R').join(' ')}] /Count ${pageIds.length} >>`;const max=Math.max(...Object.keys(objects).map(Number));let pdf='%PDF-1.4\n%ASGR\n',offsets=Array(max+1).fill(0);for(let id=1;id<=max;id++){offsets[id]=pdf.length;pdf+=`${id} 0 obj\n${objects[id]}\nendobj\n`}const xref=pdf.length;pdf+=`xref\n0 ${max+1}\n0000000000 65535 f \n`;for(let id=1;id<=max;id++)pdf+=String(offsets[id]).padStart(10,'0')+' 00000 n \n';pdf+=`trailer\n<< /Size ${max+1} /Root 1 0 R 
+01481:   function v51ExportPdf(){const report=v51ReportData();if(!report){toast('Open an event first');return}const lines=['ANANDA SANGHA GURGAON','COMPLETE EVENT REPORT','',`Event: ${report.event.name}`,`Dates: ${eventDateText(report.event)}`,`Venue: ${report.event.venue||'Not specified'}`,`Generated: ${new Date().toLocaleString()}`,'',`SUMMARY | Registrations: ${report.summary.registrations} | Checked in: ${report.summary.checked} | Volunteers: ${report.summary.volunteers} | Attendees: ${report.summary.attendees} | Groups: ${report.summary.groups}`,'','DAY-WISE SUMMARY',...report.days.map(day=>`${fmt(day.date)} | Volunteers ${day.volunteers}/${day.assigned} | Attendees ${day.arrived}/${day.attendees} | Actual ${day.actual}/${day.expected}`),'','VOLUNTEERS',...report.volunteers.map(person=>`${person.name} | ${person.mobile||'-'} | Assigned: ${person.assigned.map(fmt).join(', ')||'-'} | Checked in: ${person.checked.map(fmt).join(', ')||'-'}`),'','ATTENDEES',...report.attendees.map(person=>`${person.name} | ${person.type} | ${person.mobile||'-'} | ${person.group||'-'} | Checked in: ${person.checkins.map(fmt).join(', ')||'Not checked in'}`)];v51DownloadBlob(`${v51ReportFileStem(report.event)}-report.pdf`,v51PdfBlob(lines));toast('PDF report downloaded')}
+01482:   function v51GateButton(id,purpose){const button=$(id),handler=button?.onclick;if(button&&handler)button.onclick=()=>v51RequireAdmin(()=>handler.call(button),purpose)}
+01483:   v51GateButton('exportPending','export pending-item data');v51GateButton('exportAttendees','export participant data');v51GateButton('backupData','download the complete data backup');
+01484:   $('v36ExportParticipants').onclick=()=>v51RequireAdmin(v36ExportParticipants,'export participant data');
+01485:   $('v51ExportPdf').onclick=()=>v51RequireAdmin(v51ExportPdf,'export the event report as PDF');
+01486:   $('v51ExportExcel').onclick=()=>v51RequireAdmin(v51ExportExcel,'export the event report as Excel');
+01487:   $('v36Restore').onclick=()=>v51RequireAdmin(()=>$('restoreData').click(),'restore a complete data backup');
+01488:   const v51RestoreBefore=$('restoreData').onchange;$('restoreData').onchange=event=>v51RequireAdmin(()=>v51RestoreBefore(event),'restore a complete data backup');
+01489: 
+01490:   // Version 52: administrator password maintenance in Settings.
+01491:   function v52ClearPasswordForm(){$('v52CurrentPassword').value='';$('v52NewPassword').value='';$('v52ConfirmPassword').value='';$('v52PasswordError').textContent=''}
+01492:   function v52LockMasterLists(returnToDashboard=false){v51MasterUnlocked=false;document.querySelectorAll('#volunteerModal,#attendeeMasterModal,#kriyabanModal,#vipModal').forEach(modal=>modal.classList.remove('open'));v51RefreshSecurityButton();if(returnToDashboard)v51SwitchPageBefore('dashboard');renderAll();toast('Master lists and exports locked')}
+01493:   function v52RenderSecuritySettings(){const record=v51SecurityRecord(),status=$('v52SecurityStatus');if(!status)return;status.textContent=record?(v51MasterUnlocked?'Unlocked this session':'Password protected'):'Password not created';status.className=`pill ${record?(v51MasterUnlocked?'green':'purple'):'amber'}`;$('v52CurrentPasswordField').classList.toggle('hidden',!record);$('v52CurrentPassword').required=!!record;$('v52ChangePassword').textContent=record?'Change administrator password':'Create administrator password';$('v52LockNow').classList.toggle('hidden',!v51MasterUnlocked);const changed=record?.updatedAt||record?.createdAt;$('v52SecurityMessage').innerHTML=record?`Protection is active.${changed?` Password last set ${esc(new Date(changed).toLocaleString())}.`:''} Enter the current password below to replace it.`:'No administrator password has been created yet. Create one now to protect all permanent master lists and exports.'}
+01494:   $('v52PasswordSettingsForm').onsubmit=async event=>{event.preventDefault();const record=v51SecurityRecord(),current=$('v52CurrentPassword').value,next=$('v52NewPassword').value,confirmPassword=$('v52ConfirmPassword').value,error=$('v52PasswordError');error.textContent='';if(next.length<6){error.textContent='Use at least 6 characters for the new password.';return}if(next!==confirmPassword){error.textContent='The new passwords do not match.';return}try{if(record){const currentHash=await v51PasswordHash(current,record.salt);if(currentHash!==record.hash){error.textContent='The current password is incorrect.';return}}const salt=v51Hex(crypto.getRandomValues(new Uint8Array(16))),hash=await v51PasswordHash(next,salt),now=new Date().toISOString();localStorage.setItem(V51_SECURITY_KEY,JSON.stringify({salt,hash,createdAt:record?.createdAt||now,updatedAt:now}));v52ClearPasswordForm();v51MasterUnlocked=false;v51RefreshSecurityButton();renderAll();toast(record?'Administrator password changed; app locked':'Administrator password created; protection is active')}catch(problem){error.textContent=problem.message||'The password could not be changed.'}};
+01495:   $('v52LockNow').onclick=()=>v52LockMasterLists(false);
+01496: 
+01497:   // Version 53: end-event finalisation, absent counts and ready-sized Excel reports.
+function p2v519Plan MATCHES [8013]
+08011:       // CORRECTION 19 — Whole-batch overview only. All original class-date,
+08012:       // attendance, scanning, fee and historical records stay untouched.
+08013:       function p2v519Stage(b){return p2v550Stage(b)}
+08014:       function p2v519Plan(b){
+08015:         const planned=Array.isArray(b?.plannedSessions)?b.plannedSessions.slice().sort((a,z)=>Number(a.number)-Number(z.number)):[];
+08016:         const dates=p2v5ValidDates(b);
+08017:         const ordered=planned.length?planned.map(x=>x.date||''):dates;
+08018:         const cancelled=new Set([...(b.cancelledDates||[]),...(b.cancelledSessions||[]).filter(x=>typeof x==='string')]);
+08019:         return ordered.map((date,i)=>({date,number:i+1,
+08020:           conducted:!!date&&date<=today()&&!cancelled.has(date)}));
+08021:       }
+08022:       function p2v519Attendance(b,en){
+08023:         const list=p2v519Plan(b);
+08024:         const number=Number(en.joinedFromClass||en.joinFromClass||en.joinedFromClassNumber||1);
+08025:         const from=Number.isSafeInteger(number)&&number>0?number:1;
+08026:         const applicable=list.filter(x=>x.conducted&&x.number>=from);
+08027:         const present=applicable.filter(x=>p2cAttendanceStatus(en,x.date)===true).length;
+08028:         const absent=applicable.filter(x=>p2cAttendanceStatus(en,x.date)===false).length;
+08029:         const unresolved=applicable.length-present-absent;
+08030:         return{present,absent,unresolved,total:applicable.length,
+08031:           pct:applicable.length?Math.round(100*present/applicable.length):null};
+08032:       }
+08033:       function p2v519Decision(b,en){
+08034:         const level=p2v519Stage(b),a=p2v519Attendance(b,en),next=p2NextLevel(level);
+08035:         if(!next)return{key:'None',label:'—'};
+08036:         if(['Level 1','Level 2','Level 3'].includes(level)){
+08037:           if(b.endedAt&&en.progressionFinalStatus){
+08038:             const saved=en.progressionFinalStatus;
+08039:             if(saved.key==='Eligible'&&!p2v546ApprovedException(en,b)&&(!a.total||a.unresolved||a.pct<p2v546MinimumFor(b)))return{key:'Review Required',label:'Review Required'};
+08040:             return{key:saved.key,label:saved.label||saved.key};
+08041:           }
+08042:           if(b.endedAt){
+08043:             const eligible=!!en.eligibleFor&&en.eligibleFor===next;
+08044:             const valid=!!a.total&&!a.unresolved&&(a.pct>=p2v546MinimumFor(b)||p2v546ApprovedException(en,b));
+08045:             return eligible&&valid?{key:'Eligible',label:'Eligible for '+next}:{key:'Review Required',label:'Review Required'};
+08046:           }
+08047:           if(!a.total)return{key:'Unassessed',label:'Not assessed'};
+08048:           if(a.unresolved)return{key:'Review Required',label:'Review Required'};
+08049:           const qualified=a.pct>=p2v546MinimumFor(b)||p2v546ApprovedException(en,b);
+08050:           return qualified?{key:'Eligible',label:'Eligible for '+next}:
+08051:             {key:'Review Required',label:'Review Required'};
+08052:         }
+08053:         if(p2FullChain.indexOf(level)>=3&&p2FullChain.indexOf(level)<7){
+08054:           const student=p2FindStudent(en.studentId);
+08055:           if(p2v550Decision(student,next))return{key:'Eligible',label:'Acharya approved for '+next};
+08056:           return{key:'Review Required',label:'Acharya decision required'};
+08057:         }
+08058:         return{key:'Unassessed',label:'Not assessed'};
+function p2v519Attendance MATCHES [8021]
+08019:         return ordered.map((date,i)=>({date,number:i+1,
+08020:           conducted:!!date&&date<=today()&&!cancelled.has(date)}));
+08021:       }
+08022:       function p2v519Attendance(b,en){
+08023:         const list=p2v519Plan(b);
+08024:         const number=Number(en.joinedFromClass||en.joinFromClass||en.joinedFromClassNumber||1);
+08025:         const from=Number.isSafeInteger(number)&&number>0?number:1;
+08026:         const applicable=list.filter(x=>x.conducted&&x.number>=from);
+08027:         const present=applicable.filter(x=>p2cAttendanceStatus(en,x.date)===true).length;
+08028:         const absent=applicable.filter(x=>p2cAttendanceStatus(en,x.date)===false).length;
+08029:         const unresolved=applicable.length-present-absent;
+08030:         return{present,absent,unresolved,total:applicable.length,
+08031:           pct:applicable.length?Math.round(100*present/applicable.length):null};
+08032:       }
+08033:       function p2v519Decision(b,en){
+08034:         const level=p2v519Stage(b),a=p2v519Attendance(b,en),next=p2NextLevel(level);
+08035:         if(!next)return{key:'None',label:'—'};
+08036:         if(['Level 1','Level 2','Level 3'].includes(level)){
+08037:           if(b.endedAt&&en.progressionFinalStatus){
+08038:             const saved=en.progressionFinalStatus;
+08039:             if(saved.key==='Eligible'&&!p2v546ApprovedException(en,b)&&(!a.total||a.unresolved||a.pct<p2v546MinimumFor(b)))return{key:'Review Required',label:'Review Required'};
+08040:             return{key:saved.key,label:saved.label||saved.key};
+08041:           }
+08042:           if(b.endedAt){
+08043:             const eligible=!!en.eligibleFor&&en.eligibleFor===next;
+08044:             const valid=!!a.total&&!a.unresolved&&(a.pct>=p2v546MinimumFor(b)||p2v546ApprovedException(en,b));
+08045:             return eligible&&valid?{key:'Eligible',label:'Eligible for '+next}:{key:'Review Required',label:'Review Required'};
+08046:           }
+08047:           if(!a.total)return{key:'Unassessed',label:'Not assessed'};
+08048:           if(a.unresolved)return{key:'Review Required',label:'Review Required'};
+08049:           const qualified=a.pct>=p2v546MinimumFor(b)||p2v546ApprovedException(en,b);
+08050:           return qualified?{key:'Eligible',label:'Eligible for '+next}:
+08051:             {key:'Review Required',label:'Review Required'};
+08052:         }
+08053:         if(p2FullChain.indexOf(level)>=3&&p2FullChain.indexOf(level)<7){
+08054:           const student=p2FindStudent(en.studentId);
+08055:           if(p2v550Decision(student,next))return{key:'Eligible',label:'Acharya approved for '+next};
+08056:           return{key:'Review Required',label:'Acharya decision required'};
+08057:         }
+08058:         return{key:'Unassessed',label:'Not assessed'};
+08059:       }
+08060:       // A completed Kriya class appears in Kriya Master without duplicate entry.
+08061:       // Course completion is NOT evidence of initiation on a particular date.
+08062:       function p2v567SyncKriyaMaster(){
+08063:         let changed=false;
+08064:         for(const en of state.classEnrollments){
+08065:           if(en.outcome!=='Completed'||!en.studentId)continue;
+08066:           const batch=state.classBatches.find(b=>b.id===en.batchId);
+function p2v546ApprovedException MATCHES [7317]
+07315:         return p2v546Setting().minimumAttendance;
+07316:       }
+07317:       function p2v546Level(b){const name=p2CourseName(b);return p2Levels.includes(name)?name:(p2Levels.includes(b?.level)?b.level:'')}
+07318:       function p2v546ApprovedException(en,b){
+07319:         // Enrollment administration overrides are NOT attendance waivers.
+07320:         // A distinct recorded, approved Acharya attendance exception is needed.
+07321:         const a=en?.acharyaException||en?.attendanceException;
+07322:         if(!a||a.approved!==true||!a.approvedAt||!a.approvedBy)return false;
+07323:         if(a.batchId&&String(a.batchId)!==String(b?.id))return false;
+07324:         if(a.expiresAt&&String(a.expiresAt)<today())return false;
+07325:         if(a.revokedAt)return false;
+07326:         return true;
+07327:       }
+07328:       function p2v546AttendancePct(b,en){
+07329:         // Use the class's established attendance summary so the threshold and
+07330:         // the displayed attendance percentage use the same denominator.
+07331:         const a=p2v53AttendanceSummary(b,en);
+07332:         return a.total?a.present*100/a.total:0;
+07333:       }
+07334:       function p2v546Eligibility(en,b){
+07335:         if(!b)return{key:'Review Required',label:'Review Required',cls:'amber'};
+07336:         const level=p2v546Level(b),pct=p2v546AttendancePct(b,en),min=p2v546MinimumFor(b);
+07337:         if(level==='Level 4'){
+07338:           const person=en.studentId?p2FindStudent(en.studentId):null;
+07339:           const received=!!(person&&(person.kriyabanId||person.kriyaDate||person.kriyaYear));
+07340:           return received?{key:'Joined',label:'Kriya Received',cls:'blue'}:
+07341:             {key:'Review Required',label:'Acharya Decision Required',cls:'amber'};
+07342:         }
+07343:         if(!p2Levels.slice(0,3).includes(level))
+07344:           return{key:'Not Eligible',label:'Not Eligible',cls:'gray'};
+07345:         const next=p2NextLevel(level);
+07346:         if(b.endedAt&&en.progressionFinalStatus)return{...en.progressionFinalStatus};
+07347:         const joined=!!en.studentId&&state.classEnrollments.some(
+07348:           x=>x.studentId===en.studentId&&x.level===next);
+07349:         if(joined)return{key:'Joined',label:'Joined '+next,cls:'blue'};
+07350:         if(b.endedAt){
+07351:           // Do not retrospectively reclassify old finalised batches.
+07352:           return en.outcome==='Completed'
+07353:             ?{key:'Eligible',label:'Eligible for '+next,cls:'green'}
+07354:             :{key:'Not Eligible',label:'Not Eligible',cls:'gray'};
+07355:         }
+07356:         if(p2v546ApprovedException(en,b))return{key:'Eligible',label:'Eligible for '+next,cls:'green'};
+07357:         if(p2v53AttendanceSummary(b,en).total===0)
+07358:           return{key:'Review Required',label:'Review Required',cls:'amber'};
+07359:         const passed=pct>=min||p2v546ApprovedException(en,b);
+07360:         return passed?{key:'Eligible',label:'Eligible for '+next,cls:'green'}:
+07361:           {key:'Review Required',label:'Review Required',cls:'amber'};
+07362:       }
+function p2v519Decision MATCHES [8032]
+08030:         return{present,absent,unresolved,total:applicable.length,
+08031:           pct:applicable.length?Math.round(100*present/applicable.length):null};
+08032:       }
+08033:       function p2v519Decision(b,en){
+08034:         const level=p2v519Stage(b),a=p2v519Attendance(b,en),next=p2NextLevel(level);
+08035:         if(!next)return{key:'None',label:'—'};
+08036:         if(['Level 1','Level 2','Level 3'].includes(level)){
+08037:           if(b.endedAt&&en.progressionFinalStatus){
+08038:             const saved=en.progressionFinalStatus;
+08039:             if(saved.key==='Eligible'&&!p2v546ApprovedException(en,b)&&(!a.total||a.unresolved||a.pct<p2v546MinimumFor(b)))return{key:'Review Required',label:'Review Required'};
+08040:             return{key:saved.key,label:saved.label||saved.key};
+08041:           }
+08042:           if(b.endedAt){
+08043:             const eligible=!!en.eligibleFor&&en.eligibleFor===next;
+08044:             const valid=!!a.total&&!a.unresolved&&(a.pct>=p2v546MinimumFor(b)||p2v546ApprovedException(en,b));
+08045:             return eligible&&valid?{key:'Eligible',label:'Eligible for '+next}:{key:'Review Required',label:'Review Required'};
+08046:           }
+08047:           if(!a.total)return{key:'Unassessed',label:'Not assessed'};
+08048:           if(a.unresolved)return{key:'Review Required',label:'Review Required'};
+08049:           const qualified=a.pct>=p2v546MinimumFor(b)||p2v546ApprovedException(en,b);
+08050:           return qualified?{key:'Eligible',label:'Eligible for '+next}:
+08051:             {key:'Review Required',label:'Review Required'};
+08052:         }
+08053:         if(p2FullChain.indexOf(level)>=3&&p2FullChain.indexOf(level)<7){
+08054:           const student=p2FindStudent(en.studentId);
+08055:           if(p2v550Decision(student,next))return{key:'Eligible',label:'Acharya approved for '+next};
+08056:           return{key:'Review Required',label:'Acharya decision required'};
+08057:         }
+08058:         return{key:'Unassessed',label:'Not assessed'};
+08059:       }
+08060:       // A completed Kriya class appears in Kriya Master without duplicate entry.
+08061:       // Course completion is NOT evidence of initiation on a particular date.
+08062:       function p2v567SyncKriyaMaster(){
+08063:         let changed=false;
+08064:         for(const en of state.classEnrollments){
+08065:           if(en.outcome!=='Completed'||!en.studentId)continue;
+08066:           const batch=state.classBatches.find(b=>b.id===en.batchId);
+08067:           if(!batch?.endedAt||p2v550Stage(batch)!=='Kriya')continue;
+08068:           const student=p2FindStudent(en.studentId);
+08069:           if(!student)continue;
+08070:           const mobile=normMobile(student.mobile||'');
+08071:           let kriya=state.kriyabans.find(k=>k.studentId===student.id)||
+08072:             (student.kriyabanId?state.kriyabans.find(k=>k.id===student.kriyabanId):null);
+08073:           if(!kriya&&mobile.length===10){
+08074:             const matches=state.kriyabans.filter(k=>normMobile(k.mobile)===mobile);
+08075:             if(matches.length===1)kriya=matches[0];
+08076:           }
+08077:           if(!kriya){
+function p2v550Stage MATCHES [7640]
+07638:       // BETA 5.50 — Level 1 → 4 → Kriya → Kriya 2 → 3 → 4.
+07639:       // An Acharya decision is a separate, auditable record; neither
+07640:       // attendance nor an administrator enrollment override is an approval.
+07641:       function p2v550Stage(b){
+07642:         if(!b)return '';
+07643:         const id=String(b.courseId||'').trim().toLowerCase();
+07644:         const byId={
+07645:           'course-l1':'Level 1','course-l2':'Level 2','course-l3':'Level 3',
+07646:           'course-l4':'Level 4','course-kriya':'Kriya',
+07647:           'course-kriya2':'Kriya 2','course-kriya3':'Kriya 3','course-kriya4':'Kriya 4'
+07648:         };
+07649:         if(byId[id])return byId[id];
+07650:         // Legacy records and renamed labels must use the same progression gate.
+07651:         const normal=value=>String(value||'').trim().toLowerCase().replace(/\s+/g,' ');
+07652:         const titles=[p2CourseForBatch(b)?.name,b.courseName,b.level,p2CourseName(b)];
+07653:         for(const title of titles){
+07654:           const match=p2FullChain.find(stage=>normal(stage)===normal(title));
+07655:           if(match)return match;
+07656:         }
+07657:         return '';
+07658:       }
+07659:       function p2v550Completed(studentId,source){
+07660:         if(!studentId||!source)return false;
+07661:         if(source==='Kriya'){
+07662:           const student=p2FindStudent(studentId);
+07663:           // Older Kriyaban records remain valid as evidence that Kriya was received.
+07664:           if(student&&(student.kriyabanId||student.kriyaDate||student.kriyaYear))return true;
+07665:         }
+07666:         return state.classEnrollments.some(en=>{
+07667:           if(en.studentId!==studentId||en.outcome!=='Completed')return false;
+07668:           const batch=state.classBatches.find(b=>b.id===en.batchId);
+07669:           return batch?p2v550Stage(batch)===source:en.level===source;
+07670:         });
+07671:       }
+07672:       function p2v550Decision(student,target){
+07673:         const record=student?.acharyaProgressionApprovals?.[target];
+07674:         return record&&record.status==='Approved'&&record.approvedAt&&
+07675:           (record.acharyaId||record.approvedBy==='administrator')&&!record.revokedAt?record:null;
+07676:       }
+07677:       const p2v550RequirementBase=p2v55ProgressionRequirement;
+07678:       p2v55ProgressionRequirement=function(studentId,batchId){
+07679:         const batch=state.classBatches.find(b=>b.id===batchId);
+07680:         if(!batch)return{ok:false,reason:'Class batch not found.'};
+07681:         const target=p2v550Stage(batch),index=p2FullChain.indexOf(target);
+07682:         if(index<0&&/^(kriya|level\s*[1-4])\b/i.test(String(p2CourseName(batch))))
+07683:           return{ok:false,reason:'Unrecognised progression course. Correct its course mapping before enrolment.'};
+07684:         if(index<=0)return p2v550RequirementBase(studentId,batchId);
+07685:         const student=p2FindStudent(studentId),previous=p2FullChain[index-1];
+function p2v550Completed MATCHES [7658]
+07656:         }
+07657:         return '';
+07658:       }
+07659:       function p2v550Completed(studentId,source){
+07660:         if(!studentId||!source)return false;
+07661:         if(source==='Kriya'){
+07662:           const student=p2FindStudent(studentId);
+07663:           // Older Kriyaban records remain valid as evidence that Kriya was received.
+07664:           if(student&&(student.kriyabanId||student.kriyaDate||student.kriyaYear))return true;
+07665:         }
+07666:         return state.classEnrollments.some(en=>{
+07667:           if(en.studentId!==studentId||en.outcome!=='Completed')return false;
+07668:           const batch=state.classBatches.find(b=>b.id===en.batchId);
+07669:           return batch?p2v550Stage(batch)===source:en.level===source;
+07670:         });
+07671:       }
+07672:       function p2v550Decision(student,target){
+07673:         const record=student?.acharyaProgressionApprovals?.[target];
+07674:         return record&&record.status==='Approved'&&record.approvedAt&&
+07675:           (record.acharyaId||record.approvedBy==='administrator')&&!record.revokedAt?record:null;
+07676:       }
+07677:       const p2v550RequirementBase=p2v55ProgressionRequirement;
+07678:       p2v55ProgressionRequirement=function(studentId,batchId){
+07679:         const batch=state.classBatches.find(b=>b.id===batchId);
+07680:         if(!batch)return{ok:false,reason:'Class batch not found.'};
+07681:         const target=p2v550Stage(batch),index=p2FullChain.indexOf(target);
+07682:         if(index<0&&/^(kriya|level\s*[1-4])\b/i.test(String(p2CourseName(batch))))
+07683:           return{ok:false,reason:'Unrecognised progression course. Correct its course mapping before enrolment.'};
+07684:         if(index<=0)return p2v550RequirementBase(studentId,batchId);
+07685:         const student=p2FindStudent(studentId),previous=p2FullChain[index-1];
+07686:         if(index<4){
+07687:           // Stable course IDs must preserve the Level 1–4 prerequisite even
+07688:           // when an administrator renames the displayed course title.
+07689:           if(!student)return{ok:false,reason:'Select an existing student before enrolling in '+target+'.'};
+07690:           const qualifies=p2StudentEnrollments(student.id).some(en=>{
+07691:             const prior=state.classBatches.find(x=>x.id===en.batchId);
+07692:             const source=prior?p2v550Stage(prior):en.level;
+07693:             if(source!==previous)return false;
+07694:             if(!prior)return false;
+07695:             // Review Required, Joined, or a generic administrator override must
+07696:             // NEVER be mistaken for a valid progression decision.
+07697:             if(p2v546ApprovedException(en,prior))return true;
+07698:             const decision=p2v519Decision(prior,en);
+07699:             return decision.key==='Eligible'&&(en.outcome==='Completed'||!prior.endedAt);
+07700:           });
+07701:           return qualifies?{ok:true,reason:''}:
+07702:             {ok:false,reason:'Review Required — a recorded Acharya exception for '+previous+' is required before enrolling in '+target+'.'};
+07703:         }
+function p2v5EnrollmentEligibleOn MATCHES [2798]
+02796: 
+02797:   function p2v5IsEnded(b){return String(b?.status||'').toLowerCase()==='completed'||!!b?.endedAt}
+02798:   function p2v5ValidDates(b){return [...new Set((b?.sessionDates||[]).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)))].sort()}
+02799:   function p2v5EnrollmentEligibleOn(en,date){const joined=(en?.enrolledAt||'').slice(0,10);return !joined||joined<=date}
+02800:   function p2v5Person(en){return p2cEnrollmentPerson(en)}
+02801:   function p2v5Weekday(iso){if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||''))return'';return['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(iso+'T12:00:00').getDay()]}
+02802:   function p2v5CourseNext(b){const c=p2CourseForBatch(b),id=String(b?.courseId||'');const stage={'course-l1':'Level 1','course-l2':'Level 2','course-l3':'Level 3','course-l4':'Level 4','course-kriya':'Kriya','course-kriya2':'Kriya 2','course-kriya3':'Kriya 3','course-kriya4':'Kriya 4'}[id]||c?.name;return p2NextLevel(stage)}
+02803:   function p2v5OutcomeLabel(b,en){
+02804:     if(!p2v5IsEnded(b))return en.outcome&&en.outcome!=='Enrolled'?en.outcome:'Enrolled';
+02805:     if(en.outcome==='Completed'){
+02806:       const course=p2CourseForBatch(b);if(['course-l4','course-kriya','course-kriya2','course-kriya3'].includes(b.courseId)||p2FullChain.slice(3,7).includes(course?.name))return'Completed — Acharya approval required for '+p2v5CourseNext(b);
+02807:       const next=p2v5CourseNext(b);return next?`Completed — Eligible for ${next}`:'Completed';
+02808:     }
+02809:     if(en.outcome==='Withdrawn')return'Withdrawn — all eligible classes absent';
+02810:     return en.outcome||'Did Not Complete';
+02811:   }
+02812: 
+02813:   function p2v5RenderHeader(b){
+02814:     const ended=p2v5IsEnded(b),status=ended?'Completed':(b.status||'Upcoming');
+02815:     $('p2ClassHeader').innerHTML=`<div><h3>${esc(p2CourseName(b))} — ${esc(b.name)}</h3><p>${b.start?fmt(b.start):'Start date not set'}${b.end?' to '+fmt(b.end):' · End date not set'} · ${esc(status)}</p><p style="margin-top:7px;font-size:12px">Acharya: ${esc(p2AcharyaNames(b).join(', ')||'Not assigned')} &nbsp;|&nbsp; Assisting Volunteers: ${p2VolunteerNames(b).length} &nbsp;|&nbsp; Frequency: ${esc((b.scheduleType||'custom').replace(/^./,m=>m.toUpperCase()))}${Number.isInteger(Number(b.defaultClassDay??b.usualDay))?' ('+['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][Number(b.defaultClassDay??b.usualDay)]+')':''}</p></div><div class="actions"><button class="btn secondary" id="p2EditActiveBatch">✎ Edit Batch</button><button class="btn secondary" id="p2BackClasses">← Back to Classes</button></div>`;
+02816:     $('p2EditActiveBatch').onclick=()=>p2OpenBatch(b.id);$('p2BackClasses').onclick=()=>switchPage('classes');
+02817:   }
+02818: 
+02819:   function p2v5SuggestedNewDate(b){const ds=p2v5ValidDates(b),base=ds.at(-1)||b.end||b.start||today(),day=Number(b.defaultClassDay??b.usualDay??p2CourseForBatch(b)?.defaultDay??0);return p2cNextWeekday(base,day)}
+02820:   function p2v5AddNewClass(b,d){
+02821:     if(!/^\d{4}-\d{2}-\d{2}$/.test(d||'')){toast('Choose a class date');return}
+02822:     const dates=p2v5ValidDates(b);if(dates.includes(d)){toast('This class date already exists');return}
+02823:     b.sessionDates=[...dates,d].sort();if(!b.start)b.start=d;if(b.end&&d>b.end)b.end=d;if(!b.status||['upcoming','planned'].includes(String(b.status).toLowerCase()))b.status='Current';save();toast('New class added');
+02824:   }
+02825:   function p2v5RenderSchedule(b){
+02826:     let card=$('p2v5ScheduleCard');if(!card){card=document.createElement('div');card.id='p2v5ScheduleCard';card.className='card';$('p2ClassHeader').insertAdjacentElement('afterend',card)}
+02827:     const dates=p2v5ValidDates(b),ended=p2v5IsEnded(b),day=Number(b.defaultClassDay??b.usualDay??p2CourseForBatch(b)?.defaultDay??0);
+02828:     card.innerHTML=`<div class="p2v5-schedule-title">Class Dates &amp; Schedule</div><div class="p2v5-schedule-row"><div class="p2v5-field"><label>Start Date</label><input id="p2v5StartDate" type="date" value="${esc(b.start||'')}" ${ended?'disabled':''}></div><div class="p2v5-field"><label>End Date</label><input id="p2v5EndDate" type="date" value="${esc(b.end||'')}" ${ended?'disabled':''}><div class="p2v5-open-note">${b.end?'':'No end date set'}</div></div><div class="p2v5-field"><label>Default Class Day</label><select id="p2v5DefaultDay" ${ended?'disabled':''}>${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((n,i)=>`<option value="${i}" ${i===day?'selected':''}>${n}</option>`).join('')}</select></div><div><button class="btn secondary" id="p2v5NewClass" type="button" ${ended?'disabled':''}>＋ NEW CLASS</button><div id="p2v5NewClassHint">Shortcut: +</div><input class="p2v5-hidden-date" id="p2v5NewClassDate" type="date"></div></div><div class="p2v5-date-head">Class Dates (${dates.length})</div><div class="p2v5-date-chips">${dates.length?dates.map(d=>`<div class="p2v5-date-chip"><span><strong>${fmt(d)}</strong><small>${p2v5Weekday(d)}</small></span>${ended?'':`<button type="button" class="p2v5-date-remove" data-date="${d}" title="Remove class date">×</bu
+02829:     if(ended)return;
+02830:     $('p2v5StartDate').onchange=()=>{b.start=$('p2v5StartDate').value||b.start;save()};
+02831:     $('p2v5EndDate').onchange=()=>{const v=$('p2v5EndDate').value,last=dates.at(-1)||'';if(v&&last&&v<last){toast('End date cannot be before the last class date');$('p2v5EndDate').value=b.end||'';return}b.end=v;save()};
+02832:     $('p2v5DefaultDay').onchange=()=>{b.defaultClassDay=Number($('p2v5DefaultDay').value);b.usualDay=b.defaultClassDay;save()};
+02833:     const picker=$('p2v5NewClassDate');
+02834:     $('p2v5NewClass').onclick=()=>{picker.value=p2v5SuggestedNewDate(b);if(typeof picker.showPicker==='function')picker.showPicker();else picker.click()};
+02835:     picker.onchange=()=>{const d=picker.value;if(d)p2v5AddNewClass(b,d)};
+02836:     card.querySelectorAll('.p2v5-date-remove').forEach(x=>x.onclick=()=>{const d=x.dataset.date;if(!confirm(`Remove class ${fmt(d)}? Attendance for this date will also be removed.`))return;b.sessionDates=p2v5ValidDates(b).filter(v=>v!==d);state.classEnrollments.filter(e=>e.batchId===b.id).forEach(e=>{if(e.attendance)delete e.attendance[d]});if(b.end===d)b.end=b.sessionDates.at(-1)||b.start||'';save();toast('Class date removed')});
+02837:   }
+02838: 
+02839:   function p2v5AttendanceState(en,date){if(!p2v5EnrollmentEligibleOn(en,date))return'na';const s=p2cAttendanceStatus(en,date);return s===true?'present':s===false?'absent':'blank'}
+02840:   function p2v5AttendanceCounts(b,en){const dates=p2v5ValidDates(b).filter(d=>p2v5EnrollmentEligibleOn(en,d));let present=0,absent=0,blank=0;dates.forEach(d=>{const s=p2v5AttendanceState(en,d);if(s==='present')present++;else if(s==='absent')absent++;else blank++});return{dates,present,absent,blank,pct:dates.length?Math.round(present*100/dates.length):0}}
+02841:   function p2v5MarkPresent(en,date){if(!en||!p2v5EnrollmentEligibleOn(en,date)||p2v5IsEnded(p2ActiveBatch()))return;en.attendance=en.attendance||{};const s=p2cAttendanceStatus(en,date);if(s===true)delete en.attendance[date];else en.attendance[date]=true;p2cSelectedEnrollmentId=en.id;save()}
+02842:   function p2v5MarkRemainingAbsent(b,date){if(p2v5IsEnded(b))return;let changed=0;state.classEnrollments.filter(e=>e.batchId===b.id&&p2v5EnrollmentEligibleOn(e,date)).forEach(en=>{if(p2cAttendanceStatus(en,date)===null){en.attendance=en.attendance||{};en.attendance[date]=false;changed++}});save();toast(changed?`${changed} remaining student${changed===1?'':'s'} marked absent for ${fmt(date)}`:'No remaining unmarked students for this class')}
+02843: 
+function p2v5ValidDates MATCHES [2797]
+02795:   }
+02796: 
+02797:   function p2v5IsEnded(b){return String(b?.status||'').toLowerCase()==='completed'||!!b?.endedAt}
+02798:   function p2v5ValidDates(b){return [...new Set((b?.sessionDates||[]).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)))].sort()}
+02799:   function p2v5EnrollmentEligibleOn(en,date){const joined=(en?.enrolledAt||'').slice(0,10);return !joined||joined<=date}
+02800:   function p2v5Person(en){return p2cEnrollmentPerson(en)}
+02801:   function p2v5Weekday(iso){if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||''))return'';return['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(iso+'T12:00:00').getDay()]}
+02802:   function p2v5CourseNext(b){const c=p2CourseForBatch(b),id=String(b?.courseId||'');const stage={'course-l1':'Level 1','course-l2':'Level 2','course-l3':'Level 3','course-l4':'Level 4','course-kriya':'Kriya','course-kriya2':'Kriya 2','course-kriya3':'Kriya 3','course-kriya4':'Kriya 4'}[id]||c?.name;return p2NextLevel(stage)}
+02803:   function p2v5OutcomeLabel(b,en){
+02804:     if(!p2v5IsEnded(b))return en.outcome&&en.outcome!=='Enrolled'?en.outcome:'Enrolled';
+02805:     if(en.outcome==='Completed'){
+02806:       const course=p2CourseForBatch(b);if(['course-l4','course-kriya','course-kriya2','course-kriya3'].includes(b.courseId)||p2FullChain.slice(3,7).includes(course?.name))return'Completed — Acharya approval required for '+p2v5CourseNext(b);
+02807:       const next=p2v5CourseNext(b);return next?`Completed — Eligible for ${next}`:'Completed';
+02808:     }
+02809:     if(en.outcome==='Withdrawn')return'Withdrawn — all eligible classes absent';
+02810:     return en.outcome||'Did Not Complete';
+02811:   }
+02812: 
+02813:   function p2v5RenderHeader(b){
+02814:     const ended=p2v5IsEnded(b),status=ended?'Completed':(b.status||'Upcoming');
+02815:     $('p2ClassHeader').innerHTML=`<div><h3>${esc(p2CourseName(b))} — ${esc(b.name)}</h3><p>${b.start?fmt(b.start):'Start date not set'}${b.end?' to '+fmt(b.end):' · End date not set'} · ${esc(status)}</p><p style="margin-top:7px;font-size:12px">Acharya: ${esc(p2AcharyaNames(b).join(', ')||'Not assigned')} &nbsp;|&nbsp; Assisting Volunteers: ${p2VolunteerNames(b).length} &nbsp;|&nbsp; Frequency: ${esc((b.scheduleType||'custom').replace(/^./,m=>m.toUpperCase()))}${Number.isInteger(Number(b.defaultClassDay??b.usualDay))?' ('+['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][Number(b.defaultClassDay??b.usualDay)]+')':''}</p></div><div class="actions"><button class="btn secondary" id="p2EditActiveBatch">✎ Edit Batch</button><button class="btn secondary" id="p2BackClasses">← Back to Classes</button></div>`;
+02816:     $('p2EditActiveBatch').onclick=()=>p2OpenBatch(b.id);$('p2BackClasses').onclick=()=>switchPage('classes');
+02817:   }
+02818: 
+02819:   function p2v5SuggestedNewDate(b){const ds=p2v5ValidDates(b),base=ds.at(-1)||b.end||b.start||today(),day=Number(b.defaultClassDay??b.usualDay??p2CourseForBatch(b)?.defaultDay??0);return p2cNextWeekday(base,day)}
+02820:   function p2v5AddNewClass(b,d){
+02821:     if(!/^\d{4}-\d{2}-\d{2}$/.test(d||'')){toast('Choose a class date');return}
+02822:     const dates=p2v5ValidDates(b);if(dates.includes(d)){toast('This class date already exists');return}
+02823:     b.sessionDates=[...dates,d].sort();if(!b.start)b.start=d;if(b.end&&d>b.end)b.end=d;if(!b.status||['upcoming','planned'].includes(String(b.status).toLowerCase()))b.status='Current';save();toast('New class added');
+02824:   }
+02825:   function p2v5RenderSchedule(b){
+02826:     let card=$('p2v5ScheduleCard');if(!card){card=document.createElement('div');card.id='p2v5ScheduleCard';card.className='card';$('p2ClassHeader').insertAdjacentElement('afterend',card)}
+02827:     const dates=p2v5ValidDates(b),ended=p2v5IsEnded(b),day=Number(b.defaultClassDay??b.usualDay??p2CourseForBatch(b)?.defaultDay??0);
+02828:     card.innerHTML=`<div class="p2v5-schedule-title">Class Dates &amp; Schedule</div><div class="p2v5-schedule-row"><div class="p2v5-field"><label>Start Date</label><input id="p2v5StartDate" type="date" value="${esc(b.start||'')}" ${ended?'disabled':''}></div><div class="p2v5-field"><label>End Date</label><input id="p2v5EndDate" type="date" value="${esc(b.end||'')}" ${ended?'disabled':''}><div class="p2v5-open-note">${b.end?'':'No end date set'}</div></div><div class="p2v5-field"><label>Default Class Day</label><select id="p2v5DefaultDay" ${ended?'disabled':''}>${['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((n,i)=>`<option value="${i}" ${i===day?'selected':''}>${n}</option>`).join('')}</select></div><div><button class="btn secondary" id="p2v5NewClass" type="button" ${ended?'disabled':''}>＋ NEW CLASS</button><div id="p2v5NewClassHint">Shortcut: +</div><input class="p2v5-hidden-date" id="p2v5NewClassDate" type="date"></div></div><div class="p2v5-date-head">Class Dates (${dates.length})</div><div class="p2v5-date-chips">${dates.length?dates.map(d=>`<div class="p2v5-date-chip"><span><strong>${fmt(d)}</strong><small>${p2v5Weekday(d)}</small></span>${ended?'':`<button type="button" class="p2v5-date-remove" data-date="${d}" title="Remove class date">×</bu
+02829:     if(ended)return;
+02830:     $('p2v5StartDate').onchange=()=>{b.start=$('p2v5StartDate').value||b.start;save()};
+02831:     $('p2v5EndDate').onchange=()=>{const v=$('p2v5EndDate').value,last=dates.at(-1)||'';if(v&&last&&v<last){toast('End date cannot be before the last class date');$('p2v5EndDate').value=b.end||'';return}b.end=v;save()};
+02832:     $('p2v5DefaultDay').onchange=()=>{b.defaultClassDay=Number($('p2v5DefaultDay').value);b.usualDay=b.defaultClassDay;save()};
+02833:     const picker=$('p2v5NewClassDate');
+02834:     $('p2v5NewClass').onclick=()=>{picker.value=p2v5SuggestedNewDate(b);if(typeof picker.showPicker==='function')picker.showPicker();else picker.click()};
+02835:     picker.onchange=()=>{const d=picker.value;if(d)p2v5AddNewClass(b,d)};
+02836:     card.querySelectorAll('.p2v5-date-remove').forEach(x=>x.onclick=()=>{const d=x.dataset.date;if(!confirm(`Remove class ${fmt(d)}? Attendance for this date will also be removed.`))return;b.sessionDates=p2v5ValidDates(b).filter(v=>v!==d);state.classEnrollments.filter(e=>e.batchId===b.id).forEach(e=>{if(e.attendance)delete e.attendance[d]});if(b.end===d)b.end=b.sessionDates.at(-1)||b.start||'';save();toast('Class date removed')});
+02837:   }
+02838: 
+02839:   function p2v5AttendanceState(en,date){if(!p2v5EnrollmentEligibleOn(en,date))return'na';const s=p2cAttendanceStatus(en,date);return s===true?'present':s===false?'absent':'blank'}
+02840:   function p2v5AttendanceCounts(b,en){const dates=p2v5ValidDates(b).filter(d=>p2v5EnrollmentEligibleOn(en,d));let present=0,absent=0,blank=0;dates.forEach(d=>{const s=p2v5AttendanceState(en,d);if(s==='present')present++;else if(s==='absent')absent++;else blank++});return{dates,present,absent,blank,pct:dates.length?Math.round(present*100/dates.length):0}}
+02841:   function p2v5MarkPresent(en,date){if(!en||!p2v5EnrollmentEligibleOn(en,date)||p2v5IsEnded(p2ActiveBatch()))return;en.attendance=en.attendance||{};const s=p2cAttendanceStatus(en,date);if(s===true)delete en.attendance[date];else en.attendance[date]=true;p2cSelectedEnrollmentId=en.id;save()}
+02842:   function p2v5MarkRemainingAbsent(b,date){if(p2v5IsEnded(b))return;let changed=0;state.classEnrollments.filter(e=>e.batchId===b.id&&p2v5EnrollmentEligibleOn(e,date)).forEach(en=>{if(p2cAttendanceStatus(en,date)===null){en.attendance=en.attendance||{};en.attendance[date]=false;changed++}});save();toast(changed?`${changed} remaining student${changed===1?'':'s'} marked absent for ${fmt(date)}`:'No remaining unmarked students for this class')}
