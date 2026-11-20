@@ -80,7 +80,7 @@
       const result=originalRequirement.apply(this,arguments);
       if(result.ok)return result;
       const batch=state.classBatches.find(x=>x.id===batchId);
-      const target=p2v550Stage(batch);
+      const target=({'course-l1':'Level 1','course-l2':'Level 2','course-l3':'Level 3','course-l4':'Level 4'}[String(batch?.courseId||'').toLowerCase()]||p2CourseName(batch));
       const prev=target==='Level 2'?'Level 1':target==='Level 3'?'Level 2':target==='Level 4'?'Level 3':'';
       if(!prev)return result;
       const s=p2FindStudent(studentId);
