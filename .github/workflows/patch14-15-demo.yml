@@ -1,4 +1,4 @@
-name: Build Patch 14.15 demo four narrow fixes
+name: Build Patch 14.15 verified four demo fixes
 on:
   push:
     branches: [patch14-15-demo-four-fixes-20261122]
@@ -39,7 +39,7 @@ jobs:
           node -e "require('./.patch-tools/node_modules/@electron/asar').extractAll('build/base.asar','build/app')"
           $env:ANANDA_INDEX_PATH='build/app/index.html'
           node scripts/apply-patch14-15.js
-          if($LASTEXITCODE -ne 0){throw 'Serial update failed'}
+          if($LASTEXITCODE -ne 0){throw 'Four demo corrections failed; no updater created'}
           node --check scripts/apply-patch14-15.js
           node -e "const fs=require('fs');const s=fs.readFileSync('build/app/index.html','utf8');for(const t of ['p1415SaveOriginal','p1415RemoveEnrollment','p1415StudentDropdownStyle','const matches=!student'])if(!s.includes(t))throw Error('Missing agreed demo correction '+t);console.log('PASS four demo fixes present')"
           node -e "const vm=require('vm'),fs=require('fs');const s=fs.readFileSync('build/app/index.html','utf8');const matches=[...s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)];for(const m of matches){if(m[2].trim()&&!m[1].includes('src='))new vm.Script(m[2]);}console.log('PASS all inline JavaScript syntax checks')"
