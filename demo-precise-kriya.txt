@@ -1,0 +1,38 @@
+09495:     beforeVolunteers();if(!v51MasterUnlocked)return;
+09496:     const q=String(g('volunteerSearch')?.value||'').toLowerCase().trim();
+09497:     const list=state.volunteers.filter(v=>[volName(v),v.mobile,v.birthday].join(' ').toLowerCase().includes(q)).sort((a,b)=>sortNames({name:volName(a)},{name:volName(b)}));
+09498:     g('volunteerTable').innerHTML=table(['Name','Phone','Birthday'],list.map(v=>`<tr><td class="v575-name">${E(volName(v))}</td><td>${E(v.mobile||'—')}</td><td>${prettyDate(v.birthday)}</td><td>${edit('edit-vol',v.id)}</td></tr>`));
+09499:     bind('volunteerTable','edit-vol',id=>{openVolunteer(id);if(typeof v92WireMobileLimit==='function')v92WireMobileLimit()});
+09500:   };
+09501: 
+09502:   const beforeAttendees=renderAttendeeMaster;
+09503:   renderAttendeeMaster=function(){
+09504:     beforeAttendees();if(!v51MasterUnlocked)return;
+09505:     const q=normName(g('attendeeMasterSearch')?.value||''),filter=g('attendeeMasterFilter')?.value||'all';
+09506:     let list=state.attendeeMaster.filter(a=>[a.name,a.mobile].join(' ').toLowerCase().includes(q));
+09507:     if(filter==='family')list=list.filter(a=>a.category==='family');
+09508:     if(filter==='outside')list=list.filter(a=>a.category!=='family');
+09509:     if(filter==='review')list=list.filter(a=>a.needsReview);
+09510:     if(filter==='referrer')list=list.filter(a=>attendeeReferralCount(a.id)>0);
+09511:     list.sort(sortNames);
+09512:     g('attendeeMasterTable').innerHTML=table(['Name','Phone','Type'],list.map(a=>`<tr><td class="v575-name">${E(a.name)}</td><td>${E(a.mobile||'—')}</td><td>${E(a.category==='family'?'Family':'Attendee')}${a.needsReview?' · Review':''}</td><td>${edit('edit-attendee-master',a.id)}</td></tr>`));
+09513:     bind('attendeeMasterTable','edit-attendee-master',openAttendeeMaster);
+09514:   };
+09515: 
+09516:   const beforeKriyabans=v46RenderKriyabans;
+09517:   v46RenderKriyabans=function(){
+09518:     beforeKriyabans();if(!v51MasterUnlocked)return;
+09519:     const list=v46KriyabanQueryMatches(g('kriyabanSearch')?.value||'').sort(sortNames);
+09520:     g('kriyabanTable').innerHTML=table(['Name','Phone','Kriya Initiation Date'],list.map(k=>`<tr><td class="v575-name">${E(k.name)}</td><td>${E(k.mobile||'—')}</td><td>${prettyDate(k.kriyaDate)}</td><td>${edit('v46-edit-kriyaban',k.id)}</td></tr>`));
+09521:     bind('kriyabanTable','v46-edit-kriyaban',v46OpenKriyaban);
+09522:   };
+09523:   // The old note stays stored for audit, but never appears in the master table
+09524:   // or the master edit form.
+09525:   g('kriyabanNotes')?.closest('.field')?.setAttribute('hidden','');
+09526: 
+09527:   const beforeVips=v47RenderVips;
+09528:   const beforeVipOpen=v47OpenVip;
+09529:   v47OpenVip=function(id=''){
+09530:     beforeVipOpen(id);
+09531:     const vip=state.vips.find(v=>v.id===id);
+09532:     if(g('v575VipMobile'))g('v575VipMobile').value=vip?.mobile||'';

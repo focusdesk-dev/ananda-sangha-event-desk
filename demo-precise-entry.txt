@@ -1,0 +1,99 @@
+04160:         <div><label>Course</label><select id="p2v58Course"></select></div>
+04161:         <div><label>Batch</label><select id="p2v58Batch"></select></div>
+04162:         <div><label>Date</label><select id="p2v58Date"></select></div>
+04163:         <div class="p2v58-date-only"><span id="p2v58DateOnly">—</span></div>
+04164:       </div>
+04165:       <div class="p2v58-actions">
+04166:         <button id="p2v58Manual" class="btn" type="button">MARK ATTENDANCE<br><small>Manual Entry</small></button>
+04167:         <button id="p2v58Print" class="btn secondary" type="button">PRINT QR ATTENDANCE SHEET</button>
+04168:         <button id="p2v58Upload" class="btn secondary" type="button">SCAN / UPLOAD ATTENDANCE SHEET</button>
+04169:         <button id="p2v530AI" class="btn secondary" type="button">AI ATTENDANCE<br><small>Photo Recognition</small></button>
+04170:         <button id="p2v58Edit" class="btn secondary" type="button">VIEW / EDIT ATTENDANCE<br><small>Already Saved</small></button>
+04171:       </div>
+04172:       <div id="p2v58QrDetected" class="p2v58-detected hidden"><strong>QR detected.</strong> Course, batch and date were selected automatically. <button id="p2v58Unlock" type="button">Change manually</button></div>
+04173:       <div id="p2v58UploadPanel" class="p2v58-upload-panel hidden">
+04174:         <div><h3>Scan / Upload Attendance Sheet</h3><p>Upload the marked sheet from this computer, or connect a phone on the same Wi-Fi/hotspot. The printed QR identifies the class, batch and date automatically.</p></div>
+04175:         <div class="p2v58-upload-buttons"><button id="p2v58ChooseFile" class="btn secondary" type="button">UPLOAD IMAGE</button><button id="p2v58ConnectPhone" class="btn secondary" type="button">CONNECT PHONE</button><input id="p2v58File" type="file" accept="image/*" hidden></div>
+04176:         <div id="p2v58PhoneConnect" class="p2v58-phone hidden"><img id="p2v58PhoneQr" alt="Phone connection QR"><div><strong>Scan with phone</strong><p id="p2v58PhoneText"></p><small>Phone and this computer must be on the same Wi-Fi or hotspot. Internet is not required.</small></div></div>
+04177:         <div id="p2v58UploadStatus" class="p2v58-upload-status"></div>
+04178:       </div>
+04179: 
+04180:       <section id="p2v530Panel" class="p2v58-upload-panel hidden" aria-label="AI Attendance workflow">
+04181:         <h3>AI ATTENDANCE · COMPLETE CLASS WORKFLOW</h3>
+04182:         <p>Course, batch and date are selected above. Each printed page has its own Sheet ID and phone QR. Photos are assessed automatically and sent back for volunteer review. Nothing is saved until you confirm.</p>
+04183:         <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0">
+04184:           <div class="p2v531-step"><b>1. PRINT</b><small>AI attendance sheets</small></div>
+04185:           <div class="p2v531-step"><b>2. MARK</b><small>Tick students on paper</small></div>
+04186:           <div class="p2v531-step"><b>3. SCAN QR</b><small>Open on phone</small></div>
+04187:           <div class="p2v531-step"><b>4. TAKE PHOTO</b><small>AI sends result to review</small></div>
+04188:         </div>
+04189:         <div class="p2v58-upload-buttons" style="flex-wrap:wrap;align-items:center">
+04190:           <button id="p2v531Print" class="btn" type="button">PRINT AI ATTENDANCE SHEETS</button>
+04191:           <span style="font-size:12px;color:#43698c">Print 30 students on page 1, then remaining students in balanced columns on subsequent pages.</span>
+04192:         </div>
+04193:         <details id="p2v530Settings">
+04194:           <summary style="cursor:pointer;font-weight:bold;color:#16457e">ONE-TIME AI API SETUP</summary>
+04195:           <p style="margin:8px 0;font-size:12px">An OpenAI API key is needed for paid photo assessment. The key is encrypted on this Windows computer, not saved inside the student database or installer.</p>
+04196:           <div style="display:flex;gap:9px;flex-wrap:wrap">
+04197:             <input id="p2v530Key" type="password" autocomplete="off" placeholder="OpenAI API key (sk-...)" style="min-width:260px;flex:1;padding:10px;border:1px solid #b9cbdc;border-radius:8px">
+04198:             <button id="p2v530SaveKey" class="btn secondary" type="button">SAVE API KEY</button>
+04199:           </div>
+04200:         </details>
+04201:         <div id="p2v530Status" role="status" aria-live="polite" class="p2v537-status">Process attendance</div>
+04202:         <button id="p2v535RetryQueued" class="btn secondary" type="button" style="display:none;margin-top:8px">Retry received photo</button>
+04203:         <details style="margin-top:12px">
+04204:           <summary style="cursor:pointer;color:#315f93;font-size:12px">Alternative: analyse a photo already on this laptop</summary>
+04205:           <div class="p2v58-upload-buttons" style="flex-wrap:wrap">
+04206:             <button id="p2v530Choose" class="btn secondary" type="button">CHOOSE PHOTO</button>
+04207:             <button id="p2v530Analyze" class="btn secondary" type="button">ANALYZE WITH AI</button>
+04208:             <input id="p2v530File" type="file" accept="image/png,image/jpeg,image/webp,image/*" hidden>
+04209:           </div>
+04210:           <div style="display:flex;gap:10px;align-items:center;margin:8px 0">
+04211:             <img id="p2v530Preview" alt="Selected attendance photo" style="display:none;width:120px;max-height:90px;object-fit:contain;border:1px solid #bdd1e2;border-radius:8px">
+04212:             <span id="p2v530Filename" style="font-size:12px;color:#45647c">No photo selected</span>
+04213:           </div>
+04214:         </details>
+04215:         <div id="p2v531ReviewInside" style="margin-top:12px"></div>
+04216:       </section>
+04217:       <div class="p2v58-list-head"><div><button class="p2v58-tab active" type="button">ATTENDANCE LIST</button></div><input id="p2v58Search" class="search" placeholder="Search by name or mobile..."></div>
+04218:       <div id="p2v58Roster"></div>
+04219:       <div class="p2v58-footer"><div class="p2v58-left-actions"><button id="p2v58Clear" class="btn secondary" type="button">Clear All</button><button id="p2v58All" class="btn secondary" type="button">Mark Remaining Absent</button></div><div id="p2v58Totals" class="p2v58-totals"></div><div><button id="p2v58Save" class="btn secondary" type="button">Save Attendance</button><button id="p2v58Confirm" class="btn" type="button">Confirm Attendance</button></div></div>
+04220:     </div>`;
+04221:     const anchor=$('activeClasses')||$('classWorkspace')||$('studentProgress')||$('classes');
+04222:     anchor.insertAdjacentElement('afterend',sec);
+04223:     $('p2v58Back').onclick=()=>switchPage('classes');
+04224:     $('p2v58Course').onchange=()=>{p2v58Course=$('p2v58Course').value;p2v58Batch='';p2v58Date='';p2v58UploadLocked=false;p2v58Render()};
+04225:     $('p2v58Batch').onchange=()=>{p2v58Batch=$('p2v58Batch').value;p2v58Date='';p2v58UploadLocked=false;p2v58Render()};
+04226:     $('p2v58Date').onchange=()=>{p2v58Date=$('p2v58Date').value;p2v58UploadLocked=false;p2v58ResetDraft();p2v58RenderRoster()};
+04227:     $('p2v58Manual').onclick=()=>{p2v58LockSelectors(false);$('p2v58UploadPanel').classList.add('hidden');$('p2v58Search').focus()};
+04228:     $('p2v58Edit').onclick=()=>{p2v58LockSelectors(false);$('p2v58UploadPanel').classList.add('hidden');p2v58ResetDraft();p2v58RenderRoster()};
+04229:     $('p2v58Print').onclick=()=>p2v58PrintSheet();
+04230:     $('p2v58Upload').onclick=()=>$('p2v58UploadPanel').classList.toggle('hidden');
+04231:     $('p2v58ChooseFile').onclick=()=>$('p2v58File').click();
+04232:     $('p2v58File').onchange=async()=>{const f=$('p2v58File').files?.[0];if(f)await p2v58HandleUploadedFile(f)};
+04233:     $('p2v58ConnectPhone').onclick=()=>p2v58ConnectPhone();
+04234:     $('p2v58Unlock').onclick=()=>p2v58LockSelectors(false);
+04235:     $('p2v58Search').oninput=()=>p2v58ApplySearch();
+04236:     $('p2v58Clear').onclick=()=>{p2v58CurrentRows().forEach(r=>p2v58Draft[r.en.id]=null);p2v58RenderRoster()};
+04237:     $('p2v58All').onclick=()=>{p2v58CurrentRows().forEach(r=>{if(p2v58Draft[r.en.id]!==true&&p2v58Draft[r.en.id]!==false)p2v58Draft[r.en.id]=false});p2v58RenderRoster()};
+04238:     $('p2v58Save').onclick=()=>p2v58SaveAttendance(false);
+04239:     $('p2v58Confirm').onclick=()=>p2v58SaveAttendance(true);
+04240:     p2v58BindPhoneListener()
+04241:   }
+04242: 
+04243:   function p2v58Render(){
+04244:     p2v58EnsurePage();p2v58PrepareClassesHome();p2v58EnsureSelection();
+04245:     const courses=p2v58CourseOptions(),cf=$('p2v58Course');
+04246:     cf.innerHTML=courses.map(c=>`<option value="${esc(c.id)}" ${c.id===p2v58Course?'selected':''}>${esc(c.name)}</option>`).join('');
+04247:     const batches=p2v58FilteredBatches(),bf=$('p2v58Batch');
+04248:     bf.innerHTML=batches.map(b=>`<option value="${b.id}" ${b.id===p2v58Batch?'selected':''}>${esc(b.name)}</option>`).join('');
+04249:     const b=p2v58CurrentBatch(),dates=b?p2v58Dates(b):[],df=$('p2v58Date');
+04250:     df.innerHTML=dates.map(d=>`<option value="${d}" ${d===p2v58Date?'selected':''}>${esc(fmt(d))}</option>`).join('');
+04251:     $('p2v58DateOnly').textContent=p2v58Date?fmt(p2v58Date):'No class date';
+04252:     if(!p2v524ScanSession)p2v58ResetDraft();p2v58RenderRoster();p2v58LockSelectors(p2v58UploadLocked)
+04253:   }
+04254: 
+04255:   function p2v58RenderRoster(){
+04256:     const host=$('p2v58Roster');if(!host)return;
+04257:     const rows=p2v58CurrentRows(),half=Math.min(20,Math.ceil(rows.length/2)),left=rows.slice(0,half),right=rows.slice(half,half*2);
+04258:     const rowHtml=(r,i)=>`<label class="p2v58-row" data-search="${esc(((r.p.name||'')+' '+(r.p.mobile||'')).toLowerCase())}"><span class="p2v58-no">${String(i+1).padStart(2,'0')}</span><span class="p2v58-name">${esc(r.p.name||'Unnamed')}</span><input class="p2v58-check" type="checkbox" data-en="${r.en.id}" ${p2v58Draft[r.en.id]?'checked':''}><span class="p2v58-box"></span></label>`;

@@ -1,0 +1,31 @@
+04580:   $('backButton').onclick=()=>{if(page==='events'&&p2v510EventView!=='landing'){p2v510EventView='landing';p2v510EventYear='';p2v510RenderEventView();renderEvents();return}p2v510BackBase?.()};
+04581: 
+04582:   const p2v510SwitchBase=switchPage;
+04583:   switchPage=function(id){const previous=page;if(id==='events'&&previous!=='events'){p2v510EventView='landing';p2v510EventYear=''}const r=p2v510SwitchBase.apply(this,arguments);if(id==='events'){p2v510EnsureEventLanding();p2v510RenderEventView();renderEvents()}if(id==='classes'){p2v510ClassYear='';p2RenderClasses()}if(id==='classAttendanceHub'){p2v510WireAttendance();p2v58RenderRoster()}return r};
+04584: 
+04585:   (function p2v510Style(){
+04586:     const st=document.createElement('style');st.id='p2v510Style';st.textContent=`
+04587:       #classAttendanceHub .p2v58-title-row{display:none!important}
+04588:       #classAttendanceHub .p2v58-filters{grid-template-columns:repeat(3,1fr)!important}
+04589:       #classAttendanceHub .p2v58-date-only{display:none!important}
+04590:       #classAttendanceHub .p2v58-actions{grid-template-columns:repeat(3,1fr)!important}
+04591:       #p2v58Edit,#p2v58Save{display:none!important}
+04592:       .p2v510-att-saved{margin:10px 0 12px;padding:11px 14px;border-radius:9px;background:#edf9f1;border:1px solid #cbead5;color:#16723f;font-size:12px}.p2v510-att-saved.hidden{display:none!important}
+04593:       .p2v58-row.absent{background:#fff3f3!important}.p2v58-row.absent .p2v58-name{color:#9f2929}.p2v58-row.absent .p2v58-box{background:#e33434!important;border-color:#e33434!important}.p2v58-row.absent .p2v58-box:after{content:'×'!important;position:absolute;color:#fff;font-size:15px;font-weight:900;left:2px;top:-4px}
+04594:       .p2v58-row.pending .p2v58-box{background:#fff!important;border-color:#7891ad!important}.p2v58-row.pending .p2v58-box:after{content:''!important}
+04595:       .p2v510-year-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.p2v510-year-card{min-height:125px;border:1px solid #d8e4ee;border-radius:14px;background:#fff;text-align:left;padding:18px;cursor:pointer;color:#123f7d}.p2v510-year-card:hover{background:#f7fbff;border-color:#a9c6e5}.p2v510-year-card span{display:block;font-size:10px;font-weight:900;color:#178267}.p2v510-year-card strong{display:block;font-size:24px;margin:10px 0 6px}.p2v510-year-card small{color:#657b90}.p2v510-year-open-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:15px}.p2v510-year-open-head span{font-size:10px;font-weight:900;color:#178267}.p2v510-year-open-head h3{margin:5px 0;color:#123f7d}.p2v510-year-open-head p{margin:0;color:#657b90;font-size:12px}
+04596:       .p2v510-event-landing{margin-top:4px}.p2v510-event-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:15px 0;border-bottom:1px solid var(--line)}.p2v510-event-row:last-child{border-bottom:0}
+04597:       #events #p2v510EventOriginal{grid-template-columns:1fr!important}#events #eventForm{max-width:none}
+04598:       aside .brand:focus{outline:2px solid #f2bf2d;outline-offset:5px;border-radius:8px}
+04599:       @media(max-width:900px){.p2v510-year-grid{grid-template-columns:1fr}#classAttendanceHub .p2v58-filters,#classAttendanceHub .p2v58-actions{grid-template-columns:1fr!important}}
+04600:     `;document.head.appendChild(st)
+04601:   })();
+04602:   p2v510EnsureEventLanding();p2v510RenderEventView();
+04603: 
+04604: 
+04605:   // PHASE2 BETA511 COMPLETE
+04606:   // Photograph -> QR/session -> automatic handwritten tick detection -> review -> confirm.
+04607:   const P2V511_QR_DOC={left:174,top:8,size:27};
+04608:   const P2V511_ROW={top:70,height:10.35,leftMark:[19,29],rightMark:[120,130],yInset:[2.0,8.2]};
+04609: 
+04610:   function p2v511Solve8(A,b){

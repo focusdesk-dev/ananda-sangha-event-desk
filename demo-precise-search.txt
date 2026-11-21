@@ -1,0 +1,71 @@
+08525:         return state.courseTypes.slice().sort((a,b)=>
+08526:           p2CourseRank(a.name)-p2CourseRank(b.name)||
+08527:           a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+08528:       }
+08529:       function p2v520EnsureSelection(){
+08530:         const choices=p2v520AvailableCourses();
+08531:         if(!choices.some(c=>c.id===p2v520Course)){
+08532:           p2v520Course=choices.find(c=>c.id==='course-l1'||c.name==='Level 1')?.id||
+08533:             choices[0]?.id||'';
+08534:         }
+08535:         if(p2v520Group==='Eligible'||p2v520Group==='Eligible + Incomplete / Withdrawn')
+08536:           p2v520Batch='__all__';
+08537:       }
+08538:       let p2v526Search='';
+08539:       function p2v526StudentWise(body){
+08540:         const hits=state.students.filter(x=>[x.name,x.mobile].some(v=>String(v||'').toLowerCase().includes(p2v526Search.toLowerCase())))
+08541:           .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).slice(0,50);
+08542:         body.innerHTML='<label for="p2v526Search">Find student</label><input id="p2v526Search" placeholder="Search by name or mobile" value="'+esc(p2v526Search)+'">'+
+08543:           '<div class="p2v526-results">'+(p2v526Search.trim()?hits.map(x=>'<button type="button" class="p2v526-result" data-id="'+esc(x.id)+'">'+esc(x.name)+' · '+esc(x.mobile||'')+'</button>').join(''):'Type a name or mobile number')+
+08544:           '</div><div id="p2v520History" class="p2v520-history"></div>';
+08545:         $('p2v526Search').oninput=e=>{
+08546:           p2v526Search=e.target.value;
+08547:           const matches=state.students.filter(x=>[x.name,x.mobile].some(v=>
+08548:             String(v||'').toLowerCase().includes(p2v526Search.toLowerCase())))
+08549:             .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).slice(0,50);
+08550:           const list=body.querySelector('.p2v526-results');
+08551:           list.innerHTML=p2v526Search.trim()?matches.map(x=>
+08552:             '<button type="button" class="p2v526-result" data-id="'+esc(x.id)+'">'+
+08553:             esc(x.name)+' · '+esc(x.mobile||'')+'</button>').join(''):'Type a name or mobile number';
+08554:           list.querySelectorAll('.p2v526-result').forEach(btn=>btn.onclick=()=>{
+08555:             p2v520History=btn.dataset.id;p2v520ShowHistory();
+08556:           });
+08557:         };
+08558:         body.querySelectorAll('.p2v526-result').forEach(btn=>btn.onclick=()=>{
+08559:           p2v520History=btn.dataset.id;p2v520ShowHistory();
+08560:         });
+08561:         if(p2v520History)p2v520ShowHistory();
+08562:       }
+08563:       function p2v573ExportProgressXlsx(rows){
+08564:         if(!rows.length){toast('No students match the selected filters.');return}
+08565:         // The existing writer stores all strings, including mobile numbers,
+08566:         // as Excel inlineStr cells. Leading zeros are preserved.
+08567:         const data=[['Student','Mobile Number','Course','Batch','Year','Attendance %','Status'],
+08568:           ...rows.map(x=>[String(x.student.name||''),String(x.student.mobile||''),
+08569:             String(x.b?p2CourseName(x.b):p2v520CourseName(p2v520Course)),
+08570:             String(x.b?.name||''),String(x.year||''),
+08571:             x.pct===null?'Not assessed':String(x.pct)+'%',String(x.group||'')])];
+08572:         const widths=[26,20,19,24,12,19,28];
+08573:         const cols='<cols>'+widths.map((w,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>').join('')+'</cols>';
+08574:         const sheet=v51SheetXml(data).replace('<sheetData>',cols+'<sheetData>');
+08575:         const types='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+08576:           '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+08577:           '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+08578:           '<Default Extension="xml" ContentType="application/xml"/>'+
+08579:           '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+
+08580:           '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+
+08581:           '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>';
+08582:         const rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+08583:           '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+08584:           '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+08585:         const workbook='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+08586:           '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+08587:           '<sheets><sheet name="Student Progress" sheetId="1" r:id="rId1"/></sheets></workbook>';
+08588:         const workbookRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+08589:           '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+08590:           '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'+
+08591:           '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
+08592:         const styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
+08593:           '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'+
+08594:           '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font>'+
+08595:           '<font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'+

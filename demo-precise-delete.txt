@@ -1,0 +1,38 @@
+02765:   p2ExportEnrollments=function(){p2Csv(state.classEnrollments.map(e=>{const s=p2cEnrollmentPerson(e),b=state.classBatches.find(x=>x.id===e.batchId),dates=b?.sessionDates||[],present=dates.filter(d=>p2cAttendanceStatus(e,d)===true).length,absent=dates.filter(d=>p2cAttendanceStatus(e,d)===false).length;return{Student:s.name||'',Mobile:s.mobile||'',Course:b?p2CourseName(b):(e.courseName||e.level||''),Batch:b?.name||'',Year:b?p2BatchYear(b):'',Enrolled:e.enrolledAt||'',Present:present,Absent:absent,Total_Classes:dates.length,Outcome:e.outcome||'',Completion_Date:e.completionDate||'',Progressed_Date:e.progressedDate||''}}),'Ananda_Class_Attendance_Progress.csv')};
+02766:   p2ExportSessions=function(){const rows=[];state.classEnrollments.forEach(e=>{const s=p2cEnrollmentPerson(e),b=state.classBatches.find(x=>x.id===e.batchId);(b?.sessionDates||[]).forEach(d=>rows.push({Student:s.name||'',Mobile:s.mobile||'',Course:b?p2CourseName(b):(e.courseName||e.level||''),Batch:b?.name||'',Session_Date:d,Attendance:p2cAttendanceStatus(e,d)===true?'Present':p2cAttendanceStatus(e,d)===false?'Absent':'Not marked'}))});p2Csv(rows,'Ananda_Class_Session_Attendance.csv')};
+02767: 
+02768: 
+02769:   // Preserve the canonical Level 4 → Kriya progression relationship.
+02770:   // Kriya enrollment remains blocked until a separate Acharya decision is approved.
+02771:   // Never hide the next course; it is needed to open the approval workflow.
+02772: 
+02773:   const p2v5RenderClassesBase=p2RenderClasses;
+02774:   p2RenderClasses=function(){
+02775:     p2v5RenderClassesBase();
+02776:     document.querySelectorAll('#p2ClassList .p2-year-open-hint').forEach(x=>x.remove());
+02777:     const sub=document.querySelector('#p2BatchListCard .card-sub');if(sub)sub.textContent='One box per year. Double-click a year box to open or close its classes. Active and upcoming remain above inactive and completed.';
+02778:   };
+02779: 
+02780:   function p2v5PrepareWorkspace(){
+02781:     const page=$('classWorkspace');if(!page||$('p2v5WorkspaceGrid'))return;
+02782:     const oldGrid=page.querySelector('.grid.two');
+02783:     if(oldGrid){
+02784:       oldGrid.outerHTML=`<div id="p2v5WorkspaceGrid"><div class="card" id="p2v5AttendanceCard"><div class="card-head"><div><h3>Batch Roster &amp; Attendance</h3></div><button id="p2EnrollStudent" class="btn small" type="button">ENROL STUDENT</button></div><div id="p2ClassRoster"></div></div><div class="card" id="p2v5StudentCard"><div id="p2v5StudentDetails"></div></div></div>`;
+02785:     }
+02786:     const outreach=page.querySelector('#p2BatchOutreach')?.closest('.card');if(outreach)outreach.remove();
+02787:     if(!$('p2SessionList'))page.insertAdjacentHTML('beforeend','<div id="p2SessionList" style="display:none"></div>');
+02788:     if(!$('p2BatchOutreach'))page.insertAdjacentHTML('beforeend','<div id="p2BatchOutreach" style="display:none"></div>');
+02789:     p2cInstallEnrollmentFlow();
+02790:     if(!$('p2v5StudentEditModal'))document.body.insertAdjacentHTML('beforeend',`<div id="p2v5StudentEditModal" class="modal-backdrop"><form id="p2v5StudentEditForm" class="modal" style="max-width:600px"><div class="modal-head"><div><h3>Student Details</h3><div class="card-sub" id="p2v5EditStudentName"></div></div><button class="x" type="button" data-close="p2v5StudentEditModal">×</button></div><input type="hidden" id="p2v5EditEnrollmentId"><div class="form-grid"><div class="field"><label>PAYMENT STATUS</label><select id="p2v5PaymentStatus"><option>Pending</option><option>Paid</option></select></div><div class="field"><label>FEE AMOUNT</label><input id="p2v5FeeAmount" inputmode="decimal" placeholder="Optional"></div><div class="field"><label>PAYMENT DATE</label><input id="p2v5PaymentDate" type="date"></div><div class="field"><label>MODE</label><select id="p2v5PaymentMode"><option value="">Select mode</option><option>Cash</option><option>UPI</option><option>Bank Transfer</option><option>Card</option><option>Other</option></select></div><div class="field"><label>DUE DATE</label><input id="p2v5DueDate" type="date"></div></div><div class="actions" style="margin-top:18px"><button class="btn" type="submit">Save</button></div></form></div>`);
+02791:     if(!$('p2v5AttendanceEditModal'))document.body.insertAdjacentHTML('beforeend',`<div id="p2v5AttendanceEditModal" class="modal-backdrop"><div class="modal" style="max-width:520px"><div class="modal-head"><div><h3>Edit Attendance</h3><div class="card-sub" id="p2v5AttendanceEditTitle"></div></div><button class="x" type="button" data-close="p2v5AttendanceEditModal">×</button></div><div class="p2v5-modal-choice"><button class="btn" id="p2v5SetPresent" type="button">Present</button><button class="btn secondary" id="p2v5SetAbsent" type="button">Absent</button><button class="btn ghost" id="p2v5SetUnmarked" type="button">Not Marked</button></div></div></div>`);
+02792:     document.querySelectorAll('#p2v5StudentEditModal [data-close],#p2v5AttendanceEditModal [data-close]').forEach(x=>x.onclick=()=>x.closest('.modal-backdrop').classList.remove('open'));
+02793:     $('p2v5PaymentStatus').onchange=p2v5RefreshPaymentEditFields;
+02794:     $('p2v5StudentEditForm').onsubmit=p2v5SaveStudentDetails;
+02795:   }
+02796: 
+02797:   function p2v5IsEnded(b){return String(b?.status||'').toLowerCase()==='completed'||!!b?.endedAt}
+02798:   function p2v5ValidDates(b){return [...new Set((b?.sessionDates||[]).filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d)))].sort()}
+02799:   function p2v5EnrollmentEligibleOn(en,date){const joined=(en?.enrolledAt||'').slice(0,10);return !joined||joined<=date}
+02800:   function p2v5Person(en){return p2cEnrollmentPerson(en)}
+02801:   function p2v5Weekday(iso){if(!/^\d{4}-\d{2}-\d{2}$/.test(iso||''))return'';return['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(iso+'T12:00:00').getDay()]}
+02802:   function p2v5CourseNext(b){const c=p2CourseForBatch(b),id=String(b?.courseId||'');const stage={'course-l1':'Level 1','course-l2':'Level 2','course-l3':'Level 3','course-l4':'Level 4','course-kriya':'Kriya','course-kriya2':'Kriya 2','course-kriya3':'Kriya 3','course-kriya4':'Kriya 4'}[id]||c?.name;return p2NextLevel(stage)}
