@@ -1,0 +1,41 @@
+name: Inspect four demo corrections
+on:
+  push:
+    branches: [patch14-15-demo-four-fixes-20261122]
+    paths: ['.github/workflows/inspect-four-demo.yml']
+permissions:
+  contents: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract relevant source neighborhoods
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          src=Path('index.html').read_text().splitlines()
+          pats={
+            'attendance':[r'function p2cAttendanceStatus',r'p2Att.*Form',r'p2v5SaveStudentDetails',r'function p2v58SaveAttendance',r'p2v58SaveAttendance=function',r'p2v58SaveAttendance=',r'function p2v536RenderFullRoster',r'function p2v536Save',r'function p2v5.*Attendance',r'p2-att-check',r'p2v5Present',r'p2v5Absent'],
+            'delete':[r'p2v5StudentEditForm',r'p2v5SaveStudentDetails',r'p2v56.*Edit',r'p2StudentModal',r'p2v5EditEnrollmentId',r'Edit Student'],
+            'search':[r'FIND STUDENT',r'Find Student',r'p2v56EnrollSuggestion',r'p2cShowEnrollSuggestions',r'p2v56Chat',r'p2StudentSearch',r'p2v5Search',r'p2v520.*Search'],
+            'kriya':[r'function v46RenderKriyabans',r'function v46EditKriyaban',r'KRIYA INITIATION DATE',r'Kriya Initiation Date',r'kriyaInitiationDate',r'initiationDate',r'kriyaDate',r'kriyaYear',r'p2v567SyncKriyaMaster']
+          }
+          for name,patterns in pats.items():
+            matches=[i for i,line in enumerate(src) if any(re.search(p,line,re.I) for p in patterns)]
+            span=20 if name in ('attendance','delete','kriya') else 12
+            picks=set()
+            for i in matches[:120]:
+              for n in range(max(0,i-7),min(len(src),i+span)):picks.add(n)
+            output=['MATCHES:'+str(len(matches))]
+            for n in sorted(picks):output.append(f'{n+1:05d}: '+src[n][:1600])
+            Path('demo-inspect-'+name+'.txt').write_text('\n'.join(output)[:350000])
+          PY
+      - name: Commit inspection to branch
+        run: |
+          git config user.name "Ananda QA"
+          git config user.email "actions@users.noreply.github.com"
+          git add demo-inspect-*.txt
+          git commit -m "Inspect four demo correction points"
+          git push
