@@ -1,0 +1,28 @@
+name: Inspect exact four-fix source
+on:
+  push:
+    branches: [patch14-15-demo-four-fixes-20261122]
+    paths: ['.github/workflows/inspect-demo-precise.yml']
+permissions:
+  contents: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collect exact ranges
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path('index.html').read_text().splitlines()
+          blocks={'search':(8525,8595),'attendance':(6810,7045),'entry':(4160,4258),'delete':(2765,2802),'kriya':(9495,9532),'sync':(4580,4610),'last':(11800,11912)}
+          for name,(a,b) in blocks.items():
+            Path('demo-precise-'+name+'.txt').write_text('\n'.join(f'{i+1:05d}: {src[i]}' for i in range(a-1,min(b,len(src))))[:230000])
+          PY
+      - name: Commit
+        run: |
+          git config user.name "Ananda QA"
+          git config user.email "actions@users.noreply.github.com"
+          git add demo-precise-*.txt
+          git commit -m "Collect exact four-fix source"
+          git push
