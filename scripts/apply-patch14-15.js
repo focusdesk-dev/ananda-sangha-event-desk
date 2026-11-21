@@ -60,8 +60,13 @@ const fifty=".sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).
 assert(s.split(fifty).length===3,'Expected exactly two student results lists');
 s=s.split(fifty).join(".sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''))).slice(0,5);");
 const choose="p2v520History=btn.dataset.id;p2v520ShowHistory();";
-assert(s.split(choose).length===3,'Expected exactly two matching-student selection handlers');
-s=s.split(choose).join("p2v520History=btn.dataset.id;body.querySelector('.p2v526-results')?.classList.add('hidden');p2v520ShowHistory();");
+const sectionStart=s.indexOf('      function p2v526StudentWise(body){');
+const sectionEnd=s.indexOf('      function p2v573ExportProgressXlsx(',sectionStart);
+assert(sectionStart>=0&&sectionEnd>sectionStart,'Unable to isolate Student Wise search');
+let section=s.slice(sectionStart,sectionEnd);
+assert(section.split(choose).length===3,'Expected two student selection handlers in Student Wise search');
+section=section.split(choose).join("p2v520History=btn.dataset.id;body.querySelector('.p2v526-results')?.classList.add('hidden');p2v520ShowHistory();");
+s=s.slice(0,sectionStart)+section+s.slice(sectionEnd);
 replaceOnce("          const list=body.querySelector('.p2v526-results');\n          list.innerHTML=",
   "          const list=body.querySelector('.p2v526-results');\n          list.classList.toggle('hidden',!p2v526Search.trim());\n          list.innerHTML=",
   'hide dropdown on empty input');
