@@ -20,7 +20,7 @@ replaceOnce(session,session+
  'attendance synchronisation');
 
 // Fix 2: only remove accidental enrolment, never the master student.
-const edit="function p2v5OpenStudentEdit(en){";
+const edit="p2v5OpenStudentEdit=function(en){";
 replaceOnce(edit,edit+
  "\n    const modal=$('p2v5StudentEditModal');\n"+
  "    let remove=$('p1415RemoveEnrollment');\n"+
