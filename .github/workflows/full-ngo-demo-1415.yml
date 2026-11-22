@@ -1,0 +1,114 @@
+name: Build Ananda single full installer with Patch 14.15
+on:
+  push:
+    branches: [ananda-demo-unified-full-installer-20261122]
+    paths: ['.github/workflows/full-ngo-demo-1415.yml']
+permissions:
+  contents: write
+jobs:
+  setup:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Retrieve last released Patch 14.15 application
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path released,unpacked | Out-Null
+          gh release download patch14.15-demo-four-fixes --repo focusdesk-dev/ananda-sangha-event-desk --pattern 'Ananda-Patch14.15-DEMO-FOUR-FIXES-Update.exe' --dir released
+          if($LASTEXITCODE -ne 0){throw 'Latest app patch unavailable'}
+          $zip=(Resolve-Path 'released/Ananda-Patch14.15-DEMO-FOUR-FIXES-Update.exe').Path
+          & 'C:\Program Files\7-Zip\7z.exe' x $zip '-ounpacked' -y
+          if($LASTEXITCODE -ne 0){throw 'Cannot extract latest archive'}
+          $files=@(Get-ChildItem unpacked -Filter 'app.asar' -Recurse)
+          if($files.Count -ne 1){throw 'Expected exactly one app archive'}
+          Copy-Item $files[0].FullName latest-app.asar
+      - name: Install packaging dependencies
+        shell: pwsh
+        run: |
+          $ok=$false
+          for($i=0;$i -lt 3;$i++){
+            npm install --no-audit --no-fund
+            if($LASTEXITCODE -eq 0){$ok=$true;break}
+            Start-Sleep -Seconds (3+$i*5)
+          }
+          if(!$ok){throw 'Build dependencies unavailable'}
+          npm run prepare:assets
+          if($LASTEXITCODE -ne 0){throw 'Original app assets unavailable'}
+      - name: Replace source with exact latest 14.15 app
+        shell: pwsh
+        run: |
+          node -e "require('@electron/asar').extractAll('latest-app.asar','latest-app-source')"
+          if($LASTEXITCODE -ne 0){throw 'ASAR extraction failed'}
+          foreach($name in @('index.html','main.js','preload.js','omr-scanner.js','logo-128.png','ananda-icon.ico','qrcode-client.js','jsqr-client.js')){
+            if(!(Test-Path (Join-Path 'latest-app-source' $name))){throw "Approved release missing $name"}
+            Copy-Item (Join-Path 'latest-app-source' $name) $name -Force
+          }
+          node -e "const fs=require('fs'),vm=require('vm');let s=fs.readFileSync('index.html','utf8');for(let marker of ['p1414ReviewAccept','p1415RemoveEnrollment','p1415StudentDropdownStyle','p1415SaveOriginal'])if(!s.includes(marker))throw Error('Missing recent patch '+marker);for(const m of s.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g))if(m[2].trim()&&!m[1].includes('src='))new vm.Script(m[2]);console.log('PASS approved application syntax')"
+          if($LASTEXITCODE -ne 0){throw 'Approved app syntax failed'}
+      - name: Build one independent Windows x64 full installer
+        shell: pwsh
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          npx electron-builder --win nsis --x64 --publish never
+          if($LASTEXITCODE -ne 0){throw 'Full installer creation failed'}
+          $setups=@(Get-ChildItem dist -Filter '*.exe' -File)
+          if($setups.Count -ne 1){throw 'Expected one complete setup'}
+          Copy-Item $setups[0].FullName 'dist/Ananda-Sangha-Event-Desk-FULL-SETUP-Patch14.15.exe'
+      - name: Check full installer contains exact previous cumulative application code
+        shell: pwsh
+        run: |
+          if(!(Test-Path 'dist/win-unpacked/Ananda Sangha Event Desk.exe')){throw 'Full desktop app missing'}
+          if(!(Test-Path 'dist/win-unpacked/resources/app.asar')){throw 'Bundled app resources missing'}
+          node -e "const asar=require('@electron/asar');for(const n of ['index.html','main.js','preload.js']){const a=asar.extractFile('latest-app.asar',n);const b=asar.extractFile('dist/win-unpacked/resources/app.asar',n);if(!a.equals(b))throw Error(n+' differs from latest released app')}console.log('PASS exact approved cumulative app code embedded')"
+          if($LASTEXITCODE -ne 0){throw 'Package regressed latest app'}
+          $exe=(Resolve-Path 'dist/win-unpacked/Ananda Sangha Event Desk.exe').Path
+          $p=Start-Process -FilePath $exe -ArgumentList '--remote-debugging-port=9341' -PassThru
+          try{
+            $ok=$false
+            for($i=0;$i -lt 18;$i++){
+              Start-Sleep -Seconds 2
+              if($p.HasExited){throw 'App exited before opening'}
+              try{
+                $pages=Invoke-RestMethod 'http://127.0.0.1:9341/json/list' -TimeoutSec 3
+                if(@($pages|Where-Object {$_.type -eq 'page' -and $_.url -match 'index.html'}).Count -gt 0){$ok=$true;break}
+              }catch{}
+            }
+            if(!$ok){throw 'App failed to open in fresh Windows environment'}
+          }finally{
+            Get-CimInstance Win32_Process | Where-Object {$_.Name -eq 'Ananda Sangha Event Desk.exe'} | ForEach-Object {Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue}
+          }
+      - name: Independently install full setup without patches and preserve data
+        shell: pwsh
+        run: |
+          $dest=Join-Path $env:RUNNER_TEMP 'Ananda Standalone NGO Test'
+          $data=Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'ANANDA SANGHA EVENT DESK/Data'
+          New-Item -ItemType Directory -Force -Path $data | Out-Null
+          $sentinel=Join-Path $data 'ngo-install-preserve-sentinel.txt'
+          [IO.File]::WriteAllText($sentinel,'PRESERVE_EXISTING_DATA')
+          $setup=(Resolve-Path 'dist/Ananda-Sangha-Event-Desk-FULL-SETUP-Patch14.15.exe').Path
+          $p=Start-Process $setup -ArgumentList @('/S',('/D='+$dest)) -Wait -PassThru
+          if($p.ExitCode -ne 0){throw 'Fresh setup failed'}
+          if(!(Test-Path (Join-Path $dest 'Ananda Sangha Event Desk.exe'))){throw 'Full app executable missing from installed folder'}
+          if(!(Test-Path (Join-Path $dest 'resources/app.asar'))){throw 'Full app archive missing from installed folder'}
+          if([IO.File]::ReadAllText($sentinel) -ne 'PRESERVE_EXISTING_DATA'){throw 'Existing data changed'}
+          if(!@(Get-ChildItem $dest -Filter 'Uninstall*.exe').Count){throw 'Uninstaller missing'}
+          Write-Host 'PASS fully independent installation; no patches required; existing data preserved'
+          Write-Host 'FULL_SETUP_SIZE:' (Get-Item $setup).Length
+          Write-Host 'FULL_SETUP_SHA256:' (Get-FileHash $setup -Algorithm SHA256).Hash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ananda-Sangha-FULL-SETUP-with-Patch14.15
+          path: dist/Ananda-Sangha-Event-Desk-FULL-SETUP-Patch14.15.exe
+          if-no-files-found: error
+          compression-level: 0
+      - name: Publish one-file downloadable setup
+        shell: pwsh
+        run: |
+          gh release create ananda-ngo-full-setup-patch14.15 'dist/Ananda-Sangha-Event-Desk-FULL-SETUP-Patch14.15.exe' --target ${{ github.sha }} --title 'Ananda Sangha Event Desk - Full NGO Setup including Patch 14.15' --notes 'One full Windows x64 installer; includes approved 14.15 cumulative app. No previous patches needed. Student/event data are stored separately under Documents and NOT bundled in setup. Unsigned: organisational security policy applies.'
